@@ -122,6 +122,8 @@ Windows 打包在符合要求的 Windows 主机上执行，沿用同一份 JSON 
 
 Windows 交付应在 Windows CI 中使用相同配置。Mac 可以发起该 CI 任务，编译与安装包验证在 Windows 上完成。本次本地实现在 macOS ARM64 验证；Windows 安装、托盘和运行时验收由 Windows 执行环境负责。
 
+PowerShell 命令、产物核验和安装后的应用验收见 [Windows 安装包教程](windows.zh.md)。
+
 <a id="dev-note"></a>
 
 ## 开发备注

@@ -122,6 +122,8 @@ Supported targets are `mac-arm64`, `mac-x64` and `win-x64`. macOS targets requir
 
 Use the same configuration in a Windows CI runner for Windows delivery. A Mac can initiate that CI job; compilation and installer verification occur on Windows. This local implementation is verified on macOS ARM64; a Windows runner owns Windows installation, tray and runtime acceptance.
 
+Follow the [Windows installer tutorial](windows.md) for PowerShell commands, artifact verification and installed-application acceptance.
+
 <a id="dev-note"></a>
 
 ## Dev Note

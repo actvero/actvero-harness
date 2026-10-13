@@ -87,6 +87,7 @@ Actvero 智能中台负责管理、授权和分发企业 AI 能力，Actvero Har
 | --- | --- |
 | [桌面开发](actvero/README.zh.md) | 准备开发环境，启动 Actvero 账号流程。 |
 | [构建和打包](actvero/building/README.zh.md) | 配置应用品牌，生成桌面安装包。 |
+| [Windows 安装包](actvero/building/windows.zh.md) | 在 Windows 上准备工具链、打包并验收 EXE。 |
 | [专家包](actvero/expert-package.zh.md) | 将专家及其 Skills、连接器依赖打包。 |
 | [能力集成](actvero/capabilities.zh.md) | 了解桌面端如何接入专家、Skills 与 MCP。 |
 | [开发规范](docs/development.zh.md) | 配置仓库环境，了解构建与测试流程。 |

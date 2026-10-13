@@ -87,6 +87,7 @@ This repository contains the desktop application, its DSH runtime and Actvero in
 | --- | --- |
 | [Desktop development](actvero/README.md) | Prepare the development environment and start the Actvero account flow. |
 | [Build and packaging](actvero/building/README.md) | Configure application branding and produce a desktop package. |
+| [Windows installer](actvero/building/windows.md) | Prepare the Windows toolchain, package and test an EXE. |
 | [Expert packages](actvero/expert-package.md) | Package an expert with its Skills and connector dependencies. |
 | [Capability integration](actvero/capabilities.md) | Understand desktop integration with experts, Skills and MCP. |
 | [Development guide](docs/development.md) | Set up the repository and follow its build and testing workflow. |

@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for windows.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/building/windows.md
+/build-a-windows-installer:
+  en: 5eeab0f0c6e956f8
+  zh: 256b844f155adc6e
+/build-a-windows-installer/summary:
+  en: 77c154161ea376a3
+  zh: 1b7e6793e7086bf5
+/build-a-windows-installer/table-of-contents:
+  en: fedfa58607fb68fd
+  zh: fb2c2f67d5bc8e03
+/build-a-windows-installer/1-prepare-the-build-host:
+  en: 55e06b003a13989b
+  zh: 6e83bbca62a4ae8a
+/build-a-windows-installer/2-install-and-check:
+  en: 23e9fe51de55a9d3
+  zh: 2c9f869a879fa040
+/build-a-windows-installer/3-package-and-verify:
+  en: 80a5d7ca0de82eca
+  zh: acee03d9a220c314
+/build-a-windows-installer/4-test-the-installed-application:
+  en: 04035bbbcbad89b4
+  zh: 1ed279443b9b9a8f
+/build-a-windows-installer/troubleshooting:
+  en: 0a630205b7f8659d
+  zh: 633ac4ef9df9fd0c
+/build-a-windows-installer/dev-note:
+  en: fbcf75007b339238
+  zh: 83cc48b4b118e1ab
