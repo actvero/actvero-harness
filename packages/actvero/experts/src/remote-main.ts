@@ -29,7 +29,11 @@ export class RemoteExperts {
   private writes=new Map<string,Promise<unknown>>()
   private stages=new Map<string,Promise<Expert>>()
   constructor(private options:Options){}
-  available(){return !!this.options.identity()?.available}
+  /**
+   * Check whether the selected account exposes platform expert resources.
+   * @returns Whether the current identity is available.
+   */
+  available(): boolean {return !!this.options.identity()?.available}
   /** Revoke in-flight account work, cached authority, preparation flights and live connections. */
   invalidate():void{
     this.epoch++;this.abort.abort();this.abort=new AbortController()
@@ -38,7 +42,8 @@ export class RemoteExperts {
     for(const row of this.instances.values())void row.client.dispose()
     this.instances.clear();this.options.changed()
   }
-  dispose(){this.invalidate()}
+  /** Invalidate account authority and start closing owned connector clients. */
+  dispose(): void {this.invalidate()}
   private context(){const identity=this.options.identity();if(!identity?.available)fail('expert_remote_login');return { identity:{ ...identity },epoch:this.epoch }}
   private guard(c:ReturnType<RemoteExperts['context']>){if(c.epoch!==this.epoch||c.identity.key!==this.options.identity()?.key||!this.available())fail('expert_account_changed')}
   private async resource(){
@@ -108,8 +113,20 @@ export class RemoteExperts {
     for(const r of p.connectors)view.bindings.connectors[r.key]=this.connectionId(p,r.key)
     return view
   }
-  async categories(q=''){const rows=await this.request<{ id:string;name:string;count:number }[]>('/categories?'+new URLSearchParams({ q }));if(!Array.isArray(rows)||rows.some(r=>typeof r.id!=='string'||r.id.length>200||typeof r.name!=='string'||r.name.length>200||!Number.isSafeInteger(r.count)||r.count<0)||new Set(rows.map(r=>r.id)).size!==rows.length)fail('expert_remote_invalid');return rows}
-  async list(q='',category='',page=1){const c=this.context(),params=new URLSearchParams({ q,page:String(Math.max(1,Math.floor(page))) });if(category)params.set('category',category)
+  /**
+   * Read and validate platform expert category counts.
+   * @param q - Catalog search text.
+   * @returns Unique validated category rows.
+   */
+  async categories(q=''): Promise<{ id: string; name: string; count: number }[]> {const rows=await this.request<{ id:string;name:string;count:number }[]>('/categories?'+new URLSearchParams({ q }));if(!Array.isArray(rows)||rows.some(r=>typeof r.id!=='string'||r.id.length>200||typeof r.name!=='string'||r.name.length>200||!Number.isSafeInteger(r.count)||r.count<0)||new Set(rows.map(r=>r.id)).size!==rows.length)fail('expert_remote_invalid');return rows}
+  /**
+   * Read a platform catalog page and retain exact release identities for later selection.
+   * @param q - Catalog search text.
+   * @param category - Optional category identifier.
+   * @param page - One-based page number.
+   * @returns Validated catalog page with account-scoped expert cards.
+   */
+  async list(q='',category='',page=1): Promise<{ items: Expert[]; total: number; page: number; page_size: number }> {const c=this.context(),params=new URLSearchParams({ q,page:String(Math.max(1,Math.floor(page))) });if(category)params.set('category',category)
     const data=await this.request<{ items:RemoteSummary[];total:number;page:number;page_size:number }>('?'+params);if(!Array.isArray(data.items)||data.items.length>20||!Number.isSafeInteger(data.total)||data.total<0||data.page!==page||data.page_size!==20)fail('expert_remote_invalid')
     this.guard(c)
     const items=data.items.map((raw)=>{const e=summary(raw),id=this.id(e);this.summaries.set(id,e);return this.view(e)})
@@ -136,7 +153,12 @@ export class RemoteExperts {
     })
     return { ...this.view(e),manifest:{ ...e.manifest,id } }
   }
-  async get(id:string){return this.expert(await this.saved(id))}
+  /**
+   * Read a saved expert belonging to the current account.
+   * @param id - Account-scoped expert identifier.
+   * @returns Expert reconstructed from the saved release.
+   */
+  async get(id:string): Promise<Expert> {return this.expert(await this.saved(id))}
   /**
    * Read recent account-owned experts, allowing outdated preparation to remain selectable for recovery.
    * @param ids - Recorded expert IDs, deduplicated and bounded before reading.
@@ -254,7 +276,13 @@ export class RemoteExperts {
     return snapshots.map((p)=>{const e=p.envelope,item=r.items.find(i=>i.expert_id===e.expert_id);if(!item||!['current','update_available','unavailable'].includes(item.status))fail('expert_remote_invalid');if(item.status!=='unavailable'){const value=summary(item.expert);if(value.expert_id!==e.expert_id||(item.status==='current'&&(value.release.id!==e.release.id||value.release.sha256!==e.release.sha256)))fail('expert_remote_invalid')}return item})
   }
   private async update(p:RemoteSnapshot){return (await this.updates([p]))[0]}
-  async validate(p:RemoteSnapshot,expert?:Expert){this.proof(p);if(expert&&canonical(expert)!==canonical(this.expert(p)))fail('expert_snapshot_invalid')
+  /**
+   * Recheck a snapshot release, authorization and required dependencies; concurrent checks share work.
+   * @param p - Saved account-scoped release snapshot.
+   * @param expert - Optional expert content that must match the snapshot.
+   * @returns Allowed skill and connector requirement keys; unavailable required resources reject.
+   */
+  async validate(p:RemoteSnapshot,expert?:Expert): Promise<{ skills: string[]; connectors: string[] }> {this.proof(p);if(expert&&canonical(expert)!==canonical(this.expert(p)))fail('expert_snapshot_invalid')
     const key=hash(canonical(p))
     const existing=this.flights.get(key);if(existing)return existing
     const run=this.validateNow(p);this.flights.set(key,run)
@@ -286,11 +314,35 @@ export class RemoteExperts {
   }
   private inventoryProof(ref:RemoteEnvelope['dependency_refs']['connectors'][number],inventory:import('@actvero/dsh-connectors/contracts').Inventory){if(ref.reference_version!==3)return
     const proof=ref.capability_contracts;if(!proof)fail('expert_remote_unverified');for(const [kind,rows] of [['tools',inventory.tools],['prompts',inventory.prompts],['resources',inventory.resources],['templates',inventory.resourceTemplates]] as const)for(const row of rows){const key=kind==='resources'?row.uri:kind==='templates'?row.uriTemplate:row.name;if(!key||!proof[kind]?.[key])fail('expert_remote_capability_denied')}}
-  async rows(){const snapshots=await this.snapshot([]);return snapshots.map(row=>({ id:row.id,name:row.id,description:'',ready:true,inventory:row.inventory }))}
-  async snapshot(sessions:string[]){if(!this.available())return []
+  /**
+   * Expose ready release-bound connectors for expert preparation.
+   * @returns Connector choices with verified inventories.
+   */
+  async rows(): Promise<{ id: string; name: string; description: string; ready: boolean; inventory: import('@actvero/dsh-connectors/contracts').Inventory }[]> {const snapshots=await this.snapshot([]);return snapshots.map(row=>({ id:row.id,name:row.id,description:'',ready:true,inventory:row.inventory }))}
+  /**
+   * Read authorized release-bound MCP inventories and exclude unavailable instances.
+   * @param sessions - Conversation identifiers to register with each connector client.
+   * @returns Verified inventories with their scoped connector identifiers.
+   */
+  async snapshot(sessions:string[]): Promise<{ id: string; inventory: import('@actvero/dsh-connectors/contracts').Inventory; sessions: string[] }[]> {if(!this.available())return []
     const out=[];for(const [id,row] of this.instances){try{const rows=await row.client.hostSnapshot(sessions);if(!rows.length)row.ready=undefined;for(const item of rows){const ref=row.envelope.dependency_refs.connectors.find(r=>r.key===row.key)??fail('expert_remote_invalid');this.inventoryProof(ref,item.inventory);if(ref.tools!=null&&item.inventory.tools.some(t=>!t.name||!ref.tools?.includes(t.name)))fail('expert_remote_tools');out.push({ ...item,id })}}catch{row.ready=undefined/* Missing instances are excluded; required locks fail closed. */}}return out}
-  async select(id:string,sessionId:string,enabled=true){const row=this.instances.get(id);if(!row||row.scope!==this.context().identity.key)fail('expert_connector_unavailable');await row.client.select(row.service,sessionId,enabled)}
-  async call(id:string,sessionId:string,method:string,params:unknown,signal?:AbortSignal){const row=this.instances.get(id);if(!row||row.scope!==this.context().identity.key)fail('expert_connector_unavailable')
+  /**
+   * Change conversation selection for an existing account-owned expert connector.
+   * @param id - Release-bound connector identifier.
+   * @param sessionId - Conversation identifier.
+   * @param enabled - Whether this conversation selects the connector.
+   */
+  async select(id:string,sessionId:string,enabled=true): Promise<void> {const row=this.instances.get(id);if(!row||row.scope!==this.context().identity.key)fail('expert_connector_unavailable');await row.client.select(row.service,sessionId,enabled)}
+  /**
+   * Execute a selected release-bound MCP capability with its platform restrictions.
+   * @param id - Release-bound connector identifier.
+   * @param sessionId - Conversation identifier.
+   * @param method - Supported MCP operation.
+   * @param params - Operation-specific request parameters.
+   * @param signal - Optional request cancellation signal.
+   * @returns MCP response; wrong-account or denied capabilities reject.
+   */
+  async call(id:string,sessionId:string,method:string,params:unknown,signal?:AbortSignal): Promise<unknown> {const row=this.instances.get(id);if(!row||row.scope!==this.context().identity.key)fail('expert_connector_unavailable')
     const ref=row.envelope.dependency_refs.connectors.find(r=>r.key===row.key)??fail('expert_remote_invalid');if(method==='tools/call'&&ref.tools!=null&&!ref.tools.includes(String((params as { name?:unknown })?.name)))fail('expert_tool_denied')
     const scoped=method==='tools/call'&&params&&typeof params==='object'&&!Array.isArray(params)?{ ...(params as Record<string,unknown>),_meta:{ ...(((params as Record<string,unknown>)._meta as Record<string,unknown>|undefined)??{}),'actvero/project_id':sessionId } }:params;return row.client.call(row.service,sessionId,method,scoped,signal)}
 }

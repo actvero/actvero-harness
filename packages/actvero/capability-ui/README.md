@@ -1,6 +1,24 @@
+---
+description: "Browse experts, skills and connectors from the desktop sidebar and select capabilities for a conversation. Shared pickers preserve the current draft and attachments. Native bridges supply the available resources and keep credentials outside the renderer."
+kind: "package-reference"
+---
+
 # Native capability navigation
 
 English | [中文](README.zh.md)
+
+## Summary
+
+Browse experts, skills and connectors from the desktop sidebar and select capabilities for a conversation. Shared pickers preserve the current draft and attachments. Native bridges supply the available resources and keep credentials outside the renderer.
+
+## Table of Contents
+
+- [Runtime](#runtime)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+<a id="runtime"></a>
 
 ## Runtime
 
@@ -9,6 +27,10 @@ Registers the expert, skill and connector manager panel in the official sidebar.
 Enable through the ACTVERO desktop composition (`ACTVERO_DESKTOP=1`). The owning Electron Main runtime provides the resource authority; client scripts do not discover sibling repositories or store bearer tokens.
 
 The three managers share source tabs, native icons and catalog skeletons. The skill picker reads the effective retained Session catalog, including directory skills and expert version pins. Both skill entry points insert a neutral atomic badge with the skill glyph; adding one preserves existing text and attachments and resumes typing after the badge. Missing connector artwork uses the link glyph, while expert rows retain portraits. Required MCP switches stay on and disabled; other configured connectors remain selectable alongside the expert.
+
+The client service `ctx.capabilityHub` opens an expert, skill or connector manager and displays transient notifications. Its interface is owned by [the client contracts](src/contracts.ts).
+
+<a id="model-experience"></a>
 
 ## Model Experience
 
@@ -28,4 +50,12 @@ Opening or closing a menu changes no model request prefix. Capability changes af
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - This package contains navigation and shared catalog skeletons. It executes no resources and owns no credentials. Its client requires the ACTVERO native bridges.
+
+<a id="dev-note"></a>
+
+### Dev Note
+
+None.

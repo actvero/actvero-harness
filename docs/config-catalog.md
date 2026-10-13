@@ -9,6 +9,20 @@ Both language versions of this file are GENERATED from source (`scripts/gen-conf
 
 Each package entry labels its data with three identifiers: `inject` lists the service keys the plugin injects, so its `cordis.yml` tree must also load providers for those services; `refs` lists the referenced types that are not pasted here; `source` links the file that declares the config. Scope is the harness tier (`packages/`); the vendored cordis plugins a config tree may also load (the console logger, …) are pinned upstream source ([vendoring policy](../vendor/README.md)) and not catalogued here.
 
+<!-- BEGIN GENERATED config-catalog:@actvero/dsh-model-gateway -->
+<a id="actverodsh-model-gateway"></a>
+
+## `@actvero/dsh-model-gateway`
+
+- `inject`: `llm`
+- `source`: [`packages/actvero/model-gateway/src/index.ts:34`](../packages/actvero/model-gateway/src/index.ts)
+
+```ts config-catalog
+/** The platform route has no user-editable endpoint or credential fields. */
+export type Config = Readonly<Record<string, never>>
+```
+<!-- END GENERATED config-catalog:@actvero/dsh-model-gateway -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-acp -->
 <a id="deepseek-aidsh-acp"></a>
 
@@ -2509,7 +2523,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-schedule`
 
 - `inject`: `agents` · `sessions` · `tools` · `storageDomain` · `sessionController` · `sessionPersistence`
-- `source`: [`packages/schedule/schedule/src/index.ts:73`](../packages/schedule/schedule/src/index.ts)
+- `source`: [`packages/schedule/schedule/src/index.ts:74`](../packages/schedule/schedule/src/index.ts)
 
 ```ts config-catalog
 /** Configuration for the Host Schedule domain. */
@@ -3610,7 +3624,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-tool-goal`
 
 - `inject`: `agents` · `goals` · `tools` · `systemPrompt` · `sessionProjections`
-- `source`: [`packages/goal/tool-goal/src/index.ts:32`](../packages/goal/tool-goal/src/index.ts)
+- `source`: [`packages/goal/tool-goal/src/index.ts:34`](../packages/goal/tool-goal/src/index.ts)
 
 ```ts config-catalog
 /** Model policy and hard lower bounds for goal-state updates. */

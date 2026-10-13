@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/README.md
+/:
+  en: 169a1c890a909f36
+  zh: b93a9368c8547fd1
+/actvero-desktop-integrations:
+  en: 9c97d2b66613ec1a
+  zh: eb249f8047cc27f7
+/actvero-desktop-integrations/summary:
+  en: 936f35b3e0d8718c
+  zh: 9a451d7f36287f5a
+/actvero-desktop-integrations/table-of-contents:
+  en: 09848f4d056e4fc1
+  zh: 8df6139cff0288f6
+/actvero-desktop-integrations/packages:
+  en: 4a39fd5c46f8de05
+  zh: ecc04bdfdb08c9bd
+/actvero-desktop-integrations/related-documentation:
+  en: 31f6d4c05557c0f5
+  zh: fa2324cca5c0994a
+/actvero-desktop-integrations/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

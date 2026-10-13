@@ -1,6 +1,24 @@
+---
+description: "Browse platform skills and import device-local skill packages. Install exact versions, check updates and control which managed packages are enabled. File validation and current platform grants determine whether installed content can be used."
+kind: "package-reference"
+---
+
 # Installed and platform skills
 
 English | [中文](README.zh.md)
+
+## Summary
+
+Browse platform skills and import device-local skill packages. Install exact versions, check updates and control which managed packages are enabled. File validation and current platform grants determine whether installed content can be used.
+
+## Table of Contents
+
+- [Runtime](#runtime)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+<a id="runtime"></a>
 
 ## Runtime
 
@@ -11,6 +29,10 @@ Enable through the ACTVERO desktop composition (`ACTVERO_DESKTOP=1`). The owning
 Expert ZIP import stages each embedded single skill through the same package validator; exact installed content is reused. Export verifies the original file digests and never embeds a platform skill copy. Archive helpers remain Main-only and do not execute imported content.
 
 The Local skills tab also reads the native Session catalog from project `.agents/skills` and `.dsh/skills`, global `~/.agents/skills`, `$DSH_HOME/skills`, configured roots and embedded providers. It shows directory paths and opens the original `SKILL.md` in the native file preview. These entries need no import and are not copied, uploaded or uninstalled by this manager. Installation controls still apply only to managed packages. Exact expert pins take precedence over a same-name discovered skill; unrelated directory skills remain available. Root discovery and precedence belong to [skill-filesystem](../../skill/skill-filesystem/README.md).
+
+The client emits `actvero/skills-changed` after installation or enablement state changes so capability views can refresh. This notification carries no payload and does not append a Session event. [The manager](src/client/Manager.tsx) owns the event declaration.
+
+<a id="model-experience"></a>
 
 ## Model Experience
 
@@ -30,4 +52,12 @@ Catalog or instruction changes can change the native consumer request content. A
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - Platform content loading checks current grants, including archived versions; offline installed-state visibility does not authorize execution. Disabling or uninstalling blocks that installation, and server revocation does not delete its files. Archived packages may remain for prior locks. Local imports are device-local.
+
+<a id="dev-note"></a>
+
+### Dev Note
+
+None.

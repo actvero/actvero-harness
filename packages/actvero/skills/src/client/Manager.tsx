@@ -1,11 +1,11 @@
-import { SourceTabs } from '@actvero/dsh-capability-ui/sources'
-import { nativeSkills, insertSkill, type NativeSkill } from '@actvero/dsh-capability-ui/selection'
+import { SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
+import { nativeSkills, insertSkill, type NativeSkill } from '@actvero/dsh-capability-ui/client/selection'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { zh, en } from './locales.ts'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
-import { CatalogSkeleton, DetailLoading } from '@actvero/dsh-capability-ui/loading'
+import { CatalogSkeleton, DetailLoading } from '@actvero/dsh-capability-ui/client/loading'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { ImportSkill } from './import.tsx'
@@ -16,7 +16,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@actvero/dsh-capability-ui/contracts'
+import type {} from '@actvero/dsh-capability-ui/client/contracts'
 import type { PropsRuntime, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -784,6 +784,9 @@ function Panel({
 }
 declare module '@deepseek-ai/cordis' {
   interface Events {
+    /** Installed skill state changed; listeners may refresh their capability views.
+     * @mode emit
+     */
     'actvero/skills-changed'(): void
   }
 }

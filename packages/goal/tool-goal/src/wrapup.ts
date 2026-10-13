@@ -3,7 +3,11 @@
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { GoalView } from '@deepseek-ai/dsh-goal'
 
-/** One bounded status check at a normal turn end; completion remains an explicit model decision. */
+/**
+ * Render one bounded goal status check; completion remains an explicit model decision.
+ * @param goal - Active goal to compare with the completed work.
+ * @returns One model-visible reminder block for the current turn.
+ */
 export function renderGoalStatusReminder(goal: GoalView): ContentBlock[] {
   return [{ type: 'text', text: '<goal_status_check>\n'
     + `The goal is still active: ${JSON.stringify({ id: goal.id, revision: goal.revision, objective: goal.objective })}.\n`

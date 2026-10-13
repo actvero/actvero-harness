@@ -30,12 +30,12 @@
     "paths": {
       "@actvero/dsh-experts/remote-main": ["./packages/actvero/experts/src/remote-main.ts"],
 
-      "@actvero/dsh-capability-ui/contracts": ["./packages/actvero/capability-ui/src/contracts.ts"],
+      "@actvero/dsh-capability-ui/client/contracts": ["./packages/actvero/capability-ui/src/contracts.ts"],
       "@actvero/dsh-capability-ui": ["./packages/actvero/capability-ui/src/index.ts"],
       "@actvero/dsh-capability-ui/client": ["./packages/actvero/capability-ui/src/client/index.ts"],
-      "@actvero/dsh-capability-ui/sources": ["./packages/actvero/capability-ui/src/client/sources.tsx"],
-      "@actvero/dsh-capability-ui/selection": ["./packages/actvero/capability-ui/src/client/selection.ts"],
-      "@actvero/dsh-capability-ui/loading": ["./packages/actvero/capability-ui/src/client/loading.tsx"],
+      "@actvero/dsh-capability-ui/client/sources": ["./packages/actvero/capability-ui/src/client/sources.ts"],
+      "@actvero/dsh-capability-ui/client/selection": ["./packages/actvero/capability-ui/src/client/selection.ts"],
+      "@actvero/dsh-capability-ui/client/loading": ["./packages/actvero/capability-ui/src/client/loading.ts"],
       "@actvero/dsh-skills/main": ["./packages/actvero/skills/src/main.ts"],
       "@actvero/dsh-skills/contracts": ["./packages/actvero/skills/src/contracts.ts"],
       "@actvero/dsh-skills/local": ["./packages/actvero/skills/src/local.ts"],

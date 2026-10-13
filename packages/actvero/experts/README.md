@@ -1,6 +1,24 @@
+---
+description: "Create, import or select an expert with its instructions, skills and connector requirements. Conversations retain an exact expert snapshot for resume and forks. Required dependencies must remain available and authorized before execution."
+kind: "package-reference"
+---
+
 # Experts and immutable conversation snapshots
 
 English | [中文](README.zh.md)
+
+## Summary
+
+Create, import or select an expert with its instructions, skills and connector requirements. Conversations retain an exact expert snapshot for resume and forks. Required dependencies must remain available and authorized before execution.
+
+## Table of Contents
+
+- [Runtime](#runtime)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+<a id="runtime"></a>
 
 ## Runtime
 
@@ -15,6 +33,10 @@ The ACTVERO desktop does not seed a default expert. Local experts enter My exper
 Platform details reuse preparation only when the release ID and digest match. A different release clears its preparation and resolves exact dependencies again; installed skill versions are reused after file and digest verification. Current-cache recovery discards mixed-release preparation only after verifying the account, expert envelope and same-platform expert endpoints, then fetching the selected release successfully. Invalid digests, foreign endpoints and other-account records remain rejected. Concurrent preparations share work, and account or release changes prevent stale commits. Each summon checks the selected release. Conversation snapshots retain their original release and authorization checks.
 
 Selecting an expert overlays its exact skill versions and connector requirements on the native capabilities. It does not hide unrelated native skills or already added MCP configurations. A same-name skill resolves to the verified expert version, and a failed pin validation still rejects the view instead of falling back to discovered content.
+
+The Host adapter `ctx.actveroExpertPolicy` resolves the permitted connector IDs for an agent from its expert snapshot and conversation choices. An undefined selection leaves the ordinary connector policy in control; an empty selection permits none. Its object interface and provider live in [the Host plugin](src/index.ts).
+
+<a id="model-experience"></a>
 
 ## Model Experience
 
@@ -34,4 +56,12 @@ A different expert selection creates a new conversation after the original has s
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - Exact expert snapshots and dependency references are recorded as actvero/expert session events and read through the native projection registry. Resume and forks preserve the snapshot; new releases do not replace existing conversation dependencies. Resource access is checked again before execution. Release v3 requires verified MCP semantic references for all supported capability kinds. A local expert can be exported and imported using the [single-expert package format](../../../actvero/expert-package.md). New MCP templates are saved disabled. Platform dependencies retain exact references and require current authorization; importing does not upload to the platform.
+
+<a id="dev-note"></a>
+
+### Dev Note
+
+None.

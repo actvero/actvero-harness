@@ -2624,6 +2624,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Layered registry of skill providers, the host+per-scope shape the tools registry established. A registration files into the layer of its calling context\'s scope (scopeOf): host rows and repository plugins land in the global layer, while a plugin mounted by an agent preset\'s standing composition lands in that preset\'s layer. A read merges the global layer with the viewing scope\'s chain — the nearest layer\'s entry wins a duplicate name outright, and the rank order decides duplicates only within one layer. It exposes sorted invocation-neutral summaries and loads full skill bodies on demand.',
     methods: [
       {
+        signature: 'registerViewResolver(resolver:(options:SkillViewOptions)=>Promise<readonly SkillDefinition[]|undefined>, options:{ includeDiscovered?:boolean }={}):()=>void',
+        description: 'Register verified pinned skills for selected scopes. Undefined preserves native discovery.',
+        parameters: [{ name: 'resolver', description: 'exact definitions, or undefined for an ordinary Session.' }, { name: 'options', description: 'optionally retain discovered skills, with exact pins winning duplicate names.' }],
+        returns: 'registration disposer.',
+      },
+      {
+        signature: 'renderContent(skill: Pick<SkillDefinition, \'name\' | \'provider\' | \'resourceBase\' | \'content\'>): string',
+        description: 'Render verified skill content with the native model-facing resource wrapper.',
+        parameters: [{ name: 'skill', description: 'verified definition to include in a system prompt.' }],
+        returns: 'the native skill content block.',
+      },
+      {
         signature: 'registerProvider(create: (control: SkillProviderControl) => SkillProvider): () => void',
         description: 'Register a borrowed same-process provider synchronously during plugin apply, into the calling context\'s layer: a scoped context (an agent preset\'s standing mount) registers for that scope alone, an unscoped context registers globally. Duplicate names within one layer and reserved names throw; remote initialization belongs in `list()`. Fiber disposal unregisters the provider and invalidates catalog caches.',
         parameters: [{ name: 'create', description: 'synchronous factory receiving this registration\'s lifecycle and invalidation control.' }],

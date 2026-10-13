@@ -1,7 +1,10 @@
 import type {} from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
+/** Manager destinations supported by the desktop capability hub. */
 export type CapabilityTab='experts'|'skills'|'connectors'
+/** Temporary back action supplied by a manager detail view. */
 export interface CapabilityBackNavigation { label:string; onBack():void }
+/** Client navigation and notifications shared by capability managers. */
 export interface CapabilityHub { open(tab:CapabilityTab):void;notify(text:string,tone?:'success'):void }
 declare module '@deepseek-ai/cordis' { interface Context { capabilityHub:CapabilityHub } }
 declare module '@deepseek-ai/dsh-client-ui-slots' {

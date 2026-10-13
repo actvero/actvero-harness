@@ -94,7 +94,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      'export interface CapabilityBackNavigation { label:string; onBack():void }',
+      '/** Temporary back action supplied by a manager detail view. */\nexport interface CapabilityBackNavigation { label:string; onBack():void }',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -117,7 +117,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:15',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:18',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -144,7 +144,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:10',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:13',
   },
   {
     key: 'conversation.approval.detail',

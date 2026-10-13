@@ -171,10 +171,10 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ```ts persistence-catalog
 /** Durable conversation choices; a required expert dependency overrides a recorded off choice. */
-'actvero/connectors':{schemaVersion:1;choices:ConnectorChoice[]}
+'actvero/connectors':{ schemaVersion:1;choices:ConnectorChoice[] }
 ```
 
-来源：[`packages/actvero/experts/src/projection.ts:21`](../packages/actvero/experts/src/projection.ts)
+来源：[`packages/actvero/experts/src/projection.ts:22`](../packages/actvero/experts/src/projection.ts)
 
 <a id="actveroexpert--log-only"></a>
 
@@ -182,10 +182,10 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ```ts persistence-catalog
 /** Exact expert snapshot chosen for this session. Null clears the selection; resume and forks retain the recorded snapshot rather than adopting a newer release. */
-'actvero/expert':{schemaVersion:1;selection:ExpertSelection|null}
+'actvero/expert':{ schemaVersion:1;selection:ExpertSelection|null }
 ```
 
-来源：[`packages/actvero/experts/src/projection.ts:8`](../packages/actvero/experts/src/projection.ts)
+来源：[`packages/actvero/experts/src/projection.ts:9`](../packages/actvero/experts/src/projection.ts)
 
 ### `agent/*`
 
@@ -3158,7 +3158,7 @@ SHA-256: `31907de9563751822af6d9be02bafaf26faa098bbd1cb412524134d577cc1648`
 
 SHA-256: `163c2195427dd8a868853b8a83104e0caf05792df059caa70354ef723da356f1`
 
-来源：[`packages/actvero/experts/src/projection.ts:16`](../packages/actvero/experts/src/projection.ts)
+来源：[`packages/actvero/experts/src/projection.ts:17`](../packages/actvero/experts/src/projection.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3364,7 +3364,7 @@ SHA-256: `e6063d0451dc02026fd9b54ad3f77c7b1b6392ad3e872a7737ac84e13ca72344`
 
 SHA-256: `9f961323f301e52dd4a04be8b19b21ff284787f309859761fd7836f8d9c03dee`
 
-来源：[`packages/actvero/experts/src/contracts.ts:18`](../packages/actvero/experts/src/contracts.ts)
+来源：[`packages/actvero/experts/src/contracts.ts:90`](../packages/actvero/experts/src/contracts.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3971,13 +3971,13 @@ SHA-256: `cb7b863ddb7b3eab5f18f216602feba25f47b456e73e4e72b6bcc259875c6dab`
 
 <a id="persistence-type-messagefeedbackdelete"></a>
 
-<a id="persistence-type-packagesfeedbackmessage-feedbacklibtypestypesdtsmessagefeedbackdelete"></a>
+<a id="persistence-type-packagesfeedbackmessage-feedbacksrctypestsmessagefeedbackdelete"></a>
 
 ### `MessageFeedbackDelete`
 
 SHA-256: `7c6129b6961cf4b2a030f36c78d2b0a5be38617651a9b81322e054ee512bee06`
 
-来源：[`packages/feedback/message-feedback/lib/types/types.d.ts:40`](../packages/feedback/message-feedback/lib/types/types.d.ts)
+来源：[`packages/feedback/message-feedback/src/types.ts:46`](../packages/feedback/message-feedback/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -3988,13 +3988,13 @@ SHA-256: `7c6129b6961cf4b2a030f36c78d2b0a5be38617651a9b81322e054ee512bee06`
 
 <a id="persistence-type-messagefeedbackitem"></a>
 
-<a id="persistence-type-packagesfeedbackmessage-feedbacklibtypestypesdtsmessagefeedbackitem"></a>
+<a id="persistence-type-packagesfeedbackmessage-feedbacksrctypestsmessagefeedbackitem"></a>
 
 ### `MessageFeedbackItem`
 
 SHA-256: `3d7d07060a7be77984feb651ea2bf1925d3e0477911d9d3ed86330d1e8ca6182`
 
-来源：[`packages/feedback/message-feedback/lib/types/types.d.ts:16`](../packages/feedback/message-feedback/lib/types/types.d.ts)
+来源：[`packages/feedback/message-feedback/src/types.ts:20`](../packages/feedback/message-feedback/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -4010,13 +4010,13 @@ SHA-256: `3d7d07060a7be77984feb651ea2bf1925d3e0477911d9d3ed86330d1e8ca6182`
 
 <a id="persistence-type-messagefeedbackput"></a>
 
-<a id="persistence-type-packagesfeedbackmessage-feedbacklibtypestypesdtsmessagefeedbackput"></a>
+<a id="persistence-type-packagesfeedbackmessage-feedbacksrctypestsmessagefeedbackput"></a>
 
 ### `MessageFeedbackPut`
 
 SHA-256: `aa7bc2817014ca6c45719b1c193c5c131be718a0921f34345098ff250f444626`
 
-来源：[`packages/feedback/message-feedback/lib/types/types.d.ts:33`](../packages/feedback/message-feedback/lib/types/types.d.ts)
+来源：[`packages/feedback/message-feedback/src/types.ts:38`](../packages/feedback/message-feedback/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -4027,13 +4027,13 @@ SHA-256: `aa7bc2817014ca6c45719b1c193c5c131be718a0921f34345098ff250f444626`
 
 <a id="persistence-type-messagefeedbackrating"></a>
 
-<a id="persistence-type-packagesfeedbackmessage-feedbacklibtypestypesdtsmessagefeedbackrating"></a>
+<a id="persistence-type-packagesfeedbackmessage-feedbacksrctypestsmessagefeedbackrating"></a>
 
 ### `MessageFeedbackRating`
 
 SHA-256: `390eed1028aba02774f14408647acec10ec5516e97d4f15ecde2b9989d5a69f2`
 
-来源：[`packages/feedback/message-feedback/lib/types/types.d.ts:14`](../packages/feedback/message-feedback/lib/types/types.d.ts)
+来源：[`packages/feedback/message-feedback/src/types.ts:17`](../packages/feedback/message-feedback/src/types.ts)
 
 以下类型之一：
 
@@ -5359,7 +5359,7 @@ SHA-256: `5d03ba38734809bcbd2a55221bd938b3b3fc34b49bb686c6113e9e4931e3aa78`
 
 <a id="persistence-type-packagesexperimentalagent-teamsrctypeststeamtaskid"></a>
 
-<a id="persistence-type-packagesfeedbackmessage-feedbacklibtypestypesdtsmessagefeedbackversion"></a>
+<a id="persistence-type-packagesfeedbackmessage-feedbacksrctypestsmessagefeedbackversion"></a>
 
 <a id="persistence-type-packagesgoalgoalsrctypestsgoalid"></a>
 
@@ -5425,7 +5425,7 @@ SHA-256: `5d03ba38734809bcbd2a55221bd938b3b3fc34b49bb686c6113e9e4931e3aa78`
 
 SHA-256: `4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b`
 
-来源：[`packages/api/session-controller/src/types.ts:398`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:20`](../packages/core/session/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:20`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:32`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:8`](../packages/experimental/agent-team/src/types.ts) · [`packages/feedback/message-feedback/lib/types/types.d.ts:12`](../packages/feedback/message-feedback/lib/types/types.d.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/commands/src/brand.ts:31`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/index.ts:42`](../packages/session/session-title/src/index.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/webhook/webhook/src/brand.ts:12`](../packages/webhook/webhook/src/brand.ts) · [`packages/webhook/webhook/src/brand.ts:6`](../packages/webhook/webhook/src/brand.ts) · [`packages/webhook/webhook/src/brand.ts:9`](../packages/webhook/webhook/src/brand.ts) · [`packages/workflow/workflow/src/types.ts:13`](../packages/workflow/workflow/src/types.ts)
+来源：[`packages/api/session-controller/src/types.ts:398`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:20`](../packages/core/session/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:20`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:32`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:8`](../packages/experimental/agent-team/src/types.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/commands/src/brand.ts:31`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/index.ts:42`](../packages/session/session-title/src/index.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/webhook/webhook/src/brand.ts:12`](../packages/webhook/webhook/src/brand.ts) · [`packages/webhook/webhook/src/brand.ts:6`](../packages/webhook/webhook/src/brand.ts) · [`packages/webhook/webhook/src/brand.ts:9`](../packages/webhook/webhook/src/brand.ts) · [`packages/workflow/workflow/src/types.ts:13`](../packages/workflow/workflow/src/types.ts)
 
 `string`
 
@@ -5806,7 +5806,7 @@ SHA-256: `b6896938660a1dfe4ddd100fb3164d9f8fa57feeabfe37441a80106c9942697a`
 
 SHA-256: `544357ce88ef43f1bc5f43bc8e3edb7ffe3244f32a6663009bea873ce50da8d8`
 
-来源：[`packages/actvero/experts/src/projection.ts:21`](../packages/actvero/experts/src/projection.ts)
+来源：[`packages/actvero/experts/src/projection.ts:22`](../packages/actvero/experts/src/projection.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -7642,7 +7642,7 @@ SHA-256: `9a2a9029f8d7ede05336980d8342737557f487b913bfd28853d0ab5214600ab5`
 
 SHA-256: `7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc`
 
-来源：[`packages/actvero/experts/src/projection.ts:8`](../packages/actvero/experts/src/projection.ts)
+来源：[`packages/actvero/experts/src/projection.ts:9`](../packages/actvero/experts/src/projection.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|

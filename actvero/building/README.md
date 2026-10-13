@@ -128,4 +128,4 @@ Follow the [Windows installer tutorial](windows.md) for PowerShell commands, art
 
 ## Dev Note
 
-The local macOS ARM64 build produced unsigned DMG/ZIP artifacts and passed archive/runtime checks. Focused brand tests and repository typechecking passed. Repository-wide lint and documentation checks still report existing ACTVERO capability-module formatting, contract documentation and catalog issues; signed release and Windows acceptance remain unverified.
+Platform installation, signing and real-account acceptance belong to the release workflow. Repository checks validate source and documentation; they do not replace macOS or Windows installer acceptance.

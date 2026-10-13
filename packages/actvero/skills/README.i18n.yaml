@@ -2,12 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/actvero/skills/README.md
+/:
+  en: fb9e44b08fcd605f
+  zh: 5550806c1d659782
 /installed-and-platform-skills:
   en: 1847b6a2559fe9bb
   zh: c61e8f6f475f0f8c
+/installed-and-platform-skills/summary:
+  en: 6885e0ae44ac920a
+  zh: 1f49224e3d103511
+/installed-and-platform-skills/table-of-contents:
+  en: b9d4d58097c4260a
+  zh: 411e827d681a6509
 /installed-and-platform-skills/runtime:
-  en: 34db04f60281d698
-  zh: 9b155a5bf674c7b8
+  en: 6da3ec83df205b18
+  zh: 310c2751b8bfcdae
 /installed-and-platform-skills/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -24,5 +33,8 @@
   en: 18e603da10b56e79
   zh: aaccf2cd484e7566
 /installed-and-platform-skills/known-limitations-and-deferred-work:
-  en: 9a66e3f8612af433
-  zh: 280302c1b1146e67
+  en: d3d52f18c80ceb16
+  zh: b0e028c8adab8ba3
+/installed-and-platform-skills/known-limitations-and-deferred-work/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914

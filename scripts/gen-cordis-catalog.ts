@@ -154,15 +154,19 @@ export const SERVICE_PAGE: Record<string, string> = {
  * or names itself here. Client-face keys (the projection analyzes the host
  * face only) name the package README that owns their surface.
  *
- * Two categories remain, and neither is a projection gap a scanning rule could
- * close. An OPTIONAL key (`key?: X`) is a value the launcher or boot code
+ * These entries identify surfaces outside the host service-class projection.
+ * An OPTIONAL key (`key?: X`) is a value the launcher or boot code
  * installs before the tree mounts, which the analyzer skips by rule because no
  * plugin provides it and `inject` cannot reach it. A client-face key belongs to
  * the browser Context, which this host-face program never sees; the browser
  * surface has its own generated catalog (`scripts/gen-client-catalog.ts`, served
- * to a model as `cordis_runtime_inspect what:"client"`).
+ * to a model as `cordis_runtime_inspect what:"client"`). Interface-typed Host
+ * adapters provided as objects name their package README as the API owner.
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+  capabilityHub: 'client-side capability navigation and notifications — packages/actvero/capability-ui/README.md owns the API',
+  actveroMcp: 'interface-typed Host adapter provided as an object, not a service class; refreshes session-scoped MCP registrations — packages/actvero/connectors/README.md owns the API',
+  actveroExpertPolicy: 'interface-typed Host adapter provided as an object, not a service class; resolves expert connector permissions — packages/actvero/experts/README.md owns the API',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',
@@ -258,6 +262,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
  * exemption cannot mask another declaration in that scope.
  */
 export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
+  'actvero/skills-changed': 'client-face installed-skill invalidation signal — packages/actvero/skills/README.md owns the API',
   'command/executed': 'client-face local command acknowledgment — packages/client/ui-commands/README.md owns the API',
   'connection/reset': 'client-face transport signal — packages/api/session-controller/README.md owns the API',
   'locale/change': 'client-face locale switch signal — packages/client/locale/README.md owns the API',

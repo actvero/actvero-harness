@@ -14,20 +14,20 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
-    "./contracts": {
+    "./client/contracts": {
       "types": "./lib/types/contracts.d.ts",
       "default": "./lib/contracts.js"
     },
     "./package.json": "./package.json",
-    "./loading": {
+    "./client/loading": {
       "types": "./lib/types/client/loading.d.ts",
       "default": "./lib/types/client/loading.js"
     },
-    "./selection": {
+    "./client/selection": {
       "types": "./lib/types/client/selection.d.ts",
       "default": "./lib/types/client/selection.js"
     },
-    "./sources": {
+    "./client/sources": {
       "types": "./lib/types/client/sources.d.ts",
       "default": "./lib/types/client/sources.js"
     }
@@ -63,7 +63,8 @@
     "@deepseek-ai/dsh-client-ui-session": "workspace:*",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
-    "@deepseek-ai/dsh-api-remotes": "workspace:*"
+    "@deepseek-ai/dsh-api-remotes": "workspace:*",
+    "@deepseek-ai/dsh-api-session-controller": "workspace:*"
   },
   "dependencies": {},
   "scripts": {

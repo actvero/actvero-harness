@@ -2,6 +2,42 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/actvero/model-gateway/README.md
+/:
+  en: 544bd55e949390f8
+  zh: ac2bb90828fc15cf
 /actvero-dsh-model-gateway:
-  en: e1c3c778fc678e0d
-  zh: 0a22302227c6ebf1
+  en: 0d94c7227be11434
+  zh: 0450d9f21cf346bc
+/actvero-dsh-model-gateway/summary:
+  en: 667c614ed68e5bdb
+  zh: e6eb073ab205cbcd
+/actvero-dsh-model-gateway/table-of-contents:
+  en: 122f0d41696980b1
+  zh: eaf311136c6f889d
+/actvero-dsh-model-gateway/use-this-package:
+  en: e84d550bdc0545b2
+  zh: 5c7d59299ea2c2a8
+/actvero-dsh-model-gateway/understand-the-implementation:
+  en: 1182a961de072f4f
+  zh: 7072f7c481fe71f5
+/actvero-dsh-model-gateway/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/actvero-dsh-model-gateway/model-experience/platform-chat-requests:
+  en: 806915960d357957
+  zh: fdf545d2a9711172
+/actvero-dsh-model-gateway/model-experience/platform-chat-requests/what-the-model-sees:
+  en: 78ac1f18105ac991
+  zh: c957399a633dad38
+/actvero-dsh-model-gateway/model-experience/platform-chat-requests/token-effect:
+  en: 067d065058bd36be
+  zh: 5464c5e95b1f4313
+/actvero-dsh-model-gateway/model-experience/platform-chat-requests/kv-cache-effect:
+  en: c2760723a00c92bd
+  zh: aeec607686c6ee53
+/actvero-dsh-model-gateway/known-limitations-and-deferred-work:
+  en: 071e71d4dfef567e
+  zh: f16a58b0c9a6e417
+/actvero-dsh-model-gateway/known-limitations-and-deferred-work/dev-note:
+  en: 3e3c783807c94c11
+  zh: a69014a2570085a5

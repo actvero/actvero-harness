@@ -69,7 +69,8 @@
     "@deepseek-ai/dsh-client-ui-commands": "workspace:*",
     "@deepseek-ai/dsh-api-session-controller": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sidebar-right": "workspace:*",
-    "@deepseek-ai/dsh-util-workspace-path": "workspace:*"
+    "@deepseek-ai/dsh-util-workspace-path": "workspace:*",
+    "@deepseek-ai/dsh-session": "workspace:*"
   },
   "dependencies": {
     "fflate": "^0.8.2",

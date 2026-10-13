@@ -2,12 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/actvero/experts/README.md
+/:
+  en: 75e2e07433ce4e61
+  zh: 8ab0438abc313917
 /experts-and-immutable-conversation-snapshots:
   en: 663967ed7fbef76d
   zh: 8e94b32698bbae10
+/experts-and-immutable-conversation-snapshots/summary:
+  en: fe84e7655ddd2e01
+  zh: 3262e61bd347ef30
+/experts-and-immutable-conversation-snapshots/table-of-contents:
+  en: b9d4d58097c4260a
+  zh: 411e827d681a6509
 /experts-and-immutable-conversation-snapshots/runtime:
-  en: 3d4ee620947c3af9
-  zh: ded8ffd485a7d1b0
+  en: 94e8950e26df083f
+  zh: 9786ce983c12b901
 /experts-and-immutable-conversation-snapshots/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -24,5 +33,8 @@
   en: 616a13c00a40a827
   zh: 693f36d89d0fc060
 /experts-and-immutable-conversation-snapshots/known-limitations-and-deferred-work:
-  en: 83e4b2f95e17080d
-  zh: 6711b71bdf3bddf4
+  en: bfb4d5f59c20e9ff
+  zh: b07d9f73cf0f23f1
+/experts-and-immutable-conversation-snapshots/known-limitations-and-deferred-work/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914

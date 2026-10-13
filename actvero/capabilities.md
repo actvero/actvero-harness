@@ -28,10 +28,10 @@ Native `actvero/connectors` events preserve ordinary and expert conversation int
 
 ## Verification
 
-The Host and Client TypeScript programs pass. Focused regressions pass for package/version isolation, expert snapshot restore and forks, revocation, scoped tools, local MCP transports and OAuth refresh. The built Host composition passed with ACTVERO enabled and disabled. Browser acceptance passed for all three native selectors, first-run workspace selection, light and dark manager views, refresh skeletons and retained connector rows, dismissal and a 900 × 700 viewport. The browser scenario also checks required and optional switches, the selected expert badge, ZIP dependency previews, and a real Host restart restoring a logged off choice. It uses the built Host and client bundles with isolated public display fixtures, no business credentials and no model calls.
+The package tests cover dependency validation, snapshot restore, authorization changes and MCP protocol handling. The browser scenarios under `apps/web/tests/actvero-capabilities.e2e.ts` exercise native selectors and retained conversation choices against built Host and client bundles with isolated display fixtures.
 
-The repository-wide client-domain graph check still reports 82 existing violations in unchanged official client directories; the native command package has a scoped toggle extension in this round. The affected package dependency, client locale, package metadata, bilingual README, links and persistence checks pass. The repository-wide JSDoc check still reports documentation gaps in previously introduced ACTVERO modules; newly added interfaces are documented.
+Static checks verify documentation, package declarations and generated catalogs. Live platform behavior requires the separate acceptance below.
 
 ## Remaining acceptance
 
-Live platform login, a granted catalog download, a real platform-model stream, personal MCP authorization and an end-to-end expert turn still need acceptance against the deployed platform. Browser fixtures and SDK protocol tests do not establish that deployment's compatibility. No installer, signing, publishing or installed-app replacement is performed by this migration.
+Live platform login, a granted catalog download, a real platform-model stream, personal MCP authorization and an end-to-end expert turn still need acceptance against the deployed platform. Browser fixtures and SDK protocol tests do not establish that deployment's compatibility. Installer, signing and publication verification belong to the release workflow.

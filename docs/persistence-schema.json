@@ -22346,7 +22346,7 @@
         "packages/actvero/experts/src/projection.ts#ConnectorChoice"
       ],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:16"
+        "packages/actvero/experts/src/projection.ts:17"
       ]
     },
     {
@@ -22883,10 +22883,10 @@
     {
       "digest": "390eed1028aba02774f14408647acec10ec5516e97d4f15ecde2b9989d5a69f2",
       "names": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackRating"
+        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackRating"
       ],
       "sources": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts:14"
+        "packages/feedback/message-feedback/src/types.ts:17"
       ]
     },
     {
@@ -22957,10 +22957,10 @@
     {
       "digest": "3d7d07060a7be77984feb651ea2bf1925d3e0477911d9d3ed86330d1e8ca6182",
       "names": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackItem"
+        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackItem"
       ],
       "sources": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts:16"
+        "packages/feedback/message-feedback/src/types.ts:20"
       ]
     },
     {
@@ -23162,7 +23162,7 @@
         "packages/experimental/agent-team/src/types.ts#TeamId",
         "packages/experimental/agent-team/src/types.ts#TeamMessageId",
         "packages/experimental/agent-team/src/types.ts#TeamTaskId",
-        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackVersion",
+        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackVersion",
         "packages/goal/goal/src/types.ts#GoalId",
         "packages/interaction/commands/src/brand.ts#CommandId",
         "packages/interaction/user-approval/src/types.ts#ApprovalRequestId",
@@ -23187,7 +23187,7 @@
         "packages/experimental/agent-team/src/types.ts:20",
         "packages/experimental/agent-team/src/types.ts:32",
         "packages/experimental/agent-team/src/types.ts:8",
-        "packages/feedback/message-feedback/lib/types/types.d.ts:12",
+        "packages/feedback/message-feedback/src/types.ts:14",
         "packages/goal/goal/src/types.ts:17",
         "packages/interaction/commands/src/brand.ts:31",
         "packages/interaction/user-approval/src/types.ts:17",
@@ -23322,7 +23322,7 @@
       "digest": "544357ce88ef43f1bc5f43bc8e3edb7ffe3244f32a6663009bea873ce50da8d8",
       "names": [],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:21"
+        "packages/actvero/experts/src/projection.ts:22"
       ]
     },
     {
@@ -23846,10 +23846,10 @@
     {
       "digest": "7c6129b6961cf4b2a030f36c78d2b0a5be38617651a9b81322e054ee512bee06",
       "names": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackDelete"
+        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackDelete"
       ],
       "sources": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts:40"
+        "packages/feedback/message-feedback/src/types.ts:46"
       ]
     },
     {
@@ -23888,7 +23888,7 @@
       "digest": "7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc",
       "names": [],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:8"
+        "packages/actvero/experts/src/projection.ts:9"
       ]
     },
     {
@@ -24391,7 +24391,7 @@
         "packages/actvero/experts/src/contracts.ts#ExpertSelection"
       ],
       "sources": [
-        "packages/actvero/experts/src/contracts.ts:18"
+        "packages/actvero/experts/src/contracts.ts:90"
       ]
     },
     {
@@ -24574,10 +24574,10 @@
     {
       "digest": "aa7bc2817014ca6c45719b1c193c5c131be718a0921f34345098ff250f444626",
       "names": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackPut"
+        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackPut"
       ],
       "sources": [
-        "packages/feedback/message-feedback/lib/types/types.d.ts:33"
+        "packages/feedback/message-feedback/src/types.ts:38"
       ]
     },
     {

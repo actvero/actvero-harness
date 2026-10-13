@@ -1,14 +1,7 @@
 import { LocalConnectors, type LocalOptions } from './local-mcp.ts'
 import { randomUUID } from 'node:crypto'
-import type {
-  Catalog,
-  Connector,
-  Identity,
-  Inventory,
-  Json,
-  ResourceToken,
-  LocalView,
-} from './contracts.ts'
+import type { Catalog, Connector, Identity, Inventory, ResourceToken, LocalView } from './contracts.ts'
+/** Platform MCP failure carrying a safe code and optional HTTP/request metadata. */
 export class ConnectorError extends Error {
   constructor(
     readonly code: string,
@@ -38,6 +31,7 @@ const methodNames = new Set([
   'resources/templates/list',
   'resources/read',
 ])
+/** Account-scoped platform MCP discovery and conversation selections with optional local connections. */
 export class Connectors {
   private key = ''
   private epoch = 0
@@ -52,10 +46,18 @@ export class Connectors {
   private checked = new Map<string, number>()
   private reconciling?: Promise<void>
   private saving: Promise<void> = Promise.resolve()
+  /** Device-local connection manager when encrypted storage callbacks are configured. */
   readonly local?: LocalConnectors
-  constructor(private options: Options) { if(options.local)this.local=new LocalConnectors(options.local,options.changed) }
-  async dispose(){await this.local?.dispose();this.abort.abort()}
-  invalidate() {
+  constructor(private options: Options) {
+    if (options.local) this.local = new LocalConnectors(options.local, options.changed)
+  }
+  /** Dispose local connections and cancel outstanding platform requests. */
+  async dispose(): Promise<void> {
+    await this.local?.dispose()
+    this.abort.abort()
+  }
+  /** Cancel account work and discard cached credentials, inventories and selections. */
+  invalidate(): void {
     this.epoch++
     this.key = ''
     this.abort.abort()
@@ -82,8 +84,7 @@ export class Connectors {
       this.key = identity.key
       const epoch = this.epoch
       this.restoring = this.options.load(identity.key).then((ids) => {
-        if (epoch === this.epoch)
-          this.added = new Set(ids.filter(id => uuid.test(id)))
+        if (epoch === this.epoch) this.added = new Set(ids.filter(id => uuid.test(id)))
       })
     }
     const epoch = this.epoch
@@ -94,9 +95,7 @@ export class Connectors {
   private persist() {
     const key = this.key,
       ids = [...this.added]
-    const pending = this.saving
-      .catch(() => {})
-      .then(() => this.options.save(key, ids))
+    const pending = this.saving.catch(() => {}).then(() => this.options.save(key, ids))
     this.saving = pending
     return pending
   }
@@ -109,8 +108,7 @@ export class Connectors {
       throw new ConnectorError('account_changed')
   }
   private id(id: unknown): string {
-    if (typeof id !== 'string' || !uuid.test(id))
-      throw new ConnectorError('invalid_connector')
+    if (typeof id !== 'string' || !uuid.test(id)) throw new ConnectorError('invalid_connector')
     return id
   }
   private async token(resource: string) {
@@ -164,9 +162,7 @@ export class Connectors {
   ) {
     const { identity, epoch, signal: accountSignal } = await this.context()
     const token = await this.token(resource)
-    const url = protocol
-      ? token.endpoint
-      : `${identity.baseUrl}/api/v1/desktop/mcp${path}`
+    const url = protocol ? token.endpoint : `${identity.baseUrl}/api/v1/desktop/mcp${path}`
     let response: Response
     try {
       response = await (this.options.fetch ?? fetch)(url, {
@@ -180,9 +176,7 @@ export class Connectors {
         ]),
         headers: {
           Authorization: `Bearer ${token.access_token}`,
-          Accept: protocol
-            ? 'application/json, text/event-stream'
-            : 'application/json',
+          Accept: protocol ? 'application/json, text/event-stream' : 'application/json',
           ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
           ...(protocol ? { 'MCP-Protocol-Version': protocol } : {}),
         },
@@ -198,11 +192,7 @@ export class Connectors {
       }
       const code = error.error?.code ?? `http_${response.status}`
       if (response.status === 401) this.tokens.delete(resource)
-      if (
-        response.status === 401 ||
-        response.status === 403 ||
-        response.status === 404
-      ) {
+      if (response.status === 401 || response.status === 403 || response.status === 404) {
         this.inventories.clear()
         this.enabled.clear()
         this.options.changed()
@@ -237,6 +227,12 @@ export class Connectors {
       throw new ConnectorError('invalid_response')
     }
   }
+  /**
+   * Read a page of connectors available to the current account.
+   * @param q - Catalog search text.
+   * @param page - One-based page number.
+   * @returns Platform catalog page.
+   */
   async catalog(q = '', page = 1): Promise<Catalog> {
     return (await this.http(
       'mcp:catalog',
@@ -244,30 +240,49 @@ export class Connectors {
       'GET',
     )) as Catalog
   }
+  /**
+   * Read platform or local connector metadata without returning credentials.
+   * @param id - Platform or local connector identifier.
+   * @returns Connector details and connection status.
+   */
   async detail(id: string): Promise<Connector> {
-    if(id.startsWith('local-')&&this.local)return this.local.detail(id)
-    return (await this.http(
-      'mcp:catalog',
-      `/connectors/${this.id(id)}`,
-      'GET',
-    )) as Connector
+    if (id.startsWith('local-') && this.local) return this.local.detail(id)
+    return (await this.http('mcp:catalog', `/connectors/${this.id(id)}`, 'GET')) as Connector
   }
+  /**
+   * Combine platform and local connector selections for one conversation.
+   * @param sessionId - Conversation identifier; omitted reads the default selection view.
+   * @returns Added, enabled and ready identifiers.
+   */
   async state(sessionId = ''): Promise<LocalView> {
-    const local=await this.local?.state(sessionId)??{ added:[],enabled:[],ready:[] }
-    if(!this.options.identity()?.available){if(this.key)this.invalidate();return local}
+    const local = (await this.local?.state(sessionId)) ?? { added: [], enabled: [], ready: [] }
+    if (!this.options.identity()?.available) {
+      if (this.key) this.invalidate()
+      return local
+    }
     await this.context()
-    return { added:[...this.added,...local.added],enabled:[...(this.enabled.get(sessionId)??[]),...local.enabled],ready:[...this.inventories.keys(),...local.ready] }
+    return {
+      added: [...this.added, ...local.added],
+      enabled: [...(this.enabled.get(sessionId) ?? []), ...local.enabled],
+      ready: [...this.inventories.keys(), ...local.ready],
+    }
   }
-  async verify(id: string) {
-    await this.http(
-      'mcp:catalog',
-      `/connectors/${this.id(id)}/connection/verify`,
-      'POST',
-      {},
-    )
+  /**
+   * Ask the platform to verify a connector connection.
+   * @param id - Platform connector identifier.
+   * @returns Refreshed connector details.
+   */
+  async verify(id: string): Promise<Connector> {
+    await this.http('mcp:catalog', `/connectors/${this.id(id)}/connection/verify`, 'POST', {})
     return this.detail(id)
   }
-  async credentials(id: string, values: unknown) {
+  /**
+   * Validate required personal fields, save them to the platform and verify the connection.
+   * @param id - Platform connector identifier.
+   * @param values - Submitted personal credential fields.
+   * @returns Verified connector details; incomplete credentials reject.
+   */
+  async credentials(id: string, values: unknown): Promise<Connector> {
     const item = await this.detail(id)
     if (item.auth_mode !== 'personal' || !values || typeof values !== 'object')
       throw new ConnectorError('invalid_credentials')
@@ -283,42 +298,49 @@ export class Connectors {
     })
     return this.verify(id)
   }
-  async disconnect(id: string) {
-    await this.http(
-      'mcp:catalog',
-      `/connectors/${this.id(id)}/connection`,
-      'DELETE',
-    )
+  /**
+   * Delete platform connection authorization and remove local selection state.
+   * @param id - Platform connector identifier.
+   */
+  async disconnect(id: string): Promise<void> {
+    await this.http('mcp:catalog', `/connectors/${this.id(id)}/connection`, 'DELETE')
     await this.remove(id)
   }
-  async authorize(id: string) {
+  /**
+   * Create a platform OAuth attempt and open its validated browser URL.
+   * @param id - Platform connector identifier.
+   * @returns Attempt identifier and initial status.
+   */
+  async authorize(id: string): Promise<{ id: string; status: string }> {
     const item = await this.detail(id)
-    if (item.auth_mode !== 'oauth')
-      throw new ConnectorError('invalid_auth_mode')
-    const value = (await this.http(
-      'mcp:catalog',
-      `/connectors/${id}/oauth-attempts`,
-      'POST',
-      {},
-    )) as { id: string; authorization_url: string; status: string }
+    if (item.auth_mode !== 'oauth') throw new ConnectorError('invalid_auth_mode')
+    const value = (await this.http('mcp:catalog', `/connectors/${id}/oauth-attempts`, 'POST', {})) as {
+      id: string
+      authorization_url: string
+      status: string
+    }
     const url = new URL(value.authorization_url)
     if (
       url.protocol !== 'https:' &&
-      !(
-        url.protocol === 'http:' &&
-        ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-      )
+      !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
     )
       throw new ConnectorError('unsafe_authorization_url')
     this.attempts.set(value.id, url.href)
     await this.options.openExternal(url.href)
     return { id: value.id, status: value.status }
   }
-  async oauth(id: string, action: 'status' | 'complete' | 'cancel' | 'reopen') {
+  /**
+   * Operate only on an OAuth attempt created by this manager.
+   * @param id - Known authorization attempt identifier.
+   * @param action - Read, complete, cancel or reopen the attempt.
+   * @returns Platform attempt result, or no result when reopening the browser.
+   */
+  async oauth(id: string, action: 'status' | 'complete' | 'cancel' | 'reopen'): Promise<unknown> {
     this.id(id)
-    if (!this.attempts.has(id)) throw new ConnectorError('unknown_attempt')
+    const attempt = this.attempts.get(id)
+    if (attempt === undefined) throw new ConnectorError('unknown_attempt')
     if (action === 'reopen') {
-      await this.options.openExternal(this.attempts.get(id)!)
+      await this.options.openExternal(attempt)
       return
     }
     const result = await this.http(
@@ -351,27 +373,27 @@ export class Connectors {
       error?: { code: number; message: string; data?: { code?: string } }
       result?: unknown
     }
-    if (result?.jsonrpc !== '2.0' || result.id !== requestId)
-      throw new ConnectorError('invalid_mcp_response')
+    if (result?.jsonrpc !== '2.0' || result.id !== requestId) throw new ConnectorError('invalid_mcp_response')
     if (result.error) {
       const code = result.error.data?.code
       if (
-        [
-          'capability_denied',
-          'connection_or_definition_changed',
-          'connector_unavailable',
-        ].includes(code ?? '')
+        ['capability_denied', 'connection_or_definition_changed', 'connector_unavailable'].includes(
+          code ?? '',
+        )
       ) {
         this.inventories.delete(id)
         for (const ids of this.enabled.values()) ids.delete(id)
         this.options.changed()
       }
-      throw new ConnectorError(
-        code && /^[a-z_]{1,70}$/.test(code) ? code : `mcp_${result.error.code}`,
-      )
+      throw new ConnectorError(code && /^[a-z_]{1,70}$/.test(code) ? code : `mcp_${result.error.code}`)
     }
     return result.result
   }
+  /**
+   * Negotiate MCP and collect all supported capability pages within configured bounds.
+   * @param id - Platform connector identifier.
+   * @returns Discovered inventory and negotiated protocol version.
+   */
   async discover(id: string): Promise<Inventory> {
     const { epoch } = await this.context()
     const initialized = (await this.rpc(id, 'initialize', {
@@ -379,11 +401,7 @@ export class Connectors {
       capabilities: {},
       clientInfo: { name: 'DS', version: '0.1.0' },
     })) as { protocolVersion: string; capabilities: Record<string, unknown> }
-    if (
-      !['2025-11-25', '2025-06-18', '2025-03-26'].includes(
-        initialized.protocolVersion,
-      )
-    )
+    if (!['2025-11-25', '2025-06-18', '2025-03-26'].includes(initialized.protocolVersion))
       throw new ConnectorError('unsupported_protocol')
     await this.http(
       `mcp:${id}`,
@@ -406,19 +424,41 @@ export class Connectors {
       ['resources', 'resources/templates/list', 'resourceTemplates'],
     ] as const) {
       if (initialized.capabilities[cap]) {
-        let cursor:string|undefined;const seen=new Set<string>();let pages=0
-        do {if(++pages>100)throw new ConnectorError('catalog_too_large');const response=await this.rpc(id,method,cursor?{ cursor }:{},initialized.protocolVersion) as Record<string,unknown>
-          if(!Array.isArray(response[key])||response.nextCursor!==undefined&&typeof response.nextCursor!=='string')throw new ConnectorError('unsupported_catalog_response')
-          result[key].push(...response[key] as Inventory[typeof key]);if(result[key].length>10000)throw new ConnectorError('catalog_too_large')
-          cursor=response.nextCursor as string|undefined;if(cursor){if(cursor.length>2048||seen.has(cursor))throw new ConnectorError('invalid_mcp_cursor');seen.add(cursor)}
-        }while(cursor)
-
+        let cursor: string | undefined
+        const seen = new Set<string>()
+        let pages = 0
+        do {
+          if (++pages > 100) throw new ConnectorError('catalog_too_large')
+          const response = (await this.rpc(
+            id,
+            method,
+            cursor ? { cursor } : {},
+            initialized.protocolVersion,
+          )) as Record<string, unknown>
+          if (
+            !Array.isArray(response[key]) ||
+            (response.nextCursor !== undefined && typeof response.nextCursor !== 'string')
+          )
+            throw new ConnectorError('unsupported_catalog_response')
+          result[key].push(...(response[key] as Inventory[typeof key]))
+          if (result[key].length > 10000) throw new ConnectorError('catalog_too_large')
+          cursor = response.nextCursor as string | undefined
+          if (cursor) {
+            if (cursor.length > 2048 || seen.has(cursor)) throw new ConnectorError('invalid_mcp_cursor')
+            seen.add(cursor)
+          }
+        } while (cursor)
       }
     }
     this.check(epoch)
     return result
   }
-  async add(id: string) {
+  /**
+   * Verify and discover a platform connector before persisting its added state.
+   * @param id - Platform connector identifier.
+   * @returns Discovered inventory.
+   */
+  async add(id: string): Promise<Inventory> {
     const { epoch } = await this.context()
     const detail = await this.detail(id)
     if (detail.connection.status !== 'connected') await this.verify(id)
@@ -432,7 +472,11 @@ export class Connectors {
     this.options.changed()
     return inventory
   }
-  async remove(id: string) {
+  /**
+   * Remove a platform connector and clear its cached inventory and session selections.
+   * @param id - Platform connector identifier.
+   */
+  async remove(id: string): Promise<void> {
     await this.context()
     this.id(id)
     this.added.delete(id)
@@ -441,10 +485,19 @@ export class Connectors {
     await this.persist()
     this.options.changed()
   }
-  async select(id: string, sessionId: string, enabled: boolean) {
-    if (!sessionId || sessionId.length > 200)
-      throw new ConnectorError('session_required')
-    if(id.startsWith('local-')&&this.local){await this.local.select(id,sessionId,enabled);return this.state(sessionId)}
+  /**
+   * Enable or disable a connector for one conversation.
+   * @param id - Platform or local connector identifier.
+   * @param sessionId - Nonempty conversation identifier.
+   * @param enabled - Requested conversation selection.
+   * @returns Updated conversation selection state.
+   */
+  async select(id: string, sessionId: string, enabled: boolean): Promise<LocalView> {
+    if (!sessionId || sessionId.length > 200) throw new ConnectorError('session_required')
+    if (id.startsWith('local-') && this.local) {
+      await this.local.select(id, sessionId, enabled)
+      return this.state(sessionId)
+    }
     const { epoch } = await this.context()
     if (enabled) {
       if (!this.added.has(id) || !this.inventories.has(id)) await this.add(id)
@@ -455,7 +508,12 @@ export class Connectors {
     } else this.enabled.get(sessionId)?.delete(id)
     return this.state(sessionId)
   }
-  async inventory(id: string) {
+  /**
+   * Refresh an added platform connector and notify only when its inventory changes.
+   * @param id - Platform connector identifier.
+   * @returns Current capability inventory.
+   */
+  async inventory(id: string): Promise<Inventory> {
     await this.context()
     if (!this.added.has(id)) throw new ConnectorError('connector_not_added')
     const inventory = await this.discover(id)
@@ -464,55 +522,55 @@ export class Connectors {
     this.checked.set(id, Date.now())
     // A health refresh must not unregister unchanged tools during an agent turn.
     // Access failures still remove the inventory and session grants in reconcile.
-    if (JSON.stringify(previous) !== JSON.stringify(inventory))
-      this.options.changed()
+    if (JSON.stringify(previous) !== JSON.stringify(inventory)) this.options.changed()
     return inventory
   }
+  /**
+   * Execute MCP only when the connector is selected and ready for the conversation.
+   * @param id - Platform or local connector identifier.
+   * @param sessionId - Conversation identifier.
+   * @param method - Supported MCP operation.
+   * @param params - Operation-specific request parameters.
+   * @param signal - Optional request cancellation signal.
+   * @returns MCP response; missing authorization or unsupported methods reject.
+   */
   async call(
     id: string,
     sessionId: string,
     method: string,
     params: unknown,
     signal?: AbortSignal,
-  ) {
-    if(id.startsWith('local-')&&this.local)return this.local.call(id,sessionId,method,params,signal)
+  ): Promise<unknown> {
+    if (id.startsWith('local-') && this.local) return this.local.call(id, sessionId, method, params, signal)
     await this.context()
-    if (
-      !this.added.has(id) ||
-      !this.enabled.get(sessionId)?.has(id) ||
-      !methodNames.has(method)
-    )
+    if (!this.added.has(id) || !this.enabled.get(sessionId)?.has(id) || !methodNames.has(method))
       throw new ConnectorError('connector_not_enabled')
     const inventory = this.inventories.get(id)
     if (!inventory) throw new ConnectorError('connector_not_ready')
     return this.rpc(id, method, params, inventory.protocolVersion, signal)
   }
-  async dispatch(action: string, p: Record<string, unknown> = {}) {
-    if(action.startsWith('local')&&this.local)return this.local.dispatch(action,p)
-    if(typeof p.id==='string'&&p.id.startsWith('local-')&&this.local){
-      if(action==='detail')return this.local.detail(p.id)
-      if(action==='select'&&typeof p.sessionId==='string'&&typeof p.enabled==='boolean')return this.select(p.id,p.sessionId,p.enabled)
-      if(action==='remove')return this.local.remove(p.id)
+  /**
+   * Validate and route renderer connector actions to the owning platform or local manager.
+   * @param action - Supported bridge action.
+   * @param p - Action-specific input fields.
+   * @returns Action result; invalid inputs reject.
+   */
+  async dispatch(action: string, p: Record<string, unknown> = {}): Promise<unknown> {
+    if (action.startsWith('local') && this.local) return this.local.dispatch(action, p)
+    if (typeof p.id === 'string' && p.id.startsWith('local-') && this.local) {
+      if (action === 'detail') return this.local.detail(p.id)
+      if (action === 'select' && typeof p.sessionId === 'string' && typeof p.enabled === 'boolean')
+        return this.select(p.id, p.sessionId, p.enabled)
+      if (action === 'remove') return this.local.remove(p.id)
       throw new ConnectorError('invalid_action')
     }
     switch (action) {
       case 'preview':
-        if (
-          !['prompts/get', 'resources/read'].includes(String(p.method)) ||
-          typeof p.sessionId !== 'string'
-        )
+        if (!['prompts/get', 'resources/read'].includes(String(p.method)) || typeof p.sessionId !== 'string')
           throw new ConnectorError('invalid_action')
-        return this.call(
-          this.id(p.id),
-          p.sessionId,
-          String(p.method),
-          p.params,
-        )
+        return this.call(this.id(p.id), p.sessionId, String(p.method), p.params)
       case 'catalog':
-        return this.catalog(
-          typeof p.q === 'string' ? p.q : '',
-          typeof p.page === 'number' ? p.page : 1,
-        )
+        return this.catalog(typeof p.q === 'string' ? p.q : '', typeof p.page === 'number' ? p.page : 1)
       case 'state':
         return this.state(typeof p.sessionId === 'string' ? p.sessionId : '')
       case 'detail':
@@ -530,9 +588,7 @@ export class Connectors {
       case 'authorize':
         return this.authorize(this.id(p.id))
       case 'oauth':
-        if (
-          !['status', 'complete', 'cancel', 'reopen'].includes(String(p.action))
-        )
+        if (!['status', 'complete', 'cancel', 'reopen'].includes(String(p.action)))
           throw new ConnectorError('invalid_action')
         return this.oauth(this.id(p.id), p.action as 'status')
       case 'select':
@@ -545,7 +601,8 @@ export class Connectors {
         throw new ConnectorError('invalid_action')
     }
   }
-  async reconcile() {
+  /** Refresh stale platform inventories; authoritative revocations clear affected selections. */
+  async reconcile(): Promise<void> {
     await this.context()
     if (this.reconciling) return this.reconciling
     const epoch = this.epoch
@@ -558,7 +615,8 @@ export class Connectors {
         } catch (error) {
           this.check(epoch)
           // Temporary network/rate errors keep selection; authoritative revocations remove it.
-          if(!(error instanceof ConnectorError)||![401,403,404,410].includes(error.status??0))throw error
+          if (!(error instanceof ConnectorError) || ![401, 403, 404, 410].includes(error.status ?? 0))
+            throw error
           this.inventories.delete(id)
           for (const ids of this.enabled.values()) ids.delete(id)
           this.options.changed()
@@ -572,16 +630,31 @@ export class Connectors {
       if (this.reconciling === pending) this.reconciling = undefined
     }
   }
-  async hostSnapshot(sessions:string[] = []) {
-    const local=await this.local?.snapshot(sessions)??[]
-    if(!this.options.identity()?.available){if(this.key)this.invalidate();return local}
-    try{await this.reconcile()}catch(error){if(error instanceof ConnectorError&&error.status&&[401,403,404,410].includes(error.status))throw error}
-    return local.concat([...this.inventories].map(([id, inventory]) => ({
-      id,
-      inventory,
-      sessions: [...this.enabled]
-        .filter(([, ids]) => ids.has(id))
-        .map(([session]) => session),
-    })))
+  /**
+   * Expose currently usable MCP inventories and their selected conversations.
+   * @param sessions - Local conversation identifiers to register before collecting the snapshot.
+   * @returns Combined local and platform inventories for Host registration.
+   */
+  async hostSnapshot(
+    sessions: string[] = [],
+  ): Promise<{ id: string; inventory: Inventory; sessions: string[] }[]> {
+    const local = (await this.local?.snapshot(sessions)) ?? []
+    if (!this.options.identity()?.available) {
+      if (this.key) this.invalidate()
+      return local
+    }
+    try {
+      await this.reconcile()
+    } catch (error) {
+      if (error instanceof ConnectorError && error.status && [401, 403, 404, 410].includes(error.status))
+        throw error
+    }
+    return local.concat(
+      [...this.inventories].map(([id, inventory]) => ({
+        id,
+        inventory,
+        sessions: [...this.enabled].filter(([, ids]) => ids.has(id)).map(([session]) => session),
+      })),
+    )
   }
 }

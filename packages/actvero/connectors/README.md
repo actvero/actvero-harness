@@ -1,6 +1,24 @@
+---
+description: "Add platform or local MCP connections and choose which conversations can use them. Discover tools, prompts and resources through the negotiated MCP protocol. Device enablement and current authorization continue to restrict every conversation choice."
+kind: "package-reference"
+---
+
 # MCP connections and session selection
 
 English | [中文](README.zh.md)
+
+## Summary
+
+Add platform or local MCP connections and choose which conversations can use them. Discover tools, prompts and resources through the negotiated MCP protocol. Device enablement and current authorization continue to restrict every conversation choice.
+
+## Table of Contents
+
+- [Runtime](#runtime)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+<a id="runtime"></a>
 
 ## Runtime
 
@@ -13,6 +31,10 @@ Conversation switches preserve intent through native Session events, including H
 Local MCP configuration uses system-encrypted storage in Electron Main. Missing files start empty; unavailable storage and undecryptable files return distinct errors while retaining the original ciphertext. Failed queries keep any previously loaded rows visible.
 
 Platform connectors and Local connectors use the same source tabs and card layout. Local cards expose device enablement and connection status, and open the existing configuration form directly. The conversation selector includes all added connectors after selecting an expert, with expert requirements overlaid on matching entries. Required dependencies remain enabled and disabled for interaction; optional and additional connectors retain scoped choices. A failed catalog refresh offers Retry without discarding loaded rows.
+
+The Host adapter `ctx.actveroMcp` refreshes agent-scoped registrations and reports registered connector IDs and tool names for a session. It delegates authority and discovery to Electron Main and applies the expert policy before registration and execution. Its object interface is declared in [the Host plugin](src/index.ts).
+
+<a id="model-experience"></a>
 
 ## Model Experience
 
@@ -32,4 +54,12 @@ Changing the enabled capability set changes future tool schemas and can affect t
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - Platform tokens and upstream credentials stay in Electron Main. Personal authorization is reused until it expires or becomes invalid. A transient discovery failure preserves the last inventory; actual calls still validate access. Conversation intent is restored from Session events; expert dependencies are restored from their exact snapshot. Removing a service from a device and disconnecting personal authorization have different scopes.
+
+<a id="dev-note"></a>
+
+### Dev Note
+
+None.

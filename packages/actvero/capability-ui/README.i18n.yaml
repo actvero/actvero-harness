@@ -2,12 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/actvero/capability-ui/README.md
+/:
+  en: b3f7e9962cbafc21
+  zh: 11a093a9390e90eb
 /native-capability-navigation:
   en: 164492972e2046f6
   zh: ffd4cbe120b7256a
+/native-capability-navigation/summary:
+  en: 96dcceead40021ef
+  zh: b49946551c55f02f
+/native-capability-navigation/table-of-contents:
+  en: b9d4d58097c4260a
+  zh: 411e827d681a6509
 /native-capability-navigation/runtime:
-  en: 1d4eb3f1ab72ad54
-  zh: 71da4e1845cdac0d
+  en: 62d4be48b72ad048
+  zh: 415a982dfc9c53f7
 /native-capability-navigation/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -24,5 +33,8 @@
   en: d48fc2bb2a40cab6
   zh: fee4f09759e65c5d
 /native-capability-navigation/known-limitations-and-deferred-work:
-  en: 632211e6cc27dd5c
-  zh: 55c9fdc073bfcc65
+  en: 850262ac87f34bf8
+  zh: 80522dd1f729bd71
+/native-capability-navigation/known-limitations-and-deferred-work/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914

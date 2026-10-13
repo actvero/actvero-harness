@@ -2,12 +2,21 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/actvero/connectors/README.md
+/:
+  en: 1bbfc32642567264
+  zh: edcaa65a6541321d
 /mcp-connections-and-session-selection:
   en: c958b92f5b927e88
   zh: 9c53938cd08bbb1c
+/mcp-connections-and-session-selection/summary:
+  en: 6f1b94074d6f4264
+  zh: 8c1e6effbf97a224
+/mcp-connections-and-session-selection/table-of-contents:
+  en: b9d4d58097c4260a
+  zh: 411e827d681a6509
 /mcp-connections-and-session-selection/runtime:
-  en: 40b0d295a1ee7934
-  zh: 6bf3c5102e3d3b51
+  en: 6ff467deda276914
+  zh: e712355f6b4faf31
 /mcp-connections-and-session-selection/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -24,5 +33,8 @@
   en: 2db8de1db7328f4d
   zh: 2a65ab2c0d53c616
 /mcp-connections-and-session-selection/known-limitations-and-deferred-work:
-  en: 10ac6c40fc480b3e
-  zh: 9f871c4e8cfe4e28
+  en: 40f453558e49a131
+  zh: bda9dd1a7062a265
+/mcp-connections-and-session-selection/known-limitations-and-deferred-work/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914
