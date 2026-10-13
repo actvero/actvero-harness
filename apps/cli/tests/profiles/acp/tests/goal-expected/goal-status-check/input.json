@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "op": "initialize"
+    },
+    {
+      "op": "newSession"
+    },
+    {
+      "op": "promptAndWaitForAgentMessage",
+      "text": "Finish the goal and deliver the verified result.",
+      "waitForText": "GOAL WRAP-UP: the snapshot objective is achieved and this closing message reaches the user."
+    },
+    {
+      "op": "waitForTurnEnd"
+    }
+  ]
+}

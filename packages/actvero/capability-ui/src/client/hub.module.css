@@ -1,0 +1,20 @@
+.page {height:100%;overflow:auto;padding:28px 32px 40px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto 1fr;gap:28px 20px;align-content:start;container-type:inline-size;color:var(--dsw-alias-label-primary);}
+.tabs{display:flex;align-items:center;gap:6px;grid-column:1;grid-row:1;align-self:start;min-height:36px;}
+.tabs button{gap:6px;height:32px;border-radius:9px;padding-inline:11px;font-size:13px;font-weight:500;white-space:nowrap;}
+.content{display:contents;}
+.empty{grid-column:1/-1;grid-row:2;text-align:center;padding:80px 24px;color:var(--dsw-alias-label-tertiary);}
+@media(max-width:900px){.page{padding:20px;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr;gap:20px;}.tabs{grid-column:1;grid-row:1;}.empty{grid-row:3;}}
+
+.tabs button:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary); outline-offset:-2px; box-shadow:none; }
+
+/* Match the other primary navigation entries; keep hover-only background. */
+.sidebarEntryIcon { display:inline-flex; color:inherit; }
+button[aria-label]:has(.sidebarEntryIcon) { color:var(--dsw-alias-label-primary); background:transparent; }
+button[aria-label]:has(.sidebarEntryIcon):hover { background:var(--dsw-alias-interactive-bg-hover); }
+
+.navigation { grid-column:1; grid-row:1; min-width:0; align-self:start; }
+.back { gap:8px; min-height:36px; border-radius:10px; font-weight:500; }
+.back svg { color:var(--dsw-alias-label-secondary); }
+.back:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary); outline-offset:-2px; }
+
+:global([data-platform="darwin"]) .page {padding-top:calc(var(--dsh-frame-top-clearance, 0px) + 28px);}

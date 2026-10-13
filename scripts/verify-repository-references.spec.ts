@@ -173,3 +173,10 @@ describe('maintained repository reference policy', () => {
       .toEqual([{ file: '.agents/notes/implemented/process/current.md', line: 1, kind: 'organization-url' }])
   })
 })
+
+it('accepts only the immutable commit field in the ACTVERO upstream lock', () => {
+  const hash = 'a'.repeat(40), commits = new Set([hash])
+  expect(findRepositoryReferences('actvero/upstream.lock.json', `  "commit": "${hash}",`, commits)).toEqual([])
+  expect(findRepositoryReferences('actvero/upstream.lock.json', `  "note": "${hash}",`, commits)).toHaveLength(1)
+  expect(findRepositoryReferences('actvero/README.md', hash, commits)).toHaveLength(1)
+})

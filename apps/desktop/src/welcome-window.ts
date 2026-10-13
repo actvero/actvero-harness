@@ -8,18 +8,19 @@ import type { DesktopLocale } from './locale.ts'
 import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
 
 /**
- * Resolve the fixed-size welcome window's native material and controls.
+ * Resolve the welcome window's native material, presentation and controls.
  * @param platform - operating system hosting Electron.
  * @param locale - shell-owned localized copy.
  * @returns sandboxed window options with a locale-only preload.
  */
-export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopLocale): BrowserWindowConstructorOptions {
+export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopLocale, presentation: 'official' | 'actvero' = 'official'): BrowserWindowConstructorOptions {
   return {
-    width: 600,
+    width: presentation === 'actvero' ? 1040 : 600,
     height: 700,
+    ...(presentation === 'actvero' ? { minWidth: 600, minHeight: 560 } : {}),
     useContentSize: true,
     center: true,
-    resizable: false,
+    resizable: presentation === 'actvero',
     maximizable: false,
     fullscreenable: false,
     show: false,
@@ -56,9 +57,10 @@ let disposeActiveHandlers: (() => void) | undefined
  * @param operations - credential write and this-launch-only skip actions.
  * @returns the visible window; a failed load destroys it before rejecting.
  */
-export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale)
+export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations, created?: (window: BrowserWindow) => void, presentation: 'official' | 'actvero' = 'official'): Promise<BrowserWindow> {
+  const options = welcomeWindowOptions(process.platform, locale, presentation)
   const window = new BrowserWindow(options)
+  created?.(window)
   disposeActiveHandlers?.()
   let active = true
   const disposeHandlers = (): void => {

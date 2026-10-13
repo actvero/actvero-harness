@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/experts/README.md
+/experts-and-immutable-conversation-snapshots:
+  en: 663967ed7fbef76d
+  zh: 8e94b32698bbae10
+/experts-and-immutable-conversation-snapshots/runtime:
+  en: 3d4ee620947c3af9
+  zh: ded8ffd485a7d1b0
+/experts-and-immutable-conversation-snapshots/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/experts-and-immutable-conversation-snapshots/model-experience/expert-persona-and-dependencies:
+  en: c740af20be1ac0c5
+  zh: 50cc5881467e02b2
+/experts-and-immutable-conversation-snapshots/model-experience/expert-persona-and-dependencies/what-the-model-sees:
+  en: 79df52b80b653ced
+  zh: dd1f9d4aea18d8e5
+/experts-and-immutable-conversation-snapshots/model-experience/expert-persona-and-dependencies/token-effect:
+  en: 29a1b4731941ead7
+  zh: 3a1215750d552066
+/experts-and-immutable-conversation-snapshots/model-experience/expert-persona-and-dependencies/kv-cache-effect:
+  en: 616a13c00a40a827
+  zh: 693f36d89d0fc060
+/experts-and-immutable-conversation-snapshots/known-limitations-and-deferred-work:
+  en: 83e4b2f95e17080d
+  zh: 6711b71bdf3bddf4

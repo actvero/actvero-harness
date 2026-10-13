@@ -8,6 +8,10 @@ This page documents slot ownership, component inputs, extension APIs, and the sh
 
 `plugins.bundle.config` supplies bundle detail configuration, keyed by npm package name. `plugins.bundle.activation` renders optional guidance after user-requested enablement, with owner callbacks to dismiss or open that bundle’s details. `conversation.input.activity` supplies one action between the model selector and Send, with toolbar expansion released on unmount.
 
+The plugin catalog declares `plugins.add.actions`, a root-scoped list for `MenuItemButton` rows after installation in the Add plugin menu. Its owner supplies `onDismiss()` to close the menu before starting an action. The slot follows the owning Plugins page declaration lifetime.
+
+`conversation.hero.heading` replaces the complete blank-session heading; its empty fallback retains the native mark, title and preview badge. `conversation.chat.running.label` replaces only the running text. Chat provides localized `duration`, or `undefined` for the stable screen-reader announcement, and retains its clock and animation.
+
 ## Declaration and lifecycle
 
 `SlotMap` is the compile-time registry. A package declaration-merges the key, cardinality, scope, owner props, keyed props, and optional slot-level inject face. The runtime declaration is the matching `children` entry on the component that owns the render location.
@@ -133,6 +137,7 @@ root
 │        ├─ settings.models.footer
 │        └─ settings.plugins.tab
 ├─ main
+│  ├─ plugins.add.actions
 │  ├─ plugins.item
 │  ├─ plugins.bundle.config
 │  ├─ plugins.row.config
@@ -149,7 +154,8 @@ root
 │     │     │  └─ tool.call.toolview
 │     │     │     ├─ tool.call.images
 │     │     │     └─ tool.view.cordis
-│     │     ├─ conversation.message.images
+│     │     ├─ conversation.chat.running.label
+│     ├─ conversation.message.images
 │     │     └─ conversation.trajectory.images
 │     ├─ conversation.header
 │     │  ├─ conversation.header.leading
@@ -171,6 +177,7 @@ root
 │     ├─ conversation.composer.dock
 │     ├─ conversation.input.left
 │     ├─ conversation.input.right
+│     ├─ conversation.hero.heading
 │     ├─ conversation.hero.brand.mark
 │     ├─ conversation.hero.workspace
 │     │  └─ conversation.hero.workspace.directoryFlow
@@ -182,6 +189,7 @@ root
 │     │  └─ sidebar.right.tab.guide.entry
 │     ├─ sidebar.right.pane.tab.title
 │     └─ sidebar.right.tab.menu.item
+├─ shell.bottom
 ├─ shell.leading
 └─ shell.overlay
    └─ shell.quota-notice

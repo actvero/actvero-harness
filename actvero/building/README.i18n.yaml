@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/building/README.md
+/configurable-desktop-builds:
+  en: b78388f16c9a65c7
+  zh: ab8ad2063678c1c5
+/configurable-desktop-builds/summary:
+  en: 4c3a6859bea493ab
+  zh: e23327ead4f72360
+/configurable-desktop-builds/table-of-contents:
+  en: 388ade8b5ae0ddc7
+  zh: 0348caab797369e5
+/configurable-desktop-builds/configuration:
+  en: f31eaaabb0370146
+  zh: 61659638c64b5d6d
+/configurable-desktop-builds/commands:
+  en: a15935a41e9dba33
+  zh: e36b2e3117a55554
+/configurable-desktop-builds/commands/release-baseline-checks:
+  en: 14c9340d8631c0c3
+  zh: dee89b3cacb0f8b4
+/configurable-desktop-builds/installer-output:
+  en: 598ee9858d34cce8
+  zh: 995bd713e542890a
+/configurable-desktop-builds/installed-behavior:
+  en: 2b22f3d6570fe9f0
+  zh: 18926f47cdd7822f
+/configurable-desktop-builds/platform-requirements:
+  en: e650d9af4fc4889d
+  zh: 496c0cd6e60a4a1e
+/configurable-desktop-builds/dev-note:
+  en: 0d47943494278d75
+  zh: c909da20ce79d949

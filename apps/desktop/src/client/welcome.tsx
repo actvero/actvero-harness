@@ -4,6 +4,7 @@ import '@deepseek-ai/dsh-client-ui-theme/src/styles/gradient-shadow-text.css'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { Welcome } from './WelcomePage.tsx'
+import { ActveroWelcome } from './ActveroWelcome.tsx'
 import type { WelcomeApi } from '../welcome-api.ts'
 
 declare global {
@@ -21,5 +22,13 @@ window.addEventListener('pagehide', () => { palette.removeEventListener('change'
 const container = document.getElementById('root')
 if (container === null) throw new Error('desktop welcome: missing React root')
 const root = createRoot(container)
-flushSync(() => { root.render(<Welcome api={window.dshWelcome} />) })
+void (async () => {
+  const account = await window.actveroAccount?.snapshot()
+  document.body.toggleAttribute('data-actvero-welcome', !!account)
+  flushSync(() => {
+    root.render(account && window.actveroAccount
+      ? <ActveroWelcome bridge={window.actveroAccount} initial={account} api={window.dshWelcome} />
+      : <Welcome api={window.dshWelcome} />)
+  })
+})()
 window.addEventListener('pagehide', () => { root.unmount() }, { once: true })

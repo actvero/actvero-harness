@@ -450,3 +450,13 @@ describe('dismiss / dispose', () => {
     expect(popup.state.getSnapshot().open).toBe(false)
   })
 })
+
+it('keeps multi-toggle popups open, refreshes state and refuses disabled required rows',async()=>{
+  let checked=false;const calls=vi.fn();const deps=makeDeps()
+  const { popup }=await readyPopup({ options:async()=>[{ id:'required',label:'Required',toggle:{ checked:true,disabled:true } },{ id:'optional',label:'Optional',toggle:{ checked } },{ id:'manage',label:'Manage' }],onSelect:async (option)=>{calls(option.id);checked=!checked} },deps)
+  await popup.select(0);expect(calls).not.toHaveBeenCalled()
+  popup.setSearch('Optional');await popup.select(0)
+  expect(popup.state.getSnapshot()).toMatchObject({ open:true,search:'Optional',submitting:false });expect(popup.state.getSnapshot().options[1]?.toggle?.checked).toBe(true);expect(deps.consume).not.toHaveBeenCalled()
+  await popup.select(0);expect(popup.state.getSnapshot().options[1]?.toggle?.checked).toBe(false);expect(calls).toHaveBeenCalledTimes(2)
+  popup.setSearch('Manage');await popup.select(0);expect(popup.state.getSnapshot().open).toBe(false);expect(deps.consume).toHaveBeenCalledOnce()
+})

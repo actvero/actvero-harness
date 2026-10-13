@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.1-alpha.1/actvero-secure-storage-identity/guide.md
+/:
+  en: 72ebe70e2457848a
+  zh: 86dfd4cd2bb725aa
+/actvero-encrypted-storage-identity:
+  en: 16d7ccd2426d4fc9
+  zh: 208dafaea5127488
+/actvero-encrypted-storage-identity/change:
+  en: 41e61bf9a89322ad
+  zh: d0604a4d062f1db9
+/actvero-encrypted-storage-identity/migration:
+  en: 94f84de7033ab1fd
+  zh: 0ad99869d34afeb8

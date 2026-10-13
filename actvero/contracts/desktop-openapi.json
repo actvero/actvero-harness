@@ -1,0 +1,672 @@
+{
+  "components": {
+    "schemas": {
+      "DesktopMe": {
+        "properties": {
+          "account_url": {
+            "description": "系统浏览器打开的账号管理地址，仍需独立 Web 会话。",
+            "title": "Account Url",
+            "type": "string"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceView",
+            "description": "当前设备会话的公开信息。"
+          },
+          "organization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesktopOrganization"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "唯一组织及成员状态；未加入时为 null。"
+          },
+          "organization_state": {
+            "default": "no_available_organization",
+            "enum": [
+              "ready",
+              "selection_required",
+              "no_available_organization",
+              "blocked"
+            ],
+            "title": "Organization State",
+            "type": "string"
+          },
+          "organizations": {
+            "items": {
+              "$ref": "#/components/schemas/DesktopOrganization"
+            },
+            "title": "Organizations",
+            "type": "array"
+          },
+          "reauthenticate_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reauthenticate At"
+          },
+          "recovery_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Expires At"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "session_policy": {
+            "default": "strict",
+            "enum": [
+              "strict",
+              "persistent"
+            ],
+            "title": "Session Policy",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserView",
+            "description": "平台本人资料，与 Web 共用内部用户身份。"
+          }
+        },
+        "required": [
+          "user",
+          "organization",
+          "device",
+          "account_url"
+        ],
+        "title": "DesktopMe",
+        "type": "object"
+      },
+      "DesktopMetadata": {
+        "properties": {
+          "access_seconds": {
+            "title": "Access Seconds",
+            "type": "integer"
+          },
+          "api_base": {
+            "title": "Api Base",
+            "type": "string"
+          },
+          "callback_port_max": {
+            "default": 65535,
+            "title": "Callback Port Max",
+            "type": "integer"
+          },
+          "callback_port_min": {
+            "default": 1024,
+            "title": "Callback Port Min",
+            "type": "integer"
+          },
+          "callback_template": {
+            "default": "http://127.0.0.1:{port}/actvero/callback",
+            "title": "Callback Template",
+            "type": "string"
+          },
+          "client_id": {
+            "title": "Client Id",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Contract Version",
+            "type": "integer"
+          },
+          "discovery_url": {
+            "title": "Discovery Url",
+            "type": "string"
+          },
+          "exchange_path": {
+            "default": "/desktop/login/exchange",
+            "title": "Exchange Path",
+            "type": "string"
+          },
+          "idle_minutes": {
+            "title": "Idle Minutes",
+            "type": "integer"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "logout_path": {
+            "default": "/desktop/logout",
+            "title": "Logout Path",
+            "type": "string"
+          },
+          "organization_selection_path": {
+            "default": "/desktop/organization",
+            "title": "Organization Selection Path",
+            "type": "string"
+          },
+          "reauthentication_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reauthentication Days"
+          },
+          "recovery_days": {
+            "default": 30,
+            "title": "Recovery Days",
+            "type": "integer"
+          },
+          "refresh_acknowledgement_path": {
+            "default": "/desktop/refresh/acknowledge",
+            "title": "Refresh Acknowledgement Path",
+            "type": "string"
+          },
+          "refresh_path": {
+            "default": "/desktop/refresh",
+            "title": "Refresh Path",
+            "type": "string"
+          },
+          "refresh_recovery_versions": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Refresh Recovery Versions",
+            "type": "array"
+          },
+          "retry_seconds": {
+            "title": "Retry Seconds",
+            "type": "integer"
+          },
+          "session_hours": {
+            "title": "Session Hours",
+            "type": "integer"
+          },
+          "session_policy": {
+            "default": "strict",
+            "enum": [
+              "strict",
+              "persistent"
+            ],
+            "title": "Session Policy",
+            "type": "string"
+          },
+          "unconfirmed_days": {
+            "default": 7,
+            "title": "Unconfirmed Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issuer",
+          "discovery_url",
+          "client_id",
+          "api_base",
+          "access_seconds",
+          "session_hours",
+          "idle_minutes",
+          "retry_seconds"
+        ],
+        "title": "DesktopMetadata",
+        "type": "object"
+      },
+      "DesktopOrganization": {
+        "properties": {
+          "membership_id": {
+            "description": "当前组织内成员 ID，不是 user_id。",
+            "format": "uuid",
+            "title": "Membership Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "needs_login": {
+            "description": "成员访问曾被暂停等情况下是否需要重新认证。",
+            "title": "Needs Login",
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "administrator",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "description": "当前成员/组织状态；只有有效资格才能使用组织资源。",
+            "enum": [
+              "active",
+              "paused",
+              "removed",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tenant_id": {
+            "description": "当前组织 ID，bootstrap 使用此值。",
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "membership_id",
+          "name",
+          "role",
+          "status",
+          "needs_login"
+        ],
+        "title": "DesktopOrganization",
+        "type": "object"
+      },
+      "DesktopTokens": {
+        "properties": {
+          "access_token": {
+            "description": "短期不透明访问凭据，以 Authorization: Bearer 发送；客户端不要解析。",
+            "title": "Access Token",
+            "type": "string"
+          },
+          "acknowledgement_required": {
+            "default": false,
+            "title": "Acknowledgement Required",
+            "type": "boolean"
+          },
+          "device_session_id": {
+            "description": "本次独立设备会话 ID。",
+            "format": "uuid",
+            "title": "Device Session Id",
+            "type": "string"
+          },
+          "expires_in": {
+            "description": "访问凭据剩余有效时长，单位秒。",
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "idle_expires_at": {
+            "description": "当前非活跃截止；persistent按成功refresh计时。",
+            "format": "date-time",
+            "title": "Idle Expires At",
+            "type": "string"
+          },
+          "reauthenticate_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reauthenticate At"
+          },
+          "recovery_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Until"
+          },
+          "refresh_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Request Id"
+          },
+          "refresh_token": {
+            "description": "轮换续期凭据，主进程安全存储；成功后原子替换旧值。",
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "scope": {
+            "const": "desktop:self",
+            "default": "desktop:self",
+            "description": "当前只包含桌面本人账号/设备范围，不授予 MCP 或管理员权限。",
+            "title": "Scope",
+            "type": "string"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "session_expires_at": {
+            "description": "当前设备恢复截止；strict固定，persistent在成功续期后滚动。",
+            "format": "date-time",
+            "title": "Session Expires At",
+            "type": "string"
+          },
+          "session_policy": {
+            "default": "strict",
+            "enum": [
+              "strict",
+              "persistent"
+            ],
+            "title": "Session Policy",
+            "type": "string"
+          },
+          "token_type": {
+            "const": "Bearer",
+            "default": "Bearer",
+            "description": "Authorization 使用的认证方案。",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "device_session_id",
+          "expires_in",
+          "session_expires_at",
+          "idle_expires_at"
+        ],
+        "title": "DesktopTokens",
+        "type": "object"
+      },
+      "DeviceView": {
+        "properties": {
+          "app_version": {
+            "title": "App Version",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_active_at": {
+            "format": "date-time",
+            "title": "Last Active At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "os": {
+            "title": "Os",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "os",
+          "app_version",
+          "created_at",
+          "last_active_at",
+          "expires_at",
+          "status"
+        ],
+        "title": "DeviceView",
+        "type": "object"
+      },
+      "LoginAttempt": {
+        "properties": {
+          "attempt_id": {
+            "description": "本次登录尝试 ID，后续兑换和取消使用。",
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "authorization_url": {
+            "description": "主进程在系统浏览器打开的授权地址；不得记录完整 URL。",
+            "title": "Authorization Url",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "登录尝试到期时间。",
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "issuer": {
+            "description": "期望的身份服务 issuer，必须与回调 iss 一致。",
+            "title": "Issuer",
+            "type": "string"
+          },
+          "state": {
+            "description": "保存并与浏览器回调精确比较，不能使用其他尝试的 state。",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "authorization_url",
+          "state",
+          "issuer",
+          "expires_at"
+        ],
+        "title": "LoginAttempt",
+        "type": "object"
+      },
+      "LoginProof": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "description": "login/start 返回的尝试 ID。",
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "code_verifier": {
+            "description": "主进程生成并保管的原 PKCE verifier；不传给渲染进程。",
+            "format": "password",
+            "maxLength": 128,
+            "minLength": 43,
+            "title": "Code Verifier",
+            "type": "string",
+            "writeOnly": true
+          },
+          "state": {
+            "description": "原登录尝试的随机 state。",
+            "format": "password",
+            "maxLength": 100,
+            "minLength": 43,
+            "title": "State",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "attempt_id",
+          "state",
+          "code_verifier"
+        ],
+        "title": "LoginProof",
+        "type": "object"
+      },
+      "QuotaView": {
+        "properties": {
+          "policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "unconfigured"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/WindowView"
+            },
+            "title": "Windows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "policy",
+          "windows"
+        ],
+        "title": "QuotaView",
+        "type": "object"
+      },
+      "UserView": {
+        "properties": {
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
+        "title": "UserView",
+        "type": "object"
+      },
+      "WindowView": {
+        "properties": {
+          "remaining": {
+            "title": "Remaining",
+            "type": "string"
+          },
+          "reserved": {
+            "title": "Reserved",
+            "type": "string"
+          },
+          "resets_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resets At"
+          },
+          "rule": {
+            "additionalProperties": true,
+            "title": "Rule",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "used": {
+            "title": "Used",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "used",
+          "reserved",
+          "remaining",
+          "started_at",
+          "resets_at"
+        ],
+        "title": "WindowView",
+        "type": "object"
+      }
+    }
+  }
+}

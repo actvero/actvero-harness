@@ -65,7 +65,7 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
 export interface HeroShellProps {
   /** The owner's locale seat, passed down as a plain prop. */
   t: HeroTranslate
-  /** Authorized renderer for the hero brand-mark slot. */
+  /** Authorized renderer for the hero heading and brand-mark slots. */
   renderSlot: ConversationContentProps['renderSlot']
   /** Overlay content after the stack (modals). */
   children?: ReactNode
@@ -135,25 +135,29 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
     <div className={css.root}>
       <div className={css.stack}>
         <div className={css.headline}>
-          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
-          <span
-            className={css.fishHitbox}
-            onMouseEnter={() => {
-              if (window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) {
-                setHovering(true)
-              }
-            }}
-            onMouseLeave={() => { setHovering(false) }}
-          >
-            {renderSlot('conversation.hero.brand.mark', { size: 34, className: css.fish }, {
-              fallback: <HeroFish hovering={hovering} />,
-            })}
-          </span>
-          <span className={css.titleGroup}>
-            {/* Own element: keeps the headline text addressable apart from the badge. */}
-            <span>{t('hero.headline')}</span>
-            <span className={css.previewBadge}>{t('hero.preview')}</span>
-          </span>
+          {renderSlot('conversation.hero.heading', {}, { fallback: (
+            <>
+              {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
+              <span
+                className={css.fishHitbox}
+                onMouseEnter={() => {
+                  if (window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) {
+                    setHovering(true)
+                  }
+                }}
+                onMouseLeave={() => { setHovering(false) }}
+              >
+                {renderSlot('conversation.hero.brand.mark', { size: 34, className: css.fish }, {
+                  fallback: <HeroFish hovering={hovering} />,
+                })}
+              </span>
+              <span className={css.titleGroup}>
+                {/* Own element: keeps the headline text addressable apart from the badge. */}
+                <span>{t('hero.headline')}</span>
+                <span className={css.previewBadge}>{t('hero.preview')}</span>
+              </span>
+            </>
+          ) })}
         </div>
         <div className={css.body}>
           {/* The composer remains mounted outside this component. */}

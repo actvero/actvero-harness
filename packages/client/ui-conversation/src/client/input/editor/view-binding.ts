@@ -1,6 +1,6 @@
 /** DOM and keymap bindings installed by the InputBar's existing effects. */
 import type { MouseEvent, MutableRefObject, RefObject } from 'react'
-import type { LexicalEditor } from 'lexical'
+import { $getSelection, $setSelection, SKIP_SCROLL_INTO_VIEW_TAG, type LexicalEditor } from 'lexical'
 import type { ComposerKeyboard } from '../../contract/draft-editor.ts'
 import type { ComposerBarProps } from '../../contract/slots.ts'
 import type { BusyEnterBehavior } from '../../contract/composer-submission.ts'
@@ -51,9 +51,11 @@ export function revealDraftSelection(scrollRef: RefObject<HTMLDivElement>): void
  * @param revealSelection - reveal the selection after Lexical restores it.
  */
 export function focusDraftEditor(editor: LexicalEditor, revealSelection: () => void): void {
-  // Lexical's focus() restores the editor selection but never calls the DOM
-  // focus itself; preventScroll keeps the conversation scrollport still.
+  // DOM focus can overwrite a selection made while a popup held focus. Restore
+  // that selection before Lexical reconciles it; preventScroll keeps the view still.
+  const selection = editor.read(() => $getSelection()?.clone() ?? null)
   editor.getRootElement()?.focus({ preventScroll: true })
+  if (selection !== null) editor.update(() => { $setSelection(selection) }, { discrete: true, tag: SKIP_SCROLL_INTO_VIEW_TAG })
   editor.focus(() => { revealSelection() })
 }
 

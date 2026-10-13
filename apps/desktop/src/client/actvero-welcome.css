@@ -1,0 +1,45 @@
+body[data-actvero-welcome] #root { position: relative; display: block; padding: 0; background: var(--dsw-alias-button-elevated-fill); }
+body[data-actvero-welcome] .titlebar { position: absolute; z-index: 2; top: 0; left: 0; right: 0; height: 48px; }
+.actvero-login-layout { display: grid; grid-template-columns: 1fr 1fr; height: 100%; font-family: var(--dsw-font-family); }
+.actvero-atmosphere { color-scheme: light; position: relative; min-width: 0; overflow: hidden; color: #273842; background: #e7f3f8; padding: 72px 40px 48px; display: flex; flex-direction: column; }
+.atmosphere-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.atmosphere-layer img, .atmosphere-layer canvas { position: absolute; width: 100%; height: 100%; inset: 0; object-fit: cover; }
+.atmosphere-layer canvas[hidden] { display: none; }
+.actvero-brand { position: relative; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 24px; line-height: 32px; letter-spacing: -.02em; }
+.actvero-brand img { width: 32px; height: 32px; object-fit: contain; }
+.actvero-tagline { position: relative; margin-block: auto; }
+.actvero-tagline h2 { font-size: 40px; line-height: 1.4; font-weight: 500; letter-spacing: -.02em; margin: 24px 0; }
+.actvero-tagline p { font-size: 14px; line-height: 24px; margin: 0; }
+.actvero-login-layout .actvero-welcome { display: flex; min-width: 0; min-height: 0; padding: 64px 40px 40px; overflow: auto; }
+.actvero-login-panel { width: 100%; max-width: 360px; margin: auto; }
+.actvero-content { min-width: 0; text-align: left; }
+.actvero-content h1 { margin: 0 0 24px; font-size: 20px; font-weight: 500; line-height: 32px; }
+.actvero-content p { color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 22px; margin: 12px 0; }
+.actvero-content .key-error { position: static; width: auto; margin: 16px 0 0; padding: 10px 12px; border-radius: 10px; text-align: left; color: var(--dsw-alias-label-error); background: var(--dsw-alias-bg-layer-1); overflow-wrap: anywhere; }
+.actvero-identity { display: flex; align-items: center; gap: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; }
+.actvero-identity > div { min-width: 0; overflow-wrap: anywhere; }
+.actvero-avatar { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--dsw-alias-button-floating-hover); color: var(--dsw-alias-label-secondary); font-size: 20px; overflow: hidden; }
+.actvero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.actvero-identity-name { font-size: 14px; line-height: 22px; font-weight: 500; }
+.actvero-identity-email { font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+.actvero-address { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-width: 0; padding: 10px 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; font-size: 13px; margin-top: 24px; }
+.actvero-connection { min-width: 0; display: grid; gap: 4px; }
+.actvero-address span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; }
+.actvero-connection > span:last-child { color: var(--dsw-alias-label-secondary); }
+.actvero-address button { color: var(--dsw-alias-label-secondary); background: transparent; border: 0; border-radius: 6px; font: inherit; cursor: pointer; padding: 6px 8px; flex: none; }
+.actvero-address button:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-button-floating-hover); }
+.actvero-content label { display: grid; text-align: left; gap: 12px; font-size: 14px; }
+.actvero-content input { width: 100%; min-width: 0; box-sizing: border-box; color: inherit; background: var(--dsw-alias-button-elevated-fill); border: 1px solid var(--dsw-alias-border-l4); border-radius: 10px; padding: 12px 14px; font: inherit; user-select: text; outline: none; }
+.actvero-content input:hover { border-color: var(--dsw-alias-label-secondary); }
+.actvero-content input:focus { border-color: var(--dsw-alias-label-primary); box-shadow: 0 0 0 1px var(--dsw-alias-label-primary); }
+.actvero-organizations { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow: auto; padding: 4px; }
+.actvero-organizations button { padding: 12px 14px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; color: inherit; font: inherit; cursor: pointer; background: var(--dsw-alias-button-elevated-fill); }
+.actvero-organizations button:hover { background: var(--dsw-alias-button-floating-hover); }
+.actvero-welcome .actions { display: flex; flex-direction: column; width: 100%; gap: 12px; height: auto; margin-top: 32px; }
+.actvero-welcome .actions button { flex-shrink: 0; }
+.actvero-welcome .actvero-local { border: 0; background: transparent; color: var(--dsw-alias-label-secondary); font-size: 13px; }
+.actvero-welcome .actvero-local:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-button-floating-hover); }
+.actvero-welcome button:focus-visible { outline: 2px solid var(--dsw-alias-label-primary); outline-offset: 3px; }
+.actvero-welcome button:disabled { opacity: .5; cursor: not-allowed; }
+@media(max-width:800px) { .actvero-login-layout { grid-template-columns: 1fr; } .actvero-atmosphere { display: none; } .actvero-login-layout .actvero-welcome { padding: 72px 32px 32px; } }
+@media(prefers-reduced-motion:reduce) { .actvero-welcome button { transition: none; } }

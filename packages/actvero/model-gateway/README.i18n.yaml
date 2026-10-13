@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/model-gateway/README.md
+/actvero-dsh-model-gateway:
+  en: e1c3c778fc678e0d
+  zh: 0a22302227c6ebf1

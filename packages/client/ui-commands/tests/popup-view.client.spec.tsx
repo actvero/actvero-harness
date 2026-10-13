@@ -78,6 +78,29 @@ function rowLabels(): string[] {
 }
 
 describe('PopupSelectView', () => {
+  it('shows portraits without changing row names and falls back on failed or missing images', async () => {
+    let options: SelectOption[] = [
+      { id: 'portrait', label: 'Expert portrait', avatar: { src: '/portrait.png', fallback: 'E' } },
+      { id: 'default', label: 'Default expert', avatar: { fallback: 'D' } },
+      { id: 'plain', label: 'Plain option' },
+    ]
+    const config = spec({ options: () => Promise.resolve(options) })
+    const { popup } = await mountOpen(config)
+    const portrait = screen.getByRole('option', { name: 'Expert portrait' })
+    const image = portrait.querySelector('img')!
+    expect(image.getAttribute('src')).toBe('/portrait.png')
+    expect(image.alt).toBe('')
+    expect(image.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(screen.getByRole('option', { name: 'Default expert' }).querySelector('[aria-hidden]')?.textContent).toBe('D')
+    expect(screen.getByRole('option', { name: 'Plain option' }).querySelector('[aria-hidden]')).toBeNull()
+    fireEvent.error(image)
+    expect(portrait.querySelector('img')).toBeNull()
+    expect(portrait.querySelector('[aria-hidden]')?.textContent).toBe('E')
+    options = [{ id: 'portrait', label: 'Expert portrait', avatar: { src: '/new-portrait.png', fallback: 'E' } }]
+    await act(async () => { popup.open('theme', config, 'ctx-A', SEGMENT); await Promise.resolve() })
+    expect(screen.getByRole('option', { name: 'Expert portrait' }).querySelector('img')?.getAttribute('src')).toBe('/new-portrait.png')
+  })
+
   it('renders provider groups and selects the same fuzzy-ranked row the user sees', async () => {
     const alpha = { name: 'alpha', label: 'Alpha provider' }
     const beta = { name: 'beta', label: 'Beta provider' }

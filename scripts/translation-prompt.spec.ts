@@ -30,6 +30,16 @@ const retainedExamples = [
 ]
 
 describe('translation prompt rendering', () => {
+  it.each([
+    { sourceLanguage: 'Chinese' as const, sourceFilename: 'README.md', targetFilename: 'README.en.md', switcher: 'English | [中文](README.md)' },
+    { sourceLanguage: 'English' as const, sourceFilename: 'README.en.md', targetFilename: 'README.md', switcher: '[English](README.en.md) | 中文' },
+  ])('preserves the root README filenames when translating from $sourceLanguage', (input) => {
+    const request = renderTranslationRequest(document, { ...input, sourceDocument: '# Harness', terminology, examples: [] })
+    expect(request.targetFilename).toBe(input.targetFilename)
+    const response = renderTranslationResponse({ translation: '# Harness', review: '- 无修正', final: '# Harness' })
+    expect(consumeTranslationResponse(response, input).final).toContain(input.switcher)
+  })
+
   it('renders both directions with every placeholder resolved', () => {
     const en = renderTranslationPrompt(document, { sourceLanguage: 'English', sourceFilename: 'guide.md', terminology })
     expect(en).toContain('from English to Chinese')

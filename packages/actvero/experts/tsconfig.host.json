@@ -1,0 +1,55 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis/tsconfig.json"
+    },
+    {
+      "path": "../../core/agent/tsconfig.json"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.host.json"
+    },
+    {
+      "path": "../../api/workspace-controller/tsconfig.host.json"
+    },
+    {
+      "path": "../../core/session/tsconfig.json"
+    },
+    {
+      "path": "../../skill/skill/tsconfig.json"
+    },
+    {
+      "path": "../../core/system-prompt/tsconfig.json"
+    },
+    {
+      "path": "../../core/tools/tsconfig.json"
+    },
+    {
+      "path": "../../workspace/workspace/tsconfig.json"
+    },
+    {
+      "path": "../skills/tsconfig.host.json"
+    },
+    {
+      "path": "../connectors/tsconfig.host.json"
+    },
+    {
+      "path": "../../session/session-projection/tsconfig.json"
+    }
+  ],
+  "exclude": [
+    "src/client"
+  ]
+}

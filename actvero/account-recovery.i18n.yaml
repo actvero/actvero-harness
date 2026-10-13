@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for account-recovery.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/account-recovery.md
+/actvero-account-recovery:
+  en: c01028f7dc6f58f9
+  zh: 698faf39c7c15697
+/actvero-account-recovery/persistence:
+  en: b96aff60728b6abf
+  zh: bac7a68c1081c354
+/actvero-account-recovery/platform-inputs:
+  en: c4fd9ae212049f5d
+  zh: 1702e93e43cbf2ae
+/actvero-account-recovery/browser-return:
+  en: 6bd7189aaeef6bdd
+  zh: 4dce0b8a5ae38dc1
+/actvero-account-recovery/login-entry-and-account-confirmation:
+  en: 1c0c332beb48854d
+  zh: 3a548390f886df87
+/actvero-account-recovery/focused-acceptance:
+  en: fb58a0635f2a0899
+  zh: 5a6553b52d235749
+/actvero-account-recovery/2026-10-05-verification:
+  en: 9b55e2814bb1d2f2
+  zh: b3f1f1fc662b444e

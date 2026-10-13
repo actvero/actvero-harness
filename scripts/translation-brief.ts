@@ -12,6 +12,7 @@
 
 import type { Nodes } from 'mdast'
 import { parseTranslationMarkdown } from './translation-pairing.ts'
+import { pairAnchorOfArgument } from './translation-paths.ts'
 
 /** One block-level span of a Markdown document, in document order. */
 export interface MarkdownSpan {
@@ -505,8 +506,8 @@ export function renderTranslationBrief(input: TranslationBriefInput): string {
   out.push('## Finish')
   out.push('')
   out.push('1. Apply the smallest counterpart edit that covers the change, then verify the changed spans clause by clause against the source.')
-  out.push(`2. \`pnpm run verify-translation-pairing --write ${input.sourcePath.replace(/\.zh\.md$/, '.md')}\``)
-  out.push(`3. \`pnpm run verify-translation-pairing ${input.sourcePath.replace(/\.zh\.md$/, '.md')}\``)
+  out.push(`2. \`pnpm run verify-translation-pairing --write ${pairAnchorOfArgument(input.sourcePath)}\``)
+  out.push(`3. \`pnpm run verify-translation-pairing ${pairAnchorOfArgument(input.sourcePath)}\``)
   out.push('')
   return out.join('\n')
 }

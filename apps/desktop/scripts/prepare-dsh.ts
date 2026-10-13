@@ -3,6 +3,7 @@
 import { packagingStep } from './packaging-step.mjs'
 import { spawn } from 'node:child_process'
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
 import { tmpdir } from 'node:os'
 import { delimiter, join, relative, resolve } from 'node:path'
 import { desktopNodeEnvironment } from '../src/node-environment.ts'
@@ -24,6 +25,7 @@ import { writeDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.t
 import {
   resolveDesktopAppId,
   resolveMacOSSigningEnvironment,
+  resolveNpmFetchTimeout,
   resolveNpmRegistry,
 } from './desktop-release-environment.mjs'
 import {
@@ -71,10 +73,14 @@ function runPnpm(args: readonly string[]): Promise<void> {
     const [command, ...commandArgs] = args
     if (command === undefined) throw new Error('desktop runtime: pnpm command is required')
     const registry = resolveNpmRegistry(process.env)
+    const fetchTimeout = resolveNpmFetchTimeout(process.env)
     const config = join(PNPM_BUILD_STATE, 'config')
     const userConfig = join(config, 'npmrc')
-    mkdirSync(config, { recursive: true })
+    const pnpmConfig = join(config, 'pnpm')
+    mkdirSync(pnpmConfig, { recursive: true })
     writeFileSync(userConfig, '')
+    // pnpm's --config overrides retain strings; YAML preserves the numeric timeout.
+    writeFileSync(join(pnpmConfig, 'config.yaml'), `fetchTimeout: ${fetchTimeout}\n`)
     const child = spawn(NODE, [
       '--expose-internals',
       PNPM,
@@ -110,6 +116,8 @@ function runPnpm(args: readonly string[]): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const { values } = parseArgs({ options: { 'defer-runtime-smoke': { type: 'boolean' }, 'local-unsigned': { type: 'boolean' } } })
+  if (values['local-unsigned'] && !process.env.ACTVERO_PRODUCT_CONFIG) throw new Error('desktop runtime: local unsigned preparation requires an ACTVERO product configuration')
   try {
     await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:reset', async () => {
       rmSync(DSH_OUTPUT_ROOT, { recursive: true, force: true })
@@ -153,7 +161,7 @@ async function main(): Promise<void> {
     if (!existsSync(join(DSH_OUTPUT_ROOT, 'node_modules', '@deepseek-ai', `libreoffice-kit-${officeEngine}`, 'prebuilds.json'))) {
       throw new Error(`desktop runtime: missing required LibreOffice engine ${officeEngine}`)
     }
-    if (process.platform === 'darwin') {
+    if (process.platform === 'darwin' && !values['local-unsigned']) {
       await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:dsh-native', () => signMacOSRuntime(DSH_OUTPUT_ROOT, resolveDesktopAppId(process.env), resolveMacOSSigningEnvironment(process.env), target.arch, join(BUILD_PATHS.root, 'signature-cache')))
       await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:primary-native', () => signMacOSRuntime(join(RUNTIME_ROOT, 'primary-runtime'), resolveDesktopAppId(process.env), resolveMacOSSigningEnvironment(process.env), target.arch, join(BUILD_PATHS.root, 'signature-cache')))
     }

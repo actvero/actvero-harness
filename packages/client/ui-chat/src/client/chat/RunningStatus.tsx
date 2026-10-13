@@ -1,6 +1,7 @@
 /** Running Turn clock isolated from the transcript's render cycle. */
 import { memo, useEffect, useState } from 'react'
 import { TextShimmer } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { formatRunDuration, LIVE_RUN_CLOCK_INTERVAL_MS } from './message-chrome.ts'
 import { RunningWhaleTail } from './RunningWhaleTail.tsx'
@@ -10,6 +11,7 @@ import css from './ChatView.module.css'
 interface RunningStatusProps {
   readonly startTime: number | undefined
   readonly t: ChatViewSlotProps['t']
+  readonly renderSlot: PropsRenderSlots<'conversation.chat.running.label'>['renderSlot']
 }
 
 /**
@@ -17,7 +19,7 @@ interface RunningStatusProps {
  * @param props - Current Turn start time and localized copy.
  * @returns the blue running indicator; mount only while the Session is running.
  */
-export const RunningStatus = memo(function RunningStatus({ startTime, t }: RunningStatusProps) {
+export const RunningStatus = memo(function RunningStatus({ startTime, t, renderSlot }: RunningStatusProps) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     if (startTime === undefined) return
@@ -25,12 +27,17 @@ export const RunningStatus = memo(function RunningStatus({ startTime, t }: Runni
     const timer = setInterval(() => { setNow(Date.now()) }, LIVE_RUN_CLOCK_INTERVAL_MS)
     return () => { clearInterval(timer) }
   }, [startTime])
-  const label = startTime === undefined ? t('chat.deepDiving') : t('chat.deepDivingFor', {
-    duration: formatRunDuration(Math.max(1000, now - startTime), t).map(part => part.text).join(''),
+  const duration = startTime === undefined ? undefined
+    : formatRunDuration(Math.max(1000, now - startTime), t).map(part => part.text).join('')
+  const label = renderSlot('conversation.chat.running.label', { duration }, {
+    fallback: duration === undefined ? t('chat.deepDiving') : t('chat.deepDivingFor', { duration }),
+  })
+  const announcement = renderSlot('conversation.chat.running.label', { duration: undefined }, {
+    fallback: t('chat.deepDiving'),
   })
   return (
     <div className={css.running} data-chat-running>
-      <span className={a11yCss.visuallyHidden} role="status" aria-live="polite" aria-atomic="true">{t('chat.deepDiving')}</span>
+      <span className={a11yCss.visuallyHidden} role="status" aria-live="polite" aria-atomic="true">{announcement}</span>
       <span className={css.runningDivider} aria-hidden="true" />
       <span className={css.runningContent}>
         <RunningWhaleTail />

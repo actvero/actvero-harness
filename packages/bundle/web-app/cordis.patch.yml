@@ -136,6 +136,31 @@
     # reports an actionable error when its settings-domain provider is absent.
     - id: ui-settings-account
       name: '@deepseek-ai/dsh-client-ui-settings-account'
+      disabled: !!js "process.env.ACTVERO_DESKTOP === '1'"
+
+    - id: actvero-account
+      name: '@actvero/dsh-client-account'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
+    - id: actvero-capability-ui
+      name: '@actvero/dsh-capability-ui'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
+    - id: actvero-skills
+      name: '@actvero/dsh-skills'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
+    - id: actvero-connectors
+      name: '@actvero/dsh-connectors'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
+    - id: actvero-experts
+      name: '@actvero/dsh-experts'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
+    - id: actvero-model-gateway
+      name: '@actvero/dsh-model-gateway'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
 
     - id: account-controller
       name: '@deepseek-ai/dsh-api-account-controller'
@@ -317,6 +342,7 @@
     # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official
       name: '@deepseek-ai/dsh-client-ui-brand-official'
+      disabled: !!js "process.env.ACTVERO_DESKTOP === '1'"
 
     - id: ui-attachment
       name: '@deepseek-ai/dsh-client-ui-attachment'
@@ -358,6 +384,8 @@
 
     - id: ui-skill
       name: '@deepseek-ai/dsh-client-ui-skill'
+      config:
+        referenceChips: !!js "process.env.ACTVERO_DESKTOP === '1'"
 
     - id: ui-subagent
       name: '@deepseek-ai/dsh-client-ui-subagent'

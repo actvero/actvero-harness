@@ -5,7 +5,7 @@ import { $getRoot, $getSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, U
 import { DraftEditorRuntime } from '../src/client/input/editor/runtime.ts'
 import { focusDraftEditor } from '../src/client/input/editor/view-binding.ts'
 
-function fixture(start = 1, end = 4) {
+function fixture(start = 1, end = 4, preserveDOM = true) {
   // jsdom has no Range geometry; these cases observe selection and focus, not scrolling.
   const geometry = Object.getOwnPropertyDescriptor(Range.prototype, 'getBoundingClientRect')
   Object.defineProperty(Range.prototype, 'getBoundingClientRect', { configurable: true, value: () => new DOMRect() })
@@ -21,7 +21,7 @@ function fixture(start = 1, end = 4) {
   onTestFinished(() => { root.remove(); outside.remove() })
   // jsdom collapses document Selection on every focus(); Chromium retains the
   // editor range here. Keep native focus events and activeElement changes.
-  for (const element of [root, outside]) {
+  for (const element of preserveDOM ? [root, outside] : []) {
     const focus = element.focus.bind(element)
     const mocked = vi.spyOn(element, 'focus').mockImplementation((options) => {
       const selection = document.getSelection()!
@@ -149,4 +149,16 @@ it('removes focus preservation and update subscriptions when registration is dis
   f.editor.update(() => { $getRoot().getFirstDescendant()!.markDirty() }, { discrete: true })
   expect(document.activeElement).toBe(f.root)
   expect(f.onUpdate).not.toHaveBeenCalled()
+})
+
+// A reference pick changes the retained selection while a menu owns focus.
+it('restores the new right-side caret even when DOM focus resets the selection', () => {
+  const f = fixture(3, 3, false)
+  f.outside.focus()
+  f.runtime.insertReference({ start:10,end:10 },{ source:'skill',ref:'/sample',label:'sample',appearance:'skill',clipboardText:'/sample' },'')
+  const selected = f.selection()
+  f.focusComposer()
+  expect(f.selection()).toEqual(selected)
+  expect(f.domSelection()).toMatchObject({ anchor:1,focus:1,text:'' })
+  expect(f.domSelection().anchorNode?.textContent).toBe(' ')
 })

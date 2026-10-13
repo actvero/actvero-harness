@@ -50,6 +50,11 @@ const operations = {
 }
 
 describe('desktop welcome window', () => {
+  it('lets the ACTVERO two-pane presentation resize while retaining the sandbox', () => {
+    const options = welcomeWindowOptions('darwin', resolveDesktopLocale('zh-CN'), 'actvero')
+    expect(options).toMatchObject({ width: 1040, height: 700, minWidth: 600, minHeight: 560, resizable: true,
+      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true } })
+  })
   it.each(['darwin', 'win32', 'linux'] as const)('keeps the %s preview fixed-size and sandboxed', (platform) => {
     const options = welcomeWindowOptions(platform, resolveDesktopLocale('zh-CN'))
     expect(options).toMatchObject({

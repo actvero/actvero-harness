@@ -1,0 +1,23 @@
+import { importZh } from './locales/import.ts'
+import { useEffect, useRef, useState } from 'react'
+import { Button, Modal, IconCloseOutlineMedium, IconDownloadOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { ImportPreview } from '../contracts.ts'
+import styles from './import.module.css'
+type T=(key:keyof typeof importZh)=>string
+const req=async<T,>(action:string,input:Record<string,unknown>={}):Promise<T>=>await window.actveroSkills!.request(action,input) as T
+export function ImportSkill({ onClose,onDone,t }:{ onClose:()=>void;onDone:()=>void;t:T }){
+  const [preview,setPreview]=useState<ImportPreview|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[drag,setDrag]=useState(false)
+  const pending=useRef<string>(),alive=useRef(true),body=useRef<HTMLDivElement>(null)
+  useEffect(()=>{const previous=document.activeElement as HTMLElement;body.current?.querySelector<HTMLButtonElement>('button')?.focus();return()=>{alive.current=false;if(pending.current)void req('localDiscard',{ token:pending.current }).catch(()=>{});previous?.focus()}},[])
+  const message=(e:unknown)=>{const code=e instanceof Error?e.message:'';return t(({ missing_skill:'importMissing',multiple_skills:'importMultiple',invalid_skill:'importInvalid',unsafe_package:'importUnsafe',skill_name_conflict:'importConflict',preview_expired:'importExpired',skill_registration_failed:'importHost',skills_host_timeout:'importHost' } as Record<string,keyof typeof importZh>)[code]??'importFailed')}
+  const choose=async(load:()=>Promise<ImportPreview|null>)=>{if(busy)return;setBusy(true);setError('');try{if(pending.current){await req('localDiscard',{ token:pending.current });pending.current=undefined;setPreview(null)}const next=await load();if(!alive.current){if(next)await req('localDiscard',{ token:next.token });return}pending.current=next?.token;setPreview(next)}catch(e){if(alive.current)setError(message(e))}finally{if(alive.current)setBusy(false)}}
+  const install=async()=>{if(!preview||busy)return;setBusy(true);setError('');try{await req('localImport',{ token:preview.token });pending.current=undefined;if(alive.current)onDone()}catch(e){if(alive.current)setError(message(e))}finally{if(alive.current)setBusy(false)}}
+  return <Modal open onClose={()=>{if(!busy)onClose()}} title={t('importTitle')} headless className={styles.modal}><div ref={body} className={styles.body} onKeyDown={(e)=>{if(e.key!=='Tab')return;const nodes=[...e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];if(e.shiftKey&&document.activeElement===nodes[0]){e.preventDefault();nodes.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0]?.focus()}}}>
+    <header><h2>{t('importTitle')}</h2><Button disabled={busy} aria-label={t('importClose')} onClick={onClose}><IconCloseOutlineMedium/></Button></header>
+    <div className={styles.content}>{!preview?<><div className={`${styles.drop} ${drag?styles.drag:''}`} onDragOver={(e)=>{e.preventDefault();if(!busy)setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={(e)=>{e.preventDefault();setDrag(false);if(busy)return;const files=Array.from(e.dataTransfer.files);if(files.length!==1){setError(t('importDropOne'));return}void choose(()=>window.actveroSkills!.previewDrop!(files[0]))}}>
+      <IconDownloadOutlineMedium size={28}/><strong>{t('importDrop')}</strong><span>{t('importHint')}</span><div className={styles.choices}><Button variant="outline" disabled={busy} onClick={()=>void choose(()=>req('localPick',{ kind:'file' }))}>{t('importFile')}</Button><Button variant="outline" disabled={busy} onClick={()=>void choose(()=>req('localPick',{ kind:'folder' }))}>{t('importFolder')}</Button></div>
+    </div><p className={styles.hint}>{t('importRule')}</p></>:<div className={styles.preview}><dl><dt>{t('importName')}</dt><dd>{preview.skill.name}</dd><dt>{t('importDescription')}</dt><dd>{preview.skill.description}</dd>{preview.skill.current_version.version&&<><dt>{t('importVersion')}</dt><dd>{preview.skill.current_version.version}</dd></>}<dt>{t('importSource')}</dt><dd>{preview.filename}</dd></dl></div>}
+    {error&&<p role="alert" className={styles.error}>{error}</p>}</div>
+    <footer>{preview&&<Button disabled={busy} onClick={()=>{void req('localDiscard',{ token:preview.token });pending.current=undefined;setPreview(null);setError('')}}>{t('importAgain')}</Button>}<span/>{busy&&<span role="status">{t('importBusy')}</span>}<Button disabled={busy} onClick={onClose}>{t('importCancel')}</Button>{preview&&<Button variant="primary" disabled={busy} onClick={()=>void install()}>{t('importSubmit')}</Button>}</footer>
+  </div></Modal>
+}

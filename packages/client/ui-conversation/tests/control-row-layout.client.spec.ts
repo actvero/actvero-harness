@@ -5,7 +5,7 @@ import { observeControlRow } from '../src/client/skeleton/control-row-layout.ts'
 
 afterEach(() => { document.body.replaceChildren() })
 
-function fixture() {
+function fixture(permission = false) {
   const row = document.createElement('div')
   row.style.padding = '2px 8px 6px'
   row.style.columnGap = '12px'
@@ -18,7 +18,7 @@ function fixture() {
   document.body.append(row)
   const sizes = { row: 400, tools: 180, trailing: 220 }
   row.getBoundingClientRect = () => new DOMRect(0, 0, sizes.row, 36)
-  tools.getBoundingClientRect = () => new DOMRect(0, 0, tools.hidden ? 0 : sizes.tools, 28)
+  tools.getBoundingClientRect = () => new DOMRect(0, 0, tools.hidden ? 0 : sizes.tools - (permission && row.hasAttribute('data-permission-compact') ? 100 : 0), 28)
   trailing.getBoundingClientRect = () => new DOMRect(0, 0,
     row.hasAttribute('data-model-compact') ? 70 : sizes.trailing, 28)
   const observe = vi.fn()
@@ -35,6 +35,22 @@ function fixture() {
 }
 
 describe('composer control row measurement', () => {
+  it('collapses permission before model and restores both when room returns', () => {
+    const { row, sizes, resize } = fixture(true)
+    expect(row.hasAttribute('data-permission-compact')).toBe(true)
+    expect(row.hasAttribute('data-model-compact')).toBe(false)
+    sizes.row = 300
+    resize()
+    expect(row.hasAttribute('data-permission-compact')).toBe(true)
+    expect(row.hasAttribute('data-model-compact')).toBe(true)
+    for (let i = 0; i < 3; i++) resize()
+    expect(row.hasAttribute('data-model-compact')).toBe(true)
+    sizes.row = 480
+    resize()
+    expect(row.hasAttribute('data-permission-compact')).toBe(false)
+    expect(row.hasAttribute('data-model-compact')).toBe(false)
+  })
+
   it('collapses on expanded demand and remains stable across resize deliveries', () => {
     const { row, sizes, observe, resize } = fixture()
     expect(observe).toHaveBeenCalledTimes(3)

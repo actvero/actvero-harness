@@ -7,12 +7,12 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { readPrimaryRuntime, workspaceDependencyPaths } from '../../../packages/skill/tool-workspace-dependencies/src/index.ts'
-import { DesktopHostProcess } from '../src/host-process.ts'
+import { DesktopHostProcess, type DesktopHostReady } from '../src/host-process.ts'
 import { createPluginProfile } from '../src/project-manager.ts'
 import type { DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
 
 /**
- * Check Host startup, its matching frontend, external plugins and real Office-to-PDF conversion.
+ * Check independent Host startup/restart, matching frontends, external plugins and Office-to-PDF conversion.
  * @param root - Materialized dsh resources.
  * @param node - Prepared target Electron executable.
  * @param runtime - Verified resource descriptor.
@@ -25,10 +25,12 @@ export async function smokeDesktopRuntime(
 ): Promise<void> {
   const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-smoke-'))
   const profile = join(home, 'profiles', 'desktop')
-  const host = new DesktopHostProcess(node, root, profile, undefined, { ...environment, DSH_HOME: home },
+  const createHost = (profileHome: string) => new DesktopHostProcess(node, root,
+    join(profileHome, 'profiles', 'desktop'), undefined, { ...environment, DSH_HOME: profileHome },
     undefined, join(resourcesRuntime, 'primary-runtime'),
     { pnpm: join(resourcesRuntime, 'pnpm', 'bin', 'pnpm.cjs'), nodeBin: join(resourcesRuntime, 'bin') })
-  let timer: ReturnType<typeof setTimeout> | undefined
+  const host = createHost(home)
+  const peers: DesktopHostProcess[] = []
   try {
     createPluginProfile(profile)
     const pluginName = 'desktop-runtime-smoke-plugin'
@@ -98,17 +100,9 @@ export function apply(ctx) {
     manifest.dependencies[pluginName] = '1.0.0'
     manifest.dsh.profile.bundles.push(pluginName)
     writeFileSync(join(profile, 'package.json'), JSON.stringify(manifest))
-    writeFileSync(join(profile, 'cordis.patch.yml'), '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n')
-    const ready = await Promise.race([host.start(), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => { reject(new Error('desktop runtime: Host readiness exceeded 120 seconds')) }, 120_000)
-    })])
-    clearTimeout(timer)
-    const login = await fetch(ready.url, { redirect: 'manual' })
-    const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
-    const response = await fetch(new URL('/', ready.url), { headers: { cookie } })
-    if (response.status !== 200 || !(await response.text()).includes('<html')) {
-      throw new Error('desktop runtime: packaged frontend smoke failed')
-    }
+    // Exercise the shipped default; a port override would hide coinstalled-brand collisions.
+    const ready = await startHost(host)
+    const cookie = await checkFrontend(ready.url)
     const pluginResponse = await fetch(new URL('/desktop-smoke', ready.url), { headers: { cookie } })
     if (await pluginResponse.text() !== 'plugin route ready') throw new Error('desktop runtime: plugin HTTP route failed')
     for (const { extension } of inputs) {
@@ -131,9 +125,53 @@ export function apply(ctx) {
       throw new Error('desktop runtime: skill CLI did not return capabilities and a PDF')
     }
     console.log('desktop runtime: DOCX, XLSX, PPTX to PDF and skill CLI discovery passed')
-  } finally {
-    clearTimeout(timer)
+    const peerHome = join(home, 'coinstalled-product')
+    createPluginProfile(join(peerHome, 'profiles', 'desktop'))
+    const peer = createHost(peerHome)
+    peers.push(peer)
+    const peerReady = await startHost(peer)
+    assertDifferentPorts(ready.url, peerReady.url)
+    await checkFrontend(peerReady.url)
     await host.stop()
+    await checkFrontend(peerReady.url)
+    const restarted = createHost(home)
+    peers.push(restarted)
+    const restartedReady = await startHost(restarted)
+    assertDifferentPorts(restartedReady.url, peerReady.url)
+    await checkFrontend(restartedReady.url)
+    await peer.stop()
+    await checkFrontend(restartedReady.url)
+    console.log('desktop runtime: concurrent isolated Hosts, independent shutdown and restart passed')
+  } finally {
+    const stopped = await Promise.allSettled([host, ...peers].map(instance => instance.stop()))
     rmSync(home, { recursive: true, force: true })
+    for (const result of stopped) if (result.status === 'rejected') throw result.reason
+  }
+}
+
+async function startHost(host: DesktopHostProcess): Promise<DesktopHostReady> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([host.start(), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => { reject(new Error('desktop runtime: Host readiness exceeded 120 seconds')) }, 120_000)
+    })])
+  } finally { clearTimeout(timer) }
+}
+
+async function checkFrontend(url: string): Promise<string> {
+  const login = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15_000) })
+  const cookie = login.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+  await login.body?.cancel()
+  const response = await fetch(new URL('/', url), { headers: { cookie }, signal: AbortSignal.timeout(15_000) })
+  if (response.status !== 200 || !(await response.text()).includes('<html')) {
+    throw new Error('desktop runtime: packaged frontend smoke failed')
+  }
+  return cookie
+}
+
+function assertDifferentPorts(first: string, second: string): void {
+  const urls = [new URL(first), new URL(second)]
+  if (urls.some(url => url.hostname !== '127.0.0.1' || !url.port || url.port === '0') || urls[0]!.port === urls[1]!.port) {
+    throw new Error('desktop runtime: coinstalled Hosts did not bind distinct loopback ports')
   }
 }

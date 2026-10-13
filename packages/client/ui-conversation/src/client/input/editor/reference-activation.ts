@@ -19,6 +19,7 @@ export function registerReferenceActivation(
   open: (source: string | undefined, reference: Pick<ReferenceInsert, 'ref' | 'appearance'>) => boolean,
 ): () => void {
   return editor.registerCommand(CLICK_COMMAND, (event) => {
+    if ((event.target as Element|null)?.closest?.('[data-remove-reference]'))return false
     if (event.target === null || event.button !== 0 || event.detail > 1) return false
     const selection = $getSelection()
     if ($isRangeSelection(selection) && !selection.isCollapsed()) return false

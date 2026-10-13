@@ -22,7 +22,7 @@ type TranslationLanguage = 'English' | 'Chinese'
 /** Inputs that vary for one rendered translation request. */
 export interface TranslationPromptInput {
   sourceLanguage: TranslationLanguage
-  /** Source basename, including `.md` or `.zh.md`. */
+  /** Source basename; Chinese `README.md` pairs with `README.en.md` at the repository root. */
   sourceFilename: string
   /** Complete current `terminology.md` contents. */
   terminology: string
@@ -74,6 +74,12 @@ interface TranslationFiles {
 function translationFiles(input: Pick<TranslationPromptInput, 'sourceFilename' | 'sourceLanguage'>): TranslationFiles {
   if (basename(input.sourceFilename) !== input.sourceFilename) {
     throw new Error(`translation prompt: sourceFilename must be a basename; got ${JSON.stringify(input.sourceFilename)}`)
+  }
+  if (input.sourceFilename === 'README.md' && input.sourceLanguage === 'Chinese') {
+    return { targetFilename: 'README.en.md', targetSwitcher: 'English | [中文](README.md)' }
+  }
+  if (input.sourceFilename === 'README.en.md' && input.sourceLanguage === 'English') {
+    return { targetFilename: 'README.md', targetSwitcher: '[English](README.en.md) | 中文' }
   }
   const sourceIsChinese = input.sourceFilename.endsWith('.zh.md')
   const sourceIsEnglish = input.sourceFilename.endsWith('.md') && !sourceIsChinese

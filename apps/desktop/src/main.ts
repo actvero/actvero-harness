@@ -1,5 +1,12 @@
+import type { BuildProduct } from './actvero/build-product.ts'
+import { brandDesktopLocale } from './actvero/brand-locale.ts'
+import { configureProductIdentity } from './actvero/native-identity.ts'
+import { Capabilities } from './actvero/capabilities/runtime.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
+import { installAccount } from './actvero/runtime.ts'
+import { logoutConfirmation } from './actvero/logout-confirmation.ts'
+import type { AccountController } from './actvero/controller.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
 import { readFile, writeFile } from 'node:fs/promises'
@@ -80,10 +87,14 @@ const rendererConsole = new RendererConsoleTail()
 
 // Platform-conventional logs directory (macOS ~/Library/Logs/<name>, otherwise under userData);
 // set before ready so the first fatal report already resolves under it.
+const buildProduct: BuildProduct | undefined = process.env.ACTVERO_DESKTOP === '0'
+  || !(app.isPackaged || process.env.ACTVERO_DESKTOP === '1')
+  ? undefined : JSON.parse(process.env.ACTVERO_BUILD_PRODUCT ?? 'null') ?? undefined
+if (buildProduct) configureProductIdentity(app, buildProduct)
 app.setAppLogsPath()
 
 function currentDesktopLocale(): ReturnType<typeof resolveDesktopLocale> {
-  return resolveDesktopLocale(windowsLanguage ?? app.getLocale())
+  return brandDesktopLocale(resolveDesktopLocale(windowsLanguage ?? app.getLocale()), buildProduct?.displayName)
 }
 /** Quit without the task confirmation; the caller has already decided the application must stop. */
 function quitWithoutConfirmation(): void {
@@ -203,8 +214,19 @@ function platformLoginUrl(authorizeUrl: string): string {
   return url.href
 }
 
+/**
+ * Keep native window identity owned by the build, independently of page branding.
+ * @param window - product-owned application or welcome window.
+ */
+function applyProductWindowTitle(window: BrowserWindow): void {
+  if (buildProduct === undefined) return
+  window.setTitle(buildProduct.displayName)
+  window.on('page-title-updated', (event) => { event.preventDefault() })
+}
+
 function createWindow(preload: string, show = false, primary = false): BrowserWindow {
   const window = new BrowserWindow({
+    ...(buildProduct ? { title: buildProduct.displayName, icon: nativeImage.createFromDataURL(buildProduct.iconDataUrl) } : {}),
     width: 1280,
     height: 820,
     minWidth: 520,
@@ -236,6 +258,7 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       devTools: true,
     },
   })
+  applyProductWindowTitle(window)
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
     return { action: 'deny' }
@@ -342,6 +365,11 @@ async function main(): Promise<void> {
   let mainWindow: BrowserWindow | undefined
   let welcomeWindow: BrowserWindow | undefined
   let enteredWorkspace = false
+  let workspaceTransition = 0
+  const actveroEnabled = process.env.ACTVERO_DESKTOP === '1' || buildProduct !== undefined
+  // eslint-disable-next-line prefer-const -- Window callbacks may run before account initialization finishes.
+  let actveroAccount: AccountController | undefined
+  let actveroCapabilities: Capabilities | undefined
   // NSIS passes --updated when it launches the application after installation.
   let raiseAfterUpdate = process.platform === 'win32' && process.argv.includes('--updated')
   let shellInstallerOwnsQuit = false
@@ -349,8 +377,8 @@ async function main(): Promise<void> {
   let updateStoppedHost = false
   let updateStopFailure: DesktopHostUncleanExitError | undefined
   let updateState: DesktopUpdateState = { phase: 'idle' }
-  const systemLanguages = app.getPreferredSystemLanguages()
-  let locale = resolveDesktopStartupLocale(null, systemLanguages)
+  const systemLanguages = [...(buildProduct ? [buildProduct.defaultLocale] : []), ...app.getPreferredSystemLanguages()]
+  let locale = brandDesktopLocale(resolveDesktopStartupLocale(buildProduct?.defaultLocale ?? null, systemLanguages), buildProduct?.displayName)
   windowsLanguage = locale.id
   let mandatoryPolicy: DesktopMandatoryUpdatePolicy | undefined
   let mandatoryUI: DesktopMandatoryUpdateWindow | undefined
@@ -442,11 +470,12 @@ async function main(): Promise<void> {
   const backend = new DesktopBackendController((onFailure) => {
     const hostInspectPort = developmentHostInspectPort(development)
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion() }, onFailure,
+      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), ACTVERO_DESKTOP: actveroEnabled ? '1' : '0' }, onFailure,
       primaryRuntime,
-      resources, (next) => { platformView.setSession(next) })
+      resources, (next) => { platformView.setSession(next) }, message=>actveroCapabilities?.receive(message), ()=>actveroCapabilities?.close())
     return {
       start: async () => {
+        actveroCapabilities?.attach(message=>host.sendCapabilityMessage(message))
         const ready = await host.start()
         hostCookie = await authenticateWebHost(ready.url)
         hostUrl = ready.url
@@ -457,7 +486,7 @@ async function main(): Promise<void> {
         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
         stopAccount?.()
         const accountBackend = welcomeBackend.account
-        stopAccount = accountBackend.watch((state) => {
+        if (!actveroEnabled) stopAccount = accountBackend.watch((state) => {
           if (quitting) return
           if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
           const attempt = state.attempt
@@ -560,7 +589,8 @@ async function main(): Promise<void> {
 
   const readWelcomeState = async () => {
     if (backend.host === undefined || welcomeBackend === undefined) throw new Error('desktop welcome: backend unavailable')
-    return welcomeBackend.read()
+    const state = await welcomeBackend.read()
+    return actveroAccount ? { ...state, loggedIn: ['ready', 'offline'].includes(actveroAccount.snapshot().phase), hasApiKey: false } : state
   }
   stopForRecovery = () => backend.close()
 
@@ -757,7 +787,7 @@ async function main(): Promise<void> {
     const window = mainWindow
     if (window === undefined || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame
       || typeof next !== 'string') return
-    const current = resolveDesktopStartupLocale(next, systemLanguages)
+    const current = brandDesktopLocale(resolveDesktopStartupLocale(next, systemLanguages), buildProduct?.displayName)
     if (current.id === locale.id) return
     locale = current
     platformView.notifyLocaleChanged()
@@ -922,10 +952,11 @@ async function main(): Promise<void> {
     updates.dispose()
   })
 
-  const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
+  const applicationIconPath = development ? (buildProduct ? process.env.ACTVERO_ICON_PATH! : join(app.getAppPath(), 'resources', 'icon-windows.png'))
     : join(process.resourcesPath, 'icon.png')
+  if (buildProduct && process.platform === 'darwin') app.dock?.setIcon(nativeImage.createFromDataURL(buildProduct.iconDataUrl))
   app.setAboutPanelOptions({
-    applicationName: 'DeepSeek Harness',
+    applicationName: buildProduct?.displayName ?? 'DeepSeek Harness',
     applicationVersion: app.getVersion(),
     // The release has no separate build number; omit Electron's bundle version.
     version: '',
@@ -975,13 +1006,13 @@ async function main(): Promise<void> {
   ]
   const refreshApplicationMenu = (): void => {
     Menu.setApplicationMenu(Menu.buildFromTemplate(process.platform === 'win32' ? devToolsItems : [{
-      label: darwin ? app.name : currentDesktopLocale().messages.application,
+      label: darwin ? buildProduct?.displayName ?? app.name : currentDesktopLocale().messages.application,
       submenu: [...applicationItems(), ...devToolsItems],
     }, ...platformMenus()]))
     tray?.relabel()
   }
   refreshApplicationMenu()
-  const trayIconPath = development ? join(app.getAppPath(), 'resources', 'tray-windows.ico') : join(process.resourcesPath, 'tray.ico')
+  const trayIconPath = development ? (buildProduct ? join(process.env.ACTVERO_ICON_PATH!, '..', 'tray.ico') : join(app.getAppPath(), 'resources', 'tray-windows.ico')) : join(process.resourcesPath, 'tray.ico')
   if (process.platform === 'win32') {
     // The tray is the way back to a hidden window; without it, relaunching the application still focuses it.
     try {
@@ -1112,9 +1143,10 @@ async function main(): Promise<void> {
   }
   const enterWorkspace = async ({ activate = true }: { activate?: boolean } = {}): Promise<void> => {
     if (quitting) return
+    const transition = ++workspaceTransition
     const window = mainWindow ?? createMainWindow()
     await navigateMain(applicationUrl)
-    if (isQuitting() || recovery.active || window.isDestroyed()) return
+    if (transition !== workspaceTransition || isQuitting() || recovery.active || window.isDestroyed()) return
     if (activate) window.show()
     else window.showInactive()
     enteredWorkspace = true
@@ -1173,9 +1205,16 @@ async function main(): Promise<void> {
           return { ok: true }
         },
         skip: enterWorkspace,
-      })
+      }, actveroEnabled ? (window) => {
+        welcomeWindow = window
+        applyProductWindowTitle(window)
+      } : undefined, actveroEnabled ? 'actvero' : 'official')
       const window = welcomeWindow
       window.once('closed', () => {
+        if (actveroAccount) {
+          if (!enteredWorkspace && ['waiting', 'exchanging'].includes(actveroAccount.snapshot().phase)) void actveroAccount.cancel()
+          return
+        }
         void welcomeBackend?.account.state().then((state) => {
           if (state.attempt !== null && !enteredWorkspace) return welcomeBackend?.account.cancel(state.attempt.id)
           return undefined
@@ -1198,10 +1237,10 @@ async function main(): Promise<void> {
     if (quitting || recovery.active) return
     const state = await readWelcomeState()
     if (isQuitting() || backend.state.phase !== 'ready') return
-    locale = resolveDesktopStartupLocale(state.localePreference, systemLanguages)
+    locale = brandDesktopLocale(resolveDesktopStartupLocale(state.localePreference, systemLanguages), buildProduct?.displayName)
     windowsLanguage = locale.id
     refreshApplicationMenu()
-    if (!enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey })) {
+    if (!enteredWorkspace && (actveroEnabled || needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey }))) {
       // A later login must retain its own activation policy instead of replaying startup focus.
       raiseAfterUpdate = false
       await showWelcome()
@@ -1225,10 +1264,11 @@ async function main(): Promise<void> {
     window.focus()
   }
 
-  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient('dsh')
+  const openScheme = buildProduct?.protocolScheme ?? 'dsh'
+  if (app.isPackaged || process.env.DSH_DESKTOP_DEV_APP === '1') app.setAsDefaultProtocolClient(openScheme)
   app.on('open-url', (event, url) => {
     event.preventDefault()
-    if (url === 'dsh://open' || url === 'dsh://open/') focusPrimaryWindow()
+    if (url === `${openScheme}://open` || url === `${openScheme}://open/`) focusPrimaryWindow()
   })
 
   app.on('activate', (_event, hasVisibleWindows) => {
@@ -1322,6 +1362,16 @@ async function main(): Promise<void> {
       if (app.isPackaged && state.error === 'authentication-required' && !isQuitting()) queuePolicyAuthentication()
     }).catch((error: unknown) => { console.error(error) })
   }
+  actveroAccount = installAccount({ changed:()=>actveroCapabilities?.accountChanged(), enabled: actveroEnabled,
+    baseUrl: process.env.ACTVERO_PLATFORM_URL ?? buildProduct?.defaultUrl ?? process.env.ACTVERO_PLATFORM_DEFAULT ?? 'http://127.0.0.1:5194',
+    ...(buildProduct ? { defaultBrand: { name: buildProduct.displayName, logoUrl: buildProduct.logoDataUrl } } : {}),
+    version: buildProduct?.version ?? process.env.ACTVERO_APP_VERSION ?? app.getVersion(), windows: () => [mainWindow, welcomeWindow],
+    enter: enterWorkspace,
+    confirmLogout: async () => (await ordinaryMessageBox(logoutConfirmation(locale))).response === 0,
+    local: enterWorkspace, show: async () => { ++workspaceTransition; enteredWorkspace = false; await showWelcome() },
+  })
+  if(actveroAccount) actveroCapabilities=new Capabilities(actveroAccount,()=>[mainWindow])
+  if (actveroAccount) { await actveroAccount.restore(); actveroAccount.startPolling() }
   automaticCheck()
   await reconcileBackend().catch(() => undefined)
   // Window lifecycle callbacks run while backend startup is pending.

@@ -47,7 +47,7 @@ Hovering over `/name` highlights the entire reference. Clicking a known skill op
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The source implements no adjudication hooks and no reference codec: the pick lands literal text and the prompt ships the same literal, so determinism lives host-side ([slash pipeline note](../../../.agents/notes/archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md)).
+The source implements no adjudication hooks. By default, picks insert literal text without a reference codec. With `referenceChips: true`, picks insert a neutral atomic skill badge, candidates carry the native skill glyph, and a codec serializes the badge back to `/name`. The Host validates this public preference and projects it into the browser boot document; a client composition may explicitly override it. The ACTVERO desktop enables this option and refreshes the effective catalog for each candidate query so directory changes and expert pins are visible. Both modes ship the same literal gesture, so determinism lives host-side ([slash pipeline note](../../../.agents/notes/archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md)).
 
 ### Candidate flow
 
@@ -100,7 +100,7 @@ Append-only: the injected message lands after the reusable history prefix. This 
 These limits define where the reference and the row fall back to generic behavior; they are current package constraints.
 
 - **Result-only history pages use the generic row** — keyed dispatch needs the paired call in the runtime window; pagination that leaves the call outside has no tool identity. This client presentation feature does not extend the history wire contract to recover it.
-- **Text is the truth** — the reference is plain draft text; a hand-typed identical token is the same reference, and the host gesture boundary judges the sent text, not the menu interaction. Chip visuals derive from the lexicon scan; no occurrence identity, position tracking, or structured reference payload exists on the prompt wire.
+- **Text is the invocation contract** — the default draft is plain text; the opt-in badge has browser draft identity and position tracking. Both serialize to the same `/name` gesture, and the Host judges the sent text rather than the menu interaction. No structured skill payload is added to the prompt wire.
 - **A menu opened before the prewarm settles** shows no skill candidates for that keystroke; the next keystroke re-polls the settled cache.
 
 <a id="dev-note"></a>

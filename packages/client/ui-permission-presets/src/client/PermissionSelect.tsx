@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   IconChevronDownOutlineRegular, Menu, PermissionIconFullAccessRegular,
-  PermissionIconReadOnlyRegular, PermissionIconWorkspaceWriteRegular, RiskConfirmation,
+  PermissionIconReadOnlyRegular, PermissionIconWorkspaceWriteRegular, RiskConfirmation, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -173,25 +173,27 @@ export function PermissionSelect({
         side="top"
         portal
         anchor={
-          <button
-            type="button"
-            className={css.trigger}
-            aria-label={t('mode', { name: currentAccessibleLabel })}
-            title={current === undefined ? undefined : optionDescription(current, t)}
-            disabled={locked || busy}
-            onClick={() => { setOpen(!open) }}
-          >
-            {permissionGlyph(currentValue) !== undefined && (
-              <span className={css.triggerIcon} aria-hidden>{permissionGlyph(currentValue)}</span>
-            )}
-            <span className={css.triggerLabel}>{currentLabel}</span>
-            {currentBadge !== undefined && (
-              <sup className={css.badge}>{currentBadge}</sup>
-            )}
-            <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden>
-              <IconChevronDownOutlineRegular />
-            </span>
-          </button>
+          <Tooltip label={t('mode', { name: currentAccessibleLabel })} portal side="top" disabled={open || locked || busy}>
+            <button
+              type="button"
+              className={css.trigger}
+              aria-label={t('mode', { name: currentAccessibleLabel })}
+              title={current === undefined ? undefined : optionDescription(current, t)}
+              disabled={locked || busy}
+              onClick={() => { setOpen(!open) }}
+            >
+              {permissionGlyph(currentValue) !== undefined && (
+                <span className={css.triggerIcon} aria-hidden>{permissionGlyph(currentValue)}</span>
+              )}
+              <span className={css.triggerLabel}>{currentLabel}</span>
+              {currentBadge !== undefined && (
+                <sup className={css.badge}>{currentBadge}</sup>
+              )}
+              <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden>
+                <IconChevronDownOutlineRegular />
+              </span>
+            </button>
+          </Tooltip>
         }
       />
       {confirmation !== null && (

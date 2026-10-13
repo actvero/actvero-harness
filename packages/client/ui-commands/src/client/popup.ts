@@ -255,7 +255,7 @@ export class PopupSelectController<TCtx = unknown> {
     const s = this.state.getSnapshot()
     if (binding === null || !s.open || s.status !== 'ready' || s.submitting || s.confirming !== null) return
     const option = filterOptions(s.options, s.search, s.searchMode)[index]
-    if (option === undefined) return
+    if (option === undefined || option.toggle?.disabled) return
     if (option.confirmation !== undefined) {
       this.state.set({ ...s, confirming: option, acknowledged: false, error: null })
       return
@@ -295,6 +295,15 @@ export class PopupSelectController<TCtx = unknown> {
     this.state.set({ ...s, submitting: true, confirming: null, acknowledged: false, error: null })
     try {
       await binding.spec.onSelect(option, binding.context)
+      if (option.toggle !== undefined) {
+        const options = await binding.spec.options(binding.context, binding.abort.signal)
+        if (this.binding !== binding) return
+        const current = this.state.getSnapshot()
+        const rows = filterOptions(options, current.search, current.searchMode)
+        const at = rows.findIndex(row => row.id === option.id)
+        this.state.set({ ...current, options, active: Math.max(0, at), submitting: false, error: null })
+        return
+      }
     } catch (error) {
       console.error(`[ui-commands] popupSelect onSelect failed for /${binding.command}:`, error)
       if (this.binding !== binding) return // dismissed/reopened/disposed while onSelect flew

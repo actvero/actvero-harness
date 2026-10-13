@@ -2,6 +2,7 @@ import type { AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-acc
 /** Localized welcome copy and write-only credential actions. */
 
 import { contextBridge, ipcRenderer } from 'electron'
+import { exposeAccountBridge } from './actvero/preload.ts'
 import { resolveDesktopLocale } from './locale.ts'
 import { WELCOME_IPC, type WelcomeApi, type WelcomeNotice, type WelcomeSaveResult } from './welcome-api.ts'
 
@@ -27,3 +28,4 @@ const api: WelcomeApi = {
   skip: () => ipcRenderer.invoke(WELCOME_IPC.skip) as Promise<void>,
 }
 contextBridge.exposeInMainWorld('dshWelcome', api)
+if (process.isMainFrame) exposeAccountBridge()

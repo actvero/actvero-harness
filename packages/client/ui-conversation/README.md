@@ -46,7 +46,7 @@ Target packages declaration-merge their snapshot and Location data maps, then re
 
 The shared image slot props keep display choices separate from durable references: `thumbnail` requests a contained attachment-list thumbnail, while `compact` requests a cropped gallery tile. An optional per-image `label` supplies the accessible display name; loading and cache identity still use the original attachment reference. [ui-attachment](../ui-attachment/README.md) owns rendering and the lightbox.
 
-The composer measures its expanded control groups after size, content, visibility, or font-loading changes. If they cannot share a line, the row sets `--dsh-composer-model-text-display: none` and `--dsh-composer-model-icon-display: block` for the model seat; their defaults are `block` and `none`. Wrapping remains available if even the icon cannot fit.
+The composer places `conversation.input.left` entries before the permission and plan controls. It measures expanded control groups after size, content, visibility, or font-loading changes. If they cannot share a line, the row first sets `--dsh-composer-permission-label-display: none`; if needed it also sets `--dsh-composer-model-text-display: none` and `--dsh-composer-model-icon-display: block`. The model defaults remain `block` and `none`. Wrapping remains available if even the icons cannot fit.
 
 The context-occupancy button shows a ring and percentage below the input card, after the Session statistics. Clicking it opens the token breakdown in a panel kept inside the viewport, including when no statistics are shown; the button stays hidden until context usage and capacity are available.
 
@@ -91,6 +91,8 @@ When another writer owns the Session, the send-error toast asks the user to quit
 Two independent Escape presses in the focused Chat or Composer stop its current running turn and preserve queued messages. The interval comes from the shortcuts plugin’s `stopSequenceMs` configuration (500 ms by default). A menu, approval, modal, terminal, embedded webpage, composition, repeated key, changed input region, Session or turn breaks the sequence. The shortcut uses the same scoped cancellation as the Stop button. The plugin registers Stop as a fixed action in the `input` display group. Its registration reserves plain Escape against editable shortcuts and supplies the `Esc Esc` sequence shown in the Stop button’s hover and keyboard-focus tooltip.
 
 <a id="temporary-composer-entries"></a>
+A reference occurrence may use the `skill` appearance: a neutral pill with the native skill glyph and a hover or keyboard-focus remove action. Removal uses the editor history transaction; undo restores the occurrence, and browser draft storage retains its appearance. Insertion selects the space immediately after the badge, so typing continues on its right. Its codec, owned by ui-skill, still emits the native `/name` gesture.
+
 ## Temporary composer entries
 
 `conversation.composer` is a generic chain. Its complete owner currency is:

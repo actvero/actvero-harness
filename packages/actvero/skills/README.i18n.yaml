@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/skills/README.md
+/installed-and-platform-skills:
+  en: 1847b6a2559fe9bb
+  zh: c61e8f6f475f0f8c
+/installed-and-platform-skills/runtime:
+  en: 34db04f60281d698
+  zh: 9b155a5bf674c7b8
+/installed-and-platform-skills/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/installed-and-platform-skills/model-experience/exact-skill-loading:
+  en: 0cd6aeb35d7e73d2
+  zh: 65b012be2f740fe9
+/installed-and-platform-skills/model-experience/exact-skill-loading/what-the-model-sees:
+  en: a91369da09819582
+  zh: 69ccb096a98e790d
+/installed-and-platform-skills/model-experience/exact-skill-loading/token-effect:
+  en: 5f993d4c976e2865
+  zh: 884b068df27a2e73
+/installed-and-platform-skills/model-experience/exact-skill-loading/kv-cache-effect:
+  en: 18e603da10b56e79
+  zh: aaccf2cd484e7566
+/installed-and-platform-skills/known-limitations-and-deferred-work:
+  en: 9a66e3f8612af433
+  zh: 280302c1b1146e67

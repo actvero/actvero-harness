@@ -46,7 +46,7 @@ target package 通过 declaration merge 扩展 snapshot 与 Location data map，
 
 共享图片插槽属性将展示选择与持久化引用分开：`thumbnail` 请求完整缩放的附件列表缩略图，`compact` 请求裁剪的图片方块。每张图片可通过可选的 `label` 提供无障碍展示名称；加载和缓存标识仍使用原始附件引用。[ui-attachment](../ui-attachment/README.zh.md) 负责渲染与灯箱。
 
-控件组的尺寸、内容、可见性或字体加载状态变化后，composer 测量展开状态下的控件组。若无法排在同一行，控制栏为模型位设置 `--dsh-composer-model-text-display: none` 和 `--dsh-composer-model-icon-display: block`；两者默认值分别为 `block` 和 `none`。若连图标也放不下，仍允许换行。
+composer 将 `conversation.input.left` 的内容放在权限与计划控件前。控件组的尺寸、内容、可见性或字体加载状态变化后，测量展开状态下的控件组。若无法排在同一行，控制栏先设置 `--dsh-composer-permission-label-display: none`；仍有需要时，再设置 `--dsh-composer-model-text-display: none` 和 `--dsh-composer-model-icon-display: block`。模型位的默认值仍分别为 `block` 和 `none`；若连图标也放不下，仍允许换行。
 
 上下文占用按钮在输入卡片下方、会话统计右侧显示圆环和百分比。点击按钮可在视口内的面板查看 token 构成，没有统计项时面板也不会越界；上下文用量和容量尚不可用时，按钮保持隐藏。
 
@@ -91,6 +91,8 @@ Send 和 Stop 按钮禁用时不显示提示气泡，轮次结束后由 Stop 切
 在获得焦点的 Chat 或 Composer 中连续独立按下两次 Esc，可停止当前运行轮次并保留排队消息。间隔由 shortcuts 插件的 `stopSequenceMs` 配置决定，默认 500 ms。菜单、审批、模态层、终端、内嵌网页、输入法、重复按键，以及输入区域、Session 或轮次变化会清空序列。快捷键与 Stop 按钮调用同一作用域取消操作。插件将 Stop 注册为 `input` 展示分组中的固定操作。该注册使普通 Esc 不能分配给可编辑快捷键，并为 Stop 按钮的悬停和键盘聚焦提示提供 `Esc Esc` 序列。
 
 <a id="temporary-composer-entries"></a>
+引用 occurrence 可使用 `skill` 外观：中性徽标带原生技能图标，悬停或键盘聚焦显示移除操作。删除通过编辑器历史事务进行，撤销恢复 occurrence，浏览器草稿存储保留其外观。插入后选中徽标后的空格位置，输入在右侧继续。由 ui-skill 提供的 codec 仍输出原生 `/name` 手势。
+
 ## 临时 composer entry
 
 `conversation.composer` 是通用 chain，其完整 owner currency 为：

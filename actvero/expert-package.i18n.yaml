@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for expert-package.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/expert-package.md
+/single-expert-zip-format:
+  en: 6856f599114e6feb
+  zh: 8153e2da6e59dfb3
+/single-expert-zip-format/package-files:
+  en: 76fb87921c3a1ee2
+  zh: 39db9c5e088e0c79
+/single-expert-zip-format/import-and-reuse:
+  en: 0260e3ec1e2e9da3
+  zh: 27a4757aca17850d
+/single-expert-zip-format/portable-mcp-templates:
+  en: 13aeb9d31f840d39
+  zh: 84c4226c627d8f4d
+/single-expert-zip-format/limits-and-ownership:
+  en: 30a28579c3f3c043
+  zh: 0a48ec6a205bd7e9

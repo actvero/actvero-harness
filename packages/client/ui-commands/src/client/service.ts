@@ -239,6 +239,7 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
       }
       rows.push({
         name: contribution.name,
+        ...(contribution.section === undefined ? {} : { section: this.t(`section.${contribution.section}`) }),
         ...(contribution.label === undefined ? {} : { label: contribution.label() }),
         ...(contribution.description === undefined ? {} : { description: contribution.description() }),
         ...(contribution.icon === undefined ? {} : { icon: contribution.icon }),

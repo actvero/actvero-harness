@@ -47,7 +47,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节——点击展开</summary>
 
-source 不实现任何裁决钩子，也没有引用 codec：pick 落下字面文本，发出的提示词中也是同一段字面文本，因此确定性在宿主侧（[slash 流水线笔记](../../../.agents/notes/archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md)）。
+source 不实现裁决钩子。默认 pick 插入字面文本，不注册引用 codec。启用 `referenceChips: true` 时，pick 插入中性原子技能徽标，候选项带原生技能图标，codec 将徽标序列化回 `/name`。Host 校验这一公开配置并将其投影到浏览器启动文档；Client 组合可显式覆盖它。ACTVERO 桌面启用该选项，每次候选查询刷新有效目录，以显示目录变更和专家固定版本。两种模式发送相同的字面手势，因此确定性仍在宿主侧（[slash 流水线笔记](../../../.agents/notes/archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md)）。
 
 ### 候选流程
 
@@ -100,7 +100,7 @@ source 不实现任何裁决钩子，也没有引用 codec：pick 落下字面�
 这些限制定义引用与工具行何时回退到通用行为；它们是当前包约束。
 
 - **仅含工具结果的 history 页使用通用行**：键控分派要求配对的工具调用位于运行时窗口内；分页将工具调用留在窗口外时，工具结果没有工具身份。这项客户端呈现功能不会为了恢复该身份而扩展 history 协议约定。
-- **文本是唯一依据**：引用是普通的草稿文本；手动键入的相同 token 就是同一个引用，宿主手势边界评判的是发出的文本，而不是菜单交互。chip 视觉由 lexicon 扫描派生；提示词协议上没有 occurrence 身份、位置跟踪或结构化引用载荷。
+- **文本是调用契约**：默认草稿使用普通文本；可选徽标在浏览器草稿中保留身份与位置。两者都序列化为相同的 `/name` 手势，Host 评判发出的文本，不依赖菜单交互。提示词协议不增加结构化技能载荷。
 - **预热落定之前打开的菜单**：在那次击键下不显示 skill 候选；下一次击键会重新轮询已落定的缓存。
 
 <a id="dev-note"></a>

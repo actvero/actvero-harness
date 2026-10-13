@@ -1,35 +1,11 @@
 /**
- * Skill reference plugin, browser half: registers the '/' skill source —
- * candidates from the `skills/list` Remote addressed by the per-call session
- * projection's sessionId (sessions are always agent-backed; the host
- * resolves cwd from the session header). A pick lands the literal `/name `
- * text and the prompt ships the same literal (plain-text-reference decision;
- * see .agents/notes/archived/architecture/2026-07-25-web-input-machine-and-slash-pipeline.md);
- * determinism
- * lives host-side — the pre-step boundary (`dsh-tool-skill`) recognizes a
- * leading `/name` naming a user-invocable skill and injects the rendered
- * body for every entry point, including `disable-model-invocation` skills the
- * model-side catalog never lists (issue #1470). The RPC rides the plugin's
- * root-context Remote captured at registration — the source never reads
- * services off a per-call argument. Draft chip visuals derive from
- * the lexicon scan; this source implements no reference codec.
- *
- * Catalog fetches are cached per session (the small twin of the ui-commands
- * directory): the per-keystroke candidates re-poll filters a settled
- * snapshot locally, so one session costs one RPC. The scope-birth warm hook
- * prewarms the session's key; a preset switch drops that one key (the
- * catalog is the preset's, and a blank session may switch after the warm);
- * connection/reset clears everything — the host
- * catalog may differ across generations. A shared in-flight fetch
- * deliberately outlives any single menu interaction: closing the menu must
- * not kill the prewarm other consumers will hit, so it carries its own
- * abort (fired only on invalidation/teardown) while a candidates caller
- * with an aborted signal just returns early.
- * Catalog RPCs retain an existing Client Session through completion and
- * wait for its initial history open to succeed before contacting the Host.
- *
- * This browser half also owns the `skill` keyed toolview: a replay-stable
- * accent row derived only from each logged call/result slice.
+ * Human-invocable skill suggestions and the replay-stable skill tool row.
+ * Ordinary DSH picks editable /name text. referenceChips opts into neutral atomic
+ * badges with the same clipboard and model /name gesture. ACTVERO refreshes the
+ * Session catalog for each candidate query so expert changes and directory skills
+ * are visible. Other compositions retain single-flight Session caching, preset
+ * invalidation, and connection-reset cancellation. RPCs retain the Session through
+ * its initial history open; provider errors remain visible to the caller.
  */
 // Type-only: the carrier types, the forwarded Host-event face and the ctx.remote merge.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
@@ -44,6 +20,8 @@ import { rankByName } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import { type Config, SKILL_CONFIG_GLOBAL } from '../config.ts'
+import { IconSkillOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { SkillRow } from './SkillRow.tsx'
 import { en, NS, zh, type SkillKey } from './locales.ts'
 
@@ -75,8 +53,10 @@ export const inject = ['inputTriggers', 'sessions', 'slots', 'locale', 'remote',
 /**
  * Client plugin body: register the '/' source, dictionaries, and keyed tool row.
  * @param ctx - client root context.
+ * @param config - optional presentation override; defaults to the Host boot preference.
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: ClientContext, config: Partial<Config> = {}): void {
+  const referenceChips = config.referenceChips ?? globalThis[SKILL_CONFIG_GLOBAL]?.referenceChips ?? false
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-skill: dictionaries')
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register(
     { name: 'tool.call.toolview', key: 'skill', locale: NS },
@@ -157,11 +137,24 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
 
   const source: InputTriggerSource = {
+    ...(referenceChips ? {
+      codec: {
+        clipboardText: (ref: string) => ref,
+        serialize: (ref: string, signal: AbortSignal) => {
+          return Promise.resolve().then(() => {
+            signal.throwIfAborted()
+            if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ref)) throw new Error('invalid skill reference')
+            return ref
+          })
+        },
+      },
+    } : {}),
     trigger: '/',
     name: 'skill',
     order: 2,
     async candidates(session, { query, signal }) {
       if (sessions.subagentAddress(session.sessionId) !== undefined) return []
+      if (referenceChips) invalidate(session.sessionId)
       const skills = await fetchCatalog(session.sessionId).promise
       // Superseded keystroke: the shared fetch stays warm, this caller yields.
       if (signal.aborted) return []
@@ -170,6 +163,7 @@ export function apply(ctx: ClientContext): void {
       return rankByName(skills, query)
         .map(skill => ({
           name: skill.name,
+          ...(referenceChips ? { icon: IconSkillOutlineMedium } : {}),
           // The user-only marker rides the description (the menu's only
           // secondary text); `hint` is the claim-state ghost text, not a badge.
           description: skill.modelInvocable ? skill.description : `${t('menu.userOnly')} · ${skill.description}`,
@@ -214,14 +208,8 @@ export function apply(ctx: ClientContext): void {
       return true
     },
     onPick({ candidate }) {
-      // Plain-text-reference decision (web-input-machine note): the pick
-      // lands plain text and the prompt ships the same
-      // literal. Determinism lives host-side — the host's
-      // pre-step boundary (dsh-tool-skill) recognizes the leading /name and
-      // injects the rendered body for every entry point. A name shared with a
-      // host command still resolves to the command: adjudication claims the
-      // line client-side before it ever becomes a prompt.
-      return { text: `/${candidate.name} ` }
+      // Both presentations retain the Host's deterministic user skill gesture.
+      return referenceChips ? { insert:{ source:'skill',ref:`/${candidate.name}`,label:candidate.name,appearance:'skill',clipboardText:`/${candidate.name}` } } : { text: `/${candidate.name} ` }
     },
   }
   const inputTriggers = ctx.get('inputTriggers') as InputTriggerServiceContract

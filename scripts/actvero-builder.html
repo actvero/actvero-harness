@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Actvero Harness Builder</title>
+  <style>
+    :root { color-scheme: light; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2328; background: #f5f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px; }
+    main { max-width: 1080px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+    h2 { margin: 0 0 14px; font-size: 18px; }
+    p { color: #667085; }
+    section { background: white; border: 1px solid #e1e4e8; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 10px #1018280a; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    label { display: grid; gap: 7px; font-size: 13px; font-weight: 650; }
+    input, select, textarea { width: 100%; border: 1px solid #d0d5dd; border-radius: 9px; padding: 10px 11px; font: inherit; background: #fff; }
+    textarea { min-height: 100px; resize: vertical; }
+    .full { grid-column: 1 / -1; }
+    .asset { border: 1px dashed #c4cbd4; border-radius: 10px; padding: 12px; background: #fafbfc; }
+    .asset small { display: block; color: #667085; margin-top: 6px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button { border: 0; border-radius: 9px; padding: 10px 14px; font: inherit; font-weight: 650; cursor: pointer; background: #1f2937; color: white; }
+    button.secondary { background: #eef1f4; color: #1f2328; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #status { color: #667085; margin-left: auto; }
+    pre { min-height: 180px; max-height: 420px; overflow: auto; white-space: pre-wrap; word-break: break-word; background: #111827; color: #e5e7eb; border-radius: 10px; padding: 14px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #artifacts { margin: 0; padding-left: 20px; }
+    .hint { font-size: 12px; color: #667085; }
+    @media (max-width: 720px) { body { padding: 16px; } .grid { grid-template-columns: 1fr; } .full { grid-column: auto; } header { display: block; } #status { display: block; margin-top: 10px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Actvero Harness Builder</h1>
+        <p>使用现有 ACTVERO 打包流程生成安装包。预设和上传资源只保存在本地。</p>
+      </div>
+      <label style="min-width:240px">预设
+        <select id="preset"><option value="">新建预设</option></select>
+      </label>
+    </header>
+
+    <section>
+      <div class="grid">
+        <label>预设名称<input id="presetName" value="我的构建预设" maxlength="80"></label>
+        <label>产品名称<input id="productName" value="Actvero Harness" maxlength="80"></label>
+        <label>版本号<input id="version" placeholder="沿用 product.json"></label>
+        <label>平台地址<input id="platformUrl" placeholder="沿用 product.json"></label>
+        <label>目标平台与架构<select id="target">
+          <option value="win-x64">Windows · x64</option>
+          <option value="mac-arm64">macOS · arm64</option>
+          <option value="mac-x64">macOS · x64</option>
+          <option value="win-arm64" disabled>Windows · arm64（当前打包器未支持）</option>
+        </select></label>
+        <label>安装包格式<select id="format"><option value="exe">EXE</option><option value="dmg">DMG</option><option value="zip">ZIP</option><option value="all">全部</option></select></label>
+        <label>输出目录<input id="output" value="dist"></label>
+        <label class="full">最低系统要求<input id="minSystem" placeholder="可选，例如 Windows 10 或 macOS 13"></label>
+        <label class="full">更新说明<textarea id="notes" placeholder="可选，构建时写入 release.json"></textarea></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>品牌资源</h2>
+      <p class="hint">应用图标和托盘图标使用 SVG 或 PNG。应用图标、托盘图标需要是正方形。</p>
+      <div class="grid">
+        <label class="asset">应用图标<input type="file" data-asset="icon" accept=".svg,.png"><small id="iconName">未选择文件</small></label>
+        <label class="asset">Logo<input type="file" data-asset="logo" accept=".svg,.png"><small id="logoName">未选择文件</small></label>
+        <label class="asset">托盘图标<input type="file" data-asset="trayIcon" accept=".svg,.png"><small id="trayIconName">未选择文件</small></label>
+      </div>
+    </section>
+
+    <section>
+      <div class="actions">
+        <button class="secondary" id="save">保存预设</button>
+        <button class="secondary" id="delete">删除预设</button>
+        <button class="secondary" id="check">检查配置</button>
+        <button id="build">开始构建</button>
+        <span id="status">就绪</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>构建日志</h2>
+      <pre id="log">等待操作。</pre>
+      <h2>产物</h2>
+      <ul id="artifacts"><li class="hint">尚未构建</li></ul>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id)
+    const state = { presetSlug: '', files: {} }
+    const fields = ['presetName', 'productName', 'version', 'platformUrl', 'target', 'format', 'output', 'minSystem', 'notes']
+    const log = (line) => { const node = $('log'); node.textContent = (node.textContent === '等待操作。' ? '' : node.textContent) + line + '\n'; node.scrollTop = node.scrollHeight }
+    const setStatus = (value) => { $('status').textContent = value }
+    const readForm = () => Object.fromEntries(fields.map((id) => [id, $(id).value]))
+    const writeForm = (value) => {
+      const flat = { presetName: value.name ?? value.presetName, productName: value.product?.displayName ?? value.productName, version: value.product?.version ?? value.version, platformUrl: value.platform?.defaultUrl ?? value.platformUrl, target: value.package?.target ?? value.target, format: value.package?.format ?? value.format, output: value.package?.out ?? value.output, minSystem: value.package?.minSystem ?? value.minSystem, notes: value.package?.notes ?? value.notes }
+      fields.forEach((id) => { if (flat[id] !== undefined) $(id).value = flat[id] })
+    }
+    const readFile = (file) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = () => reject(reader.error); reader.onload = () => resolve({ name: file.name, data: reader.result }); reader.readAsDataURL(file) })
+    const loadPresets = async () => {
+      const response = await fetch('/api/presets'); const presets = await response.json();
+      $('preset').innerHTML = '<option value="">新建预设</option>' + presets.map((item) => `<option value="${item.slug}">${item.name}</option>`).join('')
+    }
+    const collect = async () => {
+      for (const input of document.querySelectorAll('input[type=file]')) {
+        const file = input.files[0]; if (file) state.files[input.dataset.asset] = await readFile(file)
+      }
+      return { ...readForm(), assets: state.files }
+    }
+    const setAssetNames = (assets = {}) => Object.entries(assets).forEach(([kind, path]) => { const node = $(kind + 'Name'); if (node) node.textContent = path || '未选择文件' })
+    $('preset').addEventListener('change', async (event) => {
+      const slug = event.target.value; state.presetSlug = slug; state.files = {}; if (!slug) { setStatus('新建预设'); return }
+      const response = await fetch('/api/presets/' + encodeURIComponent(slug)); const preset = await response.json(); writeForm(preset); setAssetNames(preset.branding ?? preset.assets); setStatus('已加载 ' + preset.name)
+    })
+    $('save').addEventListener('click', async () => { try { const response = await fetch('/api/presets', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...(await collect()), presetSlug: state.presetSlug }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); state.presetSlug = result.slug; await loadPresets(); $('preset').value = result.slug; setAssetNames(result.branding ?? result.assets); setStatus('预设已保存'); log('预设已保存：' + result.name) } catch (error) { setStatus('保存失败'); log('错误：' + error.message) } })
+    $('delete').addEventListener('click', async () => { if (!state.presetSlug) return; const response = await fetch('/api/presets/' + encodeURIComponent(state.presetSlug), { method: 'DELETE' }); if (response.ok) { state.presetSlug = ''; await loadPresets(); $('preset').value = ''; setStatus('预设已删除'); log('预设已删除。') } })
+    const run = async (check) => { try { const response = await fetch('/api/build', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...(await collect()), presetSlug: state.presetSlug, check }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); $('build').disabled = true; $('check').disabled = true; setStatus(check ? '正在检查' : '正在构建'); $('log').textContent = ''; const events = new EventSource('/api/build/' + result.id + '/events'); events.onmessage = (event) => { const item = JSON.parse(event.data); if (item.type === 'log') log(item.line); if (item.type === 'done') { events.close(); $('build').disabled = false; $('check').disabled = false; setStatus(item.ok ? (check ? '检查通过' : '构建完成') : '构建失败'); if (item.artifacts) $('artifacts').innerHTML = item.artifacts.map((path) => `<li>${path}</li>`).join('') } } } catch (error) { $('build').disabled = false; $('check').disabled = false; setStatus('启动失败'); log('错误：' + error.message) } }
+    $('check').addEventListener('click', () => run(true)); $('build').addEventListener('click', () => run(false)); loadPresets().catch((error) => log('无法读取预设：' + error.message))
+  </script>
+</body>
+</html>

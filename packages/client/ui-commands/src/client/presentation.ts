@@ -79,8 +79,9 @@ export function sectionRows(rows: readonly InputTriggerCandidate[], t: Translate
       const row = byName.get(name)
       return row === undefined ? [] : [row]
     })
-  const add = pick(SECTION_ROWS.add).map(row => ({ ...row, section: t('section.add') }))
-  const commands = [...pick(SECTION_ROWS.commands), ...rows.filter(row => !listed.has(row.name))]
+  const additions = rows.filter(row => !listed.has(row.name) && row.section === t('section.add'))
+  const add = [...pick(SECTION_ROWS.add.filter(name => name !== 'feedback')), ...additions, ...pick(['feedback'])].map(row => ({ ...row, section: t('section.add') }))
+  const commands = [...pick(SECTION_ROWS.commands), ...rows.filter(row => !listed.has(row.name) && !additions.includes(row))]
     .map(row => ({ ...row, section: t('section.commands') }))
   return [...add, ...commands]
 }

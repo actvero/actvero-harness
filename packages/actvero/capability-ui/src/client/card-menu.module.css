@@ -1,0 +1,2 @@
+/* The trigger is intentionally neutral so each card can position it locally. */
+.trigger { display: grid; place-items: center; }

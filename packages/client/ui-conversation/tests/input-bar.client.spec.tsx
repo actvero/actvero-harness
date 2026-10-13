@@ -1191,11 +1191,15 @@ describe('running and lock semantics', () => {
     const first = bench({ disabled: true, draft: 'x' })
     const textarea = first.view.container.querySelector<HTMLDivElement>('[data-composer-input]')!
     const focused: (boolean | undefined)[] = []
-    textarea.focus = (options?: FocusOptions) => { focused.push(options?.preventScroll) }
+    const focus = textarea.focus.bind(textarea)
+    textarea.focus = (options?: FocusOptions) => { focused.push(options?.preventScroll); focus(options) }
     act(() => { first.session.set(snapshotOf({ removed: false })) })
-    expect(focused).toEqual([true])
+    expect(document.activeElement).toBe(textarea)
+    expect(focused.length).toBeGreaterThan(0)
+    expect(focused.every(preventScroll => preventScroll === true)).toBe(true)
+    const before = focused.length
     fireEvent.mouseDown(first.view.container.querySelector('button[aria-label="发送消息"]')!)
-    expect(focused).toEqual([true, true])
+    expect(focused.slice(before)).toEqual([true])
   })
 
   it('a programmatic draft write echoes back through the state and the editor DOM', () => {
@@ -1674,7 +1678,7 @@ describe('command launcher chrome and control seats', () => {
     // seat set is the contract).
     expect([...new Set(slotCalls.map(c => c.key))]).toEqual([
       'conversation.input.overlay', 'conversation.input.attachments',
-      'conversation.input.permission', 'conversation.input.plan', 'conversation.input.left',
+      'conversation.input.left', 'conversation.input.permission', 'conversation.input.plan',
       'conversation.input.right', 'conversation.input.model', 'conversation.input.activity',
       'conversation.composer.dock',
     ])

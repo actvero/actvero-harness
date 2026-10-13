@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.0-rc.2/actvero-platform-address/guide.md
+/:
+  en: 70655779f9ec1e5f
+  zh: b4f0ab1a19466a5f
+/actvero-platform-address:
+  en: c44f389259d4232a
+  zh: fd8f47d535f737ae
+/actvero-platform-address/change:
+  en: 0c372db4f9b5c3bb
+  zh: 9e40271c4ab55cd3
+/actvero-platform-address/migration:
+  en: c9c035e9b023ffbd
+  zh: b11652b123a1131b

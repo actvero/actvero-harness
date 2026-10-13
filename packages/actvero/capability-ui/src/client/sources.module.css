@@ -1,0 +1,5 @@
+.sources {display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;min-width:0;}
+.tabs {display:flex;align-items:center;gap:8px;min-width:0;}
+.tabs button {height:34px;padding:0 14px;font-size:15px;font-weight:500;border-radius:10px;white-space:nowrap;color:var(--dsw-alias-label-secondary);}
+.tabs button[aria-selected=true] {background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);}
+.count {font-size:13px;color:var(--dsw-alias-label-tertiary);}

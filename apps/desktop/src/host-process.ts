@@ -1,3 +1,4 @@
+import { isCapabilityHostMessage,type CapabilityHostMessage,type CapabilityMainMessage } from './actvero/capability-ipc.ts'
 /** Electron Node-mode child lifecycle for the shared Web application. */
 
 import { spawn, type ChildProcess } from 'node:child_process'
@@ -177,6 +178,8 @@ export class DesktopHostProcess {
     private readonly packageManager?: { readonly pnpm: string; readonly nodeBin: string },
 
     private readonly onPlatformSession?: (session: PlatformSession | null) => void,
+    private readonly onCapabilityMessage?: (message:CapabilityHostMessage)=>void,
+    private readonly onCapabilityClose?: ()=>void,
   ) {}
 
   /**
@@ -204,6 +207,10 @@ export class DesktopHostProcess {
     child.stderr?.on('data', (chunk: string) => { this.stderr = (this.stderr + chunk).slice(-MAX_HOST_DIAGNOSTIC_CHARS) })
     child.stdout?.pipe(process.stdout)
     child.on('message', (message: unknown) => {
+      if (this.environment.ACTVERO_DESKTOP === '1' && isCapabilityHostMessage(message)) {
+        this.onCapabilityMessage?.(message)
+        return
+      }
       if (!isDesktopHostEvent(message)) {
         this.fail(new Error('dsh desktop host sent an invalid IPC event'))
         child.kill('SIGTERM')
@@ -285,10 +292,13 @@ export class DesktopHostProcess {
    * @returns Completion of owned process teardown. DesktopHostUncleanExitError confirms exit but refuses installation;
    * other failures do not confirm exit.
    */
+  /** Private Main channel with a closed outbound message type. */
+  sendCapabilityMessage(message:CapabilityMainMessage):void {if(this.environment.ACTVERO_DESKTOP!=='1' || !this.child?.connected || this.stopping) throw new Error('capability_host_unavailable');this.child.send(message)}
   async stop(requireGraceful = false): Promise<void> {
     const child = this.child
     if (child === undefined) return
     this.stopping = true
+    this.onCapabilityClose?.()
     this.onPlatformSession?.(null)
     if (child.connected) child.send({ type: 'shutdown' }, (error) => { if (error !== null) this.fail(error) })
     const exited = this.exitPromise ?? Promise.resolve()
@@ -308,6 +318,7 @@ export class DesktopHostProcess {
   }
 
   private fail(error: Error): void {
+    this.onCapabilityClose?.()
     this.onPlatformSession?.(null)
     this.readyReject(error)
     for (const request of this.controlRequests.values()) request.reject(error)

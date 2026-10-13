@@ -1,5 +1,7 @@
 # AGENTS.md
 
+ACTVERO: follow [actvero/AGENTS.md](actvero/AGENTS.md).
+
 DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
 ## Pre-stable APIs and released Session data
@@ -85,7 +87,7 @@ Package groups: [packages/README.md](packages/README.md).
 
 ```sh
 pnpm install            # pnpm workspaces, node ^22.19 || >=24
-pnpm run clean           # remove build outputs and safe residue from deleted packages
+pnpm run clean           # remove generated outputs and deleted-package residue
 pnpm run test           # unit tests
 pnpm run test:coverage  # CI coverage gate: per-file 100% on packages/*/*/src
 pnpm run test:e2e       # real-API tests; self-skip without DEEPSEEK_API_KEY

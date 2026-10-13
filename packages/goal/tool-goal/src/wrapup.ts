@@ -1,6 +1,19 @@
 /** Model-visible wrap-up instruction for a terminal autonomous goal update. */
 
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { GoalView } from '@deepseek-ai/dsh-goal'
+
+/** One bounded status check at a normal turn end; completion remains an explicit model decision. */
+export function renderGoalStatusReminder(goal: GoalView): ContentBlock[] {
+  return [{ type: 'text', text: '<goal_status_check>\n'
+    + `The goal is still active: ${JSON.stringify({ id: goal.id, revision: goal.revision, objective: goal.objective })}.\n`
+    + 'Before ending this turn, compare the requested outcome with existing evidence. If all required work is achieved, '
+    + 'call update_goal with action complete and the current id/revision, then give the user the result. '
+    + 'A completed Todo list or a final answer does not update the goal. If required work remains, state the concrete '
+    + 'remaining work and leave the goal active for its normal continuation. Do not restart finished work, repeat '
+    + 'successful checks, expand scope, or create another goal to satisfy this notice. Do not mark complete merely '
+    + 'to stop continuation. This notice is sent at most once per turn.\n</goal_status_check>' }]
+}
 
 const GROUNDING =
   'Report only what earlier rounds and tool results in this session actually establish; '

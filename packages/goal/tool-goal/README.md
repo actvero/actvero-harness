@@ -58,6 +58,8 @@ An autonomous round that successfully reports `complete` or `blocked` also ends 
 
 -----
 
+Before a normally ending authorized turn becomes idle, an armed active goal receives one `<goal_status_check>` notice. The model reconciles completion against existing evidence; Todo completion and final prose do not change goal state. The notice neither completes nor pauses a goal and does not inject after cancellation or a terminal goal state. If work remains, normal continuation still applies. The notice is logged as `tool-goal` context and is bounded to once per turn.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -133,7 +135,7 @@ The generated [`get_goal`, `create_goal`, and `update_goal` schemas](../../../do
 
 #### Token effect
 
-Fixed schema cost plus one compact result per call. The durable mutation adds no separate model-visible context.
+Fixed schema cost plus one compact result per call. An ending active turn adds at most one short status notice; autonomous completion or blocking adds its closing instruction.
 
 #### KV Cache effect
 

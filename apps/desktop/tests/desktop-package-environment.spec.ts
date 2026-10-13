@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { loadDesktopPackageEnvironment, validateDesktopPackageEnvironment } from '../scripts/desktop-package-environment.mjs'
 import { resolveWindowsPackageSettings } from '../scripts/windows-package-settings.mjs'
+import { resolveNpmFetchTimeout } from '../scripts/desktop-release-environment.mjs'
 
 const WINDOWS = { platform: 'win32', arch: 'x64' } as const
 const MACOS = { platform: 'darwin', arch: 'arm64' } as const
@@ -23,6 +24,24 @@ async function withDirectory(action: (directory: string) => Promise<void>): Prom
 }
 
 describe('Desktop local packaging configuration', () => {
+  it.each(['win32', 'darwin'] as const)('loads an npm download deadline from the %s platform file', async (platform) => {
+    await withDirectory(async (directory) => {
+      const file = join(directory, platform === 'win32' ? '.env.windows' : '.env.macos')
+      await writeFile(file, '')
+      expect(resolveNpmFetchTimeout(loadDesktopPackageEnvironment(platform, {}, directory))).toBe(300_000)
+      await writeFile(file, 'DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS=600000\n')
+      const environment = loadDesktopPackageEnvironment(platform, { DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS: '120000' }, directory)
+      expect(resolveNpmFetchTimeout(environment)).toBe(600_000)
+      expect(() => validateDesktopPackageEnvironment({ ...RELEASE, ...environment }, platform === 'win32' ? WINDOWS : MACOS, { unsigned: true })).not.toThrow()
+    })
+  })
+
+  it.each(['', '0', '-1', '1.5', 'Infinity', '01', '2147483648', '9007199254740992'])('rejects npm download deadline %s before preparation', (value) => {
+    for (const target of [WINDOWS, MACOS]) {
+      expect(() => validateDesktopPackageEnvironment({ ...RELEASE, DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS: value }, target, { unsigned: true })).toThrow('NPM_FETCH_TIMEOUT_MS')
+    }
+  })
+
   it('takes cache concurrency from the Windows file and defaults to four without ambient overrides', async () => {
     await withDirectory(async (directory) => {
       const parent = { DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY: '8' }

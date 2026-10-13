@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/connectors/README.md
+/mcp-connections-and-session-selection:
+  en: c958b92f5b927e88
+  zh: 9c53938cd08bbb1c
+/mcp-connections-and-session-selection/runtime:
+  en: 40b0d295a1ee7934
+  zh: 6bf3c5102e3d3b51
+/mcp-connections-and-session-selection/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/mcp-connections-and-session-selection/model-experience/scoped-mcp-capabilities:
+  en: 24a5543c14e4b7ba
+  zh: 16bc3e5d83f3f4bb
+/mcp-connections-and-session-selection/model-experience/scoped-mcp-capabilities/what-the-model-sees:
+  en: f29ab61ef133847d
+  zh: 337c9e17d02289d0
+/mcp-connections-and-session-selection/model-experience/scoped-mcp-capabilities/token-effect:
+  en: 6637f6cff141b370
+  zh: 3c79bd5441e3b9d5
+/mcp-connections-and-session-selection/model-experience/scoped-mcp-capabilities/kv-cache-effect:
+  en: 2db8de1db7328f4d
+  zh: 2a65ab2c0d53c616
+/mcp-connections-and-session-selection/known-limitations-and-deferred-work:
+  en: 10ac6c40fc480b3e
+  zh: 9f871c4e8cfe4e28

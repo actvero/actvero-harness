@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "id": "actvero",
+    "applicationId": "com.actvero.desktop",
+    "displayName": "Actvero Harness",
+    "version": "0.1.14",
+    "defaultLocale": "zh-CN"
+  },
+  "platform": {
+    "defaultUrl": "http://127.0.0.1:5194"
+  },
+  "updates": {
+    "enabled": false,
+    "feedUrl": null
+  },
+  "plugins": [
+    "native-office-preview",
+    "better-sidebar",
+    "plugin-market"
+  ],
+  "branding": {
+    "icon": "app-icon.svg",
+    "logo": "icon.svg"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis/tsconfig.json"
+    },
+    {
+      "path": "../../attachment/attachment/tsconfig.json"
+    },
+    {
+      "path": "../../llm/llm/tsconfig.json"
+    },
+    {
+      "path": "../../../vendor/loader/tsconfig.json"
+    },
+    {
+      "path": "../../../vendor/schemastery/tsconfig.json"
+    }
+  ]
+}

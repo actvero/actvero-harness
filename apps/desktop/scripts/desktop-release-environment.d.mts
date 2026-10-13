@@ -10,6 +10,9 @@ export const MACOS_TEAM_ID_ENV: 'DSH_DESKTOP_MACOS_TEAM_ID'
 /** Environment variable that selects the npm registry used for the bundled runtime install. */
 export const NPM_REGISTRY_ENV: 'DSH_DESKTOP_NPM_REGISTRY'
 
+/** Environment variable that supplies the bundled runtime's npm request timeout in milliseconds. */
+export const NPM_FETCH_TIMEOUT_ENV: 'DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS'
+
 /** Public identity expected on a macOS release. */
 export interface MacOSSigningEnvironment {
   readonly signingIdentity: string
@@ -55,6 +58,13 @@ export function resolveDesktopAppId(env: NodeJS.ProcessEnv): string
  * @returns Registry origin; the public registry unless a local mirror is configured.
  */
 export function resolveNpmRegistry(env: NodeJS.ProcessEnv): string
+
+/**
+ * Resolve the request timeout for downloading bundled runtime dependencies, including Office engines.
+ * @param env - Packaging environment.
+ * @returns Timeout in milliseconds, defaulting to five minutes when omitted.
+ */
+export function resolveNpmFetchTimeout(env: NodeJS.ProcessEnv): number
 
 /**
  * Resolve and validate the public identity expected on a macOS release.

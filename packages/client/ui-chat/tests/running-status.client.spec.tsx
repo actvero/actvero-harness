@@ -13,11 +13,13 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(5_000) })
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 function statusHarness(startTime?: number) {
-  const view = render(<RunningStatus startTime={startTime} t={t} />)
+  const view = render(<RunningStatus startTime={startTime} t={t} renderSlot={(_key, _owner, opts) => opts?.fallback} />)
   return {
     ...view,
     content: () => view.container.querySelector('[data-chat-running] > :last-child'),
-    set: (nextStartTime?: number) => { view.rerender(<RunningStatus startTime={nextStartTime} t={t} />) },
+    set: (nextStartTime?: number) => {
+      view.rerender(<RunningStatus startTime={nextStartTime} t={t} renderSlot={(_key, _owner, opts) => opts?.fallback} />)
+    },
   }
 }
 

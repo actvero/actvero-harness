@@ -30,3 +30,16 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+/* Selected skills share the compact, neutral capability badge treatment. */
+/* A smaller line box and padding keep the badge inside the adjacent draft line. */
+.chip.skill { padding:1px 8px; margin:0 2px; gap:6px; line-height:calc(20px + var(--dsh-content-font-delta, 0px)); border-radius:var(--dsw-radius-md); background:var(--dsw-alias-interactive-bg-hover); color:var(--dsw-alias-label-primary); }
+.chip.skill:hover { background:var(--dsw-alias-interactive-bg-hover-solid); }
+.glyph { position:relative;display:inline-flex;align-self:center;flex:none; }
+.remove { position:absolute;inset:0;display:grid;place-items:center;border:0;padding:0;background:transparent;color:inherit;cursor:pointer;opacity:0; }
+.skill:hover .remove,.skill:focus-within .remove { opacity:1; }
+.skill:hover .icon,.skill:focus-within .icon { opacity:0; }
+.remove:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:2px; }
+@media(hover:none){.skill .remove {position:static;opacity:1;margin-left:4px;}}
+
+.chip.skill.invalid {color:var(--dsw-alias-state-error-primary);}

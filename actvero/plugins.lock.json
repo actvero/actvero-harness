@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "id": "native-office-preview",
+      "package": "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+      "version": "0.2.0-rc.2",
+      "source": "workspace",
+      "manifest": "packages/client/ui-sidebar-documentpreview/package.json",
+      "qualification": "baseline-only"
+    },
+    {
+      "id": "better-sidebar",
+      "package": "dsh-better-sidebar",
+      "version": "0.24.1",
+      "source": "npm",
+      "integrity": "sha512-X5tdu07Ub0isxruG559o46891F7MjxM+CzR6QoGpHZtN5J8gz6FA8Dq632lLI77c4IjL2GP+N6PuWaDnoKPuPQ==",
+      "qualification": "migration-required"
+    },
+    {
+      "id": "plugin-market",
+      "package": "dshmarket",
+      "version": "1.66.5",
+      "source": "npm",
+      "integrity": "sha512-vUngq0Ixt9h55VCXtMDv7Gxk/NDqCN/7U2p43dvGGQNj6YGxm9D4EhVgQfSIk6dqYr50yAhI8LuHKwzTGorV1w==",
+      "qualification": "migration-required"
+    }
+  ]
+}

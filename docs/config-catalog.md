@@ -649,6 +649,22 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-sidebar-documentpreview -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-skill -->
+<a id="deepseek-aidsh-client-ui-skill"></a>
+
+## `@deepseek-ai/dsh-client-ui-skill`
+
+- `source`: [`packages/client/ui-skill/src/config.ts:5`](../packages/client/ui-skill/src/config.ts)
+
+```ts config-catalog
+/** Host-owned skill presentation options. */
+export interface Config {
+  /** Use atomic neutral badges for menu picks while sending native /name gestures. */
+  referenceChips: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-skill -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
 <a id="deepseek-aidsh-client-ui-theme"></a>
 
@@ -4329,6 +4345,11 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 <!-- BEGIN GENERATED config-catalog:no-config -->
 | `package` | `inject` | `source` |
 | --- | --- | --- |
+| `@actvero/dsh-capability-ui` | — | [`packages/actvero/capability-ui/src/index.ts`](../packages/actvero/capability-ui/src/index.ts) |
+| `@actvero/dsh-client-account` | — | [`packages/client/actvero-account/src/index.ts`](../packages/client/actvero-account/src/index.ts) |
+| `@actvero/dsh-connectors` | `tools` · `agents` | [`packages/actvero/connectors/src/index.ts`](../packages/actvero/connectors/src/index.ts) |
+| `@actvero/dsh-experts` | `agents` · `skills` · `tools` · `systemPrompt` · `sessionController` · `workspaceRegistry` · `sessionProjections` · `actveroMcp` | [`packages/actvero/experts/src/index.ts`](../packages/actvero/experts/src/index.ts) |
+| `@actvero/dsh-skills` | `skills` | [`packages/actvero/skills/src/index.ts`](../packages/actvero/skills/src/index.ts) |
 | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
 | `@deepseek-ai/dsh-agent` | — | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
 | `@deepseek-ai/dsh-api-account-controller` | `deepseekAccount` · `agents` | [`packages/api/account-controller/src/index.ts`](../packages/api/account-controller/src/index.ts) |
@@ -4378,7 +4399,6 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-sidebar-files` | — | [`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-right` | — | [`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-sidebar-terminal` | — | [`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-skill` | — | [`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-subagent` | — | [`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-tool` | — | [`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-trajectory` | — | [`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts) |

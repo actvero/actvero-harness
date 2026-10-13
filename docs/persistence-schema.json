@@ -332,6 +332,235 @@
       }
     },
     {
+      "key": "event:actvero/connectors",
+      "kind": "event",
+      "event": "actvero/connectors",
+      "surface": false,
+      "digest": "da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "choices",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 3
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "enabled",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "scope",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "actvero/connectors"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:actvero/expert",
+      "kind": "event",
+      "event": "actvero/expert",
+      "surface": false,
+      "digest": "55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "schemaVersion",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "selection",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              6
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "avatar",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "snapshotId",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "actvero/expert"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:agent-preset/selected",
       "kind": "event",
       "event": "agent-preset/selected",
@@ -22112,6 +22341,15 @@
       "sources": []
     },
     {
+      "digest": "163c2195427dd8a868853b8a83104e0caf05792df059caa70354ef723da356f1",
+      "names": [
+        "packages/actvero/experts/src/projection.ts#ConnectorChoice"
+      ],
+      "sources": [
+        "packages/actvero/experts/src/projection.ts:16"
+      ]
+    },
+    {
       "digest": "16d0507cb94b4cfc84a87446b1ba7652d6ec1d65ee1684789e747e30d542800e",
       "names": [],
       "sources": []
@@ -22337,6 +22575,11 @@
       "sources": [
         "packages/experimental/agent-team/src/types.ts:137"
       ]
+    },
+    {
+      "digest": "21b3003b87a1c7aa01383f3feb103c3af2ff38029143d096ae9ba89d0f969d15",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "21fb6a90d5068f6a0003b7ab316ed2f56342477146a65c00db0f13c4d8df667d",
@@ -22640,10 +22883,10 @@
     {
       "digest": "390eed1028aba02774f14408647acec10ec5516e97d4f15ecde2b9989d5a69f2",
       "names": [
-        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackRating"
+        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackRating"
       ],
       "sources": [
-        "packages/feedback/message-feedback/src/types.ts:17"
+        "packages/feedback/message-feedback/lib/types/types.d.ts:14"
       ]
     },
     {
@@ -22714,10 +22957,10 @@
     {
       "digest": "3d7d07060a7be77984feb651ea2bf1925d3e0477911d9d3ed86330d1e8ca6182",
       "names": [
-        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackItem"
+        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackItem"
       ],
       "sources": [
-        "packages/feedback/message-feedback/src/types.ts:20"
+        "packages/feedback/message-feedback/lib/types/types.d.ts:16"
       ]
     },
     {
@@ -22919,7 +23162,7 @@
         "packages/experimental/agent-team/src/types.ts#TeamId",
         "packages/experimental/agent-team/src/types.ts#TeamMessageId",
         "packages/experimental/agent-team/src/types.ts#TeamTaskId",
-        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackVersion",
+        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackVersion",
         "packages/goal/goal/src/types.ts#GoalId",
         "packages/interaction/commands/src/brand.ts#CommandId",
         "packages/interaction/user-approval/src/types.ts#ApprovalRequestId",
@@ -22944,7 +23187,7 @@
         "packages/experimental/agent-team/src/types.ts:20",
         "packages/experimental/agent-team/src/types.ts:32",
         "packages/experimental/agent-team/src/types.ts:8",
-        "packages/feedback/message-feedback/src/types.ts:14",
+        "packages/feedback/message-feedback/lib/types/types.d.ts:12",
         "packages/goal/goal/src/types.ts:17",
         "packages/interaction/commands/src/brand.ts:31",
         "packages/interaction/user-approval/src/types.ts:17",
@@ -23076,6 +23319,13 @@
       "sources": []
     },
     {
+      "digest": "544357ce88ef43f1bc5f43bc8e3edb7ffe3244f32a6663009bea873ce50da8d8",
+      "names": [],
+      "sources": [
+        "packages/actvero/experts/src/projection.ts:21"
+      ]
+    },
+    {
       "digest": "54f9276a1617d7c12594722c89cfe864bcbe4517e9a6f9c98bab14f199a135e0",
       "names": [],
       "sources": [
@@ -23084,6 +23334,11 @@
     },
     {
       "digest": "557e148d30b79ee48645850832b30c717d7c3b64641deb5d6133b8b4e91ee0b8",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5",
       "names": [],
       "sources": []
     },
@@ -23504,6 +23759,11 @@
       "sources": []
     },
     {
+      "digest": "718f5f4afde349eb970a8e7db62a3c55eb31c8afa45fda029be5a68a7a3543cc",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "719c51f67074f97034a6c94297fe1f4b5d3c8d392c57586dab732aa5398c7a91",
       "names": [
         "packages/llm/llm/src/message.ts#ModelMessageSource"
@@ -23586,10 +23846,10 @@
     {
       "digest": "7c6129b6961cf4b2a030f36c78d2b0a5be38617651a9b81322e054ee512bee06",
       "names": [
-        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackDelete"
+        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackDelete"
       ],
       "sources": [
-        "packages/feedback/message-feedback/src/types.ts:46"
+        "packages/feedback/message-feedback/lib/types/types.d.ts:40"
       ]
     },
     {
@@ -23622,6 +23882,13 @@
       ],
       "sources": [
         "packages/llm/llm/src/types.ts:148"
+      ]
+    },
+    {
+      "digest": "7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc",
+      "names": [],
+      "sources": [
+        "packages/actvero/experts/src/projection.ts:8"
       ]
     },
     {
@@ -23928,6 +24195,11 @@
       "sources": []
     },
     {
+      "digest": "92ae197aebadc0983faae3103da14c5859f4355c7b139180602157f42d859d2d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "930a6567a10bb62ddd157bd8abdf4b182810c8c3b49d91309b3b009a5fed9731",
       "names": [],
       "sources": [
@@ -24114,6 +24386,15 @@
       "sources": []
     },
     {
+      "digest": "9f961323f301e52dd4a04be8b19b21ff284787f309859761fd7836f8d9c03dee",
+      "names": [
+        "packages/actvero/experts/src/contracts.ts#ExpertSelection"
+      ],
+      "sources": [
+        "packages/actvero/experts/src/contracts.ts:18"
+      ]
+    },
+    {
       "digest": "a0a2e5c42e1c929445ecd1cd70f49be6b66441894ec72c08e8ae332821d4a3cb",
       "names": [],
       "sources": []
@@ -24293,10 +24574,10 @@
     {
       "digest": "aa7bc2817014ca6c45719b1c193c5c131be718a0921f34345098ff250f444626",
       "names": [
-        "packages/feedback/message-feedback/src/types.ts#MessageFeedbackPut"
+        "packages/feedback/message-feedback/lib/types/types.d.ts#MessageFeedbackPut"
       ],
       "sources": [
-        "packages/feedback/message-feedback/src/types.ts:38"
+        "packages/feedback/message-feedback/lib/types/types.d.ts:33"
       ]
     },
     {
@@ -24898,6 +25179,11 @@
       "sources": []
     },
     {
+      "digest": "da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "dacf3d5f3e4ff619c1320e64a48dec5e7ecd7870bece65fbd449a0e63adfa521",
       "names": [],
       "sources": []
@@ -24923,6 +25209,11 @@
       "sources": [
         "packages/core/tools/src/ptc.ts:14"
       ]
+    },
+    {
+      "digest": "dbd0d5671c2580c3397aa5658cd23715bb9dcb5d84a0a6637d0016a593d199fd",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "dbdafceb9a900183cccc80596498d386f3bf7bddead2b8cfde68453aa4739edc",

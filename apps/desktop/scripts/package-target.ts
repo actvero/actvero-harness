@@ -469,8 +469,11 @@ export async function packageTarget(
   ], buildEnv, REPOSITORY_ROOT)
   await execute(['run', 'prepare:runtime', ...(signPrimaryRuntime ? ['--defer-primary-runtime-smoke'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime'], electronBuilderEnv)
+  if (environment.ACTVERO_LOCAL_UNSIGNED === '1') {
+    await execute(['exec', 'tsx', 'scripts/actvero-pack.ts', '--out', buildPaths.packedDsh], buildEnv, REPOSITORY_ROOT)
+  }
   await execute(['run', 'prepare:packages'], targetEnv)
-  await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
+  await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : []), ...(environment.ACTVERO_LOCAL_UNSIGNED === '1' ? ['--local-unsigned'] : [])], downloadEnv)
   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime', '--dsh'], electronBuilderEnv)
   if (invocation.prepareOnly) return
   if (target.platform === 'darwin' && !invocation.directory) {

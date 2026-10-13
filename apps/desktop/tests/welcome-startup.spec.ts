@@ -6,9 +6,16 @@ import type { BrowserWindowConstructorOptions } from 'electron'
 import type { DesktopLocale } from '../src/locale.ts'
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { WelcomeOperations } from '../src/welcome-api.ts'
+import type { UpdateDialogOptions } from '../src/update-dialog.ts'
 import { DESKTOP_IPC } from '../src/ipc.ts'
 
 const state = vi.hoisted(() => ({
+  accountEntry: undefined as ((options?: { activate?: boolean }) => Promise<void>) | undefined,
+  accountShow: undefined as (() => Promise<void>) | undefined,
+  accountLocal: undefined as (() => Promise<void>) | undefined,
+  accountLogout: undefined as (() => Promise<boolean>) | undefined,
+  showDialog: vi.fn<(parent: unknown, options: UpdateDialogOptions) => Promise<{ response: number; checkboxChecked: boolean }>>()
+    .mockResolvedValue({ response: 1, checkboxChecked: false }),
   appListeners: new Map<string, (...args: unknown[]) => void>(),
   dialogLocale: undefined as (() => DesktopLocale) | undefined,
   beforeRead: vi.fn(async () => {}),
@@ -146,6 +153,7 @@ vi.mock('node:fs/promises', async importOriginal => ({
 }))
 vi.mock('../src/update-dialog.ts', () => ({ DesktopUpdateDialog: class {
   constructor(_preload: string, locale: () => DesktopLocale) { state.dialogLocale = locale }
+  show = state.showDialog
   dispose() {}
 } }))
 vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class {
@@ -153,12 +161,27 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
   check = vi.fn(async () => this.state)
   dispose = vi.fn()
 } }))
+vi.mock('../src/actvero/runtime.ts', () => ({
+  installAccount: (options: {
+    enabled: boolean
+    enter(value?: { activate?: boolean }): Promise<void>
+    confirmLogout(): Promise<boolean>
+    show(): Promise<void>
+    local(): Promise<void>
+  }) => {
+    state.accountEntry = value => options.enter(value)
+    state.accountShow = () => options.show()
+    state.accountLocal = () => options.local()
+    state.accountLogout = () => options.confirmLogout()
+    return options.enabled ? { restore: async () => {}, startPolling: () => {}, snapshot: () => ({ phase: 'ready' }), cancel: async () => {} } : undefined
+  },
+}))
 vi.mock('../src/welcome-window.ts', () => ({
   openWelcomeWindow: async (locale: DesktopLocale, operations: WelcomeOperations) => {
     state.welcomeLocale = locale
     state.operations = operations
     await state.beforeWelcome()
-    return { once: vi.fn(), close: state.closeWelcome, isDestroyed: () => false,
+    return { once: vi.fn(), close: state.closeWelcome, isDestroyed: () => false, isMinimized: () => false, isVisible: () => true,
       show: vi.fn(), focus: vi.fn(), webContents: { send: vi.fn() } }
   },
 }))
@@ -298,4 +321,64 @@ it.each([false, true])('starts welcome onboarding without carrying update focus 
   expect(state.showWorkspace).toHaveBeenCalledOnce()
   expect(state.focusWorkspace).toHaveBeenCalledOnce()
 
+})
+
+
+it('restores ACTVERO credentials but waits for explicit account confirmation', async () => {
+  vi.resetModules(); vi.clearAllMocks()
+  state.preference = 'zh'
+  state.operations = undefined
+  state.beforeRead.mockResolvedValue(undefined); state.beforeWelcome.mockResolvedValue(undefined)
+  vi.stubEnv('ACTVERO_DESKTOP', '1')
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  vi.stubEnv('DSH_DESKTOP_DEV_PROJECT_DIR', '/development-profile')
+  vi.stubEnv('DSH_DESKTOP_NODE_BINARY', '/runtime/node')
+  vi.stubEnv('DSH_DESKTOP_PNPM_ENTRY', '/runtime/pnpm')
+  vi.stubEnv('DSH_DESKTOP_DSH_DIR', '/runtime/dsh')
+  vi.stubEnv('DSH_DESKTOP_PRIMARY_RUNTIME_DIR', '/runtime/primary-runtime')
+  vi.stubEnv('DSH_DESKTOP_OPEN_DEVTOOLS', '0')
+  await import('../src/main.ts')
+  await vi.waitFor(() => { expect(state.operations).toBeDefined() })
+  expect(state.showWorkspace).not.toHaveBeenCalled()
+  state.showDialog.mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+  expect(await state.accountLogout!()).toBe(false)
+  state.showDialog.mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+  expect(await state.accountLogout!()).toBe(true)
+  expect(state.showDialog.mock.calls.at(-1)?.[1]).toMatchObject({ cancelId: 1, buttons: ['退出登录', '取消'] })
+  state.appListeners.get('second-instance')!()
+  expect(state.showWorkspace).not.toHaveBeenCalled()
+  await state.accountEntry!()
+  expect(state.showWorkspace).toHaveBeenCalledOnce()
+})
+
+it('returns to login after sign-out until local entry is explicitly requested again', async () => {
+  vi.resetModules(); vi.clearAllMocks()
+  state.operations = undefined
+  state.beforeRead.mockResolvedValue(undefined); state.beforeWelcome.mockResolvedValue(undefined)
+  vi.stubEnv('ACTVERO_DESKTOP', '1')
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  vi.stubEnv('DSH_DESKTOP_DEV_PROJECT_DIR', '/development-profile')
+  vi.stubEnv('DSH_DESKTOP_NODE_BINARY', '/runtime/node')
+  vi.stubEnv('DSH_DESKTOP_PNPM_ENTRY', '/runtime/pnpm')
+  vi.stubEnv('DSH_DESKTOP_DSH_DIR', '/runtime/dsh')
+  vi.stubEnv('DSH_DESKTOP_PRIMARY_RUNTIME_DIR', '/runtime/primary-runtime')
+  vi.stubEnv('DSH_DESKTOP_OPEN_DEVTOOLS', '0')
+  await import('../src/main.ts')
+  await vi.waitFor(() => { expect(state.operations).toBeDefined() })
+  await state.accountLocal!()
+  expect(state.showWorkspace).toHaveBeenCalledOnce()
+  await state.accountShow!()
+  expect(state.beforeWelcome).toHaveBeenCalledTimes(2)
+  state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dsh://open')
+  expect(state.showWorkspace).toHaveBeenCalledOnce()
+  expect(state.focusWorkspace).not.toHaveBeenCalled()
+  const lateEntry = state.accountEntry!({ activate: false })
+  await state.accountShow!()
+  await lateEntry
+  expect(state.showInactiveWorkspace).not.toHaveBeenCalled()
+  await state.accountEntry!({ activate: false })
+  expect(state.showInactiveWorkspace).toHaveBeenCalledOnce()
+  state.appListeners.get('open-url')!({ preventDefault: vi.fn() }, 'dsh://open')
+  expect(state.showWorkspace).toHaveBeenCalledTimes(2)
+  expect(state.focusWorkspace).toHaveBeenCalledOnce()
 })

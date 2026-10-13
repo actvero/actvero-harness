@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-06-actvero-expert-selection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-06-actvero-expert-selection.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-06-actvero-expert-selection:
+  en: 972a5881521f6d06
+  zh: 5cb1fb15404d50a4
+/2026-10-06-actvero-expert-selection/summary:
+  en: f0be5e1f8295361c
+  zh: b3fc49d2013d3848
+/2026-10-06-actvero-expert-selection/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-06-actvero-expert-selection/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-06-actvero-expert-selection/compatibility:
+  en: 2ae240cfbd71b486
+  zh: e4a8779435c7dab4
+/2026-10-06-actvero-expert-selection/verification:
+  en: fce6c8c41207e0ae
+  zh: 30bedcdec6a4f847
+/2026-10-06-actvero-expert-selection/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

@@ -45,7 +45,12 @@
     "semver": "^7.8.5",
     "ws": "^8.21.0",
     "@deepseek-ai/dsh-api-gateway": "workspace:*",
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "workspace:~",
+    "@actvero/dsh-capability-ui": "workspace:*",
+    "@actvero/dsh-skills": "workspace:*",
+    "@actvero/dsh-connectors": "workspace:*",
+    "@actvero/dsh-experts": "workspace:*",
+    "@actvero/dsh-model-gateway": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-app-boot": "workspace:*",
@@ -79,6 +84,7 @@
     "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
     "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
-    "@deepseek-ai/dsh-client-product-analytics": "workspace:*"
+    "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
+    "@actvero/dsh-client-account": "workspace:*"
   }
 }

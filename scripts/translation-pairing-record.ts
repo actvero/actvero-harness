@@ -10,16 +10,9 @@ import { basename } from 'node:path'
 import type { Nodes } from 'mdast'
 import { normalizeTranslationMarkdownLinks, type TranslationLinkContext } from './translation-links.ts'
 import { generatedRegions, parseTranslationMarkdown } from './translation-pairing.ts'
+import type { TranslationPairPaths } from './translation-paths.ts'
 
-/** The three repository-relative paths that form one bilingual pair. */
-export interface TranslationPairPaths {
-  /** English document path. */
-  source: string
-  /** Simplified Chinese document path. */
-  zh: string
-  /** Consistency-record path. */
-  meta: string
-}
+export { translationPairPaths, type TranslationPairPaths } from './translation-paths.ts'
 
 /** Content hashes of one section's translated blocks. */
 export interface TranslationSectionHashes {
@@ -35,23 +28,6 @@ export type TranslationPairingRecordContext = Omit<TranslationLinkContext, 'sour
 
 const KEY_LINE = /^(\/[^\s:#]*):$/
 const HASH_LINE = /^ {2}(en|zh): ([0-9a-f]{16})$/
-
-/**
- * Derive the counterpart and consistency-record paths from an English document.
- *
- * @param source - Repository-relative English Markdown path.
- * @returns The complete three-path pair.
- */
-export function translationPairPaths(source: string): TranslationPairPaths {
-  if (!source.endsWith('.md') || source.endsWith('.zh.md')) {
-    throw new Error(`expected an English Markdown path, received ${JSON.stringify(source)}`)
-  }
-  return {
-    source,
-    zh: source.replace(/\.md$/, '.zh.md'),
-    meta: source.replace(/\.md$/, '.i18n.yaml'),
-  }
-}
 
 interface Section {
   heading?: Extract<Nodes, { type: 'heading' }>

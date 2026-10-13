@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "id": "example",
+    "applicationId": "com.example.desktop",
+    "displayName": "Example AI",
+    "version": "1.0.0",
+    "defaultLocale": "zh-CN"
+  },
+  "platform": {
+    "defaultUrl": "https://platform.example.com"
+  },
+  "updates": {
+    "enabled": false,
+    "feedUrl": null
+  },
+  "plugins": [
+    "native-office-preview",
+    "better-sidebar",
+    "plugin-market"
+  ],
+  "branding": {
+    "icon": "app-icon.svg",
+    "logo": "icon.svg"
+  }
+}

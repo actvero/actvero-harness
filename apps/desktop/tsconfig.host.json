@@ -31,6 +31,21 @@
     },
     {
       "path": "../../packages/client/product-analytics/tsconfig.host.json"
+    },
+    {
+      "path": "../../packages/client/actvero-account/tsconfig.host.json"
+    },
+    {
+      "path": "../../packages/actvero/skills/tsconfig.host.json"
+    },
+    {
+      "path": "../../packages/actvero/connectors/tsconfig.host.json"
+    },
+    {
+      "path": "../../packages/actvero/experts/tsconfig.host.json"
+    },
+    {
+      "path": "../../packages/actvero/model-gateway/tsconfig.host.json"
     }
   ],
   "exclude": [

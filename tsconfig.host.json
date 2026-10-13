@@ -1,13 +1,11 @@
 {
-  // Host aggregate (one of the two check units; see tsconfig.json). packages/client
-  // type-checks in tsconfig.client.json: the two sides merge cordis Context under
-  // the same keys, one program cannot see both.
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
     "rewriteRelativeImportExtensions": false
   },
   "include": [
+    "apps/web/tests/actvero-capabilities.e2e.ts",
     "apps/web/product-isolation.ts",
     "apps/web/tests/connection-recovery.e2e.ts",
     "apps/web/tests/server-restart.e2e.ts",
@@ -182,10 +180,6 @@
     "website/**/*.ts",
     "website/.vitepress/**/*.ts"
   ],
-  // Under packages/client and benchmarks, a test file names the face it covers:
-  // `*.client.*` belongs to the Client aggregate, `*.host.spec.ts` to this one. The two
-  // suffixes are mutually exclusive, so each aggregate excludes the other's
-  // and the package test glob above needs no per-file entry.
   "exclude": [
     "apps/desktop/tests/keyboard.spec.ts",
     "packages/client/*/src/**",
@@ -202,6 +196,7 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/client/actvero-account/tsconfig.host.json" },
     { "path": "./packages/client/product-analytics/tsconfig.host.json" },
     { "path": "./packages/telemetry/otel" },
     { "path": "./packages/experimental/speech-to-text" },
@@ -213,8 +208,8 @@
     { "path": "./packages/client/ui-chat/tsconfig.host.json" },
     { "path": "./packages/client/ui-conversation/tsconfig.host.json" },
     { "path": "./packages/client/ui-settings/tsconfig.host.json" },
+    { "path": "./packages/client/ui-skill/tsconfig.host.json" },
     { "path": "./packages/client/ui-settings-general/tsconfig.host.json" },
-
     { "path": "./packages/host/product-telemetry-otel" },
     { "path": "./packages/boot/config-editor" },
     { "path": "./packages/client/connection/tsconfig.host.json" },
@@ -233,7 +228,6 @@
     { "path": "./packages/client/ui-sidebar-browser/tsconfig.host.json" },
     { "path": "./packages/client/ui-settings-general/tsconfig.host.json" },
     { "path": "./packages/document/office-to-pdf" },
-
     { "path": "./packages/api/account-controller" },
     { "path": "./packages/credentials/deepseek-account-platform" },
     { "path": "./packages/credentials/deepseek-account" },
@@ -476,6 +470,11 @@
     { "path": "./packages/lsp/tool-lsp" },
     { "path": "./apps/cli" },
     { "path": "./apps/desktop-host" },
-    { "path": "./apps/desktop/tsconfig.host.json" }
+    { "path": "./apps/desktop/tsconfig.host.json" },
+    { "path": "./packages/actvero/capability-ui/tsconfig.host.json" },
+    { "path": "./packages/actvero/skills/tsconfig.host.json" },
+    { "path": "./packages/actvero/connectors/tsconfig.host.json" },
+    { "path": "./packages/actvero/experts/tsconfig.host.json" },
+    { "path": "./packages/actvero/model-gateway/tsconfig.host.json" }
   ]
 }

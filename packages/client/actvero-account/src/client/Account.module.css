@@ -1,0 +1,231 @@
+/* Match the official AccountSection: 13px rows, 14px identity,
+   12/16px card insets and the settings surface tokens. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+  font-family: var(--dsw-font-family);
+  font-size: 13px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-primary);
+}
+.card {
+  min-width: 0;
+  padding: 12px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+}
+.line,
+.organizationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 0;
+}
+.profileAvatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  corner-shape: round;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-skeleton);
+}
+.identityCopy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.name {
+  font: var(--dsw-font-s-strong-14);
+  overflow-wrap: anywhere;
+}
+.detail {
+  margin: 0;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+  overflow-wrap: anywhere;
+}
+.accountInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 0;
+  font-size: 13px;
+}
+.organizationRow {
+  min-height: 40px;
+  margin-top: 8px;
+  padding: 6px 0;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+  box-sizing: border-box;
+}
+.organizationName {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.organizationAnchor {
+  min-width: 0;
+  max-width: 100%;
+}
+.organizationButton {
+  max-width: 100%;
+  gap: 4px;
+  font-size: 13px;
+}
+.organizationButton span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.organizationButton svg {
+  flex: none;
+}
+.organizationMenu[role='menu'] {
+  min-width: 200px;
+  max-width: calc(100vw - 24px);
+  max-height: min(320px, calc(100vh - 60px));
+  overflow-y: auto;
+}
+.heading {
+  display: block;
+  font: inherit;
+}
+.section p {
+  margin: 8px 0;
+}
+.section .detail {
+  margin-bottom: 0;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.actions {
+  justify-content: flex-end;
+}
+.form {
+  margin-top: 8px;
+}
+.label {
+  display: grid;
+  gap: 8px;
+}
+.menu[role='menu'] {
+  box-sizing: border-box;
+  position-anchor: --actvero-account-trigger;
+  width: anchor-size(--actvero-account-trigger width, 272px);
+  min-width: 200px;
+  max-width: calc(100vw - 24px);
+  max-height: min(640px, calc(100vh - 60px));
+  overflow-y: auto;
+  padding: 8px;
+}
+.anchor {
+  width: calc(100% - 4px);
+  margin: 0 2px;
+}
+.trigger {
+  anchor-name: --actvero-account-trigger;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  height: 44px;
+  padding: 6px;
+  font: var(--dsw-font-s-14);
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+}
+.trigger:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.trigger:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color);
+  outline-offset: 2px;
+}
+.trigger[data-collapsed='true'] {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+}
+.menu [role='menuitem'] {
+  min-height: 40px;
+  padding: 8px 12px;
+  font: var(--dsw-font-s-14);
+}
+.avatar {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  corner-shape: round;
+  display: grid;
+  place-items: center;
+  background: var(--dsw-alias-bg-skeleton);
+}
+.usage {
+  padding: 8px 0 0;
+}
+.usage p {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+}
+.window + .window {
+  margin-top: 16px;
+}
+.window progress {
+  display: block;
+  width: 100%;
+  height: 7px;
+  margin: 8px 0;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  appearance: none;
+}
+.window progress::-webkit-progress-bar {
+  background: var(--dsw-alias-bg-skeleton);
+}
+.window progress::-webkit-progress-value {
+  background: var(--dsw-alias-link);
+  border-radius: 4px;
+}
+.mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.mark img,
+.mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

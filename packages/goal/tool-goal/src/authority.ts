@@ -92,6 +92,12 @@ function isMatchingGoalRound(execution: GoalToolExecution, goal: GoalView): bool
     && event.data.source.round === goal.roundsStarted)
 }
 
+/** Whether the ending turn may reconcile this agent's current goal. Does not grant authority to the notice itself. */
+export function canReconcileGoal(ctx: Context, agent: Agent, goal: GoalView): boolean {
+  const execution = { agent, ...openTurnEvents(ctx, agent) }
+  return hasDirectHumanInput(ctx, execution) || isMatchingGoalRound(execution, goal)
+}
+
 /**
  * Require authority originating in a human message accepted by a runtime root.
  * @param ctx - Context carrying the live agent graph.

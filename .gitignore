@@ -31,7 +31,12 @@ tmp/
 mise.toml
 dist-exe/
 /dist/
+dist-*/
 apps/desktop/.desktop-build/
+.actvero-builder/
+# Private deployment presets and local packaging workflow.
+/actvero/brands/
+/.agents/skills/actvero-expert-packager/
 python/sdk-runtime/src/deepseek_harness_runtime/runtime/
 python/**/__pycache__/
 python/**/.pytest_cache/
@@ -46,3 +51,18 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 native/system/test/bin/
+
+# Local TypeScript build output emitted beside source files by ad-hoc checks.
+packages/**/src/**/*.js
+packages/**/src/**/*.map
+packages/**/src/**/*.d.ts
+apps/**/src/**/*.js
+apps/**/src/**/*.map
+apps/**/src/**/*.d.ts
+vendor/**/src/**/*.js
+vendor/**/src/**/*.map
+vendor/**/src/**/*.d.ts
+
+# Handwritten CSS module declarations used by clean ACTVERO builds.
+!packages/actvero/*/src/client/css-modules.d.ts
+!packages/client/actvero-account/src/css.d.ts

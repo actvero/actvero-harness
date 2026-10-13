@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-06-actvero-connector-selection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-06-actvero-connector-selection.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-06-actvero-connector-selection:
+  en: 7286db3efe5890bb
+  zh: 46b43fdbf18a3d33
+/2026-10-06-actvero-connector-selection/summary:
+  en: ff0c82e26e1810ef
+  zh: a0dd8de90bfa2160
+/2026-10-06-actvero-connector-selection/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-06-actvero-connector-selection/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-06-actvero-connector-selection/compatibility:
+  en: e04bb07f2a77e15d
+  zh: 544d01224bbfaa0a
+/2026-10-06-actvero-connector-selection/verification:
+  en: 510b423a87b4cb02
+  zh: 916c9c5a463d0ef8
+/2026-10-06-actvero-connector-selection/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

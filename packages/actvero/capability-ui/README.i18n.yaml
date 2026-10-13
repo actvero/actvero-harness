@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/capability-ui/README.md
+/native-capability-navigation:
+  en: 164492972e2046f6
+  zh: ffd4cbe120b7256a
+/native-capability-navigation/runtime:
+  en: 1d4eb3f1ab72ad54
+  zh: 71da4e1845cdac0d
+/native-capability-navigation/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/native-capability-navigation/model-experience/native-capability-selection:
+  en: 57e071c0ccd41e4a
+  zh: 18fd9c2388448f2f
+/native-capability-navigation/model-experience/native-capability-selection/what-the-model-sees:
+  en: fbf092d393cfb85b
+  zh: 6ad0e13d505e6f6d
+/native-capability-navigation/model-experience/native-capability-selection/token-effect:
+  en: 17e3ef48427ab7ca
+  zh: f5a7f802fb1d3d38
+/native-capability-navigation/model-experience/native-capability-selection/kv-cache-effect:
+  en: d48fc2bb2a40cab6
+  zh: fee4f09759e65c5d
+/native-capability-navigation/known-limitations-and-deferred-work:
+  en: 632211e6cc27dd5c
+  zh: 55c9fdc073bfcc65

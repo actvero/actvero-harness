@@ -73,6 +73,15 @@ afterEach(async () => {
 })
 
 describe('desktop host process', () => {
+  it('permits validated ACTVERO events for an enabled runtime smoke without a capability observer', async () => {
+    const source = 'process.send({ type: \'actvero:mcp:request\', id: \'11111111-1111-4111-8111-111111111111\', action: \'snapshot\', input: {} });' + HTTP_HOST
+    const enabled = hostProcess(projectWithHost(source), undefined, undefined, { ...process.env, ACTVERO_DESKTOP: '1' })
+    expect((await enabled.start()).url).toContain('http://127.0.0.1:')
+    await enabled.stop(true)
+    const official = hostProcess(projectWithHost(source), undefined, undefined, { ...process.env, ACTVERO_DESKTOP: '0' })
+    await expect(official.start()).rejects.toThrow('invalid IPC event')
+  })
+
   it('correlates task inspections and admission changes over private IPC', async () => {
     const host = hostProcess(projectWithHost())
     await expect(host.updateTasks('inspect')).rejects.toThrow('Host is unavailable')

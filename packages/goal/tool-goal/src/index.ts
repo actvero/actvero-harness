@@ -5,6 +5,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import z from '@deepseek-ai/schemastery'
 import { GoalId } from '@deepseek-ai/dsh-goal'
 import type { GoalRef, GoalView } from '@deepseek-ai/dsh-goal'
@@ -19,11 +20,12 @@ declare module '@deepseek-ai/dsh-llm' {
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import {
+  canReconcileGoal,
   completionAuthority,
   goalToolExecution,
   requireDirectHuman,
 } from './authority.ts'
-import { renderWrapupContext } from './wrapup.ts'
+import { renderGoalStatusReminder, renderWrapupContext } from './wrapup.ts'
 
 export const name = 'tool-goal'
 export const inject = ['agents', 'goals', 'tools', 'systemPrompt', 'sessionProjections']
@@ -186,6 +188,17 @@ function present(title: string, kind: 'read' | 'other', rawInput?: unknown): Gen
 /** Register the three Codex-shaped goal tools and their shared policy section. */
 export function apply(ctx: Context, config: Config): void {
   const resolved = resolveConfig(config)
+  const remindedTurn = new WeakMap<Agent, number>()
+  ctx.on('agent/turn-stopping', ({ agent, turn, signal }) => {
+    const goal = ctx.goals.get(agent)
+    if (signal.aborted || goal?.phase !== 'active' || goal.activation !== 'armed'
+      || remindedTurn.get(agent) === turn || !canReconcileGoal(ctx, agent, goal)) return
+    remindedTurn.set(agent, turn)
+    agent.inject(createUserMessage({
+      content: renderGoalStatusReminder(goal),
+      source: { kind: 'tool-goal', form: 'notice', summary: 'Reconcile active goal before ending this turn' },
+    }))
+  })
   ctx.systemPrompt.section({
     name: 'tool:goal',
     order: ctx.systemPrompt.getSectionOrder('TOOL_GOAL'),

@@ -1,0 +1,58 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/client"
+  ],
+  "references": [
+    {
+      "path": "../capability-ui/tsconfig.client.json"
+    },
+    {
+      "path": "../../../vendor/cordis/tsconfig.json"
+    },
+    {
+      "path": "../../core/agent/tsconfig.json"
+    },
+    {
+      "path": "../../client/locale/tsconfig.client.json"
+    },
+    {
+      "path": "../../client/ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../../client/ui-layout/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-primitives/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-renderer/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-session/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-sidebar/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-slots/tsconfig.json"
+    },
+    {
+      "path": "../../core/tools/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-commands/tsconfig.json"
+    },
+    {
+      "path": "tsconfig.host.json"
+    }
+  ]
+}

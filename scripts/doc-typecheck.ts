@@ -202,7 +202,7 @@ function remapBlockPaths(output: string, blocks: Block[]): string {
   })
 }
 
-const markdownGlobs = ['README.md', '.agents/notes/**/*.md', 'docs/**/*.md', 'packages/*/*.md', 'packages/*/*/*.md']
+const markdownGlobs = ['README.md', 'README.en.md', '.agents/notes/**/*.md', 'docs/**/*.md', 'packages/*/*.md', 'packages/*/*/*.md']
 
 const files: string[] = []
 for (const pattern of markdownGlobs) {

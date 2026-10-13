@@ -358,6 +358,32 @@ export class SkillRegistry extends Service {
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
   })
 
+  private viewIncludesDiscovered=false
+  private viewResolverRegistration=0
+  private viewResolver:((options:SkillViewOptions)=>Promise<readonly SkillDefinition[]|undefined>)|undefined
+  /** Register verified pinned skills for selected scopes. Undefined preserves native discovery.
+   * @param resolver - exact definitions, or undefined for an ordinary Session.
+   * @param options - optionally retain discovered skills, with exact pins winning duplicate names.
+   * @returns registration disposer.
+   */
+  registerViewResolver(resolver:(options:SkillViewOptions)=>Promise<readonly SkillDefinition[]|undefined>, options:{ includeDiscovered?:boolean }={}):()=>void {
+    if(this.viewResolver) throw new Error('a skill view resolver is already registered')
+    const registration=++this.viewResolverRegistration;this.viewResolver=resolver;this.viewIncludesDiscovered=options.includeDiscovered??false;this.invalidateCache()
+    return ()=>{if(this.viewResolverRegistration===registration){this.viewResolverRegistration++;this.viewResolver=undefined;this.viewIncludesDiscovered=false;this.invalidateCache()}}
+  }
+  /** Render verified skill content with the native model-facing resource wrapper.
+   * @param skill - verified definition to include in a system prompt.
+   * @returns the native skill content block.
+   */
+  renderContent(skill: Pick<SkillDefinition, 'name' | 'provider' | 'resourceBase' | 'content'>): string {
+    return renderSkillContent(skill)
+  }
+  private async exactView(options:SkillViewOptions):Promise<readonly SkillDefinition[]|undefined>{
+    const view=await waitWithAbort(Promise.resolve(this.viewResolver?.(options)),options.signal)
+    throwIfAborted(options.signal)
+    if(view!==undefined){for(const skill of view)validateDefinition(skill);if(new Set(view.map(s=>s.name)).size!==view.length)throw new Error('duplicate skill in pinned view')}
+    return view
+  }
   private readonly collectCacheMaxEntries: number
   private readonly layers = new ScopedLayers<SkillLayer>(
     scope => new SkillLayer(scope),
@@ -479,11 +505,13 @@ export class SkillRegistry extends Service {
    * @returns sorted summaries plus discovery-completeness state.
    */
   async snapshot(options: SkillViewOptions = {}): Promise<SkillCatalogSnapshot> {
+    const view=await this.exactView(options)
+    if(view!==undefined&&!this.viewIncludesDiscovered)return { skills:view.map(toSummary).sort(compareSkillSummary),complete:true }
     const collected = await this.collect(options)
     return {
-      skills: [...collected.entries.values()]
-        .map(entry => toSummary(entry.candidate))
-        .sort(compareSkillSummary),
+      skills: [...(view??[]).map(toSummary), ...[...collected.entries.values()]
+        .filter(entry=>!view?.some(skill=>skill.name===entry.candidate.name))
+        .map(entry => toSummary(entry.candidate))].sort(compareSkillSummary),
       complete: collected.cacheable,
     }
   }
@@ -499,6 +527,8 @@ export class SkillRegistry extends Service {
    */
   async get(name: string, options: SkillViewOptions = {}): Promise<SkillDefinition | undefined> {
     if (!isSkillName(name)) return undefined
+    const view=await this.exactView(options)
+    if(view!==undefined){const pinned=view.find(skill=>skill.name===name);if(pinned||!this.viewIncludesDiscovered)return pinned}
     const collected = await this.collect(options)
     throwIfAborted(options.signal)
     const match = collected.entries.get(name)

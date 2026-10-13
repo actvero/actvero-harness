@@ -176,7 +176,12 @@
     "@deepseek-ai/dsh-client-ui-shortcuts": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
     "@deepseek-ai/dsh-host-product-telemetry-otel": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*",
+    "@actvero/dsh-client-account": "workspace:*",
+    "@actvero/dsh-capability-ui": "workspace:*",
+    "@actvero/dsh-skills": "workspace:*",
+    "@actvero/dsh-connectors": "workspace:*",
+    "@actvero/dsh-experts": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

@@ -1,0 +1,127 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:actvero/expert",
+      "kind": "event",
+      "event": "actvero/expert",
+      "surface": false,
+      "digest": "55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "schemaVersion",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "selection",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              6
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "avatar",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "snapshotId",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "actvero/expert"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

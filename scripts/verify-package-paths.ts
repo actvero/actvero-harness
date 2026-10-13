@@ -20,7 +20,7 @@ const root = resolve(import.meta.dirname, '..')
 
 /** Markdown + repo-authored TypeScript that may cite package paths. */
 const PATTERNS = [
-  'README.md',
+  'README.md', 'README.en.md',
   '.agents/notes/**/*.md',
   'docs/**/*.md',
   'packages/*/*.md',

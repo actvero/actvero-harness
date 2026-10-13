@@ -1,3 +1,4 @@
+import { focusDraftEditor } from './editor/view-binding.ts'
 /**
  * SessionInput shell: owns the per-session Lexical editor (text + chip
  * truth) and the pure SubmitMachine (phase/claim/attempt), and choreographs
@@ -492,8 +493,7 @@ export class SessionInputShell implements SessionInput {
    * contenteditable would land the caret at the start instead.
    */
   focus(): void {
-    this.editor.getRootElement()?.focus({ preventScroll: true })
-    this.editor.focus()
+    focusDraftEditor(this.editor, () => {})
   }
 
   // ---- wiring-layer extras (not on the frozen SessionInput face) ----

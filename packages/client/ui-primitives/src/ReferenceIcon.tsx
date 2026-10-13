@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IconSkillOutlineRegular, IconSkillOutlineMedium } from './icons/index.tsx'
 import { ICON_MEDIUM_STROKE, ICON_REGULAR_STROKE } from './icons/index.tsx'
 import type { IconProps } from './icons/props.ts'
 import {
@@ -6,7 +7,7 @@ import {
 } from './icons/shared-artwork.tsx'
 
 /** Reference domains with distinct composer and transcript glyphs. */
-export type ReferenceIconKind = 'session' | 'file' | 'folder'
+export type ReferenceIconKind = 'session' | 'file' | 'folder' | 'skill'
 
 /** Props shared by inline reference glyphs. */
 export interface ReferenceIconProps extends IconProps {
@@ -24,6 +25,7 @@ interface WeightedReferenceIconProps extends ReferenceIconProps {
  */
 function ReferenceIconArtwork({ kind, size = 16, className, strokeWidth }: WeightedReferenceIconProps): ReactNode {
   switch (kind) {
+    case 'skill': { const Icon=strokeWidth===ICON_REGULAR_STROKE?IconSkillOutlineRegular:IconSkillOutlineMedium;return <Icon size={size} className={className}/> }
     case 'session': return <ChatLinesOutlineArtwork size={size} className={className} strokeWidth={strokeWidth} />
     case 'file': return <BrowseOutlineArtwork size={size} className={className} strokeWidth={strokeWidth} />
     case 'folder': return <FolderCloseArtwork size={size} className={className} strokeWidth={strokeWidth} />

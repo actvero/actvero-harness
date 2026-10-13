@@ -61,7 +61,7 @@ function providePresentation(ctx: Context): PresentationCapture {
 }
 
 /** Boot the plugin over fake slash/connection faces; returns the captured source and its ctx. */
-async function bench(list: ListFn, addressed?: SessionId, opening: Pick<SessionFixture, 'initialOpen' | 'snapshot'> = {}) {
+async function bench(list: ListFn, addressed?: SessionId, opening: Pick<SessionFixture, 'initialOpen' | 'snapshot'> = {},config:{ referenceChips?:boolean }={}) {
   const ctx = new Context()
   const openResource = vi.fn()
   ctx.provide('sidebarRight', { openResource })
@@ -81,7 +81,7 @@ async function bench(list: ListFn, addressed?: SessionId, opening: Pick<SessionF
   }
   const remote = new TestRemote(ctx, { skills: { list } })
   providePresentation(ctx)
-  const fiber = ctx.plugin({ inject: [...inject], apply })
+  const fiber = ctx.plugin({ inject: [...inject], apply },config)
   onTestFinished(async () => { await fiber.dispose() })
   await fiber.await()
   return { ctx, source: captured!, remote, fiber, openResource, sessions }
@@ -540,5 +540,24 @@ describe('reference preview', () => {
     expect(source.openReference!(proj('child'), { ref: '/review' })).toBe(false)
     expect(list).not.toHaveBeenCalled()
     expect(openResource).not.toHaveBeenCalled()
+  })
+})
+
+describe('atomic skill presentation',()=>{
+  it('receives the Host boot preference while allowing an explicit client override',async()=>{
+    const previous=globalThis.__DSH_SKILL_PRESENTATION__
+    onTestFinished(()=>{globalThis.__DSH_SKILL_PRESENTATION__=previous})
+    globalThis.__DSH_SKILL_PRESENTATION__={ referenceChips:true }
+    const enabled=await bench(listOk(CATALOG))
+    expect(enabled.source.codec).toBeDefined()
+    const disabled=await bench(listOk(CATALOG),undefined,{}, { referenceChips:false })
+    expect(disabled.source.codec).toBeUndefined()
+  })
+  it('refreshes effective skills and serializes badges to user gestures',async()=>{
+    const list=vi.fn<ListFn>().mockImplementationOnce(listOk(CATALOG)).mockImplementation(listOk([{ name:'directory-skill',description:'New local skill',modelInvocable:true }]))
+    const { source }=await bench(list,undefined,{}, { referenceChips:true })
+    await source.candidates(proj('s1'),req(''));expect((await source.candidates(proj('s1'),req(''))).map(row=>row.name)).toEqual(['directory-skill'])
+    expect(source.onPick({ candidate:{ name:'directory-skill' },session:proj('s1'),position:'leading',via:'menu',action:'pick',span:{ start:0,end:1,draftRev:1 } })).toEqual({ insert:{ source:'skill',ref:'/directory-skill',label:'directory-skill',appearance:'skill',clipboardText:'/directory-skill' } })
+    expect(await source.codec!.serialize('/directory-skill',new AbortController().signal)).toBe('/directory-skill');await expect(source.codec!.serialize('bad reference',new AbortController().signal)).rejects.toThrow()
   })
 })

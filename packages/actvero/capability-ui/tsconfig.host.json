@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/index.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis/tsconfig.json"
+    }
+  ],
+  "exclude": [
+    "src/client"
+  ]
+}

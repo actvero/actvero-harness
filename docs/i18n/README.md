@@ -6,6 +6,8 @@ This repo's documentation is read by people and agents both inside and outside t
 
 ## The pairing contract
 
+The root landing page is Chinese: `README.md` pairs with English `README.en.md` and keeps `README.i18n.yaml`. Language switches and links to that pair use these explicit paths; other documents keep the filename convention below.
+
 - **Both languages carry equal authority.** A document may be authored and reviewed in either language first — a Chinese-first Agent Note is as legitimate as an English-first one — and the counterpart is translated from it. Neither file outranks the other; what binds them is that they must say the same thing.
 - **A pair is three sibling files.** The English `foo.md`, the Chinese `foo.zh.md`, and a consistency record `foo.i18n.yaml`, all in the same directory. No locale directories, no separate translation repo, no interleaved bilingual files. Pairs merge whole: a PR never lands one language without the other two files.
 - **The consistency record.** `foo.i18n.yaml` holds one entry per heading section that still contains language-specific content. The key is the section's English heading-slug path (`/` for text before the first heading; a repeated path gets `~2`, `~3`, …), and the entry holds a hash of the English and of the Chinese blocks in that section that differ between the two sides:
@@ -45,7 +47,7 @@ The gate's limit, stated plainly: **a green gate means the pair was confirmed co
 
 ## Scope and exclusions
 
-**Scope**: the root `CONTRIBUTING.md`, `BRAND_GUIDELINES.md`, and `SAFETY.md` documents, every non-vendor README, and every active document under `.agents/notes/**`, `docs/**`, and `python/**`. README matching is case-insensitive on the basename and covers future directories without another manifest edit. Dependency and ignored build-output trees and the frozen `.agents/notes/archived/` tree are discovery exclusions, not evolving translation source.
+**Scope**: the root `CONTRIBUTING.md`, `BRAND_GUIDELINES.md`, and `SAFETY.md` documents, every non-vendor README, and every active document under `.agents/notes/**`, `actvero/**`, `docs/**`, and `python/**`. README matching is case-insensitive on the basename and covers future directories without another manifest edit. Dependency and ignored build-output trees and the frozen `.agents/notes/archived/` tree are discovery exclusions, not evolving translation source.
 
 Generated English references and graphs participate in pairing when a reviewed Chinese counterpart is available. A generator puts its generated data in generated regions and writes each region into both pages, so regeneration never requires a manual Chinese update or a new record; only the prose outside the regions is translated and recorded. Freshness and pairing gates enforce their respective invariants independently.
 
@@ -56,7 +58,7 @@ Generated English sources omit the language switcher that ordinary authored sour
 **Excluded** (never paired, and the gate rejects a `.zh.md` or `.i18n.yaml` for them):
 
 - [cordis-api/inherited.md](../cordis-api/inherited.md) — generated without a reviewed Chinese counterpart, so both website locales project the English source.
-- `docs/AGENTS.md`, `.agents/notes/**/AGENTS.md`, and their `CLAUDE.md` instruction symlinks — agent instructions, maintained in English only like the root `AGENTS.md`.
+- `actvero/AGENTS.md`, `docs/AGENTS.md`, `.agents/notes/**/AGENTS.md`, and their `CLAUDE.md` instruction symlinks — agent instructions, maintained in English only like the root `AGENTS.md`.
 - `docs/i18n/terminology.md` and [style-samples.md](style-samples.md) — both are bilingual by construction.
 - [translation-prompt.md](translation-prompt.md) — the automated pipeline's prompt template; its body is machine-consumed verbatim, so a paired translation would change pipeline behavior.
 - [review-ownership/README.md](../../.github/review-ownership/README.md) — repository-internal approval policy maintained in English only.

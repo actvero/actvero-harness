@@ -85,14 +85,19 @@
   transition: transform 120ms ease;
 }
 
-/* Narrow composer: the trigger collapses to icon + chevron so the row keeps
-   fitting. Only triggers that actually carry a mode glyph drop their label —
-   a host-configured mode without one keeps its text as the sole identifier.
-   The 460px cut is the point where the row (attach + modes + model + send)
-   starts squeezing labels; the container is the composer row (InputBar .row —
-   anonymous query because CSS modules hash container-names per module). */
+/* The composer measures demand before wrapping. A glyphless custom preset
+   keeps its label as its sole identifier in both compact treatments. */
+.trigger:has(.triggerIcon) .triggerLabel,
+.trigger:has(.triggerIcon) > .badge,
+.trigger:has(.triggerIcon) .chevron {
+  display: var(--dsh-composer-permission-label-display, inline-flex);
+}
+
+/* The narrow-container fallback also works without the layout observer. */
 @container (max-width: 460px) {
-  .trigger:has(.triggerIcon) .triggerLabel {
+  .trigger:has(.triggerIcon) .triggerLabel,
+  .trigger:has(.triggerIcon) > .badge,
+  .trigger:has(.triggerIcon) .chevron {
     display: none;
   }
 }

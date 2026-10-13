@@ -15,6 +15,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve, sep } from 'node:path'
+import { translationCounterpartPath } from './translation-paths.ts'
 import {
   isTranslationPairingManifestExcluded,
   isTranslationScopeFile,
@@ -116,8 +117,7 @@ interface PairState {
 
 /** Load one pair's recorded and current state, or explain why it cannot be briefed. */
 function loadPair(anchor: string): PairState | string {
-  const zh = anchor.replace(/\.md$/, '.zh.md')
-  const meta = anchor.replace(/\.md$/, '.i18n.yaml')
+  const { zh, meta } = translationPairPaths(anchor)
   if (!isTranslationScopeFile(anchor) || isExcluded(anchor)) {
     return `${anchor}: not an in-scope documentation pair (docs/i18n/README.md)`
   }
@@ -233,12 +233,8 @@ function planScope(
 /** Validate a computed mechanical counterpart and write it. */
 function applyMechanical(counterpartPath: string, sourceCurrent: string, result: string): void {
   const counterpartBase = basename(counterpartPath)
-  const sourcePath = counterpartPath.endsWith('.zh.md')
-    ? counterpartPath.replace(/\.zh\.md$/, '.md')
-    : counterpartPath.replace(/\.md$/, '.zh.md')
-  const sourceBase = counterpartBase.endsWith('.zh.md')
-    ? counterpartBase.replace(/\.zh\.md$/, '.md')
-    : counterpartBase.replace(/\.md$/, '.zh.md')
+  const sourcePath = translationCounterpartPath(counterpartPath)
+  const sourceBase = basename(sourcePath)
   const errors = translationStructureDiff(
     translationStructureSignature(
       parseTranslationMarkdown(sourceCurrent),
@@ -298,7 +294,7 @@ if (requested.length > 0) {
   const discovered = new Set<string>()
   for (const match of globSync('**/*.i18n.yaml', { cwd: root, exclude: TRANSLATION_SCOPE_GLOB_EXCLUDES })) {
     const normalized = match.split(sep).join('/')
-    if (isTranslationScopeFile(normalized)) discovered.add(normalized.replace(/\.i18n\.yaml$/, '.md'))
+    if (isTranslationScopeFile(normalized)) discovered.add(pairAnchorOfArgument(normalized))
   }
   anchors = [...discovered].sort()
 }

@@ -12,7 +12,11 @@ export const MACOS_TEAM_ID_ENV = 'DSH_DESKTOP_MACOS_TEAM_ID'
 /** Environment variable that selects the npm registry used for the bundled runtime install. */
 export const NPM_REGISTRY_ENV = 'DSH_DESKTOP_NPM_REGISTRY'
 
+/** Environment variable that supplies the bundled runtime's npm request timeout in milliseconds. */
+export const NPM_FETCH_TIMEOUT_ENV = 'DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS'
+
 const DEFAULT_NPM_REGISTRY = 'https://registry.npmjs.org/'
+const DEFAULT_NPM_FETCH_TIMEOUT_MS = 300_000
 
 const APPLE_API_KEY_ENV = 'APPLE_API_KEY'
 const APPLE_API_KEY_ID_ENV = 'APPLE_API_KEY_ID'
@@ -53,6 +57,21 @@ export function resolveNpmRegistry(env) {
     throw new Error(`desktop release environment: ${NPM_REGISTRY_ENV} must be an HTTPS origin without credentials, path, query, or fragment`)
   }
   return url.origin
+}
+
+/**
+ * Resolve the request timeout for downloading bundled runtime dependencies, including Office engines.
+ * @param {NodeJS.ProcessEnv} env - Packaging environment.
+ * @returns {number} Timeout in milliseconds, defaulting to five minutes when omitted.
+ */
+export function resolveNpmFetchTimeout(env) {
+  const configured = env[NPM_FETCH_TIMEOUT_ENV]?.trim()
+  if (configured === undefined) return DEFAULT_NPM_FETCH_TIMEOUT_MS
+  const timeout = Number(configured)
+  if (!/^[1-9]\d*$/u.test(configured) || !Number.isSafeInteger(timeout) || timeout > 2_147_483_647) {
+    throw new Error(`desktop release environment: ${NPM_FETCH_TIMEOUT_ENV} must be an integer from 1 to 2147483647 milliseconds`)
+  }
+  return timeout
 }
 
 /**

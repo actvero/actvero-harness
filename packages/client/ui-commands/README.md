@@ -37,6 +37,12 @@ Options may carry `group: { name, label }`: `name` identifies the group and `lab
 
 The optional `searchMode` defaults to `'substring'`, matching `label` and `detail` case-insensitively without ranking. `'fuzzy-label'` matches only labels as ordered, case-insensitive subsequences and ranks within each group: prefixes first, then alignment score, then original row order. Both modes ignore leading and trailing query spaces; a blank query keeps every row in group order. Rendering, keyboard navigation, and selection use the same filtered order. `/model` opts into `'fuzzy-label'`; other commands retain substring matching unless they opt in.
 
+Options may carry `icon` for a native decorative glyph. It also replaces a missing or failed portrait when provided, while options without a glyph retain the caller-owned text fallback. Icons do not change search or accessible option names.
+
+Options may carry `avatar: { src?, fallback }` to show a decorative portrait before the label. Missing or failed images show the caller-owned fallback; a changed URL retries the image. Portraits do not change row names, filtering, or selection.
+
+Options may carry `toggle: { checked, disabled?, title? }` to render the native Switch. A disabled toggle cannot be selected. After a successful toggle, the popup reloads options and retains its query, highlight and composer draft; the owner persists the choice. Ordinary options still consume the trigger token and close the popup.
+
 ### Built-in row faces
 
 First-party command definitions carry stable `definitionId` values. The client selects their localized titles, descriptions, icons, and input spellings by identity; changing a Host description cannot change that selection. Same-name overrides without the matching identity keep their own copy and receive no first-party aliases. Chinese and English spellings resolve through the same effective Session catalog in every locale, preserving the typed spelling in the draft and submitting the registered Host name. Contributions supply their own `label`, `description`, and `icon`, read on every candidate pass. Empty-query section order follows names, with unlisted rows closing Commands.

@@ -12,6 +12,7 @@
 
 import { existsSync, globSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve, sep } from 'node:path'
+import { isChineseTranslation, pairAnchorOfArgument } from './translation-paths.ts'
 import { gitIndexPaths, readGitIndexBlob } from './translation-pairing-git.ts'
 import {
   computeTranslationPairingRecord,
@@ -122,9 +123,9 @@ if (request.scope === 'pairs') {
     }
   }
 }
-const translations = [...files].filter(f => f.endsWith('.zh.md')).sort()
+const translations = [...files].filter(isChineseTranslation).sort()
 const metas = [...files].filter(f => f.endsWith('.i18n.yaml')).sort()
-const sources = [...files].filter(f => f.endsWith('.md') && !f.endsWith('.zh.md')).sort()
+const sources = [...files].filter(f => f.endsWith('.md') && !isChineseTranslation(f)).sort()
 
 if (request.scope === 'pairs') {
   const rejected = request.anchors.filter(anchor => !isTranslationScopeFile(anchor) || isExcluded(anchor))
@@ -200,8 +201,8 @@ for (const source of sources) {
 // union of .zh.md files and .i18n.yaml records so a half-deleted pair is
 // caught from either remnant.
 const pairAnchors = new Set<string>()
-for (const zh of translations) pairAnchors.add(zh.replace(/\.zh\.md$/, '.md'))
-for (const meta of metas) pairAnchors.add(meta.replace(/\.i18n\.yaml$/, '.md'))
+for (const zh of translations) pairAnchors.add(pairAnchorOfArgument(zh))
+for (const meta of metas) pairAnchors.add(pairAnchorOfArgument(meta))
 
 for (const source of [...pairAnchors].sort()) {
   const paths = translationPairPaths(source)

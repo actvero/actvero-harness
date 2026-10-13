@@ -11,16 +11,26 @@
  * above the composer.
  */
 import { MenuGroup, MenuSurface, observeStickyMenuGroups } from '@deepseek-ai/dsh-client-ui-primitives'
-import { Fragment, useEffect, useMemo, useRef } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useSyncExternalStore } from 'react'
 import clsx from 'clsx'
-import { IconCheckOutlineRegular, RiskConfirmation, useAnchoredMaxHeight } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCheckOutlineRegular, Switch, RiskConfirmation, useAnchoredMaxHeight } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { filterOptions } from './popup.ts'
 import type { SelectOption } from './contract.ts'
 import { groupOptions } from './option-groups.ts'
 import type { PopupSelectController } from './popup.ts'
 import css from './PopupSelectView.module.css'
+
+/** A decorative option portrait with a fallback that recovers when its URL changes. */
+function OptionAvatar({ avatar, icon: Icon }: { avatar: NonNullable<SelectOption['avatar']>; icon: SelectOption['icon'] }) {
+  const [failedSrc, setFailedSrc] = useState<string>()
+  return <span className={css.avatar} aria-hidden="true">
+    {avatar.src && avatar.src !== failedSrc
+      ? <img src={avatar.src} alt="" onError={() => { setFailedSrc(avatar.src) }} />
+      : Icon ? <Icon size={18}/> : avatar.fallback}
+  </span>
+}
 
 /** Design cap on the card height (same MenuDropdown family as the slash menu). */
 const MAX_HEIGHT = 320
@@ -136,17 +146,21 @@ export function PopupSelectView({ popup, t }: PopupSelectViewProps) {
       key={option.id}
       role="option"
       aria-selected={index === state.active}
+      aria-disabled={option.toggle?.disabled}
+      title={option.toggle?.title}
       aria-label={option.badge === undefined ? undefined : `${option.label} ${option.badge}`}
       className={clsx(css.row, index === state.active && css.rowActive)}
       onClick={() => { void popup.select(index) }}
       onMouseEnter={() => { popup.highlight(index) }}
     >
+      {option.avatar !== undefined ? <OptionAvatar avatar={option.avatar} icon={option.icon}/> : option.icon && <span className={css.avatar} aria-hidden="true"><option.icon size={18}/></span>}
       <span className={css.label}>
         <span className={css.labelText}>{option.label}</span>
         {option.badge !== undefined && <sup className={css.badge}>{option.badge}</sup>}
       </span>
       {option.detail !== undefined && <span className={css.detail}>{option.detail}</span>}
-      {option.active === true && <span className={css.check}><IconCheckOutlineRegular /></span>}
+      {option.toggle !== undefined && <span className={css.check} onClick={event => event.stopPropagation()}><Switch checked={option.toggle.checked} disabled={option.toggle.disabled || state.submitting} label={option.label} title={option.toggle.title} onChange={() => { void popup.select(index) }}/></span>}
+      {option.toggle === undefined && option.active === true && <span className={css.check}><IconCheckOutlineRegular /></span>}
     </div>
   )
   let optionIndex = 0

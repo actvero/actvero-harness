@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/actvero-account/README.md
+/:
+  en: ef483fbc940f890a
+  zh: fa7b1d3e2ba9f526
+/actvero-dsh-client-account:
+  en: e523805449773ca9
+  zh: d60e39e2fc07df3f
+/actvero-dsh-client-account/summary:
+  en: 580d33e6e0d85391
+  zh: 6a20e60785068c86
+/actvero-dsh-client-account/table-of-contents:
+  en: 07f3642294ee905d
+  zh: 856da297523073e3
+/actvero-dsh-client-account/use-this-package:
+  en: 50ef7cdeac4d3c51
+  zh: c3751b9600946222
+/actvero-dsh-client-account/understand-the-implementation:
+  en: 323e4c59743ef066
+  zh: 100cd84298921447
+/actvero-dsh-client-account/further-exploration:
+  en: e12dbd8c6b5c0adc
+  zh: c91d62d81913b9ca
+/actvero-dsh-client-account/dev-note:
+  en: 57bc572027bf4939
+  zh: 2a8de25b82cb7512
+/actvero-dsh-client-account/model-experience:
+  en: e7bdbb2ef0947ba2
+  zh: dcb0af57123f65ad
+/actvero-dsh-client-account/model-experience/kv-cache-effect:
+  en: ca3015e252db0114
+  zh: abf9aa7e3a46df97
+/actvero-dsh-client-account/known-limitations-and-deferred-work:
+  en: 35677a7c37c49024
+  zh: ab8c0d9301833ff4

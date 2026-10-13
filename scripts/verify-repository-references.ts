@@ -47,7 +47,9 @@ export function findRepositoryReferences(
     if (organizationUrl.test(canonicalReferenceText(line).replace(kitRepositoryUrl, ''))) {
       references.push({ file, line: index + 1, kind: 'organization-url' })
     }
-    if ([...line.matchAll(commitCandidate)].some(match => commits.has(match[0].toLowerCase()))) {
+    // The machine-readable upstream lock pins an immutable build input, not a maintained prose reference.
+    const upstreamPin = file === 'actvero/upstream.lock.json' && /^\s*"commit"\s*:\s*"[a-f0-9]{40}",?\s*$/u.test(line)
+    if (!upstreamPin && [...line.matchAll(commitCandidate)].some(match => commits.has(match[0].toLowerCase()))) {
       references.push({ file, line: index + 1, kind: 'commit-hash' })
     }
   }

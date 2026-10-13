@@ -9,9 +9,9 @@
  */
 import type { JSX } from 'react'
 import type {
-  EditorConfig, LexicalNode, NodeKey, SerializedLexicalNode, Spread,
+  EditorConfig, LexicalEditor, LexicalNode, NodeKey, SerializedLexicalNode, Spread,
 } from 'lexical'
-import { DecoratorNode } from 'lexical'
+import { DecoratorNode, $getNodeByKey, $isTextNode, HISTORY_PUSH_TAG } from 'lexical'
 import type { ReferenceInsert } from '../../contract/draft-editor.ts'
 import { ReferenceChip } from './ReferenceChip.tsx'
 
@@ -184,9 +184,19 @@ export class ReferenceChipNode extends DecoratorNode<JSX.Element> {
   }
 
   /** React face rendered into the host element by the decorator portal. */
-  override decorate(): JSX.Element {
+  override decorate(editor: LexicalEditor): JSX.Element {
     return (
       <ReferenceChip
+        onRemove={() => {
+          editor.update(() => {
+            const node = $getNodeByKey(this.__key)
+            if (!$isReferenceChipNode(node)) return
+            const next = node.getNextSibling()
+            if ($isTextNode(next)) next.selectStart()
+            else node.selectNext()
+            node.remove()
+          }, { tag: HISTORY_PUSH_TAG })
+        }}
         label={this.__label}
         appearance={this.__appearance}
         invalid={this.__invalid}

@@ -58,6 +58,8 @@ kind: "package-reference"
 
 -----
 
+获得授权的回合正常结束进入空闲前，已启用续跑的活动目标会收到一次 `<goal_status_check>` 提醒。模型根据已有证据核对完成状态；Todo 完成和最终答复都不会改变目标状态。提醒不自动完成或暂停目标，取消后或目标已结束时不注入。仍有工作时继续原有续跑机制。提醒以 `tool-goal` 上下文记录，每回合最多一次。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
@@ -133,7 +135,7 @@ create_goal may infer goal intent from a direct human request in any language. A
 
 #### Token 影响
 
-固定 schema 成本，加上每次调用的一条紧凑结果。持久变更不会增加单独的模型可见上下文。
+固定 schema 成本，加上每次调用的一条紧凑结果。活动目标在回合结束前最多增加一次简短状态提醒；自主完成或阻塞会增加收尾指令。
 
 #### KV Cache 影响
 

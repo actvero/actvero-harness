@@ -11,11 +11,14 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 import { gfm } from 'micromark-extension-gfm'
 import type { Nodes } from 'mdast'
+import { pairAnchorOfArgument, ROOT_README_PAIR } from './translation-paths.ts'
 import {
   languageSwitcherLinkOffset,
   semanticTranslationLinkNodeTarget,
   type TranslationLinkContext,
 } from './translation-links.ts'
+
+export { pairAnchorOfArgument } from './translation-paths.ts'
 
 /** Complete opening marker line: `<!-- BEGIN GENERATED <slug> … -->` (slug captured). */
 const GENERATED_REGION_BEGIN_LINE = /^<!-- BEGIN GENERATED (\S+)(?: [^>]*)? -->$/
@@ -160,9 +163,10 @@ function isTranslationSourceExcluded(file: string): boolean {
 /** Whether one discovered Markdown or sidecar path belongs to the bilingual source corpus. */
 export function isTranslationScopeFile(file: string): boolean {
   return !file.startsWith('.agents/notes/archived/')
-    && !isTranslationSourceExcluded(file) && (README_ARTIFACT.test(file)
+    && !isTranslationSourceExcluded(file) && (file === ROOT_README_PAIR.source || README_ARTIFACT.test(file)
     || ROOT_PAIRED_DOCUMENT_ARTIFACT.test(file)
     || file.startsWith('.agents/notes/')
+    || file.startsWith('actvero/') && /(?:\.md|\.i18n\.yaml)$/u.test(file)
     || file.startsWith('docs/')
     || file.startsWith('python/'))
 }
@@ -208,22 +212,6 @@ export function translationPairSourcePredicate(
 ): (sourcePath: string) => boolean {
   return sourcePath => isTranslationScopeFile(sourcePath)
     && !isTranslationPairingManifestExcluded(sourcePath, manifest)
-}
-
-/**
- * Normalize one CLI pair argument to its English anchor path: any of the
- * pair's three files (`foo.md`, `foo.zh.md`, `foo.i18n.yaml`) or the bare
- * `foo` stem names the same pair, and platform separators are accepted.
- *
- * @param argument - Repo-relative path as passed on a command line.
- * @returns The pair's `foo.md` anchor path with `/` separators.
- */
-export function pairAnchorOfArgument(argument: string): string {
-  const normalized = argument.split('\\').join('/').replace(/^\.\//, '')
-  if (normalized.endsWith('.zh.md')) return `${normalized.slice(0, -'.zh.md'.length)}.md`
-  if (normalized.endsWith('.i18n.yaml')) return `${normalized.slice(0, -'.i18n.yaml'.length)}.md`
-  if (normalized.endsWith('.md')) return normalized
-  return `${normalized}.md`
 }
 
 /** A parsed `verify-translation-pairing` invocation. */

@@ -30,6 +30,10 @@ export type PopupSearchMode = 'substring' | 'fuzzy-label'
 export interface SelectOption {
   readonly id: string
   readonly label: string
+  /** Domain glyph, also used when a supplied portrait is absent or fails. */
+  readonly icon?: ComponentType<IconProps>
+  /** Decorative portrait; absent or failed images show the caller-owned fallback text. */
+  readonly avatar?: { readonly src?: string; readonly fallback: string }
   /** Optional short marker rendered as a superscript beside the label. */
   readonly badge?: string
   readonly detail?: string
@@ -42,6 +46,8 @@ export interface SelectOption {
    * default pick.
    */
   readonly active?: boolean
+  /** Multi-toggle row: successful writes reload options and keep the popup open. */
+  readonly toggle?: { readonly checked: boolean; readonly disabled?: boolean; readonly title?: string }
   /** Optional in-page risk gate owned by the shared popup shell. */
   readonly confirmation?: SelectConfirmation
 }
@@ -99,6 +105,9 @@ export type CommandUiSpec = PopupSelectSpec | ActionSpec
  * locale change reaches the next menu open without re-registration.
  */
 export interface CommandContribution {
+  /** Placement for client extensions, defaulting to Commands. */
+  readonly section?: 'add' | 'commands'
+
   /** Command name without the leading slash (unique across contributions). */
   readonly name: string
   /** Localized menu row title; the name itself when absent. */

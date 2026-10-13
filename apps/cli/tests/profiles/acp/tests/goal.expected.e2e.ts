@@ -150,7 +150,7 @@ describe('same-session goal snapshot through the ACP automation driver', () => {
     // The wrap-up instruction is one plugin-sourced context injected after the
     // terminal tool result, and the model still answers inside the same turn.
     const wrapups = events.filter(event => event.type === 'user/message'
-      && event.data.source.kind === 'tool-goal')
+      && event.data.source.kind === 'tool-goal' && JSON.stringify(event.data.content).includes('<goal_complete>'))
     expect(wrapups).toHaveLength(1)
     const wrapupText = wrapups.map(event => event.type === 'user/message' ? event.data.content : [])[0]
     expect(JSON.stringify(wrapupText)).toContain('<goal_complete>')
@@ -170,6 +170,64 @@ describe('same-session goal snapshot through the ACP automation driver', () => {
     const session = normalizeGoalLog(log.content, context)
     const wrapupStdoutExpected = join(wrapupDir, 'stdout.expected.jsonl')
     const wrapupSessionExpected = join(wrapupDir, 'session.expected.jsonl')
+    if (refreshing) {
+      await Promise.all([
+        writeFile(wrapupStdoutExpected, stdout),
+        writeFile(wrapupSessionExpected, session),
+      ])
+    }
+    expect(stdout).toBe(await readFile(wrapupStdoutExpected, 'utf8'))
+    await expectGoalLog(session, wrapupSessionExpected)
+  })
+  it('reconciles an active goal before idle without admitting another automatic design round', async () => {
+    const input = JSON.parse(await readFile(join(join(dirname(fileURLToPath(import.meta.url)), 'goal-expected/goal-status-check'), 'input.json'), 'utf8')) as InputScript
+    const result = await runScenario(input, {
+      agent,
+      mode: 'replay',
+      fixtureFile: join(join(dirname(fileURLToPath(import.meta.url)), 'goal-expected/goal-status-check'), 'session.jsonl'),
+      overrideFile: join(join(dirname(fileURLToPath(import.meta.url)), 'goal-expected/goal-status-check'), 'replay.override.json'),
+      configPath: agent.configPath,
+    })
+
+    expect(result.stderr).toBe('')
+    expect(result.sessionLogs).toHaveLength(1)
+    const log = result.sessionLogs[0]
+    if (log === undefined) throw new Error('goal wrap-up snapshot did not persist its session')
+    const records = parseJsonl(log.content)
+    const events = records.slice(1) as SessionEvent[]
+    const calls = events.filter(event => event.type === 'tool/call').map(event => event.data.name)
+    expect(calls).toEqual(['create_goal', 'update_goal'])
+    expect(foldGoal(events)).toMatchObject({
+      goal: {
+        objective: 'Finish the ACP goal wrap-up snapshot proof',
+        phase: 'complete',
+        revision: 2,
+      },
+      roundsStarted: 0,
+    })
+    // The wrap-up instruction is one plugin-sourced context injected after the
+    // terminal tool result, and the model still answers inside the same turn.
+    const wrapups = events.filter(event => event.type === 'user/message'
+      && event.data.source.kind === 'tool-goal' && JSON.stringify(event.data.content).includes('<goal_status_check>'))
+    expect(wrapups).toHaveLength(1)
+    const wrapupText = wrapups.map(event => event.type === 'user/message' ? event.data.content : [])[0]
+    expect(JSON.stringify(wrapupText)).toContain('<goal_status_check>')
+    const closing = events.filter(event => event.type === 'assistant/message')
+      .flatMap(event => event.data.message.content)
+      .filter(block => block.type === 'text' && block.text.startsWith('GOAL WRAP-UP'))
+    expect(closing).toHaveLength(1)
+    const roundTurnEnds = events.filter(event => event.type === 'turn/end' && event.data.turn === 1)
+    expect(roundTurnEnds).toHaveLength(1)
+    expect(roundTurnEnds[0]?.data).toMatchObject({ turn: 1, reason: { kind: 'completed' } })
+
+    const context: NormalizeContext = {
+      sessionIds: [result.sessionId, log.id].filter((id): id is string => id !== undefined),
+      cwd: result.cwd,
+    }
+    const stdout = normalizeStdout(result.rawStdout, context)
+    const session = normalizeGoalLog(log.content, context)
+    const wrapupStdoutExpected = join(join(dirname(fileURLToPath(import.meta.url)), 'goal-expected/goal-status-check'), 'stdout.expected.jsonl')
+    const wrapupSessionExpected = join(join(dirname(fileURLToPath(import.meta.url)), 'goal-expected/goal-status-check'), 'session.expected.jsonl')
     if (refreshing) {
       await Promise.all([
         writeFile(wrapupStdoutExpected, stdout),

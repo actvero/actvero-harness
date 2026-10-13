@@ -27,6 +27,10 @@ Use this package to give agents and users one catalog of reusable, task-specific
 
 Mount the plugin to give a composition one skill registry. Skill sources (providers) and consumers (the model-facing catalog and loader, or your own code) all talk to `ctx.skills`; the registry merges everything any provider reports, so one lookup sees skills from every source.
 
+`registerViewResolver` optionally supplies a skill view for a selected scope. Returning `undefined` retains ordinary provider discovery; returning definitions uses only that exact set by default. Passing `{ includeDiscovered: true }` overlays those definitions on provider summaries: exact definitions win duplicate names, and other provider bodies remain lazy. The resolver checks authorization and package availability before returning, and errors propagate rather than falling back to newer content. Dispose the registration when its owner stops.
+
+`ctx.skills.renderContent` uses the native resource framing for verified definitions included directly in a system prompt. It performs no lookup or authorization check; the caller resolves and validates the skill before rendering.
+
 ### When to choose it
 
 Use `dsh-skill` when agents should load skills from more than one source through one interface, or when the source of skills is not the local filesystem. Avoid it when a composition needs no skill loading at all — the plugin adds a service and a per-lookup discovery cost. The shipped local provider (`dsh-skill-filesystem`) and the model-facing consumer (`dsh-tool-skill`) are separate packages; mount them alongside when the deployment wants local skills and model access.
