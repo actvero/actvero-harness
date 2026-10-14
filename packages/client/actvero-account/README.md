@@ -37,6 +37,8 @@ The official Web bundle activates this private workspace plugin only when `ACTVE
 
 Cordis registrations own the account settings section, sidebar launcher and platform brand slots. The renderer binds a single native observable; components contain no Cordis context. Initial snapshots cannot replace newer pushed state, and disposal releases the bridge subscription. The account menu matches its sidebar trigger width and contains Settings, Personal center and Sign out. Settings keeps the identity card compact, combines the platform address and selected organization in one card, and owns point-window bars. Organization changes query the new scope automatically; remaining values already include platform reservations. Login and sign-out actions stay in the sidebar menu. ACTVERO supplies the blank-session welcome heading and running-status copy through native slots. Native components own typography, theme, timing and animation; unloading this package restores native copy.
 
+Visible quota balances and limits round to whole points. Progress percentages and accessible labels use the original values; platform accounting retains its decimal precision.
+
 </details>
 
 -----

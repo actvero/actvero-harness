@@ -45,7 +45,7 @@ function Usage({ account, t }: { account: AccountSnapshot; t: PropsLocale<'actve
               aria-label={`${name}: ${t('remaining')} ${window.remaining} / ${window.limit} ${t('points')}`}
             />
             <div className={css.detail}>
-              {window.remaining} / {window.limit} {t('points')}
+              {Math.round(remaining)} / {Math.round(limit)} {t('points')}
               {window.resetsAt && (
                 <span>
                   {' '}
