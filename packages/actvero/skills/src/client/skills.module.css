@@ -28,7 +28,6 @@
 .card .more { position:absolute; top:23px; right:64px; z-index:1; display:inline-flex; opacity:0; pointer-events:none; }
 .card:hover .more,.card:focus-within .more { opacity:1; pointer-events:auto; }
 @media (hover:none) { .card .more { opacity:1; pointer-events:auto; } }
-.moreButton { display:inline-flex; align-items:center; justify-content:center; width:30px; height:28px; min-width:30px; padding:0; border-radius:8px; color:var(--dsw-alias-label-secondary); }
 .cardAction { position:absolute; top:23px; right:19px; min-width:30px; width:auto; height:30px !important; padding:0 !important; display:flex; align-items:center; border-radius:9px !important; }
 button.cardAction { width:30px; color:var(--dsw-alias-label-secondary); background:color-mix(in srgb,var(--dsw-alias-label-primary) 3%,transparent) !important; transition:background-color 120ms ease,color 120ms ease; }
 .count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 5px; font-size:11px; border-radius:20px; background:var(--dsw-alias-interactive-bg-hover); }
@@ -58,10 +57,6 @@ button.cardAction { width:30px; color:var(--dsw-alias-label-secondary); backgrou
 .installedBar { margin-top:24px; display:flex; gap:14px; align-items:center; background:var(--dsw-alias-interactive-bg-hover); border-radius:12px; padding:10px 14px; font-size:12px; }
 .installedBar > span { margin-right:auto; color:var(--dsw-alias-label-secondary); }
 .installedBar button { gap:6px; border-radius:10px; font-size:13px; }
-.confirm { border:1px solid var(--dsw-alias-border-l3); border-radius:12px; margin:16px 0; padding:16px; font-size:13px; }
-.confirm p { color:var(--dsw-alias-label-secondary); }
-.confirm button { border-radius:10px; font-size:13px; }
-.confirm > div { display:flex; justify-content:flex-end; gap:8px; }
 .page button:focus-visible,.body button:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary); outline-offset:-2px; }
 @container (max-width:860px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @container (max-width:550px) { .grid { grid-template-columns:minmax(0,1fr); } }
@@ -78,4 +73,3 @@ button.cardAction:hover:not(:disabled) { color:var(--dsw-alias-label-primary); b
 .directoryPath {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:auto;}
 
 .body .directoryPath {white-space:normal;overflow-wrap:anywhere;overflow:visible;font-size:13px;color:var(--dsw-alias-label-secondary);margin:12px 0;}
-.cardMenuGlyph { display:inline-block; min-width:18px; text-align:center; font-size:16px; font-weight:600; line-height:1; letter-spacing:1px; }

@@ -58,8 +58,9 @@ async function main(): Promise<void> {
   const targetEnvironment = desktopElectronBuilderEnvironment({ ...environment,
     DSH_DESKTOP_TARGET_PLATFORM: target.platform, DSH_DESKTOP_TARGET_ARCH: target.arch }, true)
   if (!request.skipPrepare) {
-    await packageTarget({ target, directory: true, prepareOnly: true, unsigned: false, check: false, requestedBuildVersion: undefined },
-      targetEnvironment, undefined)
+    await packageTarget({ target, directory: true, prepareOnly: true, unsigned: false,
+      skipNotarization: false, check: false, requestedBuildVersion: undefined },
+    targetEnvironment, undefined)
   }
   else await run(['--dir', 'apps/desktop', 'run', 'bundle'], targetEnvironment, root)
   await run(['exec', 'electron-builder', '--config', 'actvero.electron-builder.config.mjs',

@@ -23,7 +23,8 @@ import {
   Button,
   Input,
   Modal,
-  Menu,
+  ActionMenu as CardMenu,
+  ConfirmDialog,
   Switch,
   IconSkillOutlineMedium,
   IconPlusOutlineMedium,
@@ -43,45 +44,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 type T = (key: keyof typeof zh) => string
 
-interface CardMenuProps {
-  label: string
-  items: readonly MenuEntry[]
-  onSelect: (id: string) => void
-  disabled?: boolean
-  className?: string
-}
-function CardMenu({ label, items, onSelect, disabled = false, className }: CardMenuProps) {
-  const [open, setOpen] = useState(false)
-  return (
-    <Menu
-      className={className}
-      open={open}
-      align="end"
-      dense
-      portal
-      onClose={() => setOpen(false)}
-      items={items}
-      onSelect={(id) => {
-        setOpen(false)
-        onSelect(id)
-      }}
-      anchor={
-        <Button
-          className={styles.moreButton}
-          disabled={disabled}
-          aria-label={label}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => setOpen(value => !value)}
-        >
-          <span aria-hidden="true" className={styles.cardMenuGlyph}>
-            ···
-          </span>
-        </Button>
-      }
-    />
-  )
-}
+
 
 const request = async <T,>(action: string, input: Record<string, unknown> = {}): Promise<T> => {
   if (!window.actveroSkills) throw new Error('skills_unavailable')
@@ -157,7 +120,7 @@ function Panel({
     [detailLoading, setDetailLoading] = useState(false),
     [detailError, setDetailError] = useState('')
   const [importOpen, setImportOpen] = useState(false)
-  const [confirm, setConfirm] = useState(false),
+  const [removeTarget, setRemoveTarget] = useState<Skill>(),
     [working, setWorking] = useState(false)
   const identityScope = useRef<string | undefined>(undefined),
     toolbar = useRef<HTMLElement>(null)
@@ -170,7 +133,7 @@ function Panel({
     setSelectedDirectory(undefined)
     setDetailLoading(false)
     setDetailError('')
-    setConfirm(false)
+    setRemoveTarget(undefined)
     trigger.current?.focus()
   }
   useEffect(() => {
@@ -312,7 +275,7 @@ function Panel({
     setSelected(undefined)
     setDetailLoading(true)
     setDetailError('')
-    setConfirm(false)
+    setRemoveTarget(undefined)
     try {
       const detail = await request<SkillDetail>('detail', { id: item.id })
       if (epoch === detailEpoch.current) setSelected(detail)
@@ -356,10 +319,10 @@ function Panel({
     }
   }
   const remove = async () => {
-    if (!selected) return
+    if (!removeTarget) return
     setWorking(true)
     try {
-      await request('uninstall', { id: selected.id })
+      await request('uninstall', { id: removeTarget.id })
       notify(t('removeDone'), 'success')
       close()
     } catch (e) {
@@ -391,7 +354,7 @@ function Panel({
       return
     }
     if (id === 'remove') {
-      void choose(item).then(() => setConfirm(true))
+      setRemoveTarget(item)
     }
   }
   return (
@@ -756,18 +719,7 @@ function Panel({
                     />
                   </div>
                 )}
-                {confirm && (
-                  <div className={styles.confirm}>
-                    <strong>{t('confirmRemove')}</strong>
-                    <p>{t('removeHelp')}</p>
-                    <div>
-                      <Button onClick={() => setConfirm(false)}>{t('cancel')}</Button>
-                      <Button variant="primary" disabled={working} onClick={() => void remove()}>
-                        {t(working ? 'busy' : 'remove')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+
               </>
             )
           )}
@@ -779,6 +731,10 @@ function Panel({
           )}
         </div>
       </Modal>
+      <ConfirmDialog closeLabel={t('close')} open={!!removeTarget} title={t('confirmRemove')} description={t('removeHelp')}
+        resourceName={removeTarget?.display_name ?? ''} cancelLabel={t('cancel')}
+        confirmLabel={t(working ? 'busy' : 'remove')} pending={working}
+        onCancel={() => setRemoveTarget(undefined)} onConfirm={() => void remove()} />
     </section>
   )
 }

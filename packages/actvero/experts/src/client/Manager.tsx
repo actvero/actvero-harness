@@ -21,7 +21,8 @@ import {
   Button,
   Input,
   Modal,
-  Menu,
+  ActionMenu as CardMenu,
+  ConfirmDialog,
   IconPlusOutlineMedium,
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
@@ -43,45 +44,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 type T = (key: keyof typeof zh) => string
 
-interface CardMenuProps {
-  label: string
-  items: readonly MenuEntry[]
-  onSelect: (id: string) => void
-  disabled?: boolean
-  className?: string
-}
-function CardMenu({ label, items, onSelect, disabled = false, className }: CardMenuProps) {
-  const [open, setOpen] = useState(false)
-  return (
-    <Menu
-      className={className}
-      open={open}
-      align="end"
-      dense
-      portal
-      onClose={() => setOpen(false)}
-      items={items}
-      onSelect={(id) => {
-        setOpen(false)
-        onSelect(id)
-      }}
-      anchor={
-        <Button
-          className={styles.moreButton}
-          disabled={disabled}
-          aria-label={label}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => setOpen(value => !value)}
-        >
-          <span aria-hidden="true" className={styles.cardMenuGlyph}>
-            ···
-          </span>
-        </Button>
-      }
-    />
-  )
-}
+
 
 const req = async <T,>(action: string, input: Record<string, unknown> = {}): Promise<T> => {
   if (!window.actveroExperts) throw new Error('expert_host_unavailable')
@@ -346,6 +309,8 @@ function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest
       <div className={styles.workspaceBody}>
         <h2>{plan.name}</h2>
         <p>{t('prepareHelp')}</p>
+        {plan.version && <p>{t('version')} {plan.previousVersion ? `${plan.previousVersion} → ` : ''}{plan.version}</p>}
+        {plan.previousVersion && <p>{t('updateSessions')}</p>}
         <div className={styles.preparationList}>
           {plan.dependencies.map(d => (
             <div key={d.kind + ':' + d.key} className={styles.preparationRow}>
@@ -549,7 +514,12 @@ function PackagePreview({
       <div className={styles.workspaceBody}>
         <h2>{plan.name}</h2>
         <p>{plan.description}</p>
+        <p>{t('version')} {plan.previousVersion ? `${plan.previousVersion} → ` : ''}{plan.version}</p>
+        {plan.operation === 'current' && <p>{t('packageCurrent')}</p>}
+        {plan.legacy && <p>{t('packageLegacy')}</p>}
+        {plan.reason && <p role="alert">{t(({ local_changes:'packageLocalChanges',version:'packageVersionConflict',ambiguous:'packageAmbiguous' } as const)[plan.reason])}</p>}
         <p>{t('packageHelp')}</p>
+        {plan.operation === 'update' && <p>{t('updateSessions')}</p>}
         <div className={styles.preparationList}>
           {plan.rows.map(row => (
             <div className={styles.preparationRow} key={row.kind + ':' + row.key}>
@@ -565,6 +535,7 @@ function PackagePreview({
                     {
                       reuse: 'packageReuse',
                       install: 'packageInstall',
+                      update: row.kind === 'connectors' ? 'packageConnectorUpdate' : 'packageUpdate',
                       conflict: 'packageConflict',
                       authorization: 'packageAuthorization',
                     } as const
@@ -586,7 +557,7 @@ function PackagePreview({
           {t('cancel')}
         </Button>
         <Button variant="primary" disabled={busy || !plan.canImport} onClick={() => void commit()}>
-          {t(busy ? 'busy' : 'import')}
+          {t(busy ? 'busy' : plan.operation === 'update' ? 'confirmUpdate' : plan.operation === 'current' ? 'packageCurrent' : 'import')}
         </Button>
       </footer>
     </Dialog>
@@ -599,7 +570,6 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
     [error, setError] = useState(''),
     [loading, setLoading] = useState(true),
     [selected, setSelected] = useState<Expert>(),
-    [selectedSource, setSelectedSource] = useState<'local' | 'platform'>(),
     [busy, setBusy] = useState(false)
   const [source, setSource] = useState<'local' | 'platform'>('platform'),
     [available, setAvailable] = useState<boolean>(),
@@ -609,8 +579,10 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
     [revision, setRevision] = useState(0),
     [loadedSource, setLoadedSource] = useState<'local' | 'platform'>()
   const initialized = useRef(false)
+  const [updates, setUpdates] = useState<Record<string,{ from:string;to:string }>>({})
+  const announcedUpdates = useRef(new Set<string>())
   const [packagePlan, setPackagePlan] = useState<ExpertPackagePreview>()
-  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [removeTarget, setRemoveTarget] = useState<Expert>()
   const [importing, setImporting] = useState<ExpertManifest>(),
     [message] = useState('')
 
@@ -656,7 +628,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
         const load = async () => {
           if (source === 'platform') {
             const [data, cats] = await Promise.all([
-              req<{ items: Expert[]; total: number }>('remote-list', {
+              req<{ items: Expert[]; total: number; updates?:Record<string,{ from:string;to:string }> }>('remote-list', {
                 q,
                 category: category === 'all' ? '' : category,
                 page,
@@ -666,6 +638,12 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
             if (live) {
               setLoadedSource('platform')
               setItems(data.items)
+              setUpdates(data.updates ?? {})
+              const fresh=Object.entries(data.updates ?? {}).filter(([id,update])=>!announcedUpdates.current.has(id+':'+update.to))
+              if(fresh.length){
+                for(const [id,update] of fresh)announcedUpdates.current.add(id+':'+update.to)
+                notify(t('updatesAvailable'))
+              }
               setTotal(data.total)
               setCategories(cats)
             }
@@ -674,6 +652,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
             if (live) {
               setLoadedSource('local')
               setItems(data)
+              setUpdates({})
               setTotal(data.length)
               setCategories(expertCategories.map(id => ({ id, name: t(id) })))
             }
@@ -715,26 +694,23 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
     void action(async () => {
       await useExpert(expert.manifest.id, text)
       setSelected(undefined)
-      setSelectedSource(undefined)
     })
   const choose = (expert: Expert) =>
     void action(async () => {
       const origin = source
-      setConfirmRemove(false)
-      setSelectedSource(origin)
+      setRemoveTarget(undefined)
       setSelected(origin === 'platform' ? await req<Expert>('remote-detail', { id: expert.manifest.id }) : expert)
     })
   const removeSelected = () =>
     void action(async () => {
-      if (!selected || selectedSource !== 'local') return
-      await req('remove', { id: selected.manifest.id })
-      setConfirmRemove(false)
+      if (!removeTarget) return
+      await req('remove', { id: removeTarget.manifest.id })
+      setRemoveTarget(undefined)
       setSelected(undefined)
-      setSelectedSource(undefined)
       setRevision(r => r + 1)
       notify(t('removeDone'), 'success')
     })
-  const expertMenu = (): readonly MenuEntry[] =>
+  const expertMenu = (expert:Expert): readonly MenuEntry[] =>
     source === 'local'
       ? [
         { id: 'view', label: t('view') },
@@ -742,8 +718,9 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
         { type: 'separator', id: 'expert-menu-separator' as const },
         { id: 'delete', label: t('remove'), danger: true },
       ]
-      : ([{ id: 'view', label: t('view') }] as const)
+      : [{ id: 'view', label: t('view') },...(updates[expert.manifest.id]?[{ id:'update',label:t('updateAndUse') }]:[])]
   const selectExpertMenu = (expert: Expert, id: string) => {
+    if (id === 'update') { summon(expert); return }
     if (id === 'view') {
       choose(expert)
       return
@@ -755,9 +732,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
       return
     }
     if (id === 'delete') {
-      setSelected(expert)
-      setSelectedSource('local')
-      setConfirmRemove(true)
+      setRemoveTarget(expert)
     }
   }
   const pending = loading || available === undefined || loadedSource !== source
@@ -866,6 +841,9 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
                     <strong title={expert.manifest.name}>{expert.manifest.name}</strong>
                   </span>
                   <span className={styles.description}>{expert.manifest.description}</span>
+                  <span className={updates[expert.manifest.id] ? styles.update : styles.version}>
+                    {updates[expert.manifest.id] ? `${t('updateAvailable')} · ${updates[expert.manifest.id]?.from} → ${updates[expert.manifest.id]?.to}` : `${t('version')} ${expert.manifest.version}`}
+                  </span>
                 </button>
                 {!!expert.manifest.tags.length && (
                   <CardTags tags={expert.manifest.tags} label={expert.manifest.name + ' · ' + t('tags')} />
@@ -875,7 +853,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
                     className={styles.more}
                     label={`${t('view')} ${expert.manifest.name}`}
                     disabled={busy}
-                    items={expertMenu()}
+                    items={expertMenu(expert)}
                     onSelect={id => selectExpertMenu(expert, id)}
                   />
                   <Button
@@ -925,9 +903,8 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
           title={selected.manifest.name}
           close={() => {
             if (!busy) {
-              setConfirmRemove(false)
+              setRemoveTarget(undefined)
               setSelected(undefined)
-              setSelectedSource(undefined)
             }
           }}
         >
@@ -943,20 +920,6 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
                 </div>
               </div>
             </div>
-            {confirmRemove && selectedSource === 'local' && (
-              <div className={styles.confirm}>
-                <strong>{t('removeTitle')}</strong>
-                <p>{t('removeHelp')}</p>
-                <div>
-                  <Button disabled={busy} onClick={() => setConfirmRemove(false)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button variant="primary" disabled={busy} onClick={removeSelected}>
-                    {t(busy ? 'busy' : 'remove')}
-                  </Button>
-                </div>
-              </div>
-            )}
             <p>{selected.manifest.description}</p>
             {!!selected.manifest.tags.length && (
               <div className={styles.tags}>
@@ -1001,7 +964,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
             setQ('')
             setPage(1)
             setRevision(r => r + 1)
-            notify(t('packageImported'), 'success')
+            notify(t(packagePlan.operation === 'update' ? 'packageUpdated' : 'packageImported'), 'success')
           }}
         />
       )}
@@ -1021,6 +984,10 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
           }}
         />
       )}
+      <ConfirmDialog closeLabel={t('close')} open={!!removeTarget} title={t('removeTitle')} description={t('removeHelp')}
+        resourceName={removeTarget?.manifest.name ?? ''} cancelLabel={t('cancel')}
+        confirmLabel={t(busy ? 'busy' : 'remove')} pending={busy}
+        onCancel={() => setRemoveTarget(undefined)} onConfirm={removeSelected} />
     </section>
   )
 }
@@ -1244,19 +1211,15 @@ export function apply(ctx: Context) {
             flight = req<ExpertSelection | null>('selection', { sessionId })
               .then(async (value) => {
                 if (!live) return
-                if (!value) choice = null
-                else
+                choice = value
+                if (value && !value.avatar) {
                   try {
                     const expert = await req<Expert>('get', { id: value.id })
-                    choice = {
-                      ...value,
-                      name: expert.manifest.name,
-                      avatar: normalizeExpertSelectionAvatar(expert.manifest.avatar),
-                      version: expert.manifest.version,
-                    }
-                  } catch {
-                    choice = value
-                  }
+                    if (!live) return
+                    if (expert.manifest.version === value.version)
+                      choice = { ...value, avatar: normalizeExpertSelectionAvatar(expert.manifest.avatar) }
+                  } catch { /* The saved selection remains usable when its source is unavailable. */ }
+                }
                 for (const fn of changed) fn()
               })
               .catch(() => {})

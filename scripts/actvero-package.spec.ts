@@ -103,9 +103,9 @@ describe('ACTVERO packaging inputs', () => {
     expect(() => resolveActveroBuildRequest(root, argumentsFor(), { ACTVERO_BUILD_SKIP_PREPARE: 'yes' })).toThrow('0 or 1')
     expect(() => resolveActveroBuildRequest(root, ['--out', 'dist'], {})).toThrow('require --package')
   })
-  it.skipIf(process.platform !== 'darwin')('runs the real Make entry without shell interpolation and checks the host toolchain', () => {
+  it.skipIf(process.platform !== 'darwin')('runs the real Make entry without shell interpolation and checks the host toolchain', { timeout: 40_000 }, () => {
     const root = fixture()
-    const child = spawnSync('make', ['package-check', `PNPM=${process.execPath} node_modules/pnpm/bin/pnpm.cjs`, `TARGET=${hostTarget}`,
+    const child = spawnSync('make', ['package-check', `PNPM=${process.execPath} node_modules/pnpm/bin/pnpm.mjs`, `TARGET=${hostTarget}`,
       'NAME=Make Harness `literal`', `OUT=${join(root, 'output with spaces')}`], { cwd: repository, encoding: 'utf8', timeout: 30_000,
       env: { ...process.env, ACTVERO_BUILD_NAME: '' } })
     expect(child.error).toBeUndefined()

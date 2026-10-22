@@ -1,3 +1,4 @@
+import { parsePackageOrigin, type PackageOrigin } from './package-origin.ts'
 export { ExpertPackages } from './expert-package.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile, rename, rm, readdir, lstat } from 'node:fs/promises'
@@ -119,7 +120,7 @@ export class Experts {
       names
         .filter(n => n.endsWith('.json'))
         .map(async n =>
-          parseExpert(JSON.parse(await readFile(join(this.options.root, 'items', n), 'utf8'))),
+          this.parseStored(JSON.parse(await readFile(join(this.options.root, 'items', n), 'utf8'))),
         ),
     )
   }
@@ -167,14 +168,38 @@ export class Experts {
   async get(id: string): Promise<Expert> {
     await this.initialized
     if (id.startsWith('remote-')) return this.options.remote?.get(id) ?? fail('expert_remote_unavailable')
-    return parseExpert(JSON.parse(await readFile(this.path('items', id), 'utf8')))
+    return this.parseStored(JSON.parse(await readFile(this.path('items', id), 'utf8')))
+  }
+  private parseStored(value: unknown): Expert {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) fail('expert_invalid')
+    const { packageOrigin, ...expert } = value as Record<string, unknown>
+    if (packageOrigin !== undefined) parsePackageOrigin(packageOrigin)
+    return parseExpert(expert)
+  }
+  /** Read package source identity and digests outside renderer records and conversation locks.
+   * @param id - Local expert identifier.
+   * @returns The original import baseline, when recorded.
+   */
+  async packageOrigin(id: string): Promise<PackageOrigin | undefined> {
+    const value = JSON.parse(await readFile(this.path('items', id), 'utf8')) as Record<string, unknown>
+    this.parseStored(value)
+    return value.packageOrigin === undefined ? undefined : parsePackageOrigin(value.packageOrigin)
+  }
+  /** Atomically publish the reviewed expert and its import baseline.
+   * @param input - Expert with its expected local revision.
+   * @param origin - Validated package identity and original dependency digests.
+   * @returns The saved local expert.
+   */
+  saveImported(input: Expert, origin: PackageOrigin): Promise<Expert> {
+    return this.write(input, parsePackageOrigin(origin))
   }
   /**
    * Persist a validated local expert with optimistic revision checking.
    * @param input - Complete edited expert with its expected revision.
    * @returns Saved expert with advanced revision and, when needed, patch version.
    */
-  save(input: unknown): Promise<Expert> {
+  save(input: unknown): Promise<Expert> { return this.write(input) }
+  private write(input: unknown, origin?: PackageOrigin): Promise<Expert> {
     return this.serial(async () => {
       const next = parseExpert(input)
       if (next.manifest.id.startsWith('remote-')) fail('expert_remote_readonly')
@@ -186,11 +211,12 @@ export class Experts {
       }
       if (next.revision !== (old?.revision ?? 0)) fail('expert_edit_conflict')
       next.revision++
-      if (old && old.manifest.version === next.manifest.version) {
+      if (old && !origin && old.manifest.version === next.manifest.version) {
         const p = next.manifest.version.split('.').map(Number)
         next.manifest.version = `${p[0]}.${p[1]}.${p[2] + 1}`
       }
-      await this.atomic('items', next.manifest.id, next)
+      const packageOrigin = origin ?? (old ? await this.packageOrigin(old.manifest.id) : undefined)
+      await this.atomic('items', next.manifest.id, { ...next, ...(packageOrigin ? { packageOrigin } : {}) })
       this.options.changed()
       return next
     })

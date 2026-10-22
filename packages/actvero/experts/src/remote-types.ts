@@ -33,6 +33,8 @@ export interface RemoteEnvelope extends RemoteSummary {
 }
 /** Account-scoped prepared release and the dependency endpoints retained for execution. */
 export interface RemoteSnapshot {
+  /** Last locally retained release; only successful preparation advances this marker. */
+  localRelease?: RemoteSummary['release']
   scope: string
   envelope: RemoteEnvelope
   skills: string[]
@@ -53,6 +55,8 @@ export interface RemoteDependency {
 }
 /** User-visible preparation decision and dependency recovery actions. */
 export interface RemotePlan {
+  version: string
+  previousVersion?: string
   id: string
   name: string
   canPrepare: boolean

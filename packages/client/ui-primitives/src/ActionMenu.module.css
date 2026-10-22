@@ -1,0 +1,6 @@
+.trigger {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+}

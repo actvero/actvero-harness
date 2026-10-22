@@ -49,6 +49,12 @@
     },
     {
       "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../boot/plugin-manager"
+    },
+    {
+      "path": "../ui-conversation/tsconfig.client.json"
     }
   ]
 }

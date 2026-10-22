@@ -172,3 +172,20 @@ test.each([401,429])('an account switch while draining HTTP %i cannot refresh or
   f.identity.key='next-member';remote.invalidate();options.fetcher=fetcher;resume.resolve();await rejected
   assert.equal(issues,0);assert.equal((await remote.list()).items.length,1);assert.equal(issues,1)
 }))
+test('retains remote update notices across detail previews and restart until preparation succeeds',()=>setup(async({ remote,engine,id,f,options })=>{
+  await remote.plan(id);await remote.stage(id)
+  const old=await remoteLock(engine,id)
+  f.publish(nextRelease,'1.0.4')
+  assert.deepEqual((await remote.list()).updates[id],{ from:'1.0.0',to:'1.0.4' })
+  await remote.detail(id)
+  assert.deepEqual((await remote.list()).updates[id],{ from:'1.0.0',to:'1.0.4' })
+  const restart=new RemoteExperts(options)
+  try {
+    assert.deepEqual((await restart.list()).updates[id],{ from:'1.0.0',to:'1.0.4' })
+    const plan=await restart.plan(id)
+    assert.equal(plan.previousVersion,'1.0.0');assert.equal(plan.version,'1.0.4')
+    await restart.stage(id)
+    assert.deepEqual((await restart.list()).updates,{})
+    assert.equal((await engine.resolve(old.id)).expert.version,'1.0.0')
+  } finally {restart.dispose()}
+}))

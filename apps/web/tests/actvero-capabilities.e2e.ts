@@ -15,6 +15,10 @@ import { prepareDevelopmentProject } from '../../desktop/scripts/development-pro
 
 /** Renderer-only display fixtures, isolated from Main, grants and upstream calls. */
 function installDisplayFixtures(): void {
+  const rejectRemoval = (kind: string): never => {
+    document.documentElement.dataset[kind] = String(Number(document.documentElement.dataset[kind] ?? 0) + 1)
+    throw new Error('fixture_removal_failed')
+  }
   const version = {
     id: 'v1',
     version: '1.0.0',
@@ -131,6 +135,7 @@ function installDisplayFixtures(): void {
     actveroSkills: {
       subscribe: () => () => {},
       request: async (action: string) => {
+        if (action === 'uninstall') return rejectRemoval('skillRemovals')
         if (action === 'state')
           return {
             scope: 'fixture',
@@ -153,6 +158,7 @@ function installDisplayFixtures(): void {
         }
       },
       request: async (action: string, input?: Record<string, unknown>) => {
+        if (action === 'localRemove') return rejectRemoval('connectorRemovals')
         if (action === 'state') {
           if (input?.sessionId) Object.assign(window, { actveroFixtureSessionId: input.sessionId })
           return input?.sessionId ? connectorState() : { added: [connector.id], enabled: [], ready: [connector.id] }
@@ -196,6 +202,7 @@ function installDisplayFixtures(): void {
         return () => expertListeners.delete(fn)
       },
       request: async (action: string, input?: Record<string, unknown>) => {
+        if (action === 'remove') return rejectRemoval('expertRemovals')
         if (action === 'select') {
           expertSelected = input?.id !== null
           expertListeners.forEach(fn => fn())
@@ -215,7 +222,7 @@ function installDisplayFixtures(): void {
           return {
             kind: 'zip',
             plan: {
-              token: 'fixture-preview',
+              token: 'fixture-preview',operation:'update',version:'1.1.0',previousVersion:'1.0.0',
               name: 'Package expert',
               description: 'Preview display fixture',
               rows: [
@@ -227,14 +234,14 @@ function installDisplayFixtures(): void {
           }
         if (action === 'package-discard') return true
         if (action === 'sources') return { remote: true }
-        if (action === 'remote-list') return { items: [expert], total: 1 }
+        if (action === 'remote-list') return { items: [expert], total: 1, updates: { [expert.manifest.id]: { from:'0.9.0',to:'1.0.0' } } }
         if (action === 'remote-categories') return [{ id: 'office', name: 'Office' }]
         if (action === 'remote-detail') { if (expertFailure) throw new Error(expertFailure); return remoteExpert }
         if (action === 'remote-plan') {
           plans++
           document.documentElement.dataset.expertPlanCount = String(plans)
           if (expertFailure) throw new Error(expertFailure)
-          return { id: remoteExpert.manifest.id, name: remoteExpert.manifest.name, canPrepare: true, dependencies: [] }
+          return { id: remoteExpert.manifest.id, name: remoteExpert.manifest.name, version:'1.1.0',previousVersion:'1.0.0',canPrepare: true, dependencies: [] }
         }
         if (action === 'list') return [expert]
         if (action === 'recent')
@@ -471,6 +478,28 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await trigger.focus()
             await expect.poll(() => trigger.evaluate(el => getComputedStyle(el.parentElement!).opacity)).toBe('1')
           }
+          const checkRemoval = async (name: string, action: string, counter: string, shot: string) => {
+            const card = page.locator('article').filter({ has: page.getByText(name, { exact:true }) }).first()
+            const trigger = card.locator('button[aria-haspopup="menu"]')
+            const count = () => page.evaluate(key => Number(document.documentElement.dataset[key] ?? 0), counter)
+            const before = await count()
+            await trigger.click()
+            await page.getByRole('menuitem', { name:action,exact:true }).click()
+            const dialog = page.getByRole('dialog')
+            await dialog.getByText(name, { exact:true }).waitFor()
+            expect(await count()).toBe(before)
+            await page.screenshot({ animations:'disabled',path:join(repository,'.artifacts',shot+'.png') })
+            await page.keyboard.press('Escape')
+            await dialog.waitFor({ state:'hidden' })
+            expect(await count()).toBe(before)
+            await trigger.press('Enter')
+            await page.getByRole('menuitem', { name:action,exact:true }).click()
+            await dialog.getByRole('button', { name:action,exact:true }).click()
+            await expect.poll(count).toBe(before+1)
+            await dialog.getByRole('button', { name:'Cancel',exact:true }).waitFor()
+            expect(await card.isVisible()).toBe(true)
+            await dialog.getByRole('button', { name:'Cancel',exact:true }).click()
+          }
           for (const theme of ['light', 'dark'] as const) {
             await page.emulateMedia({ colorScheme: theme })
             await page.getByRole('tab', { name: 'Experts', exact: true }).click()
@@ -482,6 +511,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               ['View', 'Export', 'Delete'],
               `actvero-expert-menu-${theme}`,
             )
+            await checkRemoval('Fixture expert','Delete','expertRemovals',`actvero-expert-confirmation-${theme}`)
             await page.getByRole('tab', { name: 'Skills', exact: true }).click()
             await page.getByRole('tab', { name: 'Local skills', exact: true }).click()
             await checkMenu(
@@ -491,6 +521,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               ['View', 'Uninstall'],
               `actvero-skill-menu-${theme}`,
             )
+            await checkRemoval('Fixture skill','Uninstall','skillRemovals',`actvero-skill-confirmation-${theme}`)
             await page.getByRole('tab', { name: 'Connectors', exact: true }).click()
             await page.getByRole('tab', { name: 'Local connectors', exact: true }).click()
             await checkMenu(
@@ -500,10 +531,13 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               ['Configure MCP', 'Remove'],
               `actvero-connector-menu-${theme}`,
             )
+            await checkRemoval('Local fixture','Remove','connectorRemovals',`actvero-connector-confirmation-${theme}`)
           }
           await page.getByRole('tab', { name: 'Experts', exact: true }).click()
           await page.getByRole('button', { name: 'Import expert', exact: true }).click()
           await page.getByRole('dialog', { name: 'Confirm expert import' }).waitFor()
+          await page.getByText('Version 1.0.0 → 1.1.0', { exact: true }).waitFor()
+          await page.getByRole('button', { name:'Confirm update',exact:true }).waitFor()
           await page.getByText('Reuse existing', { exact: true }).waitFor()
           await page.getByText('Install / save template', { exact: true }).waitFor()
           await page.screenshot({
@@ -556,20 +590,18 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await page.emulateMedia({ colorScheme: theme })
             for (const width of [1440, 900, 650]) {
               await page.setViewportSize({ width, height: 700 })
-              await expect
-                .poll(async () => {
-                  const title = await heading.boundingBox(),
-                    card = await page.locator('[data-composer-card]').boundingBox()
-                  return title && card ? Math.abs(title.x + title.width / 2 - card.x - card.width / 2) : Infinity
-                })
-                .toBeLessThan(2)
-              const bounds = await heading.boundingBox()
-              const card = await page.locator('[data-composer-card]').boundingBox()
-              expect(bounds).not.toBeNull()
-              expect(card).not.toBeNull()
-              expect(bounds!.x).toBeGreaterThanOrEqual(0)
-              expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width)
-              expect(Math.abs(bounds!.x + bounds!.width / 2 - card!.x - card!.width / 2)).toBeLessThan(2)
+              // Read both rectangles in one layout sample; sidebar transitions can run between two RPCs.
+              const measure = () => heading.evaluate((element) => {
+                const title = element.getBoundingClientRect(), card = document.querySelector('[data-composer-card]')!.getBoundingClientRect()
+                return { title: { x:title.x,width:title.width },card:{ x:card.x,width:card.width } }
+              })
+              let geometry = await measure()
+              await expect.poll(async () => {
+                geometry = await measure()
+                return Math.abs(geometry.title.x + geometry.title.width / 2 - geometry.card.x - geometry.card.width / 2)
+              }).toBeLessThan(2)
+              expect(geometry.title.x).toBeGreaterThanOrEqual(0)
+              expect(geometry.title.x + geometry.title.width).toBeLessThanOrEqual(width)
               const styles = await heading.evaluate((element) => {
                 const style = getComputedStyle(element)
                 return { fontSize: style.fontSize, lineHeight: style.lineHeight, fontWeight: style.fontWeight }

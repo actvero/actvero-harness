@@ -1,3 +1,4 @@
+import { MAX_EXPERT_SELECTION_AVATAR_CHARS } from './avatar.ts'
 import { expertCategories } from './categories.ts'
 import type { Expert,ExpertManifest,Bindings,Requirement } from './contracts.ts'
 /**
@@ -26,7 +27,7 @@ export function parseManifest(value:unknown):ExpertManifest {
   const v=object(value);keys(v,['schemaVersion','id','version','name','description','avatar','category','tags','instructions','conversationStarters','skills','connectors'])
   if(v.schemaVersion!==1)fail('expert_schema_unsupported');const version=text(v.version,30);if(!/^\d+\.\d+\.\d+$/.test(version))fail('expert_invalid')
   const category=v.category??'general';if(!expertCategories.some(value=>value===category))fail('expert_invalid')
-  const avatar=text(v.avatar??'',500000,true);if(avatar&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(avatar))fail('expert_invalid')
+  const avatar=text(v.avatar??'',MAX_EXPERT_SELECTION_AVATAR_CHARS,true);if(avatar&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(avatar))fail('expert_invalid')
   return { schemaVersion:1,id:validId(v.id),version,name:text(v.name,80),description:text(v.description,500),avatar,category:category as ExpertManifest['category'],tags:list(v.tags??[],8).map(x=>text(x,30)),instructions:text(v.instructions,64000),conversationStarters:list(v.conversationStarters??[],6).map(x=>text(x,1000)),skills:requirements(v.skills??[],true) as ExpertManifest['skills'],connectors:requirements(v.connectors??[]) }
 }
 /**

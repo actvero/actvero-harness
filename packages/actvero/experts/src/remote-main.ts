@@ -98,6 +98,7 @@ export class RemoteExperts {
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- Cached snapshot JSON may be null before validation.
     if(!p||p.scope!==this.context().identity.key)fail('expert_account_changed');envelope(p.envelope)
     if(!Array.isArray(p.skills)||!Array.isArray(p.connectors)||p.skills.some(k=>!p.envelope.manifest.skills.some(r=>r.key===k))||new Set(p.skills).size!==p.skills.length||new Set(p.connectors.map(r=>r.key)).size!==p.connectors.length)fail('expert_remote_invalid')
+    if(p.localRelease&&(!uuid(p.localRelease.id)||!/^\d+\.\d+\.\d+$/.test(p.localRelease.version)||p.localRelease.version.length>30||!/^[a-f0-9]{64}$/.test(p.localRelease.sha256)))fail('expert_remote_invalid')
     for(const r of p.connectors){
       if(!previousRelease){expertEndpoint(this.context().identity.baseUrl,p.envelope,r.key,r.endpoint);continue}
       const release=typeof r.endpoint==='string'?r.endpoint.match(/\/releases\/([^/]+)\/[^/]+$/)?.[1]:undefined
@@ -126,11 +127,23 @@ export class RemoteExperts {
    * @param page - One-based page number.
    * @returns Validated catalog page with account-scoped expert cards.
    */
-  async list(q='',category='',page=1): Promise<{ items: Expert[]; total: number; page: number; page_size: number }> {const c=this.context(),params=new URLSearchParams({ q,page:String(Math.max(1,Math.floor(page))) });if(category)params.set('category',category)
+  async list(q='',category='',page=1): Promise<{ items: Expert[]; total: number; page: number; page_size: number; updates:Record<string,{ from:string;to:string }> }> {const c=this.context(),params=new URLSearchParams({ q,page:String(Math.max(1,Math.floor(page))) });if(category)params.set('category',category)
     const data=await this.request<{ items:RemoteSummary[];total:number;page:number;page_size:number }>('?'+params);if(!Array.isArray(data.items)||data.items.length>20||!Number.isSafeInteger(data.total)||data.total<0||data.page!==page||data.page_size!==20)fail('expert_remote_invalid')
     this.guard(c)
     const items=data.items.map((raw)=>{const e=summary(raw),id=this.id(e);this.summaries.set(id,e);return this.view(e)})
-    return { ...data,items }
+    const updates:Record<string,{ from:string;to:string }>={}
+    for(const item of items){
+      const saved=await this.saved(item.manifest.id,true).catch((error:unknown)=>{
+        if(error instanceof Error&&error.message==='expert_remote_unavailable')return undefined
+        throw error
+      })
+      this.guard(c)
+      const previous=saved?.localRelease??saved?.envelope.release
+      const latest=(this.summaries.get(item.manifest.id)??fail('expert_remote_invalid')).release
+      if(previous&&(previous.id!==latest.id||previous.sha256!==latest.sha256))
+        updates[item.manifest.id]={ from:previous.version,to:latest.version }
+    }
+    return { ...data,items,updates }
   }
   /**
    * Fetch the selected release; preserve preparation only for the same release ID and digest.
@@ -148,7 +161,8 @@ export class RemoteExperts {
       this.guard(c)
       const value=saved&&this.sameRelease(saved.envelope,e)
         ?{ ...saved,envelope:e }
-        :{ scope:c.identity.key,envelope:e,skills:[],connectors:[] }
+        :{ scope:c.identity.key,envelope:e,skills:[],connectors:[],
+          ...(saved?{ localRelease:saved.localRelease??saved.envelope.release }:{}) }
       await this.persist(id,value,c)
     })
     return { ...this.view(e),manifest:{ ...e.manifest,id } }
@@ -203,7 +217,8 @@ export class RemoteExperts {
       return { kind:d.kind,key:d.key,label:(p.envelope.manifest[d.kind].find(req=>req.key===d.key)??fail('expert_remote_invalid')).label,required:d.required,status:d.status,action }
     }))
     this.guard(c);this.guardRelease(id,p.envelope)
-    return { id,name:p.envelope.manifest.name,
+    return { id,name:p.envelope.manifest.name,version:p.envelope.release.version,
+      ...(p.localRelease&&p.localRelease.id!==p.envelope.release.id?{ previousVersion:p.localRelease.version }:{}),
       canPrepare:r.can_prepare&&r.dependencies.every(d=>!d.required||['available','unverified'].includes(d.status)),dependencies }
   }
   /**
@@ -245,7 +260,7 @@ export class RemoteExperts {
         this.guard(c);this.guardRelease(id,p.envelope)
       }catch(error){this.guard(c);this.guardRelease(id,p.envelope);if(d.required)throw error}
     }
-    const ready={ ...p,skills,connectors:connections }
+    const ready={ ...p,skills,connectors:connections,localRelease:p.envelope.release }
     if(!(await this.resolution(ready)).can_prepare)fail('expert_dependencies_missing');this.guard(c)
     const update=await this.update(ready);this.guard(c)
     if(update.status==='unavailable')fail('expert_remote_unavailable');if(update.status!=='current')fail('expert_release_changed')

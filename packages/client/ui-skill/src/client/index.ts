@@ -12,6 +12,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SkillEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
+// Type-only: the forwarded `plugin-manager/changed` declaration.
+import type {} from '@deepseek-ai/dsh-plugin-manager/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InputTriggerServiceContract, InputTriggerSource } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
@@ -22,7 +24,11 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { type Config, SKILL_CONFIG_GLOBAL } from '../config.ts'
 import { IconSkillOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { SkillRow } from './SkillRow.tsx'
+import { SkillReference, type SkillReferenceInjected } from './SkillReference.tsx'
+import { skillReferenceRule } from './user-text-rules.ts'
+export type {} from './user-text-rules.ts'
 import { en, NS, zh, type SkillKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
@@ -48,7 +54,7 @@ interface CatalogFetch {
 }
 
 /** Required services: reference source faces plus the tool-row and locale registries. */
-export const inject = ['inputTriggers', 'sessions', 'slots', 'locale', 'remote', 'remote.skills', 'sidebarRight']
+export const inject = ['inputTriggers', 'sessions', 'slots', 'locale', 'remote', 'remote.skills', 'sidebarRight', 'uiConversation']
 
 /**
  * Client plugin body: register the '/' source, dictionaries, and keyed tool row.
@@ -58,6 +64,7 @@ export const inject = ['inputTriggers', 'sessions', 'slots', 'locale', 'remote',
 export function apply(ctx: ClientContext, config: Partial<Config> = {}): void {
   const referenceChips = config.referenceChips ?? globalThis[SKILL_CONFIG_GLOBAL]?.referenceChips ?? false
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-skill: dictionaries')
+  ctx.uiConversation.userText.register(skillReferenceRule)
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register(
     { name: 'tool.call.toolview', key: 'skill', locale: NS },
     SkillRow,
@@ -211,11 +218,28 @@ export function apply(ctx: ClientContext, config: Partial<Config> = {}): void {
       // Both presentations retain the Host's deterministic user skill gesture.
       return referenceChips ? { insert:{ source:'skill',ref:`/${candidate.name}`,label:candidate.name,appearance:'skill',clipboardText:`/${candidate.name}` } } : { text: `/${candidate.name} ` }
     },
-  }
+  } satisfies InputTriggerSource
+
+  ctx.slots.inject('conversation.user.text.node', () => ctx.slots.register({
+    name: 'conversation.user.text.node',
+    key: 'skill',
+    priority: 100,
+    inject: (sessionId): SkillReferenceInjected => ({
+      openSkill: (name) => {
+        if (sessions.scope(sessionId) === undefined) return
+        source.openReference?.({ sessionId }, { ref: `/${name}` })
+      },
+    }),
+  }, SkillReference))
+
   const inputTriggers = ctx.get('inputTriggers') as InputTriggerServiceContract
   // A preset decides which skill providers an agent reads, so a switched
   // session's cached catalog belongs to the composition it no longer runs.
   ctx.remote.$on('agent-preset/selected', invalidate)
+  // The Host announces every manager operation after its reload without
+  // naming what changed, and a switched plugin may register providers in the
+  // global layer every session reads, so each one drops every cached catalog.
+  ctx.remote.$on('plugin-manager/changed', clearAll)
   ctx.on('connection/reset', clearAll)
   ctx.effect(() => {
     const unregister = inputTriggers.registerSource(source)

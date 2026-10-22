@@ -27,11 +27,11 @@ import {
   IconPlusOutlineMedium,
   IconNewChatOutlineMedium,
   IconSearchOutlineMedium,
-  Menu,
+  ActionMenu as CardMenu,
+  ConfirmDialog,
   IconLightOutlineMedium,
   IconCloseOutlineMedium,
   StateDot,
-  type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Catalog, Connector, LocalView } from '../contracts.ts'
 import styles from './connectors.module.css'
@@ -58,45 +58,7 @@ function errorText(error: unknown, t: PropsLocale<'actvero.connectors'>['t']): s
     )[code] ?? 'retry',
   )
 }
-interface CardMenuProps {
-  label: string
-  items: readonly MenuEntry[]
-  onSelect: (id: string) => void
-  disabled?: boolean
-  className?: string
-}
-function CardMenu({ label, items, onSelect, disabled = false, className }: CardMenuProps) {
-  const [open, setOpen] = useState(false)
-  return (
-    <Menu
-      className={className}
-      open={open}
-      align="end"
-      dense
-      portal
-      onClose={() => setOpen(false)}
-      items={items}
-      onSelect={(id) => {
-        setOpen(false)
-        onSelect(id)
-      }}
-      anchor={
-        <Button
-          className={styles.moreButton}
-          disabled={disabled}
-          aria-label={label}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => setOpen(value => !value)}
-        >
-          <span aria-hidden="true" className={styles.cardMenuGlyph}>
-            ···
-          </span>
-        </Button>
-      }
-    />
-  )
-}
+
 function ConnectorIcon({ item, large = false }: { item: Connector; large?: boolean }) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [item.icon])
@@ -113,6 +75,7 @@ function ConnectorIcon({ item, large = false }: { item: Connector; large?: boole
 function Panel({
   renderSlot,
   t,
+  notify,
   useSessions,
   append,
   openConversation,
@@ -124,6 +87,8 @@ function Panel({
     openConversation: () => void
     ensureConversation: () => Promise<string>
   }) {
+  const [removeTarget, setRemoveTarget] = useState<CustomView>()
+  const [disconnectTarget, setDisconnectTarget] = useState<Connector>()
   const [customOpen, setCustomOpen] = useState(false),
     [customItem, setCustomItem] = useState<CustomView>(),
     [source, setSource] = useState<'platform' | 'local'>('platform'),
@@ -210,7 +175,7 @@ function Panel({
         setRevision(n => n + 1)
       }
     } catch (e) {
-      if (alive.current) setError(errorText(e, t))
+      if (alive.current) notify(errorText(e, t))
     } finally {
       if (alive.current) setBusy(false)
     }
@@ -465,13 +430,7 @@ function Panel({
                       if (id === 'edit') {
                         setCustomItem(row)
                         setCustomOpen(true)
-                      } else
-                        void run(() => request('localRemove', { id: row.id })).then(() => {
-                          if (customItem?.id === row.id) {
-                            setCustomItem(undefined)
-                            setCustomOpen(false)
-                          }
-                        })
+                      } else setRemoveTarget(row)
                     }}
                   />
                   <span className={styles.localSwitch}>
@@ -749,13 +708,7 @@ function Panel({
               <div className={styles.disconnect}>
                 <Button
                   disabled={busy}
-                  onClick={() => {
-                    if (window.confirm(t('confirm')))
-                      void run(async () => {
-                        await request('disconnect', { id: selected.id })
-                        setSelected(await request('detail', { id: selected.id }))
-                      })
-                  }}
+                  onClick={() => setDisconnectTarget(selected)}
                 >
                   {t('disconnect')}
                 </Button>
@@ -764,6 +717,23 @@ function Panel({
           </div>
         )}
       </Modal>
+      <ConfirmDialog closeLabel={t('close')} open={!!removeTarget} title={t('cmRemoveTitle')} description={t('cmRemoveHint')}
+        resourceName={removeTarget?.name ?? ''} cancelLabel={t('cmCancel')} confirmLabel={t(busy ? 'cmBusy' : 'cmRemove')}
+        pending={busy} onCancel={() => setRemoveTarget(undefined)} onConfirm={() => void run(async () => {
+          if (!removeTarget) return
+          await request('localRemove', { id: removeTarget.id })
+          setRemoveTarget(undefined)
+          notify(t('cmRemoved'), 'success')
+        })} />
+      <ConfirmDialog closeLabel={t('close')} open={!!disconnectTarget} title={t('disconnect')} description={t('confirm')}
+        resourceName={disconnectTarget?.name ?? ''} cancelLabel={t('cmCancel')} confirmLabel={t(busy ? 'cmBusy' : 'disconnect')}
+        pending={busy} onCancel={() => setDisconnectTarget(undefined)} onConfirm={() => void run(async () => {
+          if (!disconnectTarget) return
+          await request('disconnect', { id: disconnectTarget.id })
+          setDisconnectTarget(undefined)
+          notify(t('disconnected'), 'success')
+          if (selected?.id === disconnectTarget.id) setSelected(await request('detail', { id: selected.id }))
+        })} />
     </section>
   )
 }

@@ -20,7 +20,6 @@
 .card .more { position:absolute; top:23px; right:64px; z-index:1; display:inline-flex; opacity:0; pointer-events:none; }
 .card:hover .more,.card:focus-within .more { opacity:1; pointer-events:auto; }
 @media (hover:none) { .card .more { opacity:1; pointer-events:auto; } }
-.moreButton { display:inline-flex; align-items:center; justify-content:center; width:30px; height:28px; min-width:30px; padding:0; border-radius:8px; color:var(--dsw-alias-label-secondary); }
 .addAction, .tryAction { position:absolute; top:23px; right:19px; width:30px; height:30px !important; min-width:30px; padding:0 !important; border-radius:9px !important; color:var(--dsw-alias-label-secondary); transition:background-color 120ms ease,color 120ms ease; }
 .addAction { background:color-mix(in srgb,var(--dsw-alias-label-primary) 3%,transparent) !important; }
 .tryAction:hover, .addAction:hover { color: var(--dsw-alias-label-primary); }
@@ -78,4 +77,3 @@
 
 .grid[hidden] { display:none; }
 .notice > button { margin-left:12px; }
-.cardMenuGlyph { display:inline-block; min-width:18px; text-align:center; font-size:16px; font-weight:600; line-height:1; letter-spacing:1px; }

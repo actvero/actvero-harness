@@ -9,7 +9,8 @@ import { zipSync } from 'fflate'
 import { digest, fail, parseSkill, safePath, unpack } from './package.ts'
 import type { Installed, SkillDetail, SkillFile } from './contracts.ts'
 
-type Entry = Installed & { directory: string; entrypoint: string; files: SkillFile[] }
+type VersionEntry = Installed & { directory: string; entrypoint: string; files: SkillFile[] }
+type Entry = VersionEntry & { previous?: VersionEntry[] }
 type Preview = { token: string; skill: SkillDetail; filename: string }
 type Pending = Preview & { files: Map<string, Uint8Array>; until: number }
 interface Options {
@@ -43,13 +44,16 @@ export class LocalSkills {
           r =>
             !validId(r.skill?.id ?? '') ||
             r.skill.source !== 'local' ||
-            r.directory !== `packages/${r.skill.id}` ||
+            !this.validDirectory(r) ||
+            (r.previous !== undefined && (!Array.isArray(r.previous)
+              || r.previous.some((old: VersionEntry) => old.skill.id !== r.skill.id
+                || !this.validDirectory(old) || !Array.isArray(old.files)))) ||
             typeof r.enabled !== 'boolean' ||
             !Array.isArray(r.files),
         )
       )
         return fail('local_state_invalid')
-      for (const r of value) {
+      for (const r of value.flatMap((row: Entry) => [row, ...(row.previous ?? [])])) {
         safePath(r.entrypoint)
         for (const f of r.files) safePath(f.path)
       }
@@ -61,6 +65,33 @@ export class LocalSkills {
     } finally {
       this.loading = undefined
     }
+  }
+  private validDirectory(row: VersionEntry): boolean {
+    return row.directory === `packages/${row.skill.id}` ||
+      (/^[0-9a-f-]{36}$/.test(row.version?.id ?? '') && row.directory === `versions/${row.skill.id}/${row.version.id}`)
+  }
+  private async verify(row: VersionEntry): Promise<void> {
+    const expected = new Map(row.files.map(file => [file.path, file]))
+    const walk = async (directory: string, prefix = ''): Promise<void> => {
+      if ((await lstat(directory)).isSymbolicLink()) fail('local_changes')
+      for (const entry of await readdir(directory, { withFileTypes: true })) {
+        const path = prefix + entry.name
+        if (entry.isSymbolicLink()) fail('local_changes')
+        if (entry.isDirectory()) await walk(join(directory, entry.name), path + '/')
+        else {
+          const file = expected.get(path)
+          if (!file || digest(await this.boundedFile(join(directory, entry.name))) !== file.sha256) fail('local_changes')
+          expected.delete(path)
+        }
+      }
+    }
+    let directory = this.options.root
+    for (const part of row.directory.split('/')) {
+      directory = join(directory, part)
+      if ((await lstat(directory)).isSymbolicLink()) return fail('local_changes')
+    }
+    await walk(directory)
+    if (expected.size) fail('local_changes')
   }
   /**
    * Read managed local installation metadata without source file contents.
@@ -230,17 +261,22 @@ export class LocalSkills {
   /**
    * Install an unexpired preview after checking native skill-name collisions.
    * @param token - Validated import preview token.
+   * @param replace - Reviewed installation and current version to advance while retaining its files.
    * @returns Updated local installation state; failed writes roll back the new package.
    */
-  async install(token: string): Promise<Installed[]> {
+  async install(token: string, replace?: { id: string; versionId: string }): Promise<Installed[]> {
     return this.mutate(async () => {
       const preview = this.pending.get(token)
       if (!preview || preview.until < Date.now()) return fail('preview_expired')
       const records = await this.entries(),
         { skill, files } = preview
-      if (records.some(r => r.skill.name === skill.name)) return fail('skill_name_conflict')
+      const previous = replace ? records.find(row => row.skill.id === replace.id) : undefined
+      if (replace && (!previous || previous.version.id !== replace.versionId || previous.skill.name !== skill.name)) return fail('local_changes')
+      if (previous) await this.verify(previous)
+      if (records.some(r => r.skill.name === skill.name && r !== previous)) return fail('skill_name_conflict')
+      if (previous) skill.id = previous.skill.id
       await this.options.syncHost(skill.name, skill.id)
-      const directory = `packages/${skill.id}`,
+      const directory = previous ? `versions/${skill.id}/${skill.current_version.id}` : `packages/${skill.id}`,
         target = join(this.options.root, directory),
         stage = target + '.staging'
       let committed = false
@@ -253,12 +289,13 @@ export class LocalSkills {
         }
         await rename(stage, target)
         this.records = [
-          ...records,
+          ...records.filter(row => row !== previous),
           {
             skill,
             version: skill.current_version,
-            enabled: true,
+            enabled: previous?.enabled ?? true,
             status: 'current',
+            ...(previous ? { previous: [...(previous.previous ?? []), this.versionOnly(previous)] } : {}),
             directory,
             entrypoint: skill.entrypoint,
             files: skill.files,
@@ -279,6 +316,26 @@ export class LocalSkills {
       }
     })
   }
+  private versionOnly({ previous: _previous, ...version }: Entry): VersionEntry { return version }
+  /** Restore an import's previous current version after a failed expert commit; newer edits win.
+   * @param id - Local skill identifier.
+   * @param expectedVersion - Current version produced by this import.
+   * @param versionId - Previously installed version to restore.
+   */
+  async restoreVersion(id: string, expectedVersion: string, versionId: string): Promise<void> {
+    return this.mutate(async () => {
+      const records = await this.entries(), current = records.find(row => row.skill.id === id)
+      const previous = current?.previous?.find(row => row.version.id === versionId)
+      if (!current || current.version.id !== expectedVersion || !previous) return fail('local_changes')
+      await this.verify(current)
+      this.records = records.map(row => row !== current ? row : {
+        ...previous, enabled: current.enabled,
+        previous: [...(current.previous ?? []).filter(old => old !== previous), this.versionOnly(current)],
+      })
+      try { await this.options.syncHost(); await this.persist() }
+      catch (error) { this.records = records; await this.options.syncHost().catch(() => {}); throw error }
+    })
+  }
   /** Verify installed files before exposing them to an expert archive.
    * @param id - installed local skill identifier.
    * @returns Exact original files after path, size and digest verification.
@@ -286,6 +343,7 @@ export class LocalSkills {
   async exportFiles(id: string): Promise<Map<string, Uint8Array>> {
     const row = (await this.entries()).find(r => r.skill.id === id)
     if (!row) return fail('skill_not_installed')
+    await this.verify(row)
     const files = new Map<string, Uint8Array>()
     for (const f of row.files) {
       let path = this.options.root
@@ -340,24 +398,8 @@ export class LocalSkills {
       const records = await this.entries(),
         item = records.find(r => r.skill.id === id)
       if (!item) return fail('skill_not_installed')
-      const root = join(this.options.root, item.directory),
-        expected = new Map(item.files.map(f => [f.path, f]))
-      const walk = async (dir: string, prefix = ''): Promise<void> => {
-        if ((await lstat(dir)).isSymbolicLink()) return fail('local_changes')
-        for (const entry of await readdir(dir, { withFileTypes: true })) {
-          const path = prefix + entry.name
-          if (entry.isSymbolicLink()) return fail('local_changes')
-          if (entry.isDirectory()) await walk(join(dir, entry.name), path + '/')
-          else {
-            const file = expected.get(path)
-            if (!file || digest(await this.boundedFile(join(dir, entry.name))) !== file.sha256)
-              return fail('local_changes')
-            expected.delete(path)
-          }
-        }
-      }
-      await walk(root)
-      if (expected.size) return fail('local_changes')
+      const versions = [item, ...(item.previous ?? [])]
+      for (const version of versions) await this.verify(version)
       this.records = records.filter(r => r !== item)
       try {
         await this.options.syncHost()
@@ -367,7 +409,7 @@ export class LocalSkills {
         await this.options.syncHost().catch(() => {})
         throw e
       }
-      await rm(root, { recursive: true, force: true })
+      for (const version of versions) await rm(join(this.options.root, version.directory), { recursive: true, force: true })
     })
   }
   /**
@@ -405,7 +447,8 @@ export class LocalSkills {
    * @returns Native skill definition, or undefined when the version is absent or disabled.
    */
   async hostGet(id: string, versionId: string): Promise<InstalledSkillDefinition | undefined> {
-    const r = (await this.entries()).find(r => r.skill.id === id && r.version.id === versionId && r.enabled)
+    const current = (await this.entries()).find(row => row.skill.id === id && row.enabled)
+    const r = current?.version.id === versionId ? current : current?.previous?.find(row => row.version.id === versionId)
     if (!r) return undefined
     let path = this.options.root
     for (const part of (r.directory + '/' + r.entrypoint).split('/')) {
