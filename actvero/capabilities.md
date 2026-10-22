@@ -16,6 +16,8 @@ The `@actvero/dsh-model-gateway` Host plugin registers the native DSH `LlmAdapte
 
 Platform, account and organization changes invalidate runtime ownership. Credentials are not imported from an older application's profile. No production build or runtime code reads sibling repositories.
 
+The expert manager's preparation request runs through Electron Main's remote expert service and waits for exact dependencies to be prepared. Required dependency failures return to the preparation dialog and prevent invocation.
+
 ## Versions and authorization
 
 A platform skill installation verifies its version identifier, SHA-256 digest and safe package paths. Updating the active installation retains immutable version records used by earlier expert locks. Loading a recorded version still checks current authorization and files; an installed copy or an archive does not grant offline execution. Revocation blocks use without deleting local files.
