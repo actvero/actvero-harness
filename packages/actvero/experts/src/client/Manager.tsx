@@ -63,6 +63,8 @@ const errorText = (e: unknown, t: T) =>
         expert_package_changed: 'packageChanged',
         expert_package_expired: 'packageChanged',
         expert_package_cleanup: 'packageCleanup',
+        expert_selection_expired: 'failed',
+        expert_dependencies_changed: 'changedSkill',
         expert_remote_login: 'remoteLogin',
         expert_remote_network: 'remoteNetwork',
         expert_remote_rate_limited: 'remoteNetwork',

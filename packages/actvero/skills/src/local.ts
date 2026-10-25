@@ -414,9 +414,10 @@ export class LocalSkills {
   }
   /**
    * List enabled local skills whose entrypoints remain readable and valid.
+   * @param ids - Restrict discovery to these installations; omitted lists all enabled local skills.
    * @returns Native provider candidates with exact installed version identifiers.
    */
-  async hostList(): Promise<
+  async hostList(ids?: readonly string[]): Promise<
     {
       id: string
       name: string
@@ -427,7 +428,7 @@ export class LocalSkills {
   > {
     const rows = []
     for (const r of await this.entries())
-      if (r.enabled) {
+      if (r.enabled && (!ids || ids.includes(r.skill.id))) {
         const skill = await this.hostGet(r.skill.id, r.version.id)
         if (skill)
           rows.push({

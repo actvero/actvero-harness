@@ -28,6 +28,7 @@ export class RemoteExperts {
   private flights=new Map<string,Promise<{ skills:string[];connectors:string[] }>>()
   private writes=new Map<string,Promise<unknown>>()
   private stages=new Map<string,Promise<Expert>>()
+  private adopted=new Set<string>()
   constructor(private options:Options){}
   /**
    * Check whether the selected account exposes platform expert resources.
@@ -38,7 +39,7 @@ export class RemoteExperts {
   invalidate():void{
     this.epoch++;this.abort.abort();this.abort=new AbortController()
     this.token=undefined;this.tokenFlight=undefined;this.retryAt=0
-    this.summaries.clear();this.stages.clear();this.flights.clear()
+    this.summaries.clear();this.stages.clear();this.flights.clear();this.adopted.clear()
     for(const row of this.instances.values())void row.client.dispose()
     this.instances.clear();this.options.changed()
   }
@@ -185,11 +186,15 @@ export class RemoteExperts {
     try {const updates=await this.updates(snapshots);return snapshots.flatMap((p,i)=>{const item=updates[i];if(item.status==='unavailable')return [];return [this.expert({ ...p,envelope:{ ...p.envelope,...(item.status==='current'?item.expert:{}),manifest:p.envelope.manifest,dependency_refs:p.envelope.dependency_refs } })]})}
     catch{return []}
   }
-  private async adopt(p:RemoteSnapshot){const e=p.envelope,h=hash(p.scope+'|'+e.expert_id+'|'+e.release.id),request_id=`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;await this.request('/'+e.expert_id+'/adopt',{ access_version:3,release_id:e.release.id,sha256:e.release.sha256,request_id })}
+  private async adopt(p:RemoteSnapshot){const c=this.context(),e=p.envelope,h=hash(p.scope+'|'+e.expert_id+'|'+e.release.id),request_id=`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`
+    if(this.adopted.has(h)||(p.localRelease?.id===e.release.id&&p.localRelease.sha256===e.release.sha256))return
+    await this.request('/'+e.expert_id+'/adopt',{ access_version:3,release_id:e.release.id,sha256:e.release.sha256,request_id });this.guard(c);this.adopted.add(h)
+  }
   private async resolution(p:RemoteSnapshot){
     this.proof(p)
     const e=p.envelope,c=this.context()
-    const result=await this.request<{ release_id:string;sha256:string;can_prepare:boolean;dependencies:RemoteDependency[] }>('/'+e.expert_id+'/resolve',{ access_version:3,release_id:e.release.id,sha256:e.release.sha256 });this.guard(c)
+    const result=await this.request<{ release_id:string;sha256:string;can_prepare:boolean;update_available?:boolean;dependencies:RemoteDependency[] }>('/'+e.expert_id+'/resolve',{ access_version:3,release_id:e.release.id,sha256:e.release.sha256 });this.guard(c)
+    if(result.update_available!==undefined&&typeof result.update_available!=='boolean')fail('expert_remote_invalid')
     if(result.release_id!==e.release.id||result.sha256!==e.release.sha256||typeof result.can_prepare!=='boolean'||!Array.isArray(result.dependencies)||result.dependencies.length!==e.manifest.skills.length+e.manifest.connectors.length)fail('expert_remote_invalid')
     const seen=new Set<string>();for(const d of result.dependencies){if(!['skills','connectors'].includes(d.kind)||!['available','unavailable','version_conflict','connection_required','unverified','temporary_error'].includes(d.status)||!['none','contact_admin','configure','authorize','retry','verify'].includes(d.action))fail('expert_remote_invalid')
       const req=e.manifest[d.kind].find(r=>r.key===d.key);if(!req||req.required!==d.required||seen.has(d.kind+':'+d.key))fail('expert_remote_invalid');seen.add(d.kind+':'+d.key)
@@ -239,8 +244,10 @@ export class RemoteExperts {
     await this.adopt(p)
     this.guard(c)
     const resolution=await this.resolution(p);this.guard(c)
+    if(resolution.update_available===true)fail('expert_release_changed')
     if(!resolution.can_prepare||resolution.dependencies.some(d=>d.required&&!['available','unverified'].includes(d.status)))fail('expert_dependencies_missing')
     const skills:string[]=[],connections:{ key:string;endpoint:string }[]=[]
+    let mutated=false
     for(const d of resolution.dependencies){if(!['available','unverified'].includes(d.status))continue
       try{
         this.guard(c);this.guardRelease(id,p.envelope)
@@ -249,21 +256,29 @@ export class RemoteExperts {
           const present=await this.options.skills.hasVersion(ref.skill_id,ref.version_id,ref.sha256)
           this.guard(c);this.guardRelease(id,p.envelope)
           if(!present){
+            mutated=true
             await this.options.skills.install(ref.skill_id,ref.version_id,ref.sha256,
               { expert_id:p.envelope.expert_id,expert_release_id:p.envelope.release.id },false)
             this.guard(c)
           }
           const state=await this.options.skills.state();this.guard(c)
-          if(!state.items.find(r=>r.skill.id===ref.skill_id)?.enabled){await this.options.skills.enable(ref.skill_id,true);this.guard(c)}
+          if(!state.items.find(r=>r.skill.id===ref.skill_id)?.enabled){
+            mutated=true;await this.options.skills.enable(ref.skill_id,true);this.guard(c)
+          }
           skills.push(d.key)
-        }else{const row={ key:d.key,endpoint:(d.mcp_endpoint??fail('expert_remote_invalid')) };await this.ensure({ ...p,connectors:[row] },row.key);connections.push(row)}
+        }else{const row={ key:d.key,endpoint:(d.mcp_endpoint??fail('expert_remote_invalid')) }
+          if(!this.instances.get(this.connectionId(p,d.key))?.ready)mutated=true
+          await this.ensure({ ...p,connectors:[row] },row.key);connections.push(row)
+        }
         this.guard(c);this.guardRelease(id,p.envelope)
       }catch(error){this.guard(c);this.guardRelease(id,p.envelope);if(d.required)throw error}
     }
     const ready={ ...p,skills,connectors:connections,localRelease:p.envelope.release }
-    if(!(await this.resolution(ready)).can_prepare)fail('expert_dependencies_missing');this.guard(c)
-    const update=await this.update(ready);this.guard(c)
-    if(update.status==='unavailable')fail('expert_remote_unavailable');if(update.status!=='current')fail('expert_release_changed')
+    const final=mutated?await this.resolution(ready):resolution;this.guard(c)
+    if(!final.can_prepare)fail('expert_dependencies_missing')
+    if(final.update_available===true)fail('expert_release_changed')
+    if(final.update_available===undefined){const update=await this.update(ready);this.guard(c)
+      if(update.status==='unavailable')fail('expert_remote_unavailable');if(update.status!=='current')fail('expert_release_changed')}
     await this.commit(id,c,async()=>{
       const current=await this.saved(id);this.guard(c)
       if(!this.sameRelease(current.envelope,p.envelope))fail('expert_release_changed')
@@ -279,11 +294,12 @@ export class RemoteExperts {
   async prepare(id:string):Promise<{ expert:Expert;remote:RemoteSnapshot }>{
     const c=this.context(),p=await this.saved(id)
     this.guard(c);this.guardRelease(id,p.envelope)
-    if(!(await this.resolution(p)).can_prepare)fail('expert_dependencies_missing');this.guard(c)
     for(const r of p.envelope.manifest.skills)if(r.required&&!p.skills.includes(r.key))fail('expert_dependencies_missing')
     for(const r of p.envelope.manifest.connectors)if(r.required&&!p.connectors.some(c=>c.key===r.key))fail('expert_dependencies_missing')
-    await this.validate(p)
-    this.guard(c);this.guardRelease(id,p.envelope);return { expert:this.expert(p),remote:p }
+    const allowed=await this.validate(p)
+    const usable={ ...p,skills:p.skills.filter(key=>allowed.skills.includes(key)),
+      connectors:p.connectors.filter(r=>allowed.connectors.includes(r.key)) }
+    this.guard(c);this.guardRelease(id,p.envelope);return { expert:this.expert(usable),remote:usable }
   }
   private async updates(snapshots:RemoteSnapshot[]){
     const r=await this.request<{ items:{ expert_id:string;status:string;expert:RemoteSummary|null }[] }>('/check-updates',{ access_version:3,items:snapshots.map(p=>({ expert_id:p.envelope.expert_id,release_id:p.envelope.release.id,sha256:p.envelope.release.sha256 })) })
@@ -303,9 +319,16 @@ export class RemoteExperts {
     const run=this.validateNow(p);this.flights.set(key,run)
     try{return await run}finally{if(this.flights.get(key)===run)this.flights.delete(key)}
   }
-  private async validateNow(p:RemoteSnapshot){const c=this.context(),allowed={ skills:[] as string[],connectors:[] as string[] };if(!(await this.resolution(p)).can_prepare)fail('expert_dependencies_missing');if((await this.update(p)).status==='unavailable')fail('expert_remote_unavailable');for(const key of p.skills){const ref=p.envelope.dependency_refs.skills.find(r=>r.key===key)??fail('expert_remote_invalid');try{const current=await this.options.skills.detail(ref.skill_id,ref.version_id,{ expert_id:p.envelope.expert_id,expert_release_id:p.envelope.release.id });if(current.current_version.id!==ref.version_id||current.current_version.sha256!==ref.sha256)fail('expert_skill_changed');allowed.skills.push(key)}catch(e){if(p.envelope.manifest.skills.find(r=>r.key===key)?.required)throw e}}
+  private async validateNow(p:RemoteSnapshot){
+    const c=this.context(),allowed={ skills:[] as string[],connectors:[] as string[] },resolution=await this.resolution(p)
+    if(!resolution.can_prepare)fail('expert_dependencies_missing')
+    // Resolution verifies the expert's live grant and every exact dependency proof together.
+    for(const key of p.skills){const state=resolution.dependencies.find(d=>d.kind==='skills'&&d.key===key)
+      if(state?.status==='available')allowed.skills.push(key)
+      else if(p.envelope.manifest.skills.find(r=>r.key===key)?.required)fail('expert_dependencies_missing')
+    }
     for(const r of p.connectors){
-      try{await this.ensure(p,r.key);allowed.connectors.push(r.key)}
+      try{if(resolution.dependencies.find(d=>d.kind==='connectors'&&d.key===r.key)?.status!=='available')fail('expert_connector_unavailable');await this.ensure(p,r.key);allowed.connectors.push(r.key)}
       catch(e){if(p.envelope.manifest.connectors.find(d=>d.key===r.key)?.required)throw e}
     }
     this.guard(c);return allowed

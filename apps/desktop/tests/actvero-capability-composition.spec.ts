@@ -2,6 +2,9 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { Experts, ExpertSelections } from '@actvero/dsh-experts/main'
+import type { ExpertSelection } from '@actvero/dsh-experts/contracts'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import { DesktopHostProcess } from '../src/host-process.ts'
@@ -50,12 +53,42 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         join(paths.profile, 'cordis.patch.yml'),
         '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n- id: web-runtime\n  config:\n    printUrl: false\n    openBrowser: false\n',
       )
+      const experts=new Experts({ root:join(root,'experts'),scope:()=> 'local',changed:()=>{},
+        skills:{ hostList:async()=>[],hostGet:async()=>undefined },connectors:async()=>[] })
+      await experts.save({ manifest:{ schemaVersion:1,id:'local-composition',version:'1.0.0',name:'Composition expert',description:'Isolated selection',avatar:'',tags:[],instructions:'Read the supplied documents.',conversationStarters:[],skills:[],connectors:[] },bindings:{ skills:{},connectors:{} },revision:0 })
+      const selections=new ExpertSelections({ scope:()=> 'local',revision:()=>0,prepare:id=>experts.prepareRuntime(id) })
+      const prepare=vi.spyOn(experts,'prepareRuntime'),resolve=vi.spyOn(experts,'resolve')
+      const controls=new Map<string,{ resolve(value:unknown):void;reject(error:Error):void }>()
+      const control=(action:'select'|'selection',input:Record<string,unknown>)=>new Promise<unknown>((done,reject)=>{
+        const id=randomUUID(),timer=setTimeout(()=>{controls.delete(id);reject(new Error('control timeout'))},10000)
+        controls.set(id,{ resolve:(value)=>{clearTimeout(timer);done(value)},reject:(error)=>{clearTimeout(timer);reject(error)} })
+        host!.sendCapabilityMessage({ type:'actvero:experts:control',id,action,input })
+      })
+      let stopping=false
+      const createHost=()=>new DesktopHostProcess(process.execPath, project, paths.profile,undefined,process.env,
+        undefined,undefined,undefined,undefined,onCapability)
+      const onCapability:NonNullable<ConstructorParameters<typeof DesktopHostProcess>[9]>=(message)=>{
+        if(stopping)return
+
+        if(message.type==='actvero:mcp:request'||message.type==='actvero:skills:request')host?.sendCapabilityMessage({ type:message.type==='actvero:mcp:request'?'actvero:mcp:result':'actvero:skills:result',id:message.id,value:[] })
+        else if(message.type==='actvero:experts:controlled'){
+          const pending=controls.get(message.id);controls.delete(message.id)
+          if(message.error)pending?.reject(new Error(message.error));else pending?.resolve(message.value)
+        }else if(message.type==='actvero:experts:request'){
+          const { input,action }=message
+          const work=async()=>{
+            if(action==='prepare')return (await selections.prepare(String(input.operation),String(input.id))).lock
+            if(action==='activate'){await selections.resolve(String(input.operation),String(input.id));return { added:[],enabled:[],ready:[],rows:[] }}
+            if(action==='resolve')return typeof input.operation==='string'?selections.resolve(input.operation,String(input.id)):experts.resolve(String(input.id))
+            if(action==='connector-state')return { added:[],enabled:[],ready:[],rows:[] }
+            return experts.dispatch(action,input)
+          }
+          void work().then(value=>host?.sendCapabilityMessage({ type:'actvero:experts:result',id:message.id,value }),(error:unknown)=>host?.sendCapabilityMessage({ type:'actvero:experts:result',id:message.id,error:error instanceof Error?error.message:'expert_action_failed' }))
+        }
+      }
       for (const enabled of ['1', '0']) {
         vi.stubEnv('ACTVERO_DESKTOP', enabled)
-        host = new DesktopHostProcess(process.execPath, project, paths.profile,undefined,process.env,undefined,undefined,undefined,undefined,(message)=>{
-          if(message.type==='actvero:mcp:request'||message.type==='actvero:skills:request')host?.sendCapabilityMessage({ type:message.type==='actvero:mcp:request'?'actvero:mcp:result':'actvero:skills:result',id:message.id,value:[] })
-          else if(message.type==='actvero:experts:request')host?.sendCapabilityMessage({ type:'actvero:experts:result',id:message.id,error:'expert_not_found' })
-        })
+        stopping=false;host=createHost()
         const ready = await host.start()
         const graph = ready.injections?.find(
           row => typeof row === 'object' && row !== null && 'name' in row && row.name === '__DSH_BOOT__',
@@ -96,13 +129,29 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           expect(asset).toContain('actvero.account')
           expect(asset).toContain('settings.section')
           expect(asset).toContain('sidebar.brand.mark')
+          const workspacePath=join(root,'workspace');mkdirSync(workspacePath)
+          const responseWorkspace=await fetch(new URL('/api/workspace/create',ready.url),{
+            method:'POST',headers:{ 'content-type':'application/json',cookie },
+            body:JSON.stringify({ type:'client-request',rpcId:randomUUID(),method:'workspace/create',payload:{ args:{ request:{ path:workspacePath } } } }),
+          })
+          const created=await responseWorkspace.json() as { result:{ ok:boolean;value:{ workspace:{ workspaceId:string } } } }
+          expect(created.result.ok).toBe(true)
+          const result=await selections.run('local-composition',operation=>control('select',{ id:'local-composition',workspaceId:created.result.value.workspace.workspaceId,operation })) as { sessionId:string;selection:ExpertSelection }
+          expect(result.selection).toMatchObject({ id:'local-composition',name:'Composition expert',version:'1.0.0' })
+          expect(prepare).toHaveBeenCalledTimes(1)
+          expect(resolve).not.toHaveBeenCalled()
+          expect(await control('selection',{ sessionId:result.sessionId })).toEqual(result.selection)
+          // Reload the built Host from the persisted Session; operation evidence is gone.
+          stopping=true;await host.stop();stopping=false;host=createHost();await host.start()
+          expect(await control('selection',{ sessionId:result.sessionId })).toEqual(result.selection)
+
         } else {
           expect(serialized).not.toContain('@actvero/dsh-client-account')
           for(const name of ['capability-ui','skills','connectors','experts'])expect(serialized).not.toContain('@actvero/dsh-'+name)
           expect(serialized).toContain('@deepseek-ai/dsh-client-ui-settings-account')
           expect(serialized).toContain('@deepseek-ai/dsh-client-ui-brand-official')
         }
-        await host.stop()
+        stopping=true;await host.stop()
         host = undefined
       }
     } finally {

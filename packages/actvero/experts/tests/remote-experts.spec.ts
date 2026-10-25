@@ -189,3 +189,19 @@ test('retains remote update notices across detail previews and restart until pre
     assert.equal((await engine.resolve(old.id)).expert.version,'1.0.0')
   } finally {restart.dispose()}
 }))
+
+test('warm selection reuses packages and adoption, and avoids global skill discovery',()=>setup(async({ remote,engine,id,f })=>{
+  await remote.plan(id);await remote.stage(id)
+  const installs=f.installs
+  f.calls.length=0
+  f.skills.hostList=async()=>{throw new Error('unrelated skill unavailable')}
+  await remote.plan(id);await remote.stage(id)
+  const { lock,runtime }=await engine.prepareRuntime(id)
+  assert.equal(runtime.skills.length,2)
+  assert.equal(f.installs,installs)
+  assert.equal(f.calls.filter(r=>r.path.endsWith('/adopt')).length,0)
+  assert.equal(f.calls.filter(r=>r.path.endsWith('/resolve')).length,3)
+  assert.equal(f.calls.filter(r=>r.path.endsWith('/check-updates')).length,0)
+  f.state.visible=false
+  await assert.rejects(engine.resolve(lock.id),/expert_remote_unavailable/)
+}))

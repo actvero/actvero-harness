@@ -26,7 +26,7 @@ interface Options {
   root: string
   identity(): Identity | undefined
   issue(resource: string): Promise<ResourceToken>
-  changed(): void
+  changed(reason?: 'identity'): void
   syncHost(name?: string, skillId?: string): Promise<void>
   fetcher?: typeof fetch
   openExternal?(url: string): Promise<void>
@@ -68,7 +68,7 @@ export class Skills {
     this.busy.clear()
     for (const controller of this.active) controller.abort()
     this.active.clear()
-    this.options.changed()
+    this.options.changed('identity')
   }
   private identity() {
     const value = this.options.identity()
@@ -113,7 +113,7 @@ export class Skills {
               !uuid(x.skill?.id) ||
               !uuid(x.version?.id) ||
               !/^[a-f0-9]{64}$/.test(x.version?.sha256) ||
-              !/^packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(x.directory) ||
+              !/^(?:packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}|p\/[a-f0-9]{32})$/.test(x.directory) ||
               !Array.isArray(x.files) ||
               typeof x.enabled !== 'boolean' ||
               !['current', 'update_available', 'unavailable'].includes(x.status),
@@ -438,7 +438,7 @@ export class Skills {
         return fail('package_checksum_mismatch')
       const files = unpack(new Uint8Array(await response.arrayBuffer()), detail)
       this.guard(scope)
-      const directory = `packages/${id}/${randomUUID()}`,
+      const directory = `p/${randomUUID().replaceAll('-', '')}`,
         destination = join(scope.root, directory),
         staged = destination + '.staging'
       let committed = false
@@ -531,7 +531,7 @@ export class Skills {
       item.skill.id !== id ||
       item.version.id !== versionId ||
       item.version.sha256 !== sha256 ||
-      !/^packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(item.directory)
+      !/^(?:packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}|p\/[a-f0-9]{32})$/.test(item.directory)
     )
       return false
     await this.unchanged(scope, item)
@@ -660,9 +660,10 @@ export class Skills {
   }
   /**
    * List usable local and platform installations after current authorization checks.
+   * @param ids - Restrict discovery to these installations; omitted lists every enabled installation.
    * @returns Native skill candidates with exact version identifiers.
    */
-  async hostList(): Promise<
+  async hostList(ids?: readonly string[]): Promise<
     {
       id: string
       name: string
@@ -671,12 +672,13 @@ export class Skills {
       invocation: SkillDefinition['invocation']
     }[]
   > {
-    const local = await this.local.hostList()
+    const local = await this.local.hostList(ids)
+    if (ids?.every(id => id.startsWith('local-'))) return local
     if (!this.options.identity()?.available || this.blocked) return local
     const scope = this.scope(),
       records = await this.entries(scope),
       rows = []
-    for (const r of records.filter(r => r.enabled && r.status !== 'unavailable')) {
+    for (const r of records.filter(r => r.enabled && r.status !== 'unavailable' && (!ids || ids.includes(r.skill.id)))) {
       const skill = await this.hostGet(r.skill.id, r.version.id)
       if (skill)
         rows.push({
@@ -725,7 +727,7 @@ export class Skills {
     if (
       item.skill.id !== id ||
       item.version.id !== versionId ||
-      !/^packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(item.directory)
+      !/^(?:packages\/[a-f0-9-]{36}\/[a-f0-9-]{36}|p\/[a-f0-9]{32})$/.test(item.directory)
     )
       return fail('local_state_invalid')
     // Current grants and withdrawal still apply to a retained adopted package.

@@ -1,5 +1,6 @@
 import { parsePackageOrigin, type PackageOrigin } from './package-origin.ts'
 export { ExpertPackages } from './expert-package.ts'
+export { ExpertSelections } from './selections.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile, rename, rm, readdir, lstat } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -28,7 +29,7 @@ interface Options {
   scope(): string | undefined
   changed(): void
   skills: {
-    hostList(): Promise<{ id: string; name: string; description: string; versionId: string }[]>
+    hostList(ids?: readonly string[]): Promise<{ id: string; name: string; description: string; versionId: string }[]>
     hostGet(id: string, versionId: string): Promise<unknown>
   }
   connectors(): Promise<ConnectorRow[]>
@@ -256,12 +257,21 @@ export class Experts {
    * @returns Saved snapshot; missing required dependencies reject and optional gaps become warnings.
    */
   async prepare(id: string): Promise<ExpertLock> {
+    return (await this.prepareRuntime(id)).lock
+  }
+  /**
+   * Prepare one selection and retain the verified runtime for that selection operation.
+   * @param id - Local or account-scoped remote expert identifier.
+   * @returns The committed snapshot and its verified content; later execution must call resolve again.
+   */
+  async prepareRuntime(id: string): Promise<{ lock: ExpertLock; runtime: ExpertRuntime }> {
     const account = this.options.scope()
     const prepared = id.startsWith('remote-') ? await this.options.remote?.prepare(id) : undefined
     if (id.startsWith('remote-') && !prepared) fail('expert_remote_unavailable')
     const expert = prepared?.expert ?? (await this.get(id)),
-      skills = await this.options.skills.hostList(),
-      connectors = (await this.options.connectors()).filter(
+      skills = prepared ? prepared.remote.envelope.dependency_refs.skills.map(r => ({ id: r.skill_id, versionId: r.version_id }))
+        : await this.options.skills.hostList(Object.values(expert.bindings.skills)),
+      connectors = (expert.manifest.connectors.length ? await this.options.connectors() : []).filter(
         row => prepared || !row.id.startsWith('expert-mcp-'),
       )
     if (account !== this.options.scope()) fail('expert_account_changed')
@@ -273,6 +283,7 @@ export class Experts {
       connectors: [],
       warnings: [],
     }
+    const definitions: ExpertRuntime['skills'] = []
     const missing: string[] = []
     for (const req of expert.manifest.skills) {
       const id = expert.bindings.skills[req.key],
@@ -286,6 +297,7 @@ export class Experts {
           def = (await this.options.skills.hostGet(row.id, versionId)) as SkillDefinition | undefined
         if (!def) throw new Error()
         lock.skills.push({ key: req.key, id: row.id, versionId, digest: await fingerprint(def), scope })
+        definitions.push({ ...def, load: req.load })
         if (scope !== this.scope(row.id)) fail('expert_account_changed')
       } catch {
         ;(req.required ? missing : lock.warnings).push(req.label)
@@ -310,16 +322,14 @@ export class Experts {
         code: 'expert_dependencies_missing',
         details: missing,
       })
-    const names = await Promise.all(
-      lock.skills.map(
-        async s => ((await this.options.skills.hostGet(s.id, s.versionId)) as SkillDefinition).name,
-      ),
-    )
+    const names = definitions.map(s => s.name)
     if (new Set(names).size !== names.length) fail('expert_skill_conflict')
+    if (account !== this.options.scope()) fail('expert_account_changed')
     await this.atomic('snapshots', lock.id, lock)
     try {
-      await this.resolve(lock.id)
-      return lock
+      if (account !== this.options.scope()) fail('expert_account_changed')
+      return { lock, runtime: { snapshotId: lock.id, expert: expert.manifest, skills: definitions,
+        connectors: lock.connectors.map(c => c.id), warnings: [...lock.warnings] } }
     } catch (e) {
       await rm(this.path('snapshots', lock.id), { force: true })
       throw e

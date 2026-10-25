@@ -45,7 +45,7 @@ it('waits for remote dependency preparation before completing the expert manager
   const stage=vi.spyOn(caps.remote,'stage').mockReturnValue(prepared)
   const local=vi.spyOn(caps.experts,'dispatch'),settled=vi.fn()
   const result=invoke(event as never,'remote-stage',{ id }).then((value)=>{settled();return value})
-  await vi.waitFor(()=>expect(stage).toHaveBeenCalledWith(id))
+  await vi.waitFor(()=>{ expect(stage).toHaveBeenCalledWith(id) })
   expect(settled).not.toHaveBeenCalled()
   expect(local).not.toHaveBeenCalled()
   complete(expert)
@@ -63,4 +63,39 @@ it('rejects preparation requests from a frame outside the owned desktop window',
   const stage=vi.spyOn(caps.remote,'stage')
   await expect(invoke({ ...event,senderFrame:{ url:'dsh-app://app/index.html' } } as never,'remote-stage',{ id:'remote-'+'c'.repeat(64) })).rejects.toThrow('unauthorized_sender')
   expect(stage).not.toHaveBeenCalled()
+})
+
+it('owns selection evidence in Main, reuses it only during Host control and rejects renderer tokens',async()=>{
+  const { caps,invoke,event }=await setup()
+  await caps.experts.save({ manifest:{ schemaVersion:1,id:'local-fixture',version:'1.0.0',name:'Fixture',description:'Selection test',avatar:'',tags:[],instructions:'Use the provided documents.',conversationStarters:[],skills:[],connectors:[] },bindings:{ skills:{},connectors:{} },revision:0 })
+  const prepare=vi.spyOn(caps.experts,'prepareRuntime'),resolve=vi.spyOn(caps.experts,'resolve')
+  const replies=new Map<string,(value:Record<string,unknown>)=>void>()
+  const controls:Record<string,unknown>[]=[]
+  caps.attach((message)=>{
+    if(message.type==='actvero:experts:control')controls.push(message)
+    else if(message.type==='actvero:experts:result')replies.get(message.id)?.(message)
+  })
+  let count=0
+  const request=(action:'prepare'|'activate'|'resolve',input:Record<string,unknown>)=>new Promise<Record<string,unknown>>((done)=>{
+    const id=String(++count);replies.set(id,done)
+    caps.receive({ type:'actvero:experts:request',id,action,input })
+  })
+  const selection=invoke(event as never,'select',{ id:'local-fixture',workspaceId:'workspace-a',operation:'renderer-supplied' })
+  await vi.waitFor(()=>{expect(controls).toHaveLength(1)})
+  const control=controls[0]!,input=control.input as Record<string,unknown>,operation=input.operation
+  expect(operation).not.toBe('renderer-supplied')
+  expect(typeof operation).toBe('string')
+  const first=await request('prepare',{ id:'local-fixture',operation })
+  expect(first).not.toHaveProperty('error')
+  const lock=first.value as { id:string }
+  expect((await request('prepare',{ id:'local-fixture',operation })).value).toEqual(first.value)
+  expect(await request('activate',{ id:lock.id,sessionId:'session-a',operation })).not.toHaveProperty('error')
+  expect((await request('resolve',{ id:lock.id,operation })).value).toMatchObject({ snapshotId:lock.id })
+  expect(prepare).toHaveBeenCalledTimes(1)
+  expect(resolve).not.toHaveBeenCalled()
+  caps.receive({ type:'actvero:experts:controlled',id:String(control.id),value:{ sessionId:'session-a' } })
+  await expect(selection).resolves.toEqual({ ok:true,value:{ sessionId:'session-a' } })
+  expect(await request('resolve',{ id:lock.id,operation })).toMatchObject({ error:'expert_selection_expired' })
+  expect((await request('resolve',{ id:lock.id })).value).toMatchObject({ snapshotId:lock.id })
+  expect(resolve).toHaveBeenCalledTimes(1)
 })

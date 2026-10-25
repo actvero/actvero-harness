@@ -442,3 +442,26 @@ test('updates retain exact adopted packages after restart; expert preparation ne
   await f.instance.checkUpdates()
   assert.equal(await f.instance.hostGet(id, v1), undefined)
 })
+
+test('new packages use compact paths and legacy installed versions still load', async () => {
+  const f = await fixture(), packageData = pack()
+  await f.instance.install(id, v1, packageData.detail.current_version.sha256)
+  const scope = join(f.root, digest('platform|alice|membership'))
+  const installedFile = join(scope, 'installed.json')
+  const records = JSON.parse(await readFile(installedFile, 'utf8'))
+  assert.match(records[0].directory, /^p\/[a-f0-9]{32}$/)
+  assert.ok(await f.instance.hostGet(id, v1))
+  const { mkdir, rename } = await import('node:fs/promises')
+  const legacy = `packages/${id}/${v1}`
+  await mkdir(dirname(join(scope, legacy)), { recursive: true })
+  await rename(join(scope, records[0].directory), join(scope, legacy))
+  records[0].directory = legacy
+  await writeFile(installedFile, JSON.stringify(records))
+  await writeFile(join(scope, 'versions', id, v1 + '.json'), JSON.stringify(records[0]))
+  f.instance.invalidate()
+  assert.ok(await f.instance.hasVersion(id, v1, packageData.detail.current_version.sha256))
+  assert.ok(await f.instance.hostGet(id, v1))
+  f.calls.length = 0
+  assert.deepEqual(await f.instance.hostList([]), [])
+  assert.equal(f.calls.length, 0)
+})

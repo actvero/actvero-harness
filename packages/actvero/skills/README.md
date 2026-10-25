@@ -24,6 +24,8 @@ Browse platform skills and import device-local skill packages. Install exact ver
 
 Manages platform catalog access, exact-version installation, update checks, enablement and local ZIP/folder/Markdown import. Download digest and package paths are verified before adoption. Active installations and immutable version records are scoped to platform, account and organization; existing expert locks load their recorded version.
 
+New platform installations use an opaque `p/<32-hex-id>` directory under the existing account-scoped root. Exact version IDs and file hashes remain in the installation records. Legacy `packages/<skill-id>/<installation-id>` directories remain readable and are not moved, preserving recorded paths. Bound-only discovery avoids reading unrelated local packages. See the [upgrade guidance](../../../docs/upgrade-guide/v0.2.1-rc.2/actvero-skill-paths/guide.md) before downgrading.
+
 Enable through the ACTVERO desktop composition (`ACTVERO_DESKTOP=1`). The owning Electron Main runtime provides the resource authority; client scripts do not discover sibling repositories or store bearer tokens.
 
 Expert ZIP import stages each embedded single skill through the same package validator; exact installed content is reused. Export verifies the original file digests and never embeds a platform skill copy. Archive helpers remain Main-only and do not execute imported content.
