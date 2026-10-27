@@ -14,6 +14,7 @@ export interface DesktopTargetBuildPaths {
   readonly packedDsh: string
   readonly packedVendor: string
   readonly packedLandlock: string
+  readonly cache: string
   readonly downloads: string
 }
 
@@ -39,7 +40,7 @@ export function desktopTargetBuildPaths(target: DesktopAutoUpdateTarget): Deskto
 
 /**
  * Return the platform and architecture of the payload one release target prepares.
- * Windows is prepared as x64 only, so this differs from the build host on an arm64 Windows machine.
+ * Windows and Mac preserve the selected target architecture.
  * @param target - Supported Desktop target name.
  * @returns Platform and architecture of the prepared payload.
  */

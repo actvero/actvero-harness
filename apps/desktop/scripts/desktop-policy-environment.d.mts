@@ -12,4 +12,4 @@ export interface DesktopPolicyEnvironment {
  * @param environment File-owned release settings; only the selected origin is required.
  * @returns Policy metadata with deployment-selected origin and authentication.
  */
-export function resolveDesktopPolicyEnvironment(environment: NodeJS.ProcessEnv): DesktopPolicyEnvironment
+export function resolveDesktopPolicyEnvironment(environment: NodeJS.ProcessEnv): DesktopPolicyEnvironment | undefined

@@ -33,7 +33,7 @@ export async function desktopPublicationSummary(
     for await (const chunk of bytes) { size += chunk.length; hash.update(chunk) }
     files.push(row(link(url(file.key), file.filename), `${size} 字节 | ${code(hash.digest('hex'))}`))
   }
-  const installerExtension = plan.target === 'win-x64' ? '.exe' : '.dmg'
+  const installerExtension = plan.target.startsWith('win-') ? '.exe' : '.dmg'
   const installers = plan.artifacts.filter(file => !file.channelMetadata && file.filename.endsWith(installerExtension))
   const feeds = plan.artifacts.filter(file => file.channelMetadata)
   const runUrl = `https://github.com/${source.repository}/actions/runs/${source.runId}/attempts/${source.attempt}`
@@ -51,7 +51,7 @@ export async function desktopPublicationSummary(
     row('下载地址预览', `${installers.map(file => link(url(file.key))).join('<br>')}<br>发布后的目标地址，审批前不保证可下载。`),
     row('升级 YAML', `${feeds.map(file => link(url(file.key))).join('<br>')}<br>本次发布将更新此文件；审批前可能不存在或仍指向旧版本。`),
     row('打包来源', `${link(runUrl, `查看打包运行 #${source.runId} · 第 ${source.attempt} 次尝试`)}<br>源码：${code(`${source.sourceRef} @ ${source.commit}`)}<br>打包机器：${code(source.runnerName)}`),
-    row('签名与公证', plan.target === 'win-x64' ? 'EXE 签名校验通过' : 'DMG 校验通过<br>ZIP 内应用校验通过'),
+    row('签名与公证', plan.target.startsWith('win-') ? 'EXE 签名校验通过' : 'DMG 校验通过<br>ZIP 内应用校验通过'),
     row('Git tag', tag), '', '### 批准后将执行', '',
     '1. 重新校验产物与发布目标；若与审批摘要不一致则停止。',
     '2. 上传缺少的文件，跳过内容一致的已有文件；发现内容冲突则停止。',

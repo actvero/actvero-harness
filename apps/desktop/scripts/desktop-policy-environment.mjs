@@ -1,5 +1,5 @@
 /** Resolve the required policy service from the same deployment as updater publication. */
-import { resolveDesktopAutoUpdateEnvironment } from './desktop-auto-update-environment.mjs'
+import { managedDesktopUpdateRoot, resolveDesktopAutoUpdateEnvironment } from './desktop-auto-update-environment.mjs'
 
 function origin(value, name) {
   let url
@@ -13,9 +13,15 @@ function origin(value, name) {
 /**
  * Resolve mandatory policy metadata before preparing artifacts or accessing signing hardware.
  * @param {NodeJS.ProcessEnv} environment File-owned release settings; the unselected origin is not required.
- * @returns {{ origin: string, allowedPageOrigins: string[], authentication: 'anonymous' | 'feishu-test', [key: string]: unknown }} Selected policy.
+ * @returns {{ origin: string, allowedPageOrigins: string[], authentication: 'anonymous' | 'feishu-test', [key: string]: unknown } | undefined} Selected policy; managed builds may explicitly omit mandatory policy.
  */
 export function resolveDesktopPolicyEnvironment(environment) {
+  if (environment.DSH_DESKTOP_MANDATORY_UPDATE_DISABLED !== undefined) {
+    if (environment.DSH_DESKTOP_MANDATORY_UPDATE_DISABLED !== '1' || managedDesktopUpdateRoot(environment) === undefined) {
+      throw new Error('desktop package: mandatory policy may only be explicitly disabled for a managed update feed')
+    }
+    return undefined
+  }
   const deployment = resolveDesktopAutoUpdateEnvironment(environment)
   const name = deployment === 'test' ? 'DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN' : 'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN'
   const selected = origin(environment[name], name)

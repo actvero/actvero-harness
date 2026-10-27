@@ -52,6 +52,8 @@ make package-check TARGET=mac-arm64 CONFIG=actvero/product.json
 make package TARGET=mac-arm64 FORMAT=dmg CONFIG=actvero/product.json OUT=dist
 ```
 
+快捷命令 `pnpm client:build <target>` 使用同一产品打包器，接受相同的打包选项。例如 `pnpm client:build mac-arm64 --check` 可在没有更新地址和存储配置时检查默认产品。更新默认关闭；普通安装包输出 `release.json`，`client:export` 则独立要求合格的更新构建文件与更新元数据。
+
 `actvero:check` 校验公开默认值、锁文件和图标。`actvero:build` 编译完整的桌面与客户端产物。`actvero:package` 准备目标运行时，包含 ACTVERO 账户与能力模块，校验运行时完整性并生成品牌包。每个包都会检查归档中的 Main 导入，并验证包内 Host、Office 转换和 Skill CLI 发现。两个隔离的 Host 必须使用各自的默认端口同时提供前端，并通过独立退出、重启验证。`--dir` 生成解包后的测试应用；省略此参数，macOS 生成 DMG/ZIP，Windows 生成 NSIS 安装程序。这些命令不会发布或安装应用。
 
 图标、公开元数据和安装包位于 `apps/desktop/.desktop-build/actvero/products/<id>/<fingerprint>/`；安装包在该目录下的 `artifacts/<platform>-<arch>/`。配置或图标内容改变时，指纹也会改变。每次只构建一份配置：工作区编译文件和目标运行时准备目录由各构建共用。
@@ -77,7 +79,7 @@ Make 通过环境变量传递公开参数，不将它们插入 Shell 命令。`p
 | --- | --- | --- |
 | `CONFIG` | `--config` | 产品 JSON，默认 `actvero/product.json`。 |
 | `PROFILE` | `--profile` | 本地 Build Profile；其中的值作为所选产品 JSON 之上的默认值。 |
-| `TARGET` | `--target` | `mac-arm64`、`mac-x64` 或 `win-x64`；默认当前 Node 系统/架构。 |
+| `TARGET` | `--target` | `mac-arm64`、`mac-x64`、`win-x64` 或 `win-arm64`；默认当前 Node 系统/架构。 |
 | `FORMAT` | `--format` | `dmg`、`zip`、`exe` 或 `all`；默认 Mac 为 DMG/ZIP，Windows 为 EXE。 |
 | `OUT` | `--out` | 导出根目录，默认 `dist`，支持仓库相对路径或绝对路径。 |
 | `NAME`、`VERSION` | `--name`、`--version` | 显示名称与精确产品版本；应用身份保持不变。 |
@@ -118,7 +120,7 @@ Windows 打包在符合要求的 Windows 主机上执行，沿用同一份 JSON 
 
 ## 平台要求
 
-目标支持 `mac-arm64`、`mac-x64` 和 `win-x64`。macOS 目标要求 macOS 主机；`win-x64` 要求 Windows x64 主机。Electron 可以跨平台打包部分应用，但本仓库需要准备原生依赖并执行目标运行时检查。不能绕过这些检查后宣称已在 macOS 完成 Windows 产物。
+目标支持 `mac-arm64`、`mac-x64`、`win-x64` 和 `win-arm64`。macOS 目标要求 macOS 主机；Windows 目标要求 Windows 与匹配架构的 Node。原生 Windows ARM64 安装和运行时验收需要 ARM64 Windows 主机。Electron 可以跨平台打包部分应用，但本仓库需要准备原生依赖并执行目标运行时检查。不能绕过这些检查后宣称已在 macOS 完成 Windows 产物。
 
 Windows 交付应在 Windows CI 中使用相同配置。Mac 可以发起该 CI 任务，编译与安装包验证在 Windows 上完成。本次本地实现在 macOS ARM64 验证；Windows 安装、托盘和运行时验收由 Windows 执行环境负责。
 

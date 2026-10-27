@@ -261,6 +261,7 @@ export function createElectronBuilderConfig(
       differentialPackage: true,
     },
     detectUpdateChannel: false,
-    publish: update === undefined ? null : [{ provider: 'generic', url: update.publicUrl, channel: update.channel }],
+    publish: update === undefined ? null : [{ provider: 'generic', url: update.publicUrl, channel: update.channel,
+      ...(env.DSH_DESKTOP_UPDATE_BASE_URL === undefined ? {} : { useMultipleRangeRequest: false }) }],
   }
 }

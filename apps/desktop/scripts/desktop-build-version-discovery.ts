@@ -87,8 +87,8 @@ async function localVersions(artifactsRoot: string): Promise<string[]> {
  * @returns Versions parsed from object names, or undefined when the bucket cannot be listed completely in time.
  */
 async function remoteVersions(options: DesktopBuildVersionSuggestionOptions): Promise<string[] | undefined> {
-  const platform = options.target === 'win-x64' ? 'win32' as const : 'darwin' as const
-  const arch = options.target === 'mac-arm64' ? 'arm64' : 'x64'
+  const platform = options.target.startsWith('win-') ? 'win32' as const : 'darwin' as const
+  const arch = options.target.endsWith('-arm64') ? 'arm64' : 'x64'
   // An unconfigured destination has nothing to be unique against; an invalid one must not be mistaken for it.
   if (options.environment[DESKTOP_AUTO_UPDATE_ENV] === undefined
     && options.environment.DOWNLOAD_TEST_ORIGIN === undefined) return undefined

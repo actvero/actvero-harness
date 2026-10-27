@@ -7,6 +7,7 @@
   "type": "module",
   "main": "lib/main.js",
   "scripts": {
+    "export:client-release": "node scripts/export-client-release.mjs",
     "test:installer": "node scripts/test-windows-installer.mjs",
     "build": "tsc -b && pnpm run bundle",
     "bundle": "tsdown --config-loader native",
@@ -40,7 +41,10 @@
     "upload:win:x64": "tsx scripts/upload-target.ts win-x64",
     "upload:latest:mac:arm64": "tsx scripts/upload-target.ts mac-arm64 --latest",
     "upload:latest:mac:x64": "tsx scripts/upload-target.ts mac-x64 --latest",
-    "upload:latest:win:x64": "tsx scripts/upload-target.ts win-x64 --latest"
+    "upload:latest:win:x64": "tsx scripts/upload-target.ts win-x64 --latest",
+    "package:win:arm64": "tsx scripts/package-target.ts win-arm64",
+    "package:win:arm64:unsigned": "tsx scripts/package-target.ts win-arm64 --unsigned",
+    "package:win:arm64:dir": "tsx scripts/package-target.ts win-arm64 --dir"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

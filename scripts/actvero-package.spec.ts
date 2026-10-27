@@ -139,13 +139,13 @@ describe('ACTVERO installer export', () => {
     expect(readFileSync(join(request.output ?? '', 'release-info.txt'), 'utf8')).toContain('未上传，未验证链接')
     expect(() => { assertActveroOutputAvailable(request.output ?? '') }).toThrow('already exists')
   })
-  it('describes Windows x64 artifacts independently of the host architecture', async () => {
+  it.each(['x64', 'arm64'] as const)('describes Windows %s artifacts independently of the host architecture', async (arch) => {
     const root = fixture(), base = resolveActveroBuildRequest(root, argumentsFor(), {})
-    const request = { ...base, target: resolveDesktopPackageTarget('win-x64', 'win32', 'x64'), formats: ['exe'] as const, output: join(root, 'windows-export') }
+    const request = { ...base, target: resolveDesktopPackageTarget(`win-${arch}`, 'win32', arch), formats: ['exe'] as const, output: join(root, 'windows-export') }
     const source = join(root, 'internal'); mkdirSync(source)
-    writeFileSync(join(source, 'actvero-0.1.0-win-x64-unsigned.exe'), 'test installer')
+    writeFileSync(join(source, `actvero-0.1.0-win-${arch}-unsigned.exe`), 'test installer')
     const manifest = await exportActveroRelease(request, source)
-    expect(manifest.artifacts[0]).toMatchObject({ system: 'windows', architecture: 'x64', download_url: null, download_url_status: 'not_provided', minimum_system_requirement: null })
+    expect(manifest.artifacts[0]).toMatchObject({ system: 'windows', architecture: arch, download_url: null, download_url_status: 'not_provided', minimum_system_requirement: null })
   })
   it('rejects a file blocking the export path before packaging', () => {
     const root = fixture()

@@ -10,8 +10,8 @@ import { createWindowsTokenSigner, installWindowsNsisBootstrapSigner, scrubWindo
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createPackagingRun } from './packaging-run.mjs'
 
-if (process.platform !== 'win32' || process.arch !== 'x64') {
-  throw new Error('Installer UI checks require an interactive Windows x64 desktop')
+if (process.platform !== 'win32' || !['x64', 'arm64'].includes(process.arch)) {
+  throw new Error('Installer UI checks require an interactive Windows x64 or ARM64 desktop')
 }
 const execute = promisify(execFile)
 const appRoot = fileURLToPath(new URL('..', import.meta.url))
@@ -44,7 +44,7 @@ let succeeded = false
 try {
   Object.assign(process.env, {
     DSH_DESKTOP_APP_ID: `com.deepseek.harness.installertest.n${id}`,
-    DSH_DESKTOP_TARGET_PLATFORM: 'win32', DSH_DESKTOP_TARGET_ARCH: 'x64',
+    DSH_DESKTOP_TARGET_PLATFORM: 'win32', DSH_DESKTOP_TARGET_ARCH: process.arch,
     DSH_DESKTOP_UNSIGNED: '1', CSC_IDENTITY_AUTO_DISCOVERY: 'false', ELECTRON_BUILDER_7Z_FILTER: 'BCJ',
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: signingEnvironment.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN
       ?? 'https://test.example.com',
@@ -103,7 +103,7 @@ SectionEnd
       !line.startsWith('LangString ') || line.includes(`\${LANG_${languageId}}`)).join('\n'))
     const include = join(languageOutput, 'include.nsh')
     await writeFile(include, `!define INSTALLER_BUILD_DIR "${join(output, 'ui')}"\n!define INSTALLER_STRINGS_FILE "${strings}"\n!include "${join(appRoot, 'scripts', 'installer.nsh')}"\n`)
-    await build({ projectDir: appRoot, prepackaged: payload, targets: Platform.WINDOWS.createTarget(['nsis'], Arch.x64), publish: 'never',
+    await build({ projectDir: appRoot, prepackaged: payload, targets: Platform.WINDOWS.createTarget(['nsis'], (process.arch === 'arm64' ? Arch.arm64 : Arch.x64)), publish: 'never',
       config: { ...config, productName, extraMetadata: { ...config.extraMetadata, name: packageName },
         artifactName: 'installer-test.exe', directories: { output: languageOutput },
         nsis: { ...config.nsis, guid, include, installerLanguages: [language] }, beforeBuild: undefined, afterPack: undefined, afterSign: undefined, artifactBuildCompleted: undefined },

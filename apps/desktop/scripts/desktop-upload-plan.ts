@@ -19,6 +19,7 @@ const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
 const TARGETS = {
   'mac-arm64': { platform: 'darwin', arch: 'arm64', os: 'mac' },
   'mac-x64': { platform: 'darwin', arch: 'x64', os: 'mac' },
+  'win-arm64': { platform: 'win32', arch: 'arm64', os: 'win' },
   'win-x64': { platform: 'win32', arch: 'x64', os: 'win' },
 } as const satisfies Record<DesktopPackageTargetName, {
   readonly platform: NodeJS.Platform

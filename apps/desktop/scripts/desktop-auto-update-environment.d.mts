@@ -1,11 +1,14 @@
 /** Environment variable that selects the Desktop update deployment. */
 export const DESKTOP_AUTO_UPDATE_ENV: 'DSH_DESKTOP_AUTO_UPDATE_ENV'
 
+/** Validate the optional file-owned HTTPS managed feed root. */
+export function managedDesktopUpdateRoot(env: NodeJS.ProcessEnv): string | undefined
+
 /** Supported Desktop update deployment. */
 export type DesktopAutoUpdateEnvironment = 'test' | 'production'
 
 /** Directory name of one supported Desktop release target. */
-export type DesktopAutoUpdateTarget = 'mac-arm64' | 'mac-x64' | 'win-x64'
+export type DesktopAutoUpdateTarget = 'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64'
 
 /** Public updater URL and object prefixes for one release target. */
 export interface DesktopAutoUpdateConfig {
@@ -14,6 +17,7 @@ export interface DesktopAutoUpdateConfig {
   readonly target: DesktopAutoUpdateTarget
   readonly origin: string
   readonly publicUrl: string
+  readonly useMultipleRangeRequest?: boolean
   readonly keyPrefix: string
   readonly binaryKeyPrefix: string
 }

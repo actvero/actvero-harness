@@ -2,7 +2,17 @@ CLAUDE.local.md
 .env
 apps/desktop/.env.windows
 apps/desktop/.env.macos
+# Machine-local signing inputs; tracked examples and test fixtures remain visible
 apps/desktop/*.p12
+apps/desktop/*.pfx
+apps/desktop/*.key
+apps/desktop/.env.*.local
+apps/desktop/packaging/.local/
+apps/desktop/config/**/*.env
+apps/desktop/config/**/*.p12
+apps/desktop/config/**/*.pfx
+apps/desktop/config/**/*.key
+apps/desktop/config/**/*.cer
 node_modules/
 lib/
 *.tsbuildinfo
@@ -32,6 +42,7 @@ mise.toml
 dist-exe/
 /dist/
 dist-*/
+# Generated installers, unsigned input caches, build receipts and diagnostics
 apps/desktop/.desktop-build/
 .actvero-builder/
 # Private deployment presets and local packaging workflow.

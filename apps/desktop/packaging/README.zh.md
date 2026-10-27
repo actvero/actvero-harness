@@ -14,6 +14,7 @@ description: "在本地或 Windows／macOS Actions 中生成 Desktop 安装包�
 
 - [选择打包方式](#choose-a-build)
 - [发布版本](#release-versions)
+- [平台管理更新源](#managed-update-feed)
 - [配置与本地构建](#configuration-and-local-builds)
 - [Windows Actions 打包](#windows-actions)
 - [macOS 自托管打包](#macos-actions)
@@ -63,6 +64,33 @@ production 发布使用产品版本本身，不传 `--build-version`。其上传
 
 安装包独立于版本和发布环境内置 `DSH_DESKTOP_UPDATE_CHANNEL`（默认 `nightly`，也可选择 `latest`）。自动更新始终保留该通道，即使安装的是稳定版本；手动安装另一通道的包才会切换。latest 包拒绝预发布版本。稳定产品可生成 nightly 的 `-test.<date>.<sequence>` 构建，但该版本低于稳定基准，不能升级已安装的更高版本。保持自动降级关闭；稳定修复版需要提升产品版本。CI 版本选择与发布见 [CI 发布](../publishing/ci/README.zh.md#package-and-publish)。
 
+<a id="managed-update-feed"></a>
+
+## 平台管理更新源
+
+Windows ARM64 本地构建使用运行 ARM64 Node 的 ARM64 Windows 主机。载荷使用锁定的 ARM64 Node、Python 和 Python wheels；NSIS 保留 x86 安装器界面插件。Windows x64 与 ARM64 的更新目录、产物目录和构建文件分别维护。实际升级、启动和卸载检查需要匹配架构的 Windows 环境；已注册的 x64 Actions runner 不构建 ARM64。
+
+在 Actvero 中，`pnpm client:build <target>` 委托[产品打包器](../../../actvero/building/README.zh.md)，支持它的 `--config`、`--profile`、`--out` 和 `--check` 选项。默认产品关闭更新，只生成普通未签名安装包和 `release.json`，无需更新地址、存储凭据、发布 dotenv 文件或强制更新服务。快捷命令不生成自动更新上传清单。签名更新包使用独立发布流程及下述校验导出。
+
+
+由平台管理更新的构建通过所选打包配置文件中的 `DSH_DESKTOP_UPDATE_BASE_URL` 内置更新根地址。该地址必须使用 HTTPS，不能包含账号密码、查询参数或片段。打包会追加目标目录，并保留选择的 `latest` 或 `nightly` 通道；命令环境显式提供的 `DSH_DESKTOP_UPDATE_CHANNEL` 优先于文件。已安装客户端保留这个地址；迁移现有安装需要安装使用新更新源构建的版本。
+
+```dotenv
+DSH_DESKTOP_UPDATE_BASE_URL=https://platform.example.com/api/v1/client-updates/actvero
+DSH_DESKTOP_UPDATE_CHANNEL=nightly
+DSH_DESKTOP_MANDATORY_UPDATE_DISABLED=1
+```
+
+最后一项显式省略上游强制更新策略，只有更新根地址有效时才接受。不设置时，所选部署仍需提供策略服务。平台更新源保留签名、公证、应用身份和发布者检查。请选择明确且已确认的版本；远端 COS 版本发现和 COS 上传命令不支持平台更新源。
+
+签名打包生成完成记录与更新元数据后，`export:client-release` 在产物旁写入可移植的 `client-release.json`。它对照 builder 元数据校验更新包大小和 SHA-512，并包含全部必需文件、目标、最低系统标签和包内更新源地址。缺少文件、元数据不匹配或已有导出文件都会失败。重新导出前需明确移除过期清单。
+
+```sh
+pnpm --dir apps/desktop run export:client-release .desktop-build/targets/mac-arm64/artifacts mac-arm64 --minimum-os 'macOS 13'
+```
+
+将清单交给平台 CLI（命令行界面）上传、校验和发布。导出本身不会上传或切换通道。平台须提供兼容的更新 YAML，并保留内容不可变、包含版本号的更新包和 blockmap。已安装更新器使用单段 Range 差分下载，也可能回退到全量下载。发布人员需验证真实存储/CDN、签名和旧版本到新版本的安装更新；导出检查不能证明这些条件已满足。
+
 <a id="configuration-and-local-builds"></a>
 
 ## 配置与本地构建
@@ -98,6 +126,10 @@ macOS arm64 命令要求 Apple Silicon。macOS x64 命令可以在 Intel macOS �
 macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../scripts/electron-builder-config.mjs)中的 `dmg.format: 'ULMO'` 使用 LZMA 压缩。[构建时补丁](../../../patches/app-builder-lib@26.17.0.patch)为固定版本 builder 的校验规则和 TypeScript 声明添加此格式。
 
 每个目标都在 `apps/desktop/.desktop-build/targets/<target>/` 下持有自己的打包输入、已准备运行时、包集合、dsh 依赖树、pnpm 准备状态、未打包应用、更新元数据和最终产物。Electron 归档缓存继续由 `.desktop-build/downloads` 共享，因为每个归档文件名都包含版本、平台和架构，并且在解包前经过验证。目标构建绝不读取其他目标的可变准备状态。
+
+未签名的 Electron、基础运行时输入和运行时 pnpm store 保存在项目内的 `apps/desktop/.desktop-build/cache/`，按目标隔离。缓存身份包含锁定输入、准备代码和工具版本；恢复的文件树使用前逐一校验，签名使用独立副本。输入未变时报告 `hit`，输入改变则准备新条目；缓存损坏会停止构建。已有构建目录 Git 忽略规则覆盖这些缓存，无需额外配置。
+
+正常构建不清理这些缓存。停止构建后，仅删除对应条目来处理损坏；确需冷构建时再删除项目缓存目录。签名缓存单独维护。安装包、导出清单、诊断和临时文件保留在已忽略的构建目录；本地签名输入被忽略，源码、依赖锁、示例和测试仍被跟踪。流水线仍构建应用代码、打包安装器并验证签名，缓存命中不会跳过这些检查。`events.jsonl` 记录缓存结果，`result.json` 保留阶段耗时。
 
 <a id="windows-actions"></a>
 

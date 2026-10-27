@@ -14,6 +14,7 @@ Build Desktop installers locally or through Windows or macOS Actions, choose dep
 
 - [Choose a build path](#choose-a-build)
 - [Release versions](#release-versions)
+- [Managed update feed](#managed-update-feed)
 - [Configuration and local builds](#configuration-and-local-builds)
 - [Windows Actions packaging](#windows-actions)
 - [macOS self-hosted packaging](#macos-actions)
@@ -63,6 +64,33 @@ A production release publishes the product version and takes no `--build-version
 
 The installer embeds `DSH_DESKTOP_UPDATE_CHANNEL` (`nightly` by default, or `latest`) independently of version and deployment. Automatic updates remain on that channel even for a stable version; manually installing the other channel switches it. Latest packages reject prerelease versions. A stable product can produce a nightly `-test.<date>.<sequence>` build, but that version ranks below the stable base and cannot upgrade an already installed higher version. Keep automatic downgrade disabled; stable corrective releases require a product version bump. CI version selection and publication are documented in [CI publication](../publishing/ci/README.md#package-and-publish).
 
+<a id="managed-update-feed"></a>
+
+## Managed update feed
+
+Windows ARM64 local builds use an ARM64 Windows host running ARM64 Node. The payload uses locked ARM64 Node, Python and Python wheels; NSIS keeps its x86 installer UI plugin. Windows x64 and ARM64 update directories, output directories and artifacts stay separate. Installed-app upgrade, launch and uninstall checks require a real matching Windows environment; the registered x64 Actions runner does not build ARM64.
+
+In Actvero, `pnpm client:build <target>` delegates to the [product packager](../../../actvero/building/README.md), including its `--config`, `--profile`, `--out` and `--check` options. The default product has updates disabled and produces ordinary unsigned installers with `release.json`, without update addresses, storage credentials, release dotenv files or mandatory-update services. The shortcut does not generate an automatic-update upload manifest. Signed update artifacts use the separate release workflow and validated export below.
+
+
+A platform-managed build embeds its own update root through `DSH_DESKTOP_UPDATE_BASE_URL` in the selected packaging configuration file. The root must use HTTPS without credentials, query parameters, or a fragment. Packaging appends the target directory and preserves the selected `latest` or `nightly` channel; an explicit `DSH_DESKTOP_UPDATE_CHANNEL` in the command environment overrides the file. Installed clients retain this address; migrating an existing installation requires installing a build with the new feed.
+
+```dotenv
+DSH_DESKTOP_UPDATE_BASE_URL=https://platform.example.com/api/v1/client-updates/actvero
+DSH_DESKTOP_UPDATE_CHANNEL=nightly
+DSH_DESKTOP_MANDATORY_UPDATE_DISABLED=1
+```
+
+The last setting explicitly omits the upstream mandatory-update policy and is accepted only with a valid managed root. Without it, the selected deployment still requires its policy service. Managed feeds retain signing, notarization, application identity and publisher checks. Select an explicit confirmed version; remote COS version discovery and COS upload commands do not support managed feeds.
+
+After signed packaging produces a completion record and update metadata, `export:client-release` writes a portable `client-release.json` beside the artifacts. It verifies payload size and SHA-512 against builder metadata and includes each required artifact, target, minimum OS label and packaged feed URL. It rejects missing files, mismatched metadata and an existing export. Remove an obsolete manifest explicitly before exporting again.
+
+```sh
+pnpm --dir apps/desktop run export:client-release .desktop-build/targets/mac-arm64/artifacts mac-arm64 --minimum-os 'macOS 13'
+```
+
+Pass the manifest to the platform CLI for upload, verification and publication. Export itself does not upload or switch a channel. The platform must serve compatible update YAML and retain immutable versioned payloads and blockmaps. The installed updater uses single-range differential downloads and can fall back to full downloads. The release operator must qualify actual storage/CDN behavior, signatures and an installed old-to-new update; export checks do not establish those properties.
+
 <a id="configuration-and-local-builds"></a>
 
 ## Configuration and local builds
@@ -98,6 +126,10 @@ The macOS arm64 command requires Apple Silicon. The macOS x64 command runs on In
 Both release and local unsigned macOS DMGs use LZMA compression (`dmg.format: 'ULMO'`) in [the electron-builder configuration](../scripts/electron-builder-config.mjs). A [build-time patch](../../../patches/app-builder-lib@26.17.0.patch) adds this format to the pinned builder's validation and TypeScript declarations.
 
 Each target owns its packed package inputs, prepared runtime, package set, dsh tree, pnpm preparation state, unpacked application, update metadata, and final artifacts under `apps/desktop/.desktop-build/targets/<target>/`. The Electron archive cache remains shared under `.desktop-build/downloads` because every archive name includes its version, platform, and architecture and is verified before extraction. A target build never consumes another target's mutable preparation state.
+
+Unsigned Electron and primary-runtime inputs and the runtime pnpm store persist in the project at `apps/desktop/.desktop-build/cache/`, separately for each target. Cache identity includes pinned inputs, preparation code and tool versions; every restored tree is checksummed before use and signing uses a separate copy. Unchanged inputs report `hit`; changed inputs prepare a new entry. Corrupt entries stop the build. The existing build-directory Git ignore rule covers this cache; no additional configuration is required.
+
+Normal builds do not clean these caches. After stopping builds, remove only the relevant cache entry to recover corruption, or the project cache directory for a deliberate cold rebuild. Keep signing-cache maintenance separate. Installers, exported manifests, diagnostics and temporary files stay under the ignored build directory; local signing inputs are ignored, while source, dependency locks, examples and tests remain tracked. The pipeline still builds application code, packages installers and verifies signatures; cache hits do not skip those checks. `events.jsonl` records cache outcomes and `result.json` retains stage timings.
 
 <a id="windows-actions"></a>
 

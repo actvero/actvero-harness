@@ -2,6 +2,8 @@
 
 import { resolveMacOSSignatureCacheDirectory } from './macos-signature-cache-directory.mjs'
 import { packagingStep } from './packaging-step.mjs'
+import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
@@ -41,8 +43,12 @@ const APP_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_PATHS = resolveDesktopTargetBuildPaths()
 const DSH_OUTPUT_ROOT = BUILD_PATHS.dsh
 const BUILD_ROOT = mkdtempSync(join(tmpdir(), 'dsh-desktop-runtime-'))
-const STORE_ROOT = join(BUILD_ROOT, 'store')
 const RUNTIME_ROOT = BUILD_PATHS.runtime
+const electronVersion = JSON.parse(readFileSync(createRequire(import.meta.url).resolve('electron/package.json'), 'utf8')).version as string
+const STORE_ROOT = join(BUILD_PATHS.cache, 'pnpm', createHash('sha256').update(JSON.stringify({
+  format: 1, electronVersion, registry: resolveNpmRegistry(process.env),
+  pnpm: JSON.parse(readFileSync(join(RUNTIME_ROOT, 'versions.json'), 'utf8')).pnpm,
+})).digest('hex'))
 const PNPM_BUILD_STATE = BUILD_PATHS.dshPnpm
 const PACKAGE_SET_ROOT = BUILD_PATHS.packageSet
 const NODE = join(BUILD_PATHS.electron, process.platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')
@@ -89,6 +95,7 @@ function runPnpm(args: readonly string[]): Promise<void> {
       `--config.registry=${registry}`,
       `--config.store-dir=${STORE_ROOT}`,
       '--config.enable-global-virtual-store=false',
+      '--config.verify-store-integrity=true',
       `--config.userconfig=${userConfig}`,
       command,
       ...commandArgs,
@@ -103,7 +110,7 @@ function runPnpm(args: readonly string[]): Promise<void> {
         NPM_CONFIG_USERCONFIG: userConfig,
         ...desktopNodeEnvironment(NODE, join(RUNTIME_ROOT, 'bin'), {}),
         PATH: `${join(RUNTIME_ROOT, 'bin')}${delimiter}${process.env.PATH ?? ''}`,
-        XDG_CACHE_HOME: join(PNPM_BUILD_STATE, 'cache'),
+        XDG_CACHE_HOME: join(STORE_ROOT, 'metadata'),
         XDG_CONFIG_HOME: config,
         XDG_STATE_HOME: join(PNPM_BUILD_STATE, 'state'),
       },

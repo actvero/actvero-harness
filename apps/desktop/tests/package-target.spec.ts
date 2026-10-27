@@ -157,3 +157,10 @@ it('allows skipping notarization only for signed macOS packages', () => {
   }
   expect(() => parseDesktopPackageInvocation(['win-x64', '--skip-notarization'], 'win32', 'x64')).toThrow(/requires a signed macOS build/u)
 })
+
+
+it('requires native Windows ARM64 for the signed ARM64 package target', () => {
+  expect(resolveDesktopPackageTarget('win-arm64', 'win32', 'arm64')).toMatchObject({ platform: 'win32', arch: 'arm64', builderPlatform: '--win', builderArch: '--arm64' })
+  expect(() => resolveDesktopPackageTarget('win-arm64', 'win32', 'x64')).toThrow(/Windows arm64/u)
+  expect(() => resolveDesktopPackageTarget('win-arm64', 'darwin', 'arm64')).toThrow(/Windows/u)
+})

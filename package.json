@@ -227,7 +227,12 @@
     "actvero:contract:check": "tsx scripts/actvero-contract.ts --check",
     "actvero:build": "tsx scripts/actvero-build.ts",
     "actvero:package": "tsx scripts/actvero-build.ts --package",
-    "actvero:builder": "tsx scripts/actvero-builder.ts"
+    "actvero:builder": "tsx scripts/actvero-builder.ts",
+    "client:build": "node apps/desktop/scripts/build-client-release.mjs",
+    "client:export": "node apps/desktop/scripts/export-client-release.mjs",
+    "package:desktop:win:arm64": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64",
+    "package:desktop:win:arm64:unsigned": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64:unsigned",
+    "package:desktop:win:arm64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64:dir"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",

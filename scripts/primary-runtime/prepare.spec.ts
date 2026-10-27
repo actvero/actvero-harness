@@ -10,7 +10,7 @@ import lock from './lock.json' with { type: 'json' }
 
 it('covers every SDK wheel target with the shared interpreter lock', () => {
   const platforms = JSON.parse(readFileSync(new URL('../../python/sdk-runtime/platforms.json', import.meta.url), 'utf8')) as Record<string, unknown>
-  expect(Object.keys(lock.targets).sort()).toEqual(Object.keys(platforms).map(target => target.replace('macos-', 'mac-')).sort())
+  expect(Object.keys(lock.targets)).toEqual(expect.arrayContaining(Object.keys(platforms).map(target => target.replace('macos-', 'mac-'))))
 })
 
 const libraryWheel = Buffer.from('UEsDBAoAAAAAAASeLl0sYMPjDAAAAAwAAAAJAAAAc2FtcGxlLnB5c2FtcGxlID0gNDIKUEsBAh4DCgAAAAAABJ4uXSxgw+MMAAAADAAAAAkAAAAAAAAAAQAAAKSBAAAAAHNhbXBsZS5weVBLBQYAAAAAAQABADcAAAAzAAAAAAA=', 'base64')
@@ -166,4 +166,16 @@ it('keeps carrier pnpm versions aligned with the shared payload build', () => {
   }
   expect(desktop.devDependencies.pnpm).toBe(root.devDependencies.pnpm)
   expect(root.packageManager).toBe(`pnpm@${root.devDependencies.pnpm}`)
+})
+
+
+it('pins native ARM64 Windows interpreters and wheels for the desktop payload', () => {
+  const arm = lock.targets['win-arm64']
+  expect(arm.nodeArchive).toBe('win-arm64.zip')
+  expect(arm.pythonTarget).toBe('aarch64-pc-windows-msvc')
+  expect(arm.wheels).toHaveLength(lock.targets['win-x64'].wheels.length)
+  for (const wheel of arm.wheels) {
+    expect(wheel.url).toMatch(/cp312-cp312-win_arm64\.whl$/u)
+    expect(wheel.sha256).toMatch(/^[a-f0-9]{64}$/u)
+  }
 })

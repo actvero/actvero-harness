@@ -1,9 +1,27 @@
-/** Resolve the Desktop auto-update channel and its Tencent COS destination. */
+/** Resolve the Desktop update channel and a managed feed or Tencent COS destination. */
 
 import { valid } from 'semver'
 
 /** Environment variable that selects the Desktop update deployment. */
 export const DESKTOP_AUTO_UPDATE_ENV = 'DSH_DESKTOP_AUTO_UPDATE_ENV'
+
+/**
+ * Validate an explicitly configured managed feed root before packaging.
+ * @param {NodeJS.ProcessEnv} env File-owned packaging settings.
+ * @returns {string | undefined} HTTPS root without a trailing slash; undefined retains the deployment default.
+ * @throws {Error} For malformed roots; diagnostics omit the supplied URL.
+ */
+export function managedDesktopUpdateRoot(env) {
+  const value = env.DSH_DESKTOP_UPDATE_BASE_URL
+  if (value === undefined) return undefined
+  let url
+  try { url = new URL(value) } catch { throw new Error('desktop auto-update: DSH_DESKTOP_UPDATE_BASE_URL must be an HTTPS feed root') }
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash
+    || /[\s<>"\\]/u.test(value)) {
+    throw new Error('desktop auto-update: DSH_DESKTOP_UPDATE_BASE_URL must not contain credentials, query, fragment, or whitespace')
+  }
+  return url.toString().replace(/\/$/u, '')
+}
 
 /**
  * Resolve the channel embedded in the installer; omitted local settings retain nightly.
@@ -33,7 +51,7 @@ const UPDATE_ENVIRONMENTS = {
   },
 }
 
-const UPDATE_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64'])
+const UPDATE_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'win-arm64'])
 
 /**
  * Resolve the update deployment, defaulting local release work to test.
@@ -52,7 +70,7 @@ export function resolveDesktopAutoUpdateEnvironment(env) {
  * Resolve one supported platform and architecture to its update directory.
  * @param {NodeJS.Platform} platform - Target Node.js platform.
  * @param {string} arch - Target Node.js architecture.
- * @returns {'mac-arm64' | 'mac-x64' | 'win-x64'} Update target directory.
+ * @returns {'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64'} Update target directory.
  */
 export function resolveDesktopAutoUpdateTarget(platform, arch) {
   const os = platform === 'darwin' ? 'mac' : platform === 'win32' ? 'win' : platform
@@ -65,7 +83,7 @@ export function resolveDesktopAutoUpdateTarget(platform, arch) {
 
 /**
  * Return the local completion record filename for one packaged target.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64'} target - Supported release target.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64'} target - Supported release target.
  * @returns {string} Filename stored beside electron-builder artifacts.
  */
 export function desktopBuildRecordFilename(target) {
@@ -137,13 +155,19 @@ function httpsOrigin(value, name) {
  * @param {NodeJS.ProcessEnv} env - Packaging or upload environment.
  * @param {NodeJS.Platform} platform - Target Node.js platform.
  * @param {string} arch - Target Node.js architecture.
- * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string }} Resolved updater configuration.
+ * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string }} Resolved updater configuration.
  * @throws {Error} When the test deployment lacks a valid HTTPS origin or a 32-character lowercase hexadecimal release ID.
  */
 export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
   const channel = resolveDesktopUpdateChannel(env)
   const environment = resolveDesktopAutoUpdateEnvironment(env)
   const target = resolveDesktopAutoUpdateTarget(platform, arch)
+  const managedRoot = managedDesktopUpdateRoot(env)
+  if (managedRoot !== undefined) {
+    const keyPrefix = new URL(managedRoot).pathname.replace(/^\/|\/$/gu, '') + `/${target}`
+    return { environment, channel, target, origin: new URL(managedRoot).origin,
+      keyPrefix, binaryKeyPrefix: '', publicUrl: `${managedRoot}/${target}/`, useMultipleRangeRequest: false }
+  }
   const deployment = UPDATE_ENVIRONMENTS[environment]
   let origin = deployment.fixedOrigin
   if (origin === undefined) {
@@ -176,10 +200,13 @@ export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
  * @param {NodeJS.ProcessEnv} env - Upload environment.
  * @param {NodeJS.Platform} platform - Target Node.js platform.
  * @param {string} arch - Target Node.js architecture.
- * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string, bucket: string, secretIdEnvName: string, secretKeyEnvName: string }} Resolved upload configuration.
+ * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64' | 'win-arm64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string, bucket: string, secretIdEnvName: string, secretKeyEnvName: string }} Resolved upload configuration.
  * @throws {Error} When the selected deployment lacks a bucket or valid updater configuration.
  */
 export function resolveDesktopUploadConfig(env, platform, arch) {
+  if (managedDesktopUpdateRoot(env) !== undefined) {
+    throw new Error('desktop auto-update: managed feeds must be published through the platform CLI; export client-release.json first')
+  }
   const update = resolveDesktopAutoUpdateConfig(env, platform, arch)
   const deployment = UPDATE_ENVIRONMENTS[update.environment]
   return {

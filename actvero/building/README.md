@@ -52,6 +52,8 @@ make package-check TARGET=mac-arm64 CONFIG=actvero/product.json
 make package TARGET=mac-arm64 FORMAT=dmg CONFIG=actvero/product.json OUT=dist
 ```
 
+The shortcut `pnpm client:build <target>` uses this same product packager and accepts the same package options. For example, `pnpm client:build mac-arm64 --check` validates the default product without an update address or storage configuration. Updates remain disabled by default; ordinary installer output is `release.json`, while `client:export` separately requires qualified update artifacts and update metadata.
+
 `actvero:check` validates public defaults, locks and artwork. `actvero:build` compiles the complete desktop and client artifacts. `actvero:package` prepares the target runtime, includes the ACTVERO account/capability modules, verifies runtime integrity and creates the branded package. Each package checks Main imports inside the archive and exercises the packaged Host, Office conversions and skill CLI discovery. Two isolated Hosts must serve their frontends concurrently on distinct default ports and survive independent shutdown and restart. `--dir` produces an unpacked test application; omit it for DMG/ZIP on macOS or an NSIS installer on Windows. Nothing is published or installed by these commands.
 
 Prepared artwork, public metadata and packages are under `apps/desktop/.desktop-build/actvero/products/<id>/<fingerprint>/`; packages are in `artifacts/<platform>-<arch>/` beneath that directory. The fingerprint changes with configuration or artwork bytes. Build one profile at a time: compiled workspace files and target runtime preparation are shared.
@@ -77,7 +79,7 @@ Make forwards public values through environment variables without inserting them
 | --- | --- | --- |
 | `CONFIG` | `--config` | Product JSON; default `actvero/product.json`. |
 | `PROFILE` | `--profile` | Local Build Profile; its values provide defaults on top of the selected product JSON. |
-| `TARGET` | `--target` | `mac-arm64`, `mac-x64` or `win-x64`; default current Node platform/architecture. |
+| `TARGET` | `--target` | `mac-arm64`, `mac-x64`, `win-x64` or `win-arm64`; default current Node platform/architecture. |
 | `FORMAT` | `--format` | `dmg`, `zip`, `exe` or `all`; default DMG/ZIP for Mac, EXE for Windows. |
 | `OUT` | `--out` | Export root; default `dist`, relative to the repository or absolute. |
 | `NAME`, `VERSION` | `--name`, `--version` | Display name and exact product version; application identity stays unchanged. |
@@ -118,7 +120,7 @@ System encryption uses the stable `product.applicationId`; `displayName` only ch
 
 ## Platform requirements
 
-Supported targets are `mac-arm64`, `mac-x64` and `win-x64`. macOS targets require macOS; `win-x64` requires a Windows x64 host. Electron packaging can cross-build some applications, but this repository prepares native dependencies and executes target runtime checks. Do not bypass those checks to claim a Windows artifact built on macOS.
+Supported targets are `mac-arm64`, `mac-x64`, `win-x64` and `win-arm64`. macOS targets require macOS; Windows targets require Windows with matching Node architecture. Native Windows ARM64 installation and runtime qualification require an ARM64 Windows host. Electron packaging can cross-build some applications, but this repository prepares native dependencies and executes target runtime checks. Do not bypass those checks to claim a Windows artifact built on macOS.
 
 Use the same configuration in a Windows CI runner for Windows delivery. A Mac can initiate that CI job; compilation and installer verification occur on Windows. This local implementation is verified on macOS ARM64; a Windows runner owns Windows installation, tray and runtime acceptance.
 

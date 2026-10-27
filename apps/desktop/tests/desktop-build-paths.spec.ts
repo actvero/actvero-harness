@@ -1,4 +1,4 @@
-import { join, sep } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   desktopTargetBuildPaths,
@@ -48,7 +48,7 @@ describe('desktop build paths', () => {
     expect(developmentRuntimeDirectory({}, 'darwin', 'x64'))
       .toContain(join('targets', 'mac-x64', 'runtime', 'primary-runtime'))
     expect(developmentRuntimeDirectory({}, 'win32', 'arm64'))
-      .toContain(join('targets', 'win-x64', 'runtime', 'primary-runtime'))
+      .toContain(join('targets', 'win-arm64', 'runtime', 'primary-runtime'))
   })
 
   it('maps every target to the platform and architecture of the payload it prepares', () => {
@@ -67,4 +67,18 @@ describe('desktop build paths', () => {
     expect(() => resolveDesktopBuildTarget({}, 'linux', 'x64')).toThrow(/unsupported target/u)
     expect(() => desktopTargetBuildPaths('linux-x64' as 'mac-x64')).toThrow(/unsupported target/u)
   })
+})
+
+
+it('keeps Windows ARM64 payload paths and architecture separate from x64', () => {
+  expect(desktopTargetPlatform('win-arm64')).toEqual({ platform: 'win32', arch: 'arm64' })
+  expect(desktopTargetBuildPaths('win-arm64').root).not.toBe(desktopTargetBuildPaths('win-x64').root)
+  expect(resolveDesktopBuildTarget({}, 'win32', 'arm64')).toBe('win-arm64')
+})
+
+it('keeps reusable inputs in the project build directory and separates architectures', () => {
+  const cache = resolve(import.meta.dirname, '../.desktop-build/cache')
+  expect(desktopTargetBuildPaths('win-x64').cache).toBe(join(cache, 'win-x64'))
+  expect(desktopTargetBuildPaths('win-arm64').cache).toBe(join(cache, 'win-arm64'))
+  expect(desktopTargetBuildPaths('mac-arm64').cache).toBe(join(cache, 'mac-arm64'))
 })

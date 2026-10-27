@@ -17,7 +17,7 @@ const sourceSchema = z.strictObject({
   channel: z.enum(['nightly', 'latest']),
   runnerName: z.string().min(1),
   // Storage accepts every Desktop target; CI routing separately limits currently provisioned platforms.
-  target: z.enum(['mac-arm64', 'mac-x64', 'win-x64']),
+  target: z.enum(['mac-arm64', 'mac-x64', 'win-x64', 'win-arm64']),
   preset: z.enum(['test', 'production']),
   productVersion: z.string().min(1),
   version: z.string().min(1),
