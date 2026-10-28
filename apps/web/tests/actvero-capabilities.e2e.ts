@@ -265,7 +265,7 @@ function version(path: string): string {
 }
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('ACTVERO capability browser', () => {
   it('loads managers, retains data on failed refresh and fits official selectors', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'actvero-account-composition-'))
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-account-composition-')))
     let host: DesktopHostProcess | undefined
     const controls = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
     const control = (action: 'connector-select' | 'connector-state', input: Record<string, unknown>) =>
@@ -663,7 +663,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await chip.hover()
           await chip.getByRole('button', { name: 'directory-fixture ×', exact: true }).click()
           await expect.poll(() => page.locator('[data-composer-chip="skill"]').count()).toBe(1)
-          await page.keyboard.press('Meta+z')
+          await page.keyboard.press('ControlOrMeta+z')
           await expect.poll(() => page.locator('[data-composer-chip="skill"]').count()).toBe(2)
           await page.screenshot({
             animations: 'disabled',
