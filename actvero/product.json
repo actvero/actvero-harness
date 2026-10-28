@@ -4,7 +4,7 @@
     "id": "actvero",
     "applicationId": "com.actvero.desktop",
     "displayName": "Actvero Harness",
-    "version": "0.1.15",
+    "version": "0.1.18",
     "defaultLocale": "zh-CN"
   },
   "platform": {

@@ -278,13 +278,14 @@ describe('manifest resolution', () => {
     }],
     ['a module path that loops', (f: ReturnType<typeof fixture>) => {
       f.plugin('denied-plugin')
-      symlinkSync('loop.mjs', join(f.dir, 'node_modules', 'denied-plugin', 'loop.mjs'))
+      const loop = join(f.dir, 'node_modules', 'denied-plugin', 'loop')
+      symlinkSync(loop, loop, 'junction')
     }],
   ])('refuses a row whose %s cannot be read', (_label, prepare) => {
     const f = fixture()
     prepare(f)
     const name = _label === 'a module path that loops'
-      ? './node_modules/denied-plugin/loop.mjs' : './node_modules/denied-plugin/index.mjs'
+      ? './node_modules/denied-plugin/loop/main.mjs' : './node_modules/denied-plugin/index.mjs'
     const rows = prepareProfileEntries(context(f), [{ id: 'row', name }], pathToFileURL(f.dir).href + '/')
     expect(rows[0]?.disabled).toBe(true)
     expect(f.warnings.join('\n')).toContain('cannot be validated')

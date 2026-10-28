@@ -65,7 +65,7 @@ The visual builder and Make use the same local `Build Profile` format. A profile
 
 ### Release baseline checks
 
-The desktop pins the officially published `0.2.1-rc.2` release candidate; it is not a final stable tag. The product installer version is independent of the DSH version. The build entry checks that the version, Git tag and commit in `upstream.lock.json` agree and that all shipped DSH workspaces use that version. Alpha/beta development baselines and mixed versions fail before compilation. Do not relabel the root manifest to bypass plugin compatibility checks.
+The desktop pins the officially published `0.2.1-rc.3` release candidate; it is not a final stable tag. The product installer version is independent of the DSH version. The build entry checks that the version, Git tag and commit in `upstream.lock.json` agree and that all shipped DSH workspaces use that version. Alpha/beta development baselines and mixed versions fail before compilation. Do not relabel the root manifest to bypass plugin compatibility checks.
 
 Use separate worktrees for concurrent chats or tasks and rerun `make package-check` after merging. After dependency or client changes, run a full build without reusing old `lib` files or `--skip-prepare`. A new baseline can first be checked with `pnpm run clean`, which removes generated output only. Verify the archived runtime and actual hover, keyboard and menu interactions in the resulting client.
 

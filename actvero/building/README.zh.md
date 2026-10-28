@@ -65,7 +65,7 @@ make package TARGET=mac-arm64 FORMAT=dmg CONFIG=actvero/product.json OUT=dist
 
 ### 发布基线检查
 
-桌面当前锁定官方已发布的 `0.2.1-rc.2`（RC，不是稳定版标签），产品安装包版本与 DSH 版本独立。构建入口验证 `upstream.lock.json` 中的版本、Git 标签与提交号一致，并检查所有随包分发的 DSH 工作区版本；alpha/beta 开发基线或混合版本会在编译前失败。不要仅修改根目录版本号来跳过插件兼容性检查。
+桌面当前锁定官方已发布的 `0.2.1-rc.3`（RC，不是稳定版标签），产品安装包版本与 DSH 版本独立。构建入口验证 `upstream.lock.json` 中的版本、Git 标签与提交号一致，并检查所有随包分发的 DSH 工作区版本；alpha/beta 开发基线或混合版本会在编译前失败。不要仅修改根目录版本号来跳过插件兼容性检查。
 
 多个对话或任务应各用独立工作区，合并后重新运行 `make package-check`。依赖或客户端发生变化后执行完整构建，不复用旧的 `lib` 或 `--skip-prepare`。首次检验新基线可先执行 `pnpm run clean`；这只清理生成产物。安装包仍需验证归档运行时，以及实际页面中的悬停、键盘和菜单点击行为。
 

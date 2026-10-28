@@ -1,3 +1,5 @@
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AccountSnapshot } from '@actvero/dsh-client-account/protocol'
 import { ACCOUNT_IPC } from '../src/actvero/ipc.ts'
@@ -28,7 +30,7 @@ const ready: AccountSnapshot = { phase:'ready', baseUrl:'https://example.test', 
   quota:{ phase:'idle',windows:[] } }
 beforeEach(() => {fake.handlers.clear(); fake.snapshot = structuredClone(ready); vi.clearAllMocks()})
 function mount() {
-  const sender = { mainFrame:{ url:'file:///desktop/renderer/welcome.html' }, send:vi.fn() }
+  const sender = { mainFrame:{ url:pathToFileURL(join('/desktop', 'renderer', 'welcome.html')).href }, send:vi.fn() }
   const window = { isDestroyed:() => false, webContents:sender }
   const enter = vi.fn(async () => {})
   const confirmLogout = vi.fn(async () => false)
