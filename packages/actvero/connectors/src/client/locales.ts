@@ -2,7 +2,7 @@ import { customZh,customEn } from './locales/custom.ts'
 export const zh = {
   ...customZh,
   title: '连接器', platformTab:'平台连接器',localTab:'本机连接器',localHelp:'管理此设备的 MCP 配置，在对话选择器中控制本次使用',noResults:'没有找到相关连接器',
-  hub: '专家·技能·连接器', experts: '专家', skills: '技能',
+  hub: '能力中心', experts: '专家', skills: '技能',
   upcoming: '该能力尚未接入，接入后将在这里展示。',
   try: '去试试', needsAttention: '需要重新连接', capabilities: '能力详情',
   noExamples: '连接后，在对话中描述你想完成的任务。',
@@ -51,7 +51,7 @@ export const zh = {
 export const en: Record<keyof typeof zh, string> = {
   ...zh, ...customEn,
   title: 'Connectors', platformTab:'Platform connectors',localTab:'Local connectors',localHelp:'Manage this device’s MCP configurations. Control their use in each conversation from the selector.',noResults:'No matching connectors',
-  hub: 'Experts · Skills · Connectors', experts: 'Experts', skills: 'Skills',
+  hub: 'Capability Center', experts: 'Experts', skills: 'Skills',
   upcoming: 'This capability is not connected yet. It will appear here when available.',
   try: 'Try it', needsAttention: 'Reconnect required', capabilities: 'Capabilities',
   noExamples: 'Once connected, describe your task in the conversation.',
