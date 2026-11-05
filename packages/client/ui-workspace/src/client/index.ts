@@ -138,7 +138,8 @@ export function apply(ctx: Context): void {
   const searchSessions: WorkspaceBrowserInjected['searchSessions'] = async (query, signal) => {
     const result = await sessions.search(query, signal)
     if (!result.ok) throw new Error(result.error.message)
-    return result.value
+    const visible = uiWorkspace.sessionsView.getSnapshot().byId
+    return { ...result.value, items: result.value.items.filter(item => visible[item.sessionId] !== undefined) }
   }
 
   // Stable per-surface occupancy sources (the renderer's hook cache keys by
@@ -271,7 +272,9 @@ export function apply(ctx: Context): void {
     requestSessionRename,
     notifyArchivedNotOpenable: () => { notify({ kind: 'archivedNotOpenable' }) },
     renameWorkspace: async (workspaceId, title) => { await workspaces.rename(workspaceId, title) },
-    deleteWorkspace: async (workspaceId) => { await workspaces.delete(workspaceId) },
+    deleteWorkspace: async (workspaceId) => {
+      if (!await uiWorkspace.handleWorkspaceDelete(workspaceId)) await workspaces.delete(workspaceId)
+    },
     insertWorkspaceBefore: async (workspaceId, beforeWorkspaceId) => {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
@@ -281,7 +284,10 @@ export function apply(ctx: Context): void {
     requestAddWorkspace: shortcutControls.add,
     closeAddWorkspace: shortcutControls.closeAdd,
     setDirectoryBusy: shortcutControls.directoryBusy,
-    hooks: { directoryFlow: browserFlowSource, hostInfo, workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog },
+    hooks: {
+      browserSessions: uiWorkspace.sessionsView, browserWorkspaces: uiWorkspace.workspacesView,
+      directoryFlow: browserFlowSource, hostInfo, workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog,
+    },
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),

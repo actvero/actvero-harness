@@ -1,5 +1,6 @@
 {
   "excluded": [
+    "actvero/third-party/",
     "actvero/AGENTS.md",
     ".agents/notes/AGENTS.md",
     ".agents/notes/implemented/AGENTS.md",

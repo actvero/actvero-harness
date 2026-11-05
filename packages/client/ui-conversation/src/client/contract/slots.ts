@@ -202,6 +202,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     }
     /** Conversation shell beneath its root-scoped main-panel entry. */
     'main.conversation': { kind: 'single'; scope: 'session-maybe' }
+    /** Optional main surface; occupants compose the native Conversation through its frame Factory. */
+    'main.conversation.surface': { kind: 'single'; scope: 'root' }
     /** Strict per-Session Conversation body. */
     'conversation.session': {
       kind: 'single'
@@ -303,6 +305,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 
   interface SlotFactoryMap {
+    /** Root Conversation frame with a caller-selected layout and the native Conversation outlet. */
+    'conversation.main.frame': {
+      scope: 'root'
+      children: { 'main.conversation': { kind: 'single'; scope: 'session-maybe' } }
+      slots: { body: { scope: 'root' } }
+    }
     /** Reusable Conversation content instantiated by presentation hosts. */
     'conversation.content': {
       scope: 'session-maybe'

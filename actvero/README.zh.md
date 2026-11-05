@@ -43,6 +43,6 @@ pnpm run actvero:prepare
 
 ## 交付范围
 
-此开发流程接入登录、额度展示、平台模型选择和[专家、技能与 MCP 管理器](../packages/actvero/capability-ui/README.zh.md)。`平台模型`供应商读取平台模型目录，并由 Electron Main 按需签发短期单模型资源令牌；凭据不会进入渲染器或 Host。第三方侧栏与市场插件、签名发行安装包和更新渠道仍不属于本开发流程。本地工作区与自定义模型配置仍可使用。官方打包见[桌面参考](../apps/desktop/README.zh.md)。
+此开发流程接入登录、额度展示、平台模型选择、[专家、技能与 MCP 管理器](../packages/actvero/capability-ui/README.zh.md)以及 [DSH Desktop 工作台宿主](workbenches.zh.md)。`平台模型`供应商读取平台模型目录，并由 Electron Main 按需签发短期单模型资源令牌；凭据不会进入渲染器或 Host。签名发行安装包和更新渠道仍不属于本开发流程。本地工作区与自定义模型配置仍可使用。官方打包见[桌面参考](../apps/desktop/README.zh.md)。
 
 [能力集成与验收](capabilities.zh.md)。

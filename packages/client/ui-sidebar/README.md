@@ -97,6 +97,8 @@ These pages cover the surfaces that fill the shell's seats and the composition m
 
 -----
 
+An optional root-scoped `sidebar.quickSwitcher` single slot appears above global panel rows. It receives `wide` and `startSession`; an absent occupant leaves the native sidebar unchanged.
+
 <a id="model-experience"></a>
 ## Model Experience
 

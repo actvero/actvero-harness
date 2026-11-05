@@ -49,6 +49,8 @@ Connection 拥有请求 URL 解析、request correlation、`/api` carrier、trus
 
 ### Workspaces
 
+[`ui-workspace`](../../packages/client/ui-workspace/README.zh.md) 的可选导航策略可以接管会话打开、空白会话复用、新会话入口及带归属的工作区删除。侧栏过滤器发布独立的可观察目录，不改变原始 Client model；每项注册都可以注销。[`ui-sidebar`](../../packages/client/ui-sidebar/README.zh.md) 的模式切换槽位和 [`ui-conversation`](../../packages/client/ui-conversation/README.zh.md) 的主框架 Factory 支持桌面宿主把业务组件与现有原生对话组合。
+
 [`api/workspace-controller`](../../packages/api/workspace-controller/README.zh.md)把 Workspace 变更策略与权威 follow feed 留在 Host。`ClientWorkspaceModel` 拥有浏览器行、Workspace 顺序、归档与置顶 Session id 数组、命令回显，以及流与一元调用的竞态合并。每代 stream 先给出完整 baseline，再给出 `upsert`、`remove`、`order`、`archived` 和 `pinned` increment；重连时以新 baseline 替换 model。`WorkspaceController` 把该 model 作为 `ctx.workspaces` 公开，`ui-workspace` 则提供 `useWorkspaces` 与导航回调。侧边栏的 `ArchivedFilter` 控制列表与搜索中的默认隐藏、显示已归档或仅显示已归档。归档行保留排序位置、置灰展示，必须通过行菜单或搜索结果的取消归档操作恢复后才能打开。恢复调用 `workspace.unarchiveSession`，完整归档集合通过一元响应及 `archived` increment 到达 Client。Session 显示顺序保存在浏览器本地，包含隐藏归档项；置顶在该完整顺序内移动 Session，取消置顶不恢复先前位置。
 
 这种配对不会产生第二份业务真相。Host controller 决定持久状态与 mutation outcome；Client model 维护最新可用的本地 projection，在有利于渲染时保持 object identity，并明确 delayed response 与 replacement baseline 的合并规则。

@@ -171,6 +171,8 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 
 `conversation.input.activity` 在模型选择器与发送按钮之间承载一个控件。其 `onActiveChange` 回调将控件展开至整条工具栏并隐藏普通辅助控件和上下文用量按钮，同时保留编辑器与提交按钮。关闭活动后恢复这些控件，上下文详情保持关闭。首页输入框下方没有内容时，该区域保持收起。占用者在卸载时释放展开状态，并拥有活动专属反馈。
 
+根级槽位 `main.conversation.surface` 允许宿主在原生 Conversation 周围安排业务内容。注册者通过 `conversation.main.frame` Factory 提供局部 `body` 组件，由框架向该组件提供 `main.conversation` 渲染入口。没有注册者时，Factory 直接渲染普通 Conversation。
+
 <a id="model-experience"></a>
 ## 模型体验
 

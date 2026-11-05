@@ -36,6 +36,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'sidebar.panellist': { kind: 'list'; scope: 'root'; owner: SidebarPanelIconOwnerProps }
     /** Rows of the panel list's More menu; the sidebar shows More only while this list has registrations. */
     'sidebar.panellist.actions': { kind: 'list'; scope: 'root'; owner: SidebarPanelActionsOwnerProps }
+    /** Optional mode switcher above the global panel list. */
+    'sidebar.quickSwitcher': { kind: 'single'; scope: 'root'; owner: Pick<SidebarSectionOwnerProps, 'wide'> & Pick<SidebarRootInjected, 'startSession'> }
     /**
      * The workspace/session browsing region: section header, search, the
      * grouped/flat session list, and every workspace dialog. Declared by this
@@ -191,6 +193,7 @@ export type SidebarRootComponentProps =
     | 'sidebar.toggle.badge'
     | 'sidebar.panellist'
     | 'sidebar.panellist.actions'
+    | 'sidebar.quickSwitcher'
     | 'sidebar.workspaces'
     | 'sidebar.settings'
     | 'sidebar.footer.action'

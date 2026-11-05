@@ -44,6 +44,7 @@ export function HeaderLeadingControls({ toggleSidebar, startSession, trackEntryC
           type="button"
           className={css.iconButton}
           aria-label={t('session.new.label')}
+          data-dsh-sidebar-new-session=""
           aria-keyshortcuts={newShortcut?.aria}
           onClick={() => {
             trackEntryClick({ menu_name: 'new_session', position: 'titlebar' })

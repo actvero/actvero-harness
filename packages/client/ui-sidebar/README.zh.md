@@ -97,6 +97,8 @@ root 作用域的 `sidebar.panellist.actions` list 有注册项时，导航区�
 
 -----
 
+可选的根级单槽位 `sidebar.quickSwitcher` 位于全局面板列表上方，接收 `wide` 和 `startSession`；没有注册者时保持原生侧栏布局。
+
 <a id="model-experience"></a>
 ## 模型体验
 

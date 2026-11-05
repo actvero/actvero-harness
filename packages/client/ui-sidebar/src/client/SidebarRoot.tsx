@@ -314,6 +314,7 @@ export function SidebarRoot({
         <button
           type="button"
           className={css.newSession}
+          data-dsh-sidebar-new-session=""
           aria-label={t('session.new.label')}
           aria-keyshortcuts={newShortcut?.aria}
           onClick={openNewSession}
@@ -329,6 +330,8 @@ export function SidebarRoot({
           </span>}
         </button>
       </Tooltip>
+
+      {renderSlot('sidebar.quickSwitcher', { wide, startSession })}
 
       {panels.length > 0 && (
         <nav className={css.panelList} aria-label={t('panels.label')}>

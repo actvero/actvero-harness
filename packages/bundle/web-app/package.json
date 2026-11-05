@@ -43,6 +43,7 @@
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
+  "bundledDependencies": ["dsh-desktop-workbenches"],
   "dsh": {
     "bundle": {
       "patch": [
@@ -194,7 +195,11 @@
     "@actvero/dsh-capability-ui": "workspace:*",
     "@actvero/dsh-skills": "workspace:*",
     "@actvero/dsh-connectors": "workspace:*",
-    "@actvero/dsh-experts": "workspace:*"
+    "@actvero/dsh-experts": "workspace:*",
+    "@actvero/dsh-model-gateway": "workspace:*",
+    "dsh-desktop-workbenches": "file:../../../actvero/third-party/dsh-desktop-workbenches",
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/dsh-sandbox": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

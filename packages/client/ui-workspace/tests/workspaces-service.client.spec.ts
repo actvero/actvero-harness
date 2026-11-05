@@ -682,6 +682,55 @@ describe('UiWorkspaceService', () => {
     expect(b.sessions.retain).not.toHaveBeenCalled()
   })
 
+  it('excludes a workbench-owned blank from native reuse and restores reuse on disposal', async () => {
+    const b = bench({
+      sessions: sessionState([
+        summary('owned', { blank: true, cwd: '/w/a' }),
+        summary('ordinary', { blank: true, cwd: '/w/a' }),
+      ], 'pending'),
+      workspaces: workspaceState([workspace('a', [sid('owned'), sid('ordinary')])]),
+    })
+    const remove = b.uiWorkspace.registerSessionReuseFilter(id => id !== sid('owned'))
+    await expect(b.uiWorkspace.connectWorkspace(wid('a'))).resolves.toBe(sid('ordinary'))
+    remove()
+    await expect(b.uiWorkspace.connectWorkspace(wid('a'))).resolves.toBe(sid('owned'))
+  })
+
+  it('lets a scoped Workspace opener handle navigation before creating an ordinary blank', async () => {
+    const b = bench({
+      sessions: sessionState([summary('history')], 'pending'),
+      workspaces: workspaceState([workspace('a')]),
+    })
+    const open = vi.fn(() => true)
+    const remove = b.uiWorkspace.registerSessionOpener(open)
+    await b.uiWorkspace.openWorkspace(wid('a'))
+    expect(open).toHaveBeenCalledExactlyOnceWith(undefined, 'workspace', { workspaceId: wid('a') })
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    remove()
+    await b.uiWorkspace.openWorkspace(wid('a'))
+    expect(b.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('a') })
+  })
+
+  it('filters only sidebar projections and restores all rows when a contribution unloads', () => {
+    const b = bench({
+      sessions: sessionState([summary('one'), summary('two')], 'pending'),
+      workspaces: workspaceState([workspace('a'), workspace('b')]),
+    })
+    const scope = createSnapshotStore('one')
+    const stopSessions = b.uiWorkspace.registerSessionFilter(id => id === scope.getSnapshot(), scope.subscribe)
+    const stopWorkspaces = b.uiWorkspace.registerWorkspaceFilter(id => id === wid('a'), scope.subscribe)
+    expect(b.uiWorkspace.sessionsView.getSnapshot().ids).toEqual([sid('one')])
+    expect(b.uiWorkspace.workspacesView.getSnapshot().items.map(item => item.workspaceId)).toEqual([wid('a')])
+    expect(b.sessions.list.getSnapshot().ids).toEqual([sid('one'), sid('two')])
+    expect(b.workspaces.list.getSnapshot().items).toHaveLength(2)
+    scope.set('two')
+    expect(b.uiWorkspace.sessionsView.getSnapshot().ids).toEqual([sid('two')])
+    stopSessions()
+    stopWorkspaces()
+    expect(b.uiWorkspace.sessionsView.getSnapshot()).toBe(b.sessions.list.getSnapshot())
+    expect(b.uiWorkspace.workspacesView.getSnapshot()).toBe(b.workspaces.list.getSnapshot())
+  })
+
   it('returns New Session to the Workspace blank that holds its unsent draft', async () => {
     const b = bench({
       sessions: sessionState([summary('blank', { blank: true, cwd: '/w/a' })], 'pending'),

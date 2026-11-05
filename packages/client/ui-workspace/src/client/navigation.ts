@@ -21,6 +21,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { RowToast } from './contract/slots.ts'
+import { WorkspaceNavigationPolicies, type NavigationPolicyRegistration, type SessionOpener } from './navigation-policies.ts'
 import { pinOrderAccounts, pinOrderSource } from './pin-order.ts'
 import type { WorkspaceViewStoreActions } from './stores.ts'
 
@@ -36,7 +37,17 @@ export interface StartSessionOptions extends DraftInitializationOptions {
 }
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
-export interface UiWorkspace {
+export interface UiWorkspace extends NavigationPolicyRegistration {
+  /** Filtered sidebar Session catalog; the native Controller remains unchanged. */
+  readonly sessionsView: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<SessionListState>
+  /** Filtered sidebar Workspace catalog. */
+  readonly workspacesView: import('@deepseek-ai/dsh-client-store').ObservableSnapshot<WorkspaceSnapshot>
+  /**
+   * Resolve a scoped removal before native Workspace deletion.
+   * @param workspaceId - Workspace being removed from the current scope.
+   * @returns whether a registered policy handled the removal.
+   */
+  handleWorkspaceDelete(workspaceId: WorkspaceId): Promise<boolean>
   /**
    * Select a Session and show its Conversation as one UI navigation action.
    * @param target - known Session identity or durable direct-parent subagent address to display.
@@ -161,6 +172,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     {}, { persist: { name: 'dsh.sessions.current' } },
   )
   private mainReference: SessionReference | undefined
+  private readonly policies: WorkspaceNavigationPolicies
 
   /**
    * @param ctx - Client root Context.
@@ -179,10 +191,12 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     private readonly notify: (toast: RowToast) => void,
   ) {
     super(ctx, 'uiWorkspace')
+    this.policies = new WorkspaceNavigationPolicies(sessions.list, workspaces.list)
     ctx.effect(() => {
       const stop = this.watchNavigation()
       return () => {
         stop()
+        this.policies.dispose()
         this.lifetime.abort()
         const reference = this.mainReference
         this.mainReference = undefined
@@ -190,6 +204,16 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       }
     }, 'ui-workspace: Workspace navigation policy')
   }
+
+  get sessionsView() { return this.policies.sessions }
+  get workspacesView() { return this.policies.workspaces }
+  registerSessionOpener(handler: SessionOpener) { return this.policies.registerSessionOpener(handler) }
+  registerSessionReuseFilter(handler: Parameters<NavigationPolicyRegistration['registerSessionReuseFilter']>[0]) { return this.policies.registerSessionReuseFilter(handler) }
+  registerSessionFilter(handler: Parameters<NavigationPolicyRegistration['registerSessionFilter']>[0], subscribe: Parameters<NavigationPolicyRegistration['registerSessionFilter']>[1]) { return this.policies.registerSessionFilter(handler, subscribe) }
+  registerWorkspaceFilter(handler: Parameters<NavigationPolicyRegistration['registerWorkspaceFilter']>[0], subscribe: Parameters<NavigationPolicyRegistration['registerWorkspaceFilter']>[1]) { return this.policies.registerWorkspaceFilter(handler, subscribe) }
+  registerWorkspaceDeleteHandler(handler: Parameters<NavigationPolicyRegistration['registerWorkspaceDeleteHandler']>[0]) { return this.policies.registerWorkspaceDeleteHandler(handler) }
+  registerSessionStarter(handler: Parameters<NavigationPolicyRegistration['registerSessionStarter']>[0]) { return this.policies.registerSessionStarter(handler) }
+  handleWorkspaceDelete(workspaceId: WorkspaceId) { return this.policies.remove(workspaceId) }
 
   connectWorkspace(workspaceId: WorkspaceId, options: Pick<StartSessionOptions, 'agentPreset'> = {}): Promise<SessionId> {
     return this.connectBlank(workspaceId, options)
@@ -224,7 +248,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const blank = sessions.ids.find((id) => {
       const summary = sessions.byId[id]
       const listed = summary?.projectionValues?.agentPreset
-      return summary !== undefined && summary.blank && summary.cwd === workspace.path
+      return this.policies.reusable(id) && summary !== undefined && summary.blank && summary.cwd === workspace.path
         && workspace.sessionIds.includes(id) && !archived.includes(id)
         && (options.agentPreset === undefined || typeof listed !== 'string' || listed === options.agentPreset)
     })
@@ -277,6 +301,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   openSession(target: SessionTarget): void {
+    if (typeof target === 'string' && this.policies.open(target, 'explicit-session')) return
     this.replaceMain(target, this.lifetime.signal, 'reveal')
   }
 
@@ -293,6 +318,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     beforeOpen: ((sessionId: SessionId) => void) | undefined,
     reuse: Pick<StartSessionOptions, 'agentPreset'>,
   ): Promise<void> {
+    if (this.policies.open(undefined, 'workspace', { workspaceId })) return
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
     let sessionId: SessionId
     try {
@@ -321,6 +347,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void {
+    if (this.policies.start(workspaceId)) return
     const { agentPreset, ...draft } = options ?? {}
     const draftOptions = options === undefined ? undefined : draft
     const initializeDraft = draftOptions !== undefined && (draftOptions.prompt !== undefined

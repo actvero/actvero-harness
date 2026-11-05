@@ -39,6 +39,7 @@ import type { EnterBehaviorRowInjected } from './settings/EnterBehaviorRow.tsx'
 import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
 import { ConversationContent } from './skeleton/ConversationContent.tsx'
 import { ConversationPanel } from './skeleton/ConversationPanel.tsx'
+import { ConversationMainFrame } from './skeleton/ConversationMainFrame.tsx'
 import { ConversationHeader } from './skeleton/ConversationHeader.tsx'
 import { ConversationSession, ConversationSessionHeader } from './skeleton/ConversationSession.tsx'
 import { InputBar } from './skeleton/InputBar.tsx'
@@ -570,8 +571,14 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     yield slots.register({
       name: 'main',
       key: 'conversation',
-      children: { 'main.conversation': { kind: 'single', scope: 'session-maybe' } },
+      children: { 'main.conversation.surface': { kind: 'single', scope: 'root' } },
     }, ConversationPanel)
+    yield slots.registerFactory({
+      name: 'conversation.main.frame',
+      scope: 'root',
+      children: { 'main.conversation': { kind: 'single', scope: 'session-maybe' } },
+      slots: { body: { scope: 'root' } },
+    }, ConversationMainFrame)
     yield registerConversationRoot()
     yield registerConversationContent()
     yield registerConversationSession()

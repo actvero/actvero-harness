@@ -202,6 +202,8 @@ These pages cover the sidebar host, the hero surface, and the picking backends.
 
 -----
 
+`uiWorkspace` accepts reversible policies for opening Sessions, reusing blank Sessions, starting Sessions and handling Workspace deletion. Optional Session and Workspace filters create sidebar-only projections; the original Controllers stay unfiltered. Contributions subscribe to their own state changes and remove their filters and subscriptions on disposal. Scoped Workspace opens are intercepted before ordinary blank creation.
+
 <a id="model-experience"></a>
 ## Model Experience
 

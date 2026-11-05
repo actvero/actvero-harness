@@ -118,10 +118,12 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     wide: true,
     expandSidebar: vi.fn(),
     useSessions: hook(sessionState([])),
+    useBrowserSessions: overrides.useBrowserSessions ?? overrides.useSessions ?? hook(sessionState([])),
     useSessionStatus: hook(noPendingInteraction),
     useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource,
     useWorkspaces: hook(workspaceState([])),
+    useBrowserWorkspaces: overrides.useBrowserWorkspaces ?? overrides.useWorkspaces ?? hook(workspaceState([])),
     ...allowAllAccess,
     useStore: bindSnapshotSelector(store),
     actions: store.actions,
@@ -148,6 +150,8 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
 /** Re-render with (possibly) changed props — WorkspaceBrowser has no side channel. */
 function rerender(b: ReturnType<typeof mount>, overrides: Partial<WorkspaceBrowserProps>) {
   Object.assign(b.props, overrides)
+  if (overrides.useSessions) b.props.useBrowserSessions = overrides.useSessions
+  if (overrides.useWorkspaces) b.props.useBrowserWorkspaces = overrides.useWorkspaces
   b.view.rerender(<WorkspaceBrowser {...b.props} />)
 }
 
