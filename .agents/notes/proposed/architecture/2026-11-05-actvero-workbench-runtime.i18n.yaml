@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-11-05-actvero-workbench-runtime.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-11-05-actvero-workbench-runtime.md
+/agent-note-actvero-workbench-runtime-context-and-local-experts:
+  en: 02b365cc523566cd
+  zh: e6e972363e033596
+/agent-note-actvero-workbench-runtime-context-and-local-experts/problem:
+  en: bb6777edb976a5a9
+  zh: cf4b2c5141b4999b
+/agent-note-actvero-workbench-runtime-context-and-local-experts/proposal:
+  en: bcf3bcb6ed0ca8d5
+  zh: 44828d742ad87c97
+/agent-note-actvero-workbench-runtime-context-and-local-experts/proposal/local-experts-and-lifecycle:
+  en: 8ec64d78fd91a722
+  zh: 259a114feb47b152
+/agent-note-actvero-workbench-runtime-context-and-local-experts/proposal/identity-and-authorization-context:
+  en: 8e70cbdce0133db3
+  zh: 865961ca5cf9fd77
+/agent-note-actvero-workbench-runtime-context-and-local-experts/alternatives-considered:
+  en: 78581ab879c65f25
+  zh: 2c4b900a290d391f
+/agent-note-actvero-workbench-runtime-context-and-local-experts/acceptance-criteria:
+  en: 1b779d951cb039ae
+  zh: 1af7fe5d3ad2ab44
+/agent-note-actvero-workbench-runtime-context-and-local-experts/risks:
+  en: 2f4e06a638b98b62
+  zh: 66983d644733e7e5

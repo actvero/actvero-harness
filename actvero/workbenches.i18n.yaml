@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbenches.md
 /actvero-client-workbenches:
-  en: e7b3b12882fddd98
-  zh: dd0281fb0677e97c
+  en: 4193a7f0997bc1e5
+  zh: 029fcc421cb0674a
 /actvero-client-workbenches/launch-and-navigation:
   en: 29cc2cabb7a3e426
   zh: 0014a4e0c0ff85cc
