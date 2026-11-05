@@ -30,6 +30,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       vi.stubEnv('DSH_HOME', home)
       vi.stubEnv('DSH_TELEMETRY_MODE', 'DISABLED')
       vi.stubEnv('ACTVERO_DESKTOP', '1')
+      vi.stubEnv('DSH_CLIENT_VERSION', version(join(repository, 'apps/desktop/package.json')))
       const project = prepareDevelopmentProject({
         projectDir: join(root, 'project'), cliDir: join(repository, 'apps/cli'),
         hostDir: join(repository, 'apps/desktop-host'), dependencyDir: join(repository, 'node_modules/.pnpm/node_modules'),
@@ -93,7 +94,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         page.on('response', async (response) => { if (response.status() >= 500) console.error('Host failure', new URL(response.url()).pathname, await response.text()) })
         page.on('console', (message) => { if (message.type() === 'error') console.error(message.text()) })
         await page.goto(ready.url)
-        try { await page.getByRole('button', { name: '打开工作台主页', exact: true }).click() }
+        try { await page.getByRole('button', { name: '工作台', exact: true }).click()
+          await page.getByRole('button', { name: 'DSH 兼容市场', exact: true }).click() }
         catch (error) {
           await page.screenshot({ path: join(repository, '.artifacts/actvero-workbenches-failure.png') })
           console.error('Workbench boot', errors, await page.locator('body').innerText())
@@ -141,6 +143,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         }, { timeout: 20_000 }).toBe(true)
         const expand = page.getByRole('button', { name: '打开侧边栏', exact: true })
         if (await expand.isVisible()) await expand.click()
+        await page.getByRole('button', { name: '工作台', exact: true }).click()
+        await page.getByRole('button', { name: 'DSH 兼容市场', exact: true }).click()
         await page.locator('.dshWbModeSwitch').click()
         await page.getByRole('menuitemradio').filter({ hasText: title }).click()
         await page.reload()

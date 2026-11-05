@@ -173,6 +173,9 @@ export const SERVICE_PAGE: Record<string, string> = {
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   capabilityHub: 'client-side capability navigation and notifications — packages/actvero/capability-ui/README.md owns the API',
   actveroMcp: 'interface-typed Host adapter provided as an object, not a service class; refreshes session-scoped MCP registrations — packages/actvero/connectors/README.md owns the API',
+  actveroWorkbenches: 'client-side local workbench registration and navigation; packages/actvero/workbenches/README.md owns the API',
+  desktopWorkbenches: 'typed client adapter for the preserved DSH compatibility host; actvero/workbenches.md owns the integration',
+  actveroWorkbenchRuntime: 'interface-typed local provider registration, supplied as an object; packages/actvero/workbenches/README.md owns the API',
   actveroExpertPolicy: 'interface-typed Host adapter provided as an object, not a service class; resolves expert connector permissions — packages/actvero/experts/README.md owns the API',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',

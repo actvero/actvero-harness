@@ -202,7 +202,7 @@ export function baselineEnvironment(root: string, id: string, environment: NodeJ
 
 async function main(): Promise<void> {
   const { values } = parseArgs({ args: process.argv.slice(2).filter(value => value !== '--'), options: { check: { type: 'boolean' }, prepare: { type: 'boolean' },
-    config: { type: 'string' }, baseline: { type: 'boolean' }, account: { type: 'boolean' }, 'skip-build': { type: 'boolean' } } })
+    config: { type: 'string' }, baseline: { type: 'boolean' }, account: { type: 'boolean' }, 'skip-build': { type: 'boolean' }, 'workbench-preview': { type: 'boolean' } } })
   if ([values.check, values.prepare, values.baseline, values.account].filter(Boolean).length !== 1 || values['skip-build'] && !values.baseline && !values.account) {
     throw new Error('ACTVERO: choose exactly one of --check, --prepare, --baseline or --account; --skip-build requires a desktop mode')
   }
@@ -220,6 +220,10 @@ async function main(): Promise<void> {
     return
   }
   const environment = baselineEnvironment(root, values.account ? `${assembly.config.product.id}-account` : assembly.config.product.id, process.env)
+  if (values['workbench-preview']) {
+    const preview = baselineEnvironment(root, `${assembly.config.product.id}-workbench-preview`, process.env)
+    Object.assign(environment, preview, { DSH_DESKTOP_MAIN_INSPECT_PORT: '19529', DSH_DESKTOP_RENDERER_DEBUG_PORT: '19522', DSH_DESKTOP_HOST_INSPECT_PORT: '19530' })
+  }
   environment.ACTVERO_DESKTOP = values.account ? '1' : '0'
   environment.ACTVERO_PRODUCT_CONFIG = resolve(root, values.config ?? 'actvero/product.json')
   environment.ACTVERO_ICON_PATH = join(branding.directory, 'icon.png')

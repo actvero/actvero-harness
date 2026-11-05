@@ -232,7 +232,8 @@
     "client:export": "node apps/desktop/scripts/export-client-release.mjs",
     "package:desktop:win:arm64": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64",
     "package:desktop:win:arm64:unsigned": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64:unsigned",
-    "package:desktop:win:arm64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64:dir"
+    "package:desktop:win:arm64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:arm64:dir",
+    "actvero:preview:workbenches": "tsx scripts/actvero-product.ts --account --skip-build --workbench-preview"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",
@@ -310,6 +311,7 @@
   },
   "dependencies": {
     "@actvero/dsh-capability-ui": "workspace:*",
+    "@actvero/dsh-workbenches": "workspace:*",
     "@actvero/dsh-connectors": "workspace:*",
     "@actvero/dsh-experts": "workspace:*",
     "@actvero/dsh-skills": "workspace:*"

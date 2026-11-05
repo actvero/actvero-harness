@@ -25,6 +25,29 @@ export type Config = Readonly<Record<string, never>>
 ```
 <!-- END GENERATED config-catalog:@actvero/dsh-model-gateway -->
 
+<!-- BEGIN GENERATED config-catalog:@actvero/dsh-workbenches -->
+<a id="actverodsh-workbenches"></a>
+
+## `@actvero/dsh-workbenches`
+
+- `inject`: `connection` · `sessionController` · `workspaceRegistry` · `agents` · `tools` · `systemPrompt`
+- `source`: [`packages/actvero/workbenches/src/index.ts:22`](../packages/actvero/workbenches/src/index.ts)
+
+```ts config-catalog
+/** Local storage, polling and archive limits resolved at plugin activation. */
+export interface Config {
+  /** Absolute local directory containing business records and managed project files. */
+  root: string
+  /** Milliseconds between client state reads; at least 500. */
+  refreshIntervalMs: number
+  /** Maximum compressed archive size accepted for local bundle staging. */
+  maxImportBytes: number
+  /** Include the bundled creative and asset-notes reference providers. */
+  examples: boolean
+}
+```
+<!-- END GENERATED config-catalog:@actvero/dsh-workbenches -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-acp -->
 <a id="deepseek-aidsh-acp"></a>
 

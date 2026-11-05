@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/actvero/workbenches/README.md
+/:
+  en: a5bc65b27202576b
+  zh: d0de4767658189ec
+/actvero-local-workbenches:
+  en: a3501de583cdafab
+  zh: 8005cb640aa4f59b
+/actvero-local-workbenches/summary:
+  en: 94754d0d831273fe
+  zh: 17e8326fe797eca2
+/actvero-local-workbenches/table-of-contents:
+  en: 82ea3521799855db
+  zh: a769da215d535a58
+/actvero-local-workbenches/runtime-and-storage:
+  en: dcdb98a9acc3e08d
+  zh: eb82ba12f1f01176
+/actvero-local-workbenches/providers-and-interfaces:
+  en: 69d7dad821e66f5f
+  zh: 1542b621fd3eb52c
+/actvero-local-workbenches/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/actvero-local-workbenches/model-experience/local-business-data-tools:
+  en: 68084f3edac99a07
+  zh: 5702488d8a5a4e92
+/actvero-local-workbenches/model-experience/local-business-data-tools/what-the-model-sees:
+  en: d4f3e97511bc6b15
+  zh: 8aaba6a01f137531
+/actvero-local-workbenches/model-experience/local-business-data-tools/token-effect:
+  en: 169661b5ae3320bc
+  zh: 13859d769ca844be
+/actvero-local-workbenches/model-experience/local-business-data-tools/kv-cache-effect:
+  en: 60daf7c4d9642fe2
+  zh: e19b939cca8a98ef
+/actvero-local-workbenches/known-limitations-and-deferred-work:
+  en: e1f19f2a936c5c05
+  zh: b9440aec004224c5
+/actvero-local-workbenches/known-limitations-and-deferred-work/dev-note:
+  en: a220f287ea9b6491
+  zh: 9c3754380897ef79

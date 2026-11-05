@@ -8,15 +8,15 @@
 
 ## 启动和入口
 
-完成依赖安装后，运行 `pnpm run actvero:dev`；已有最新构建时运行 `pnpm run actvero:start`。这两个入口使用独立开发数据，不读取已安装客户端的账户和会话。展开左侧栏，点击「工作台」打开工作台主页；右侧名称区域可切换普通会话与已加载的工作台。「已安装」显示本地包及其实际运行状态。
+完成依赖安装后，运行 `pnpm run actvero:dev`；已有最新构建时运行 `pnpm run actvero:start`。独立预览可运行 `pnpm run actvero:preview:workbenches`。这些入口使用开发数据，不读取已安装客户端的账户和会话。展开左侧栏，点击「工作台」进入本地首页；选择工作台后整页展示业务内容，通过顶部「业务／并排／对话」切换布局，左上角返回首页。
 
 ## 宿主和业务包
 
-工作台宿主采用 DataElement 的 DSH Desktop 源码，MIT 许可及固定来源见 [第三方来源说明](third-party/dsh-desktop-workbenches/UPSTREAM.md)。宿主保留工作台主页、市场目录、收藏、切换、安装状态，以及业务面板与原生 AI 会话的组合方式。当前市场仍读取 DSH 的公开目录；Actvero 中台的发布、组织分发与审核尚未接入。
+本地宿主由 [Actvero 工作台包](../packages/actvero/workbenches/README.zh.md) 提供。创作画布与素材说明是可保存的内置参考应用，不是已接通生成服务的业务插件。无需先选择文件夹或手动新建项目；打开 AI 助手后才建立原生会话，新话题沿用当前资料位置。业务资料与会话通过持久关联连接，不使用工作台独占会话模式。平台鉴权上下文、模型目录和内置专家自动加载尚未接入。
 
-业务工作台是独立的 DSH bundle。客户端加载包后，业务插件通过 `ctx.desktopWorkbenches.register(descriptor, Component)` 注册并返回注销函数；插件必须以 Cordis effect 管理注册。纯本地包可以省略仓库地址，宿主根据包名生成稳定身份。详细包格式和布局规则见随源码保留的 [上游开发规范快照](third-party/dsh-desktop-workbenches/)；快照不是在线最新规范。
+旧 DSH 工作台通过首页的「DSH 兼容市场」进入，继续沿用原来的切换和会话归属规则。MIT 许可与固定来源见 [第三方来源说明](third-party/dsh-desktop-workbenches/UPSTREAM.md)。公开市场仍读取 DSH 目录；Actvero 中台的发布、组织分发与审核尚未接入。
 
-普通分栏由宿主同时展示业务面板与原生会话。业务整页模式由业务组件安排首次使用入口，需要 AI 协助时调用宿主的会话接口并放置宿主提供的会话节点。客户端通过原生插槽和 Factory 组合会话，没有复制另一套聊天界面。侧栏过滤只影响展示；Session、Workspace Controller 的原始目录保持完整，普通会话与工作台会话各自保留。
+本地业务包通过 Host 提供者和 Client 业务插槽注册，开发接口、资料格式与模型工具见[包参考](../packages/actvero/workbenches/README.zh.md)。原 DSH bundle 使用 `ctx.desktopWorkbenches.register(descriptor, Component)`；其[上游开发规范快照](third-party/dsh-desktop-workbenches/)不代表在线最新规范，也不自动转换为 Actvero 业务提供者。
 
 ## 安装和版本限制
 
@@ -26,6 +26,6 @@ npm 市场包先按目录提供的 SHA-512 校验下载内容及包名、版本�
 
 ## 开发验证
 
-`apps/web/tests/actvero-workbenches.e2e.ts` 使用真实 Desktop Host 和临时本地工作台包，检查已安装列表、切换、首次无会话入口、按需打开原生对话、刷新恢复以及浅色、深色和较窄窗口。示例包只存在于临时验收 Profile，不作为业务工作台随产品发布。工作区导航测试检查会话归属、空白会话复用及过滤贡献的注销。
+本地工作台的浏览器验收使用真实 Desktop Host，检查本地保存、原生输入框、视图与话题切换、草稿及刷新恢复，并覆盖浅色、深色和较窄窗口。旧 DSH 兼容验收独立保留；原生模型执行链另用无密钥适配器检查工作台指令、工具读写和 Session 日志。
 
 构建与类型检查遵循仓库的 `build:artifacts`、`build:check` 流程。浏览器验收不替代签名安装包、真实组织账号和模型请求验收。
