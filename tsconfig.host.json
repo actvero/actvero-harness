@@ -7,6 +7,7 @@
   "include": [
     "apps/web/tests/actvero-capabilities.e2e.ts",
     "apps/web/tests/actvero-workbenches.e2e.ts",
+    "apps/web/tests/actvero-workbench-manager.e2e.ts",
     "apps/web/tests/collapse-timing.e2e.ts",
     "apps/web/tests/notice-wake-tail.e2e.ts",
     "apps/web/tests/fold-blank-matrix.e2e.ts",

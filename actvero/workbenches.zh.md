@@ -8,7 +8,11 @@
 
 ## 启动和入口
 
-完成依赖安装后，运行 `pnpm run actvero:dev`；已有最新构建时运行 `pnpm run actvero:start`。这两个入口使用独立开发数据，不读取已安装客户端的账户和会话。展开左侧栏，点击「工作台」打开工作台主页；右侧名称区域可切换普通会话与已加载的工作台。「已安装」显示本地包及其实际运行状态。
+完成依赖安装后，运行 `pnpm run actvero:dev`；已有最新构建时运行 `pnpm run actvero:start`。这两个入口使用独立开发数据，不读取已安装客户端的账户和会话。展开左侧栏，点击「DSH 工作台」打开兼容市场；右侧名称区域可切换普通会话与已加载的兼容工作台。「已安装」显示本地包及其实际运行状态。
+
+「工作台」打开 Actvero 的「我的工作台」。可以搜索和按分类筛选，打开内置的「项目清单」或导入本机的 Actvero 工作台包。导入后的卡片在插件加载成功后出现，安装结果若提示重启，请使用「Harness → 重启 Harness」。「DSH 工作台」进入兼容的市场和旧工作台入口。
+
+Actvero 本地包使用 npm 打包的 `.tgz`。包清单声明 `dsh.actveroWorkbench: 1`、bundle patch 和客户端入口，并声明客户端依赖 `@actvero/dsh-capability-ui`。客户端插件通过 `ctx.effect(() => ctx.actveroWorkbenches.register(descriptor, Component))` 注册卡片和业务组件。安装由当前 Profile 的插件管理器执行，打开业务页时使用已注册的组件。
 
 ## 宿主和业务包
 

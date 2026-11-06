@@ -8,7 +8,11 @@ The [design note](../.agents/notes/proposed/architecture/2026-11-05-actvero-work
 
 ## Launch and navigation
 
-Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. These commands use isolated development data. Expand the sidebar and select Workbenches to open its home; the adjacent name switches between ordinary sessions and loaded workbenches. Installed shows local packages and their observed runtime status.
+Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. These commands use isolated development data. Expand the sidebar and select DSH Workbenches to open the compatibility catalog; the adjacent name switches between ordinary sessions and loaded compatibility workbenches. Installed shows local packages and their observed runtime status.
+
+Workbenches opens Actvero’s My workbenches page. Search or filter by category, open the built-in Project checklist, or import an Actvero workbench package from this device. The imported card appears when its plugin loads. If installation requires a restart, choose Harness → Restart Harness. DSH Workbenches opens the compatibility catalog and its workbenches.
+
+Actvero local packages use npm-packed `.tgz` files. The manifest declares `dsh.actveroWorkbench: 1`, a bundle patch, and a client entry that depends on `@actvero/dsh-capability-ui`. The client plugin registers its card and business component through `ctx.effect(() => ctx.actveroWorkbenches.register(descriptor, Component))`. The active profile’s plugin manager installs the package, and the workbench page opens the registered component.
 
 ## Host and business packages
 
