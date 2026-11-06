@@ -9,6 +9,7 @@ import {
   IconChecklistOutlineMedium,
   IconChevronLeftOutlineMedium,
   IconChevronRightOutlineMedium,
+  IconCloseOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsHooks, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
@@ -149,42 +150,47 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
     if (previews.length > 1) setSelected((selectedIndex + direction + previews.length) % previews.length)
   }
   return <>
-    <Modal open title={entry.name} closeLabel={t('close')} onClose={onClose} className={styles.detail}
-      contentClassName={styles.detailContent}>
-      <div className={styles.detailLayout}>
-        <section className={styles.gallery} aria-label={t('previews')}
-          onKeyDown={(event) => {
-            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-            event.preventDefault()
-            changePreview(event.key === 'ArrowLeft' ? -1 : 1)
-          }}>
-          {current ? <>
-            <Tooltip label={t('enlarge')} side="top" portal>
-              <button className={styles.largePreview} aria-label={t('enlarge')} onClick={() => { setEnlarged(true) }}>
-                <PreviewImage url={current} t={t} />
-              </button>
-            </Tooltip>
-            {previews.length > 1 && <div className={`${styles.previewStrip} ${styles.detailPreviews}`} role="group" aria-label={t('previews')}>
-              <div className={styles.thumbnails} ref={thumbnails}>
-                {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
-                  aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
-                  onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
-              </div>
-              <PreviewArrows t={t} previous={() => { changePreview(-1) }} next={() => { changePreview(1) }} />
-            </div>}
-          </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
-        </section>
-        <section className={styles.detailSummary} aria-label={t('about')}>
-          <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><h3>{t('about')}</h3></div>
-          <p className={styles.detailDescription}>{entry.description}</p>
-          {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
-          <dl className={styles.facts}>
-            <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : 'local')}</dd></div>
-            <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
-            {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
-          </dl>
-          <div className={styles.detailActions}><Button variant="primary" onClick={open}>{t('open')}</Button></div>
-        </section>
+    <Modal open headless title={entry.name} onClose={onClose} className={styles.detail}>
+      <div className={styles.detailContent}>
+        <header className={styles.detailHeader}>
+          <h2>{entry.name}</h2>
+          <Button variant="ghost" onClick={onClose} aria-label={t('close')}><IconCloseOutlineMedium size={18} /></Button>
+        </header>
+        <div className={styles.detailLayout}>
+          <section className={styles.gallery} aria-label={t('previews')}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+              event.preventDefault()
+              changePreview(event.key === 'ArrowLeft' ? -1 : 1)
+            }}>
+            {current ? <>
+              <Tooltip label={t('enlarge')} side="top" portal>
+                <button className={styles.largePreview} aria-label={t('enlarge')} onClick={() => { setEnlarged(true) }}>
+                  <PreviewImage url={current} t={t} />
+                </button>
+              </Tooltip>
+              {previews.length > 1 && <div className={`${styles.previewStrip} ${styles.detailPreviews}`} role="group" aria-label={t('previews')}>
+                <div className={styles.thumbnails} ref={thumbnails}>
+                  {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
+                    aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
+                    onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
+                </div>
+                <PreviewArrows t={t} previous={() => { changePreview(-1) }} next={() => { changePreview(1) }} />
+              </div>}
+            </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
+          </section>
+          <section className={styles.detailSummary} aria-label={t('about')}>
+            <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><h3>{t('about')}</h3></div>
+            <p className={styles.detailDescription}>{entry.description}</p>
+            {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
+            <dl className={styles.facts}>
+              <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : 'local')}</dd></div>
+              <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
+              {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
+            </dl>
+            <div className={styles.detailActions}><Button variant="primary" onClick={open}>{t('open')}</Button></div>
+          </section>
+        </div>
       </div>
     </Modal>
     {enlarged && current && <ImageLightbox src={current} alt={`${entry.name} · ${t('viewPreview')} ${selectedIndex + 1}`}
