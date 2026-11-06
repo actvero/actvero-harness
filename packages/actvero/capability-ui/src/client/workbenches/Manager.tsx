@@ -175,7 +175,6 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
                     aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
                     onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
                 </div>
-                <PreviewArrows t={t} previous={() => { changePreview(-1) }} next={() => { changePreview(1) }} />
               </div>}
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
