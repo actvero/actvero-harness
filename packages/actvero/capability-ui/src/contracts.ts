@@ -1,4 +1,36 @@
 import type {} from '@deepseek-ai/cordis'
+import type { ReactNode } from 'react'
+
+/** Card metadata declared by an installed Actvero workbench client. */
+export interface ActveroWorkbench {
+  readonly id: string
+  readonly name: string
+  readonly description: string
+  readonly version: string
+  readonly category?: string
+  /** Public image URL supplied by the workbench; no authentication tokens. */
+  readonly iconUrl?: string
+  /** Representative screenshots or outputs; the card displays the first three. */
+  readonly previewUrls?: readonly string[]
+  readonly author?: string
+  readonly tags?: readonly string[]
+}
+
+/** Client registry of installed workbenches with a ready business view. */
+export interface ActveroWorkbenchRegistry {
+  /** Register a business panel for the lifetime of its provider.
+   * @param descriptor Card metadata and stable identity.
+   * @param component Native business component rendered when the user opens the card.
+   * @returns Disposer that removes the card and business panel.
+   */
+  register(descriptor: ActveroWorkbench, component: () => ReactNode): () => void
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    actveroWorkbenches: ActveroWorkbenchRegistry
+  }
+}
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 /** Manager destinations supported by the desktop capability hub. */
 export type CapabilityTab='experts'|'skills'|'connectors'

@@ -1824,7 +1824,7 @@ window.__ModuleLoader__.load({
       }
       return h('nav', { className: 'dshWb dshWbSidebarSwitcher', 'data-dsh-workbench-switcher': '', 'data-selected': marketSelected || (activePanelId == null && !!active) ? 'true' : undefined, 'aria-label': tr('工作台导航'), onBlur: (event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }, onKeyDown: (event) => { if (event.key === 'Escape' && open) { setOpen(false); event.currentTarget.querySelector('.dshWbModeSwitch')?.focus() } } },
         h('button', { type: 'button', className: 'dshWbWorkbenchHome', title: tr('工作台主页'), 'aria-label': tr('打开工作台主页'), 'aria-current': marketSelected ? 'page' : undefined, onClick: () => { setOpen(false); service.showMarket() } },
-          h(MarketIcon, { name: 'market', size: 16 }), h('span', null, tr('工作台'))),
+          h(MarketIcon, { name: 'market', size: 16 }), h('span', null, both('DSH 工作台', 'DSH Workbenches'))),
         switcherHint && h('div', { className: 'dshWbSwitcherHint', role: 'status' }, h('span', null, tr('在此切换会话与不同工作台')), h('button', { type: 'button', onClick: () => service.dismissSwitcherHint() }, tr('知道了'))),
         pinned.length > 0
           ? h('button', { type: 'button', className: 'dshWbModeSwitch', 'aria-describedby': 'dsh-wb-current-mode-tooltip', 'aria-label': both(`切换工作台，当前：${active?.title || tr('会话')}`, `Switch workbench, current: ${active?.title || tr('会话')}`), 'aria-haspopup': 'menu', 'aria-expanded': open, disabled, onClick: () => setOpen((value) => !value) },
