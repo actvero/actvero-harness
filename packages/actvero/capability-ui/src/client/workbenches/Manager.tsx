@@ -50,13 +50,64 @@ function PreviewImage({ url, t }: Locale & { url: string }) {
   </span>
 }
 
+function PreviewArrows({ t, previous, next, atStart = false, atEnd = false }: Locale & {
+  previous: () => void
+  next: () => void
+  atStart?: boolean
+  atEnd?: boolean
+}) {
+  return <>
+    <Tooltip label={t('previous')} side="top" portal>
+      <Button className={`${styles.stripArrow} ${styles.stripPrevious}`} variant="outline" aria-label={t('previous')}
+        disabled={atStart} onClick={previous}><IconChevronLeftOutlineMedium size={16} /></Button>
+    </Tooltip>
+    <Tooltip label={t('next')} side="top" portal>
+      <Button className={`${styles.stripArrow} ${styles.stripNext}`} variant="outline" aria-label={t('next')}
+        disabled={atEnd} onClick={next}><IconChevronRightOutlineMedium size={16} /></Button>
+    </Tooltip>
+  </>
+}
+
+function CardPreviews({ entry, showDetails, t }: Locale & { entry: ActveroWorkbench; showDetails: (index: number) => void }) {
+  const previews = entry.previewUrls ?? []
+  const track = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ start: true, end: true })
+  useEffect(() => {
+    const element = track.current
+    if (!element) return
+    const measure = () => {
+      setEdges({ start: element.scrollLeft <= 1, end: element.scrollLeft + element.clientWidth >= element.scrollWidth - 1 })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    element.addEventListener('scroll', measure)
+    return () => { observer.disconnect(); element.removeEventListener('scroll', measure) }
+  }, [previews.length])
+  const scroll = (direction: number) => {
+    const element = track.current
+    if (element) element.scrollBy({ left: direction * element.clientWidth })
+  }
+  return <div className={`${styles.previewStrip} ${styles.cardPreviews}`} role="group" aria-label={`${t('previews')} · ${entry.name}`}>
+    <div className={styles.previewRow} ref={track}>
+      {previews.length ? previews.map((url, index) => (
+        <button key={`${index}:${url}`} className={styles.previewButton}
+          aria-label={`${t('viewPreview')} · ${entry.name} · ${index + 1}`} onClick={() => { showDetails(index) }}>
+          <PreviewImage url={url} t={t} />
+        </button>
+      )) : <span className={`${styles.preview} ${styles.previewFallback}`}><WorkbenchIcon size={22} /><span>{t('noPreview')}</span></span>}
+    </div>
+    {(!edges.start || !edges.end) && <PreviewArrows t={t} atStart={edges.start} atEnd={edges.end}
+      previous={() => { scroll(-1) }} next={() => { scroll(1) }} />}
+  </div>
+}
+
 function Card({ entry, builtIn, open, showDetails, t }: Locale & {
   entry: ActveroWorkbench
   builtIn: boolean
   open: () => void
   showDetails: (previewIndex: number) => void
 }) {
-  const previews = entry.previewUrls ?? []
   return <article className={styles.card}>
     <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
@@ -71,15 +122,7 @@ function Card({ entry, builtIn, open, showDetails, t }: Locale & {
       </div>
     </header>
     <p className={styles.description}>{entry.description}</p>
-    <div className={styles.previewRow}>
-      {previews.length ? previews.slice(0, 3).map((url, index) => (
-        <button key={`${index}:${url}`} className={styles.previewButton}
-          aria-label={`${t('viewPreview')} · ${entry.name} · ${index + 1}`} onClick={() => { showDetails(index) }}>
-          <PreviewImage url={url} t={t} />
-          {index === 2 && previews.length > 3 && <span className={styles.extraPreviews}>+{previews.length - 3}</span>}
-        </button>
-      )) : <span className={`${styles.preview} ${styles.previewFallback}`}><WorkbenchIcon size={22} /><span>{t('noPreview')}</span></span>}
-    </div>
+    <CardPreviews entry={entry} showDetails={showDetails} t={t} />
     <footer className={styles.cardFoot}>
       <span className={styles.metadata}>{t(builtIn ? 'builtIn' : 'local')} · {t('versionPrefix')}{entry.version}</span>
     </footer>
@@ -116,23 +159,18 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
             changePreview(event.key === 'ArrowLeft' ? -1 : 1)
           }}>
           {current ? <>
-            <button className={styles.largePreview} aria-label={t('enlarge')} onClick={() => { setEnlarged(true) }}>
-              <PreviewImage url={current} t={t} />
-            </button>
-            <div className={styles.galleryToolbar}>
-              {previews.length > 1 && <span className={styles.metadata} aria-live="polite">{selectedIndex + 1} / {previews.length}</span>}
-              <div>
-                <Button variant="ghost" onClick={() => { setEnlarged(true) }}>{t('enlarge')}</Button>
-                {previews.length > 1 && <>
-                  <Tooltip label={t('previous')} side="top" portal><Button variant="ghost" aria-label={t('previous')} onClick={() => { changePreview(-1) }}><IconChevronLeftOutlineMedium size={16} /></Button></Tooltip>
-                  <Tooltip label={t('next')} side="top" portal><Button variant="ghost" aria-label={t('next')} onClick={() => { changePreview(1) }}><IconChevronRightOutlineMedium size={16} /></Button></Tooltip>
-                </>}
+            <Tooltip label={t('enlarge')} side="top" portal>
+              <button className={styles.largePreview} aria-label={t('enlarge')} onClick={() => { setEnlarged(true) }}>
+                <PreviewImage url={current} t={t} />
+              </button>
+            </Tooltip>
+            {previews.length > 1 && <div className={`${styles.previewStrip} ${styles.detailPreviews}`} role="group" aria-label={t('previews')}>
+              <div className={styles.thumbnails} ref={thumbnails}>
+                {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
+                  aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
+                  onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
               </div>
-            </div>
-            {previews.length > 1 && <div className={styles.thumbnails} ref={thumbnails}>
-              {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
-                aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
-                onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
+              <PreviewArrows t={t} previous={() => { changePreview(-1) }} next={() => { changePreview(1) }} />
             </div>}
           </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
         </section>
