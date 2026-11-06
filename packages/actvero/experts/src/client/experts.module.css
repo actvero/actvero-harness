@@ -90,20 +90,101 @@
 
 .bindingRow select:focus-visible {outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:2px}
 
-.expertBadge {display:inline-flex;align-items:center;gap:5px;margin-inline-start:6px;padding:0 10px 0 6px;height:32px;max-width:min(240px,35vw);box-sizing:border-box;border-radius:999px;corner-shape:round;background:transparent;color:var(--dsw-alias-label-secondary)}
-.expertBadge:hover,.expertBadge:has(button:focus-visible) {background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.expertBadge .expertRemove,.expertBadge .expertName {height:28px;min-height:0;padding:0!important;background:transparent!important;color:inherit;border:0;border-radius:50%;box-shadow:none;min-width:0}
-.expertBadge .expertRemove {display:grid;place-items:center;width:24px;flex:none}
-.expertPortrait,.expertClose {grid-area:1/1;display:grid;place-items:center;width:20px;height:20px;line-height:1}
-.expertPortrait {overflow:hidden;border-radius:50%;corner-shape:round;background:var(--dsw-alias-interactive-bg-hover-solid);font-size:11px}
-.expertPortrait>span {display:grid;place-items:center;width:100%;height:100%;line-height:1}
-.expertPortrait img {width:100%;height:100%;object-fit:cover}
-.expertClose {opacity:0}
-.expertBadge:hover .expertPortrait,.expertBadge:has(button:focus-visible) .expertPortrait {opacity:0}
-.expertBadge:hover .expertClose,.expertBadge:has(button:focus-visible) .expertClose {opacity:1}
-.expertBadge .expertName {display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:4px;font-size:13px;font-weight:500;line-height:28px}
-.expertBadge button:focus-visible {outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
-@media(prefers-reduced-motion:no-preference){.expertBadge{transition:background-color .15s ease,color .15s ease}.expertPortrait,.expertClose{transition:opacity .12s ease}}
+.expertBadge {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 220px;
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.expertTrigger, .expertRemove {
+  box-sizing: border-box;
+  height: 28px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.expertTrigger {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.expertBadge button:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.expertBadge:has(.expertTrigger:not(:disabled)):hover,
+.expertBadge:has(button:focus-visible) {
+  background: var(--dsw-alias-interactive-bg-hover-solid);
+  color: var(--dsw-alias-label-primary);
+}
+
+.expertPortrait, .compactPortrait {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--dsw-specific-selector);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.compactPortrait {
+  display: var(--dsh-composer-leading-icon-display, none);
+  margin-inline-start: 4px;
+}
+
+.expertPortrait img, .compactPortrait img { width: 100%; height: 100%; object-fit: cover; }
+
+.expertName {
+  display: var(--dsh-composer-leading-detail-display, block);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.expertRemove {
+  display: var(--dsh-composer-leading-detail-display, grid);
+  place-items: center;
+  flex: none;
+  width: 28px;
+  padding: 0;
+}
+
+.expertRemove > span { grid-area: 1 / 1; }
+.expertClose { display: grid; opacity: 0; }
+
+.expertBadge:hover .expertRemove:not(:disabled) .expertPortrait,
+.expertRemove:focus-visible .expertPortrait { opacity: 0; }
+
+.expertBadge:hover .expertRemove:not(:disabled) .expertClose,
+.expertRemove:focus-visible .expertClose { opacity: 1; }
+
+.expertBadge button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+}
+
+@container (max-width: 460px) {
+  .expertBadge {
+    --dsh-composer-leading-detail-display: none;
+    --dsh-composer-leading-icon-display: grid;
+  }
+}
 
 .version,.update { display:block; font-size:12px; margin-top:8px; color:var(--dsw-alias-label-secondary); }
 .update { color:var(--dsw-alias-state-business-primary); }

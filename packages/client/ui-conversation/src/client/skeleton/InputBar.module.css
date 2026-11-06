@@ -273,6 +273,9 @@
 
 .row[data-permission-compact] {
   --dsh-composer-permission-label-display: none;
+  /* Leading slot controls can compact with the permission chip. */
+  --dsh-composer-leading-detail-display: none;
+  --dsh-composer-leading-icon-display: grid;
 }
 
 .row[data-model-compact] {

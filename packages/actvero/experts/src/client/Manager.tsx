@@ -1193,6 +1193,23 @@ export function apply(ctx: Context) {
       }
     },
   }
+  // The badge picker keeps a stop action when the toolbar hides the inline control.
+  const stopOption = ':stop-expert'
+  const badgePopup: PopupSelectSpec = {
+    ...expertPopup,
+    options: async (session, signal) => [
+      ...await expertPopup.options(session, signal),
+      { id: stopOption, label: t('cancelExpert'), icon: IconCloseOutlineMedium },
+    ],
+    onSelect: async (option, session) => {
+      if (option.id !== stopOption) return expertPopup.onSelect(option, session)
+      try {
+        await useExpert(null, session.sessionId, undefined, false, false)
+      } catch (error) {
+        throw new Error(errorText(error, t))
+      }
+    },
+  }
   ctx.slots.inject('conversation.input.left', () =>
     ctx.slots.register(
       {
@@ -1261,7 +1278,7 @@ export function apply(ctx: Context) {
             open: () =>
               popup.open(
                 'expert',
-                expertPopup,
+                badgePopup,
                 { sessionId },
                 { via: 'menu', span: { start: 0, end: 0, draftRev: input.state.getSnapshot().draftRev } },
               ),
