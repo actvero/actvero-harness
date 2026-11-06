@@ -10,9 +10,9 @@ function record(value: unknown): Record<string, unknown> | undefined {
 
 /** Read the manifest from an npm-packed Actvero bundle before requesting installation.
  * @param file Local archive selected by the user.
- * @returns The declared package name, or undefined for an invalid or unrelated bundle.
+ * @returns The declared package name and version, or undefined for an invalid or unrelated bundle.
  */
-export async function readWorkbenchPackage(file: File): Promise<string | undefined> {
+export async function readWorkbenchPackage(file: File): Promise<{ name: string; version: string } | undefined> {
   if (!file.name.toLowerCase().endsWith('.tgz') || file.size > MAX_FILE_BYTES) return undefined
   try {
     const reader = file.stream().pipeThrough(new DecompressionStream('gzip')).getReader()
@@ -68,7 +68,7 @@ export async function readWorkbenchPackage(file: File): Promise<string | undefin
     if (typeof manifest?.version !== 'string' || !manifest.version || typeof bundle?.patch !== 'string' || !bundle.patch) return undefined
     if (client?.platform !== 'web' || !Array.isArray(client.inject) || !client.inject.includes('@actvero/dsh-capability-ui')) return undefined
     if (dsh?.actveroWorkbench !== 1 || (typeof entry !== 'string' && !record(entry))) return undefined
-    return name
+    return { name, version: manifest.version }
   } catch (error) {
     if (error instanceof Error) return undefined
     throw error

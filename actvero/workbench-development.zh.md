@@ -38,7 +38,9 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 
 打开独立包，勾选一项，返回管理页并重新打开，再刷新客户端后重新打开，检查进度仍在。检查预览图、侧栏展开/收起、浅色/深色以及窄窗口。首次打开不创建会话，也不要求指定工作区。安装结果、卡片出现、切换菜单与真实业务界面分别验收。
 
-当前管理器拒绝重复安装同名包；需要替换时先通过插件管理卸载，再导入新包。安装流程的进一步限制见[工作台说明](workbenches.zh.md)。不要把安装成功写成已完成业务验收。
+更新时保持包名不变，提高 `package.json.version`，重新打包。在卡片的「更多 → 更新版本」选择新包，或直接导入同名包；确认弹窗显示旧版本与新版本。同版本重复导入、降级、包名不符和运行时不兼容会被拒绝。替换成功显示「待重启」，重启 Harness 后检查「已加载」、版本与业务内容。已有独立存储数据不清除；业务数据结构变化由工作台自行迁移。
+
+卡片的「更多」菜单可停用、启用或卸载。停用保留安装包，重启后仍在「我的工作台」中；只有加载成功的工作台进入侧栏切换菜单。卸载需要确认，保留独立存储的业务数据；重新导入同名包可恢复示例清单。安装或更新失败时查看错误详情并核对列表状态。不要把安装成功写成已完成业务验收。
 
 <a id="format"></a>
 
@@ -53,12 +55,13 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
 | `exports["."]` / `exports["./client"]` | 本工具输出的 `./lib/index.js` 和 `./lib/client.js` |
+| `exports["./locale/*.json"]` | 打包生成名称与介绍元数据，工作台未加载时仍可展示 |
 | `workbench.json` | 源码中的名称、介绍、分类、作者和标签；编译时纳入客户端 |
 | `src/client/assets/` | 源码预览图；通过图片导入编入客户端，不依赖远程图床 |
 | `src/index.ts` | Host 插件入口；模板无 Host 业务服务 |
 | `src/client/index.ts` | 使用 Cordis effect 注册卡片与业务组件，卸载时注销 |
 
-构建产物只包含清单、生成的 patch 和编译后的 `lib`。`repository` 可以省略。React 使用宿主共享实例，CSS Modules 与图片使用仓库现有客户端编译器；不要把另一套 React 或宿主插件代码打入业务包。包校验是格式检查，不是代码沙箱。
+构建产物包含清单、生成的 patch、展示用 `locale` 和编译后的 `lib`。`repository` 可以省略。React 使用宿主共享实例，CSS Modules 与图片使用仓库现有客户端编译器；不要把另一套 React 或宿主插件代码打入业务包。包校验是格式检查，不是代码沙箱。
 
 <a id="business"></a>
 

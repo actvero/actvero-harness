@@ -32,6 +32,8 @@ The Workbenches sidebar row has two independent controls: the title opens manage
 
 The workbench and expert managers share search controls, source tabs, responsive card grids and visual styling for icons, spacing and actions. My workbenches offers search; category filters appear only in the platform catalog. Compact workbench cards show a name, purpose, horizontally scrollable previews and an Open action; the name or previews open details. The built-in Project checklist includes five screenshots showing different progress states and dark mode for trying gallery navigation and enlargement. Missing or failed images show a placeholder. Registered metadata supplies artwork and author information; see [client contracts](src/contracts.ts) and [local package integration](../../../actvero/workbenches.md).
 
+Workbench cards join the Plugin Manager inventory with registered business components; disabled or failed installed entries stay visible. Menus offer local version updates, enablement, disablement, and removal, with reviewed old and new versions. Failed reads retain the last list and block mutations; failed, cancelled, and overridden operations are reported separately from activation. The Host retains replacement restart state across page reloads. See [local workbench development](../../../actvero/workbench-development.md#install) for usage.
+
 The client service `ctx.capabilityHub` opens an expert, skill or connector manager and displays transient notifications. Its interface is owned by [the client contracts](src/contracts.ts).
 
 <a id="model-experience"></a>

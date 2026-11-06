@@ -38,7 +38,9 @@ Start the Actvero development client, open Workbenches → My workbenches, choos
 
 Open the independent package, check an item, return to the manager and reopen it, then reload the client and reopen it to verify saved progress. Check previews, expanded/collapsed sidebar, light/dark themes, and a narrow window. First use creates no conversation and requires no workspace selection. Verify the installation result, catalog entry, switcher, and actual business view separately.
 
-The manager currently rejects repeated installation of the same package. To replace it, uninstall through plugin management before importing the new archive. See [workbench installation limits](workbenches.md) for further constraints. Successful installation does not establish business acceptance.
+To update, retain the package name, increase `package.json.version`, and rebuild. Select the archive through the card's More → Update version action or import it directly; confirmation shows the installed and incoming versions. Repeated versions, downgrades, mismatched names, and incompatible runtimes are refused. A successful replacement shows Restart required; after restarting Harness, check Loaded, the version, and business content. Independently stored data is retained; business schema migrations belong to the workbench.
+
+The card's More menu offers disable, enable, and uninstall. Disabling retains the package in My workbenches across restarts; only loaded workbenches enter the sidebar switcher. Uninstall requires confirmation and retains independently stored data; importing the same package again restores the example checklist. On installation or update failure, inspect diagnostics and verify the inventory. Successful installation does not establish business acceptance.
 
 <a id="format"></a>
 
@@ -53,12 +55,13 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
+| `exports["./locale/*.json"]` | Generated name and description metadata remains available before the workbench loads |
 | `workbench.json` | Source display name, description, category, author, and tags, compiled into the Client |
 | `src/client/assets/` | Source previews, bundled through image imports without remote image hosting |
 | `src/index.ts` | Host plugin entry; the template has no Host business service |
 | `src/client/index.ts` | Registers the card and component through a Cordis effect, removing them on disposal |
 
-The artifact contains only the manifest, generated patch, and compiled `lib`. `repository` may be omitted. React uses the Host's shared instance; CSS Modules and images use the repository client compiler. Do not bundle a second React or Host plugin implementation into business code. Package validation checks format, not code confinement.
+The artifact contains the manifest, generated patch, display `locale`, and compiled `lib`. `repository` may be omitted. React uses the Host's shared instance; CSS Modules and images use the repository client compiler. Do not bundle a second React or Host plugin implementation into business code. Package validation checks format, not code confinement.
 
 <a id="business"></a>
 

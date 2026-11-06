@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
-import { readWorkbenchPackage } from './archive.ts'
+import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
 import { Example } from './Example.tsx'
 import { Manager, OpenWorkbench } from './Manager.tsx'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
@@ -23,7 +23,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const namespace = 'actvero.workbenches'
 const managerPanel = 'actvero-workbench-manager' as MainPanelId
 const businessPanel = 'actvero-workbench-business' as MainPanelId
-type Notice = 'invalidPackage' | 'desktopOnly' | 'alreadyInstalled' | 'importFailed' | 'incompatible' | 'applied' | 'restart'
 const selectionKey = 'actvero.workbenches.selected.v1'
 
 function readSelection(): string | null {
@@ -36,25 +35,24 @@ function readSelection(): string | null {
 }
 
 /** Profile catalog and foreground view state consumed by the registered slots. */
-export interface WorkbenchView {
+export interface WorkbenchView extends WorkbenchManagement {
   entries: readonly ActveroWorkbench[]
   opened: string | null
-  importing: boolean
-  notice: Notice | null
+  remembered: readonly ActveroWorkbench[]
 }
 
 /** Human-triggered navigation and local installation. */
-export interface WorkbenchAction {
+export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchManagement>, 'initial' | 'dispose'> {
   open(id: string): void
   back(): void
-  importFile(file: File): Promise<void>
 }
 
 /** Register the Actvero workbench catalog, navigation and native business seat.
  * @param ctx Client plugin scope.
  */
 export function registerWorkbenches(ctx: Context): void {
-  let view: WorkbenchView = { entries: [], opened: readSelection(), importing: false, notice: null }
+  const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) })
+  let view: WorkbenchView = { ...management.initial, entries: [], remembered: [], opened: readSelection() }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
     view = { ...view, ...patch }
@@ -78,7 +76,7 @@ export function registerWorkbenches(ctx: Context): void {
       const stop = ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
         name: 'actvero.workbench.body', key: entry.id,
       }, component))
-      update({ entries: [...view.entries, entry] })
+      update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })
       return () => {
         stop()
         update({ entries: view.entries.filter(item => item !== entry) })
@@ -86,6 +84,7 @@ export function registerWorkbenches(ctx: Context): void {
     },
   }
 
+  const { initial: _initial, dispose: _dispose, ...operations } = management
   const action: WorkbenchAction = {
     open(id) {
       if (id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === id)) return
@@ -100,42 +99,19 @@ export function registerWorkbenches(ctx: Context): void {
     back() {
       ctx.layout.selectPanel(managerPanel)
     },
-    async importFile(file) {
-      if (view.importing) return
-      update({ importing: true, notice: null })
-      let notice: Notice = 'importFailed'
-      try {
-        const name = await readWorkbenchPackage(file)
-        if (!name) {
-          notice = 'invalidPackage'
-          return
-        }
-        const bridge = (globalThis as { __DSH_HOST_PATHS__?: { pathFor(file: File): string } }).__DSH_HOST_PATHS__
-        const path = bridge?.pathFor(file)
-        if (!path) {
-          notice = 'desktopOnly'
-          return
-        }
-        const listed = await ctx.remote.pluginManager.listBundles()
-        if (!listed.ok) return
-        if (listed.value.some(bundle => bundle.name === name && (bundle.installed || bundle.enabled))) {
-          notice = 'alreadyInstalled'
-          return
-        }
-        const result = await ctx.remote.pluginManager.installBundle(path, { enabled: true, registry: null })
-        if (!result.ok) return
-        if (result.value.application === 'applied') notice = 'applied'
-        else if (result.value.application === 'restart-required') notice = 'restart'
-        else if (result.value.error?.code === 'incompatible-version') notice = 'incompatible'
-      } catch (error) {
-        console.warn('Actvero workbench import failed', error)
-      } finally {
-        update({ importing: false, notice })
-      }
-    },
+    ...operations,
   }
 
-  const inject = () => ({ hooks: { view: source }, action })
+  ctx.effect(() => {
+    const refresh = () => { void management.refresh() }
+    const disposers = [ctx.remote.$on('plugin-manager/changed', refresh), ctx.on('connection/reset', refresh)]
+    refresh()
+    return () => { management.dispose(); for (const dispose of disposers) dispose() }
+  })
+
+  const inject = () => ({ hooks: { view: source }, action,
+    resolveText: (text: Parameters<typeof ctx.locale.resolveText>[0]) => ctx.locale.resolveText(text),
+  })
   ctx.effect(() => ctx.reflect.provide('actveroWorkbenches', registry))
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
   const t = ctx.locale.bind(namespace)

@@ -61,8 +61,8 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
   const size = (await stat(archive)).size
   if (size > 8 * 1024 * 1024) throw new Error('工作台包超过客户端的 8 MiB 导入限制。')
   const bytes = await readFile(archive)
-  const name = await readWorkbenchPackage(new File([new Uint8Array(bytes)], basename(archive)))
-  if (!name) throw new Error('工作台包未通过客户端导入校验，请检查 .tgz 与 package.json。')
+  const summary = await readWorkbenchPackage(new File([new Uint8Array(bytes)], basename(archive)))
+  if (!summary) throw new Error('工作台包未通过客户端导入校验，请检查 .tgz 与 package.json。')
   const files = new Set<string>()
   const paths = new Set<string>()
   const manifestChunks: Buffer[] = []
@@ -80,7 +80,7 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
   for (const file of [manifest.exports['.'], manifest.exports['./client'], manifest.dsh.bundle.patch]) {
     if (!files.has(`package/${file.slice(2)}`)) throw new Error(`工作台包缺少入口文件：${file}`)
   }
-  return { name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
+  return { name: summary.name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
 }
 
 /** Compile a template project and emit an npm-compatible archive; no install or publication occurs.
@@ -92,7 +92,7 @@ export async function packWorkbench(directory: string, output: string): Promise<
   directory = resolve(directory)
   output = resolve(output)
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
-  metadataSchema.parse(await json(join(directory, 'workbench.json')))
+  const metadata = metadataSchema.parse(await json(join(directory, 'workbench.json')))
   const baseline = z.object({ version: z.string() }).parse(await json(join(repository, 'actvero/upstream.lock.json')))
   if (!semver.satisfies(baseline.version, manifest.engines.dsh, { includePrerelease: true })) {
     throw new Error(`工作台要求 DSH ${manifest.engines.dsh}，当前开发基线为 ${baseline.version}。`)
@@ -107,7 +107,12 @@ export async function packWorkbench(directory: string, output: string): Promise<
       await build({ ...config, cwd: directory, outDir: lib, config: false, tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false })
     }
     for (const file of ['index.js', 'client.js']) await stat(join(lib, file))
-    await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, files: ['lib', 'cordis.patch.yml'] }, null, 2) + '\n')
+    await mkdir(join(folder, 'locale'))
+    await writeFile(join(folder, 'locale/en.json'), JSON.stringify({ meta: { title: metadata.name, description: metadata.description } }) + '\n')
+    await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, description: metadata.description,
+      exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
+      files: ['lib', 'locale', 'cordis.patch.yml'],
+    }, null, 2) + '\n')
     await writeFile(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${JSON.stringify(manifest.name)}\n      name: ${JSON.stringify(manifest.name)}\n`)
     const archiveName = `${manifest.name.replace(/^@/u, '').replaceAll('/', '-')}-${manifest.version}.tgz`
     const packed = join(temporary, archiveName)

@@ -66,7 +66,9 @@
     "execa": "^10.0.1",
     "yaml": "^2.9.0",
     "zod": "4.4.3",
-    "@deepseek-ai/dsh-util-values": "workspace:*"
+    "@deepseek-ai/dsh-util-values": "workspace:*",
+    "tar": "^7.5.22",
+    "semver": "^7.8.5"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -107,6 +109,7 @@
     "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-sandbox": "workspace:*",
-    "@deepseek-ai/dsh-user-approval": "workspace:*"
+    "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@types/semver": "^7.8.0"
   }
 }

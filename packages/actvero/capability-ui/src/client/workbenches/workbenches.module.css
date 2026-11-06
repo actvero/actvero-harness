@@ -1,4 +1,7 @@
 .page { min-width: 0; }
+.status { color: var(--dsw-alias-label-tertiary); font-size: 12px; white-space: nowrap; }
+.notice pre { white-space: pre-wrap; max-height: 160px; overflow: auto; font-size: 12px; }
+.detailActions .more { opacity: 1; pointer-events: auto; }
 .pageTitle { grid-column: 1; grid-row: 1; display: flex; align-items: center; min-height: 36px; }
 .pageTitle h1 { margin: 0; font-size: 22px; font-weight: 500; line-height: 1.4; }
 .toolbar { grid-column: 2; grid-row: 1; }
@@ -29,7 +32,7 @@
 .stripPrevious { left: 4px; }
 .stripNext { right: 4px; }
 .previewFallback { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 8px; box-sizing: border-box; font-size: 12px; }
-.cardFoot { display: flex; align-items: center; gap: 12px; min-height: 20px; }
+.cardFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-height: 20px; }
 .metadata { min-width: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags > span { font-size: 12px; line-height: 18px; padding: 2px 8px; border-radius: 6px; background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
@@ -64,7 +67,7 @@
 .facts dt { color: var(--dsw-alias-label-tertiary); }
 .facts dd { margin: 0; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 .detailActions { display: flex; justify-content: flex-end; width: 100%; margin-top: auto; padding-top: 8px; }
-.detailActions button { min-width: 96px; padding-inline: 22px; border-radius: 9px; font-size: 14px; }
+.detailActions .openButton { min-width: 96px; padding-inline: 22px; border-radius: 9px; font-size: 14px; }
 .detail button:focus-visible { outline: 2px solid var(--dsw-alias-label-tertiary); outline-offset: -2px; }
 @container (max-width: 600px) { .detailContent { padding: 24px; } .detailHeader h2 { font-size: 18px; } }
 @container (max-width: 680px) { .detailLayout { grid-template-columns: minmax(0, 1fr); gap: 20px; } .largePreview { aspect-ratio: 16 / 9; } }

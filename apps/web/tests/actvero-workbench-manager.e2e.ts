@@ -12,6 +12,7 @@ import { DesktopProjectManager } from '../../desktop/src/project-manager.ts'
 import { resolveDesktopPaths } from '../../desktop/src/paths.ts'
 import { DESKTOP_HOST_PROTOCOL_VERSION } from '../../desktop/src/host-protocol.ts'
 import { prepareDevelopmentProject } from '../../desktop/scripts/development-project.ts'
+import { startPrefixProxy, type PrefixProxy } from './prefix-proxy.ts'
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url))
 const fixtureName = 'actvero-manager-fixture'
@@ -25,6 +26,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
   it('opens and persists the checklist, imports a bundle and reopens its business page after restarting the Host', async () => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-workbench-manager-')))
     let host: DesktopHostProcess | undefined
+    let proxy: PrefixProxy | undefined
     try {
       for (const name of Object.keys(process.env)) if (/KEY|TOKEN|SECRET|PASSWORD/u.test(name)) vi.stubEnv(name, undefined)
       const home = join(root, 'home')
@@ -96,13 +98,22 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         return host.start()
       }
       const ready = await startHost()
+      // Keep browser storage at one origin, as Desktop does while its Host restarts.
+      const browserOrigin = await startPrefixProxy({ prefix: '/' })
+      proxy = browserOrigin
+      const browserUrl = (hostUrl: string) => {
+        const url = new URL(hostUrl)
+        browserOrigin.setTarget(Number(url.port))
+        url.port = String(browserOrigin.port)
+        return url.href
+      }
       const browser = await chromium.launch({ channel: 'chrome' })
       try {
         const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 1440, height: 1000 } })
         // Chrome runs the same renderer without Electron's preload.
-        await context.addInitScript(({ archive, checklistArchive }) => {
-          Object.defineProperty(globalThis, '__DSH_HOST_PATHS__', { value: { pathFor: (file: File) => file.name === 'local-project-checklist-1.0.0.tgz' ? checklistArchive : archive } })
-        }, { archive, checklistArchive })
+        await context.addInitScript(({ root }) => {
+          Object.defineProperty(globalThis, '__DSH_HOST_PATHS__', { value: { pathFor: (file: File) => `${root}/${file.name}` } })
+        }, { root })
         const page = await context.newPage()
         page.setDefaultTimeout(15_000)
         const errors: string[] = []
@@ -115,7 +126,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.getByRole('button', { name: '工作台', exact: true }).click()
           await page.getByRole('tab', { name: '我的工作台', exact: true }).waitFor()
         }
-        await page.goto(ready.url)
+        await page.goto(browserUrl(ready.url))
         const switcher = page.getByRole('button', { name: /^切换工作台 · / })
         await switcher.click()
         expect(await page.getByRole('menuitem').allTextContents()).toEqual(['项目清单'])
@@ -215,14 +226,14 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await picker.setInputFiles({ name: 'invalid.tgz', mimeType: 'application/gzip', buffer: Buffer.from('not an archive') })
         await page.getByText('请选择有效的 Actvero 工作台 .tgz 包。').waitFor()
         await picker.setInputFiles(archive)
-        const installStatus = page.getByText(/工作台已安装。/)
+        const installStatus = page.getByText(/工作台已安装。|变更已保存，重启 Harness 后生效。/)
         await installStatus.waitFor({ timeout: 40_000 })
         const needsRestart = (await installStatus.innerText()).includes('重启')
         const restart = async () => {
           await page.goto('about:blank')
           await host?.stop()
           const next = await startHost()
-          await page.goto(next.url)
+          await page.goto(browserUrl(next.url))
           await openManager()
         }
         if (needsRestart) await restart()
@@ -384,11 +395,80 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/actvero-packaged-checklist-${colorScheme}-${width}.png`) })
           }
         }
+        await page.setViewportSize({ width: 1440, height: 1000 })
+        await page.emulateMedia({ colorScheme: 'light' })
+        await openManager()
+        const menu = async (label: string) => {
+          await packaged.hover()
+          await packaged.getByRole('button', { name: '更多操作 · 项目清单', exact: true }).click()
+          await page.getByRole('menuitem', { name: label, exact: true }).click()
+        }
+        await menu('停用')
+        await packaged.getByText('已停用', { exact: true }).waitFor()
+        await restart()
+        await packaged.getByText('已停用', { exact: true }).waitFor()
+        expect(await packaged.getByRole('heading', { name: '项目清单', exact: true }).count()).toBe(1)
+        await page.getByRole('button', { name: /切换工作台/ }).click()
+        expect(await page.getByRole('menuitem', { name: '项目清单', exact: true }).count()).toBe(1)
+        await page.keyboard.press('Escape')
+        await packaged.getByRole('button', { name: '启用', exact: true }).click()
+        await packaged.getByText('已加载', { exact: true }).waitFor()
+        await picker.setInputFiles(checklistArchive)
+        await page.getByText('这个版本已经安装，无需重复导入。').waitFor()
+        const packagePath = join(development, 'package.json')
+        const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as { version: string }
+        packageJson.version = '1.1.0'
+        writeFileSync(packagePath, JSON.stringify(packageJson))
+        execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'pack', development, root], { cwd: repository })
+        const newerArchive = join(root, 'local-project-checklist-1.1.0.tgz')
+        await picker.setInputFiles(newerArchive)
+        const updateDialog = page.getByRole('dialog', { name: '更新工作台', exact: true })
+        await updateDialog.getByText('项目清单 · 1.0.0 → 1.1.0', { exact: true }).waitFor()
+        await updateDialog.getByRole('button', { name: '取消', exact: true }).click()
+        await packaged.getByText(/v1.0.0/).waitFor()
+        await picker.setInputFiles(newerArchive)
+        await updateDialog.getByRole('button', { name: '确认更新', exact: true }).click()
+        await packaged.getByText('待重启', { exact: true }).waitFor({ timeout: 40_000 })
+        await packaged.getByText(/v1.1.0/).waitFor()
+        await page.reload()
+        await openManager()
+        await packaged.getByText('待重启', { exact: true }).waitFor()
+        await page.screenshot({ path: join(repository, '.artifacts/workbench-update-pending.png') })
+        await restart()
+        await packaged.getByText('已加载', { exact: true }).waitFor()
+        await packaged.getByText(/v1.1.0/).waitFor()
+        await packaged.getByRole('button', { name: '打开', exact: true }).click()
+        expect(await scope.isChecked()).toBe(true)
+        await openManager()
+        await picker.setInputFiles(checklistArchive)
+        await page.getByText('不支持降级。请选择比已安装版本更新的工作台包。').waitFor()
+        await menu('卸载')
+        const removeDialog = page.getByRole('dialog', { name: '卸载工作台', exact: true })
+        await removeDialog.getByRole('button', { name: '取消', exact: true }).click()
+        await packaged.waitFor()
+        await menu('卸载')
+        await removeDialog.getByRole('button', { name: '卸载', exact: true }).click()
+        await packaged.waitFor({ state: 'hidden', timeout: 40_000 })
+        await picker.setInputFiles(newerArchive)
+        await installStatus.waitFor({ timeout: 40_000 })
+        if ((await installStatus.innerText()).includes('重启')) await restart()
+        await packaged.getByRole('button', { name: '打开', exact: true }).click()
+        expect(await scope.isChecked()).toBe(true)
+        await openManager()
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          await packaged.hover()
+          await packaged.getByRole('button', { name: '更多操作 · 项目清单', exact: true }).click()
+          await page.getByRole('menuitem', { name: '更新版本', exact: true }).waitFor()
+          await page.screenshot({ path: join(repository, `.artifacts/workbench-management-${colorScheme}.png`) })
+          await page.keyboard.press('Escape')
+        }
         expect(errors.filter(error => /ReferenceError|TypeError|SyntaxError/u.test(error))).toEqual([])
       } finally {
         await browser.close()
       }
     } finally {
+      await proxy?.close()
       await host?.stop()
       vi.unstubAllEnvs()
       rmSync(root, { recursive: true, force: true })
