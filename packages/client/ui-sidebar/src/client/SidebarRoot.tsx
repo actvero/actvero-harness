@@ -55,7 +55,7 @@ type PanelRowProps =
   & Pick<SidebarSectionOwnerProps, 'wide'>
   & Pick<PropsRuntime<'sidebar'>, 'usePanelInfo'>
   & Pick<InjectFace<SidebarRootInjected>, 'selectPanel' | 'trackEntryClick'>
-  & PropsRenderSlots<'sidebar.panellist'>
+  & PropsRenderSlots<'sidebar.panellist' | 'sidebar.panellist.row'>
 
 /** Analytics category of an official panel; other panels are never reported. */
 function officialEntry(id: string): 'plugin' | 'cron' | undefined {
@@ -66,18 +66,19 @@ function officialEntry(id: string): 'plugin' | 'cron' | undefined {
 /** Each panel row subscribes only to its own selection state. */
 function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick, renderSlot }: PanelRowProps) {
   const active = usePanelInfo(info => info.activePanelId === id)
-  return (
+  const onOpen = (): void => {
+    const entry = officialEntry(id)
+    if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar' })
+    selectPanel(id)
+  }
+  return renderSlot('sidebar.panellist.row', { id, label, wide, active, onOpen }, { entryKey: id, fallback: (
     <Tooltip label={label} delayMs={500} disabled={wide}>
       <button
         type="button"
         className={clsx(css.panelRow, active && css.panelActive)}
         aria-label={label}
         aria-current={active ? 'page' : undefined}
-        onClick={() => {
-          const entry = officialEntry(id)
-          if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar' })
-          selectPanel(id)
-        }}
+        onClick={onOpen}
       >
         <span className={css.panelGlyph} aria-hidden="true">
           {renderSlot('sidebar.panellist', { size: wide ? 16 : 18, active }, { only: id })}
@@ -89,7 +90,7 @@ function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick,
         )}
       </button>
     </Tooltip>
-  )
+  ) })
 }
 
 type PanelMoreMenuProps =

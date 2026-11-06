@@ -29,15 +29,19 @@ export function Example({ t }: PropsLocale<'actvero.workbenches'>) {
       setSave('sampleSaveFailed')
     }
   }
-  return <section className={styles.checklist}>
-    <header>
-      <h2>{t('sampleSection')}</h2>
-      <span className={styles.meta}>{completed.length} / {items.length}</span>
-    </header>
-    {items.map(item => <label className={styles.checklistItem} key={item}>
-      <input type="checkbox" checked={completed.includes(item)} onChange={() =>{  toggle(item) }} />
-      <span>{t(item)}</span>
-    </label>)}
-    <p role="status" className={styles.meta}>{save && t(save)}</p>
-  </section>
+  return <div className={styles.examplePage}>
+    <h1>{t('sampleName')}</h1>
+    <p className={styles.exampleDescription}>{t('sampleDescription')}</p>
+    <section className={styles.checklist}>
+      <header>
+        <h2>{t('sampleSection')}</h2>
+        <span className={styles.meta}>{completed.length} / {items.length}</span>
+      </header>
+      {items.map(item => <label className={styles.checklistItem} key={item}>
+        <input type="checkbox" checked={completed.includes(item)} onChange={() =>{  toggle(item) }} />
+        <span>{t(item)}</span>
+      </label>)}
+      <p role="status" className={styles.meta}>{save && t(save)}</p>
+    </section>
+  </div>
 }

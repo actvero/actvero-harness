@@ -170,6 +170,34 @@ async function mountPanels(runtime: SlotTestRuntime, locale: LocaleRuntime, beta
 }
 
 describe('sidebar global panels', () => {
+  it.each([false, true])('replaces one row with independent controls and restores its default on disposal, collapsed=%s', async (collapsed) => {
+    const { runtime, locale, layout, view } = await bench(collapsed)
+    await mountPanels(runtime, locale)
+    const secondary = vi.fn()
+    function SplitRow({ label, wide, active, onOpen }: PropsRuntime<'sidebar.panellist.row'>) {
+      return <div data-testid="split-row" data-wide={wide}>
+        <button aria-current={active ? 'page' : undefined} onClick={onOpen}>{label}</button>
+        <button onClick={secondary}>Switch item</button>
+      </div>
+    }
+    const override = await runtime.mount({ inject: ['slots'], apply(ctx: Context) {
+      ctx.slots.inject('sidebar.panellist.row', () => ctx.slots.register({ name: 'sidebar.panellist.row', key: ALPHA }, SplitRow))
+    } })
+    const row = await view.findByTestId('split-row')
+    expect(row.getAttribute('data-wide')).toBe(String(!collapsed))
+    fireEvent.click(within(row).getByRole('button', { name: 'Switch item' }))
+    expect(secondary).toHaveBeenCalledOnce()
+    expect(layout.selectPanel).not.toHaveBeenCalled()
+    fireEvent.click(within(row).getByRole('button', { name: 'Alpha panel' }))
+    expect(layout.selectPanel).toHaveBeenLastCalledWith(ALPHA)
+    expect(row).toMatchSnapshot()
+    expect(view.getByRole('heading', { name: 'Alpha content' })).toBeTruthy()
+    expect(view.getByRole('button', { name: 'Beta panel' })).toBeTruthy()
+    await override.dispose()
+    await waitFor(() => { expect(view.queryByTestId('split-row')).toBeNull() })
+    expect(view.getByRole('button', { name: 'Alpha panel' }).getAttribute('aria-current')).toBe('page')
+  })
+
   it('adds late registrations, removes each plugin contribution, and leaves no empty panel-list DOM', async () => {
     const { runtime, locale, view } = await bench()
     expect(runtime.slots.entries('sidebar.panellist')).toEqual([])

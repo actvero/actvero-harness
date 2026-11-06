@@ -89,13 +89,11 @@
   .toolbar > span { flex: 1; width: auto; }
   .content { grid-row: 3; }
 }
-.openPage { box-sizing: border-box; width: 100%; min-width: 0; height: 100%; overflow: auto; color: var(--dsw-alias-label-primary); padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 22px; }
-:global([data-platform="darwin"]) .openPage { padding-top: calc(var(--dsh-frame-top-clearance, 0px) + 28px); }
-.openHeader { display: flex; align-items: flex-start; flex-direction: column; gap: 12px; }
-.openHeader h1 { margin: 0; font-size: 22px; font-weight: 500; overflow-wrap: anywhere; }
-.openHeader h1:focus { outline: 0; }
-.openHeader button { gap: 6px; }
-.business { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+.business { box-sizing: border-box; width: 100%; height: 100%; flex: 1; min-width: 0; min-height: 0; overflow: auto; color: var(--dsw-alias-label-primary); }
+:global([data-platform="darwin"]) .business { padding-top: var(--dsh-frame-top-clearance, 0px); }
+.examplePage { padding: 28px 32px; }
+.examplePage h1 { margin: 0; font-size: 22px; font-weight: 500; overflow-wrap: anywhere; }
+.exampleDescription { margin: 12px 0 28px; color: var(--dsw-alias-label-secondary); line-height: 1.6; }
 .checklist { width: min(100%, 560px); box-sizing: border-box; padding: 20px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; }
 .checklist header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .checklist h2 { margin: 0; font-size: 16px; font-weight: 500; }

@@ -34,6 +34,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * the sidebar owns the button and resolves its label from list metadata.
      */
     'sidebar.panellist': { kind: 'list'; scope: 'root'; owner: SidebarPanelIconOwnerProps }
+    /** Optional complete navigation row, addressed by an existing panel-list id. */
+    'sidebar.panellist.row': { kind: 'keyed'; scope: 'root'; entryKey: MainPanelId; owner: SidebarPanelRowOwnerProps }
     /** Rows of the panel list's More menu; the sidebar shows More only while this list has registrations. */
     'sidebar.panellist.actions': { kind: 'list'; scope: 'root'; owner: SidebarPanelActionsOwnerProps }
     /** Optional mode switcher above the global panel list. */
@@ -77,6 +79,20 @@ export interface SidebarPanelIconOwnerProps {
   size: number
   /** Whether this panel is selected in the main column. */
   active: boolean
+}
+
+/** Presentation and navigation supplied to a replacement panel row. */
+export interface SidebarPanelRowOwnerProps {
+  /** Existing panel-list id; ordering and pinning remain owned by the sidebar. */
+  id: MainPanelId
+  /** Resolved panel label. */
+  label: string
+  /** Whether the sidebar shows expanded navigation. */
+  wide: boolean
+  /** Whether this panel is selected. */
+  active: boolean
+  /** Open this row's main panel through the sidebar navigation action. */
+  onOpen: () => void
 }
 
 /** Serializable metadata for one active global panel list registration. */
@@ -192,6 +208,7 @@ export type SidebarRootComponentProps =
     | 'sidebar.brand.name'
     | 'sidebar.toggle.badge'
     | 'sidebar.panellist'
+    | 'sidebar.panellist.row'
     | 'sidebar.panellist.actions'
     | 'sidebar.quickSwitcher'
     | 'sidebar.workspaces'

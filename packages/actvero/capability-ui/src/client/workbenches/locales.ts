@@ -1,5 +1,7 @@
 export const zh = {
   title: '工作台',
+  switch: '切换工作台',
+  choose: '选择工作台',
   platform: '平台工作台',
   platformComing: '平台工作台即将开放',
   platformDescription: '这里将展示平台发布的工作台。现在可以先导入本机工作台，添加后统一在「我的工作台」中使用。',
@@ -61,6 +63,8 @@ export const zh = {
 
 export const en: Record<keyof typeof zh, string> = {
   title: 'Workbenches',
+  switch: 'Switch workbench',
+  choose: 'Choose workbench',
   platform: 'Platform workbenches',
   platformComing: 'Platform workbenches are coming soon',
   platformDescription: 'Workbenches published on the platform will appear here. For now, import a local package and use it from My workbenches.',

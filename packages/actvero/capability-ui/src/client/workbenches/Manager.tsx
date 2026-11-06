@@ -12,9 +12,10 @@ import {
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsHooks, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ActveroWorkbench } from '../../contracts.ts'
-import type { WorkbenchAction, WorkbenchView } from './register.ts'
+import type { WorkbenchAction } from './register.ts'
+import type { WorkbenchViewHooks } from './Navigation.tsx'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
@@ -28,7 +29,7 @@ import checklistDarkPreview from './assets/project-checklist-dark.png'
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
 type Locale = PropsLocale<'actvero.workbenches'>
-type ViewHooks = PropsHooks<{ view: { getSnapshot: () => WorkbenchView; subscribe: (listener: () => void) => () => void } }>
+type ViewHooks = WorkbenchViewHooks
 
 function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
@@ -264,17 +265,13 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
 export function OpenWorkbench({ t, useView, renderSlot, action }: Locale & ViewHooks
   & PropsRenderSlots<'actvero.workbench.body'> & { action: WorkbenchAction }) {
   const { entries, opened } = useView(value => value)
-  const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => { heading.current?.focus() }, [opened])
   const entry = entries.find(item => item.id === opened)
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entry?.name ?? t('title')
-  return <section className={styles.openPage}>
-    <header className={styles.openHeader}>
-      <Button variant="ghost" onClick={() => { action.back() }}><IconChevronLeftOutlineMedium size={15} />{t('back')}</Button>
-      <h1 ref={heading} tabIndex={-1}>{name}</h1>
-    </header>
-    <div className={styles.business}>
-      {opened && renderSlot('actvero.workbench.body', {}, { entryKey: opened, fallback: <p>{t('unavailable')}</p> })}
-    </div>
+  const unavailable = <div className={styles.empty}>
+    <p role="status">{t('unavailable')}</p>
+    <Button variant="outline" onClick={() => { action.back() }}>{t('back')}</Button>
+  </div>
+  return <section className={styles.business} aria-label={name}>
+    {opened ? renderSlot('actvero.workbench.body', {}, { entryKey: opened, fallback: unavailable }) : unavailable}
   </section>
 }
