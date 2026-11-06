@@ -19,6 +19,10 @@ import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
 import styles from './workbenches.module.css'
 import checklistPreview from './assets/project-checklist.png'
+import checklistProgressPreview from './assets/project-checklist-progress.png'
+import checklistReviewPreview from './assets/project-checklist-review.png'
+import checklistCompletedPreview from './assets/project-checklist-completed.png'
+import checklistDarkPreview from './assets/project-checklist-dark.png'
 
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
@@ -159,7 +163,10 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
   const [detailSelection, setDetailSelection] = useState<{ id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const needle = query.trim().toLocaleLowerCase()
-  const builtIn: ActveroWorkbench = { id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0', previewUrls: [checklistPreview] }
+  const builtIn: ActveroWorkbench = {
+    id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
+    previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
+  }
   const catalog = [builtIn, ...view.entries]
   const detail = catalog.find(entry => entry.id === detailSelection?.id)
   const entries = catalog.filter(entry => [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))]
