@@ -6,6 +6,8 @@ This reference is for Actvero desktop maintainers starting the workbench preview
 
 The [design note](../.agents/notes/proposed/architecture/2026-11-05-actvero-workbench-runtime.md) records the intended runtime context, optional host capabilities and bundled local experts. It establishes a design direction without claiming that the shared development interfaces are published.
 
+See [local workbench development](workbench-development.md) to generate an independent archive from the editable template.
+
 ## Launch and navigation
 
 Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. These commands use isolated development data. Expand the sidebar and select DSH Workbenches to open the compatibility catalog; the adjacent name switches between ordinary sessions and loaded compatibility workbenches. Installed shows local packages and their observed runtime status.

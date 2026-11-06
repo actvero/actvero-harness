@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync,
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
 import { create } from 'tar'
 import { describe, expect, it, vi } from 'vitest'
@@ -76,6 +77,11 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         } };
       }});`)
       await create({ cwd: root, file: archive, gzip: true }, ['package/package.json', 'package/index.js', 'package/client.js', 'package/cordis.patch.yml'])
+      const development = join(root, 'checklist-source')
+      const developerCommand = join(repository, 'scripts/actvero-workbench.client.ts')
+      execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', development], { cwd: repository })
+      execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'pack', development, root], { cwd: repository })
+      const checklistArchive = join(root, 'local-project-checklist-1.0.0.tgz')
 
       function startHost() {
         host = new DesktopHostProcess(process.execPath, project, paths.profile, undefined, process.env,
@@ -94,9 +100,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       try {
         const context = await browser.newContext({ locale: 'zh-CN', viewport: { width: 1440, height: 1000 } })
         // Chrome runs the same renderer without Electron's preload.
-        await context.addInitScript((path) => {
-          Object.defineProperty(globalThis, '__DSH_HOST_PATHS__', { value: { pathFor: () => path } })
-        }, archive)
+        await context.addInitScript(({ archive, checklistArchive }) => {
+          Object.defineProperty(globalThis, '__DSH_HOST_PATHS__', { value: { pathFor: (file: File) => file.name === 'local-project-checklist-1.0.0.tgz' ? checklistArchive : archive } })
+        }, { archive, checklistArchive })
         const page = await context.newPage()
         page.setDefaultTimeout(15_000)
         const errors: string[] = []
@@ -350,6 +356,35 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         } finally {
           await touch.close()
         }
+        await page.setViewportSize({ width: 1440, height: 1000 })
+        const expand = page.getByRole('button', { name: '打开侧边栏', exact: true })
+        if (await expand.isVisible()) await expand.click()
+        await openManager()
+        await picker.setInputFiles(checklistArchive)
+        await installStatus.waitFor({ timeout: 40_000 })
+        if ((await installStatus.innerText()).includes('重启')) await restart()
+        const packaged = page.locator('article').filter({ has: page.getByRole('heading', { name: '项目清单', exact: true }) }).filter({ has: page.locator('footer').filter({ hasText: '本地' }) })
+        await packaged.waitFor()
+        await packaged.getByRole('button', { name: '打开', exact: true }).click()
+        const scope = page.getByRole('checkbox', { name: '确认需求和交付范围' })
+        expect(await scope.isChecked()).toBe(false)
+        await scope.check()
+        await page.getByText('进度已保存在本机').waitFor()
+        await page.reload()
+        await openManager()
+        await packaged.getByRole('button', { name: '打开', exact: true }).click()
+        expect(await scope.isChecked()).toBe(true)
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          for (const width of [1440, 650]) {
+            await page.setViewportSize({ width, height: 900 })
+            await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { resolve() }))))
+            expect(await page.getByRole('heading', { name: '项目清单', exact: true }).count()).toBe(1)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+            await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/actvero-packaged-checklist-${colorScheme}-${width}.png`) })
+          }
+        }
+        expect(errors.filter(error => /ReferenceError|TypeError|SyntaxError/u.test(error))).toEqual([])
       } finally {
         await browser.close()
       }
