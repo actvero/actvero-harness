@@ -5,6 +5,7 @@ import {
   Modal,
   ImageLightbox,
   ActionMenu,
+  Tooltip,
   IconChecklistOutlineMedium,
   IconChevronLeftOutlineMedium,
   IconChevronRightOutlineMedium,
@@ -102,8 +103,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
   }
   return <>
     <Modal open title={entry.name} closeLabel={t('close')} onClose={onClose} className={styles.detail}
-      contentClassName={styles.detailContent}
-      footer={<><span className={styles.ready}>{t('ready')}</span><Button variant="primary" onClick={open}>{t('open')}</Button></>}>
+      contentClassName={styles.detailContent}>
       <div className={styles.detailLayout}>
         <section className={styles.gallery} aria-label={t('previews')}
           onKeyDown={(event) => {
@@ -116,24 +116,24 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
               <PreviewImage url={current} t={t} />
             </button>
             <div className={styles.galleryToolbar}>
-              <span className={styles.metadata} aria-live="polite">{selectedIndex + 1} / {previews.length}</span>
+              {previews.length > 1 && <span className={styles.metadata} aria-live="polite">{selectedIndex + 1} / {previews.length}</span>}
               <div>
                 <Button variant="ghost" onClick={() => { setEnlarged(true) }}>{t('enlarge')}</Button>
-                <Button variant="ghost" aria-label={t('previous')} disabled={previews.length < 2} onClick={() => { changePreview(-1) }}><IconChevronLeftOutlineMedium size={16} /></Button>
-                <Button variant="ghost" aria-label={t('next')} disabled={previews.length < 2} onClick={() => { changePreview(1) }}><IconChevronRightOutlineMedium size={16} /></Button>
+                {previews.length > 1 && <>
+                  <Tooltip label={t('previous')} side="top" portal><Button variant="ghost" aria-label={t('previous')} onClick={() => { changePreview(-1) }}><IconChevronLeftOutlineMedium size={16} /></Button></Tooltip>
+                  <Tooltip label={t('next')} side="top" portal><Button variant="ghost" aria-label={t('next')} onClick={() => { changePreview(1) }}><IconChevronRightOutlineMedium size={16} /></Button></Tooltip>
+                </>}
               </div>
             </div>
-            <div className={styles.thumbnails} ref={thumbnails}>
+            {previews.length > 1 && <div className={styles.thumbnails} ref={thumbnails}>
               {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
                 aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
                 onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
-            </div>
-            <p className={styles.previewNote}>{t('previewNote')}</p>
+            </div>}
           </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
         </section>
         <section className={styles.detailSummary} aria-label={t('about')}>
-          <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><span>{t(categoryOf(entry.category))}</span></div>
-          <h3>{t('about')}</h3>
+          <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><h3>{t('about')}</h3></div>
           <p className={styles.detailDescription}>{entry.description}</p>
           {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
           <dl className={styles.facts}>
@@ -141,6 +141,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
             <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
             {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
           </dl>
+          <div className={styles.detailActions}><Button variant="primary" onClick={open}>{t('open')}</Button></div>
         </section>
       </div>
     </Modal>
@@ -149,7 +150,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & 
   </>
 }
 
-/** Search, filter, import and open workbenches registered in the current profile. */
+/** Search, import and open workbenches registered in the current profile. */
 export function Manager({ t, useView, action }: Locale & ViewHooks & { action: WorkbenchAction }) {
   const view = useView(value => value)
   const [query, setQuery] = useState('')
@@ -161,10 +162,8 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
   const builtIn: ActveroWorkbench = { id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0', previewUrls: [checklistPreview] }
   const catalog = [builtIn, ...view.entries]
   const detail = catalog.find(entry => entry.id === detailSelection?.id)
-  const entries = catalog.filter((entry) => {
-    if (category !== 'all' && categoryOf(entry.category) !== category) return false
-    return [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))].some(value => value.toLocaleLowerCase().includes(needle))
-  })
+  const entries = catalog.filter(entry => [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))]
+    .some(value => value.toLocaleLowerCase().includes(needle)))
 
   return <section className={`${hubStyles.page} ${styles.page}`}>
     <header className={styles.pageTitle}>
@@ -185,9 +184,9 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
     <div className={styles.content}>
       <SourceTabs value={source} platformLabel={t('platform')} localLabel={t('mine')}
         count={source === 'local' ? entries.length : undefined} onChange={setSource} />
-      <nav className={catalogStyles.categories} aria-label={t('categories')}>
+      {source === 'platform' && <nav className={catalogStyles.categories} aria-label={t('categories')}>
         {categories.map(value => <Button key={value} variant="ghost" aria-pressed={value === category} onClick={() => { setCategory(value) }}>{t(value)}</Button>)}
-      </nav>
+      </nav>}
       {view.notice && <p className={styles.notice} role="status">{t(view.notice)}</p>}
       {source === 'platform' ? <div className={styles.platformEmpty}>
         <span className={styles.platformMark}><WorkbenchIcon size={30} /></span>
@@ -202,7 +201,7 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
       </div> : <div className={styles.empty}>
         <WorkbenchIcon size={27} />
         <p>{t('empty')}</p>
-        <Button variant="ghost" onClick={() => { setQuery(''); setCategory('all') }}>{t('clear')}</Button>
+        <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>
       </div>}
     </div>
     {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === builtIn.id}
