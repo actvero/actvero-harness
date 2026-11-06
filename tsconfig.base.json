@@ -58,9 +58,6 @@
       "@actvero/dsh-experts/categories": ["./packages/actvero/experts/src/categories.ts"],
       "@actvero/dsh-experts": ["./packages/actvero/experts/src/index.ts"],
       "@actvero/dsh-experts/client": ["./packages/actvero/experts/src/client/index.ts"],
-      "@actvero/dsh-workbenches": ["./packages/actvero/workbenches/src/index.ts"],
-      "@actvero/dsh-workbenches/contracts": ["./packages/actvero/workbenches/src/contracts.ts"],
-      "@actvero/dsh-workbenches/client": ["./packages/actvero/workbenches/src/client/index.ts"],
       "@actvero/dsh-model-gateway": ["./packages/actvero/model-gateway/src/index.ts"],
 
       "@actvero/dsh-client-account": ["./packages/client/actvero-account/src/index.ts"],

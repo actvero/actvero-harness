@@ -534,7 +534,6 @@
     { "path": "./packages/actvero/skills/tsconfig.host.json" },
     { "path": "./packages/actvero/connectors/tsconfig.host.json" },
     { "path": "./packages/actvero/experts/tsconfig.host.json" },
-    { "path": "./packages/actvero/model-gateway/tsconfig.host.json" },
-    { "path": "./packages/actvero/workbenches/tsconfig.host.json" }
+    { "path": "./packages/actvero/model-gateway/tsconfig.host.json" }
   ]
 }

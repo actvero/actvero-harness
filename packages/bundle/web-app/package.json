@@ -193,7 +193,6 @@
     "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
     "@actvero/dsh-client-account": "workspace:*",
     "@actvero/dsh-capability-ui": "workspace:*",
-    "@actvero/dsh-workbenches": "workspace:*",
     "@actvero/dsh-skills": "workspace:*",
     "@actvero/dsh-connectors": "workspace:*",
     "@actvero/dsh-experts": "workspace:*",

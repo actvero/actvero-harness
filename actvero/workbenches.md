@@ -8,15 +8,15 @@ The [design note](../.agents/notes/proposed/architecture/2026-11-05-actvero-work
 
 ## Launch and navigation
 
-Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. Run `pnpm run actvero:preview:workbenches` for an independent preview. These entries use development data rather than installed-client accounts and conversations. Select Workbenches in the expanded sidebar to open the local catalog. Opening a workbench fills the content area; Business, Split and Conversation switch its layout, and the upper-left control returns home.
+Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. These commands use isolated development data. Expand the sidebar and select Workbenches to open its home; the adjacent name switches between ordinary sessions and loaded workbenches. Installed shows local packages and their observed runtime status.
 
 ## Host and business packages
 
-The [Actvero workbench package](../packages/actvero/workbenches/README.md) provides the local host. The editable creative canvas and asset notes are bundled reference applications, not service-connected generation plugins. Users need not select a folder or create a named project first. Opening AI assistance creates a native conversation; subsequent topics share the current material directory. Durable associations connect business records and conversations without exclusive workbench ownership. Platform authentication context, model catalogs and automatic bundled-expert loading are not integrated.
+The host uses DataElement's MIT-licensed DSH Desktop source; see the [source record](third-party/dsh-desktop-workbenches/UPSTREAM.md). It retains the market, favorites, switching, installation status and native Conversation composition. The catalog remains DSH's public catalog. Actvero organization distribution, publishing and review are not connected.
 
-The home page's DSH compatibility market retains old workbenches and their switching and conversation-ownership rules. See the [source record](third-party/dsh-desktop-workbenches/UPSTREAM.md) for the pinned MIT-licensed source. The public market still reads DSH's catalog; Actvero publishing, organization distribution and review are not connected.
+A business workbench is an independent DSH bundle. Its client registers through `ctx.desktopWorkbenches.register(descriptor, Component)` and owns the disposer through a Cordis effect. Local packages may omit repository metadata; package names establish stable local identity. The [bundled upstream guides](third-party/dsh-desktop-workbenches/) are source snapshots, not a claim about the latest online specification.
 
-Local business packages register a Host provider and a Client business slot; see the [package reference](../packages/actvero/workbenches/README.md) for interfaces, storage and model tools. Original DSH bundles use `ctx.desktopWorkbenches.register(descriptor, Component)`. Their [bundled upstream guides](third-party/dsh-desktop-workbenches/) are snapshots, not the latest online specification, and do not automatically convert those packages into Actvero business providers.
+Standard layouts combine a business panel and the native Conversation. Full-page business layouts own their first-use entry and place the host's Conversation node when AI help is requested. Native slots and a Factory preserve the existing Conversation implementation. Sidebar projections filter display only; the original Session and Workspace Controllers remain complete.
 
 ## Installation and compatibility
 
@@ -26,6 +26,4 @@ npm market archives are downloaded and checked against the catalog's SHA-512 dig
 
 ## Verification
 
-Local-workbench browser acceptance uses the real Desktop Host to check persistence, the native composer, view and topic switching, drafts and reload restoration in light, dark and narrow layouts. Old DSH compatibility acceptance remains independent. A keyless adapter exercises the native model path, checking business instructions, data tools and Session logs.
-
-Use the normal `build:artifacts` and subsequent `build:check` commands. Browser checks do not establish signed-installer or real-account/model acceptance.
+`apps/web/tests/actvero-workbenches.e2e.ts` composes the real Desktop Host with a temporary local provider to exercise Installed, switching, first-use behavior, native Conversation, reload, light/dark themes and narrow layouts. The fixture is not a shipped business workbench. Workspace navigation tests cover ownership, blank reuse and reversible filters. Use the normal `build:artifacts` and subsequent `build:check` commands. Browser checks do not establish signed-installer or live-account/model acceptance.

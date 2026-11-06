@@ -24,7 +24,6 @@
   "exclude": [
     "tests/actvero-capabilities.e2e.ts",
     "tests/actvero-workbenches.e2e.ts",
-    "tests/actvero-local-workbenches.e2e.ts",
     "tests/collapse-timing.e2e.ts",
     "tests/notice-wake-tail.e2e.ts",
     "tests/fold-blank-matrix.e2e.ts",

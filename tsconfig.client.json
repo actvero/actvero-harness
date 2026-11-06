@@ -158,7 +158,6 @@
     { "path": "./packages/actvero/capability-ui/tsconfig.client.json" },
     { "path": "./packages/actvero/skills/tsconfig.client.json" },
     { "path": "./packages/actvero/connectors/tsconfig.client.json" },
-    { "path": "./packages/actvero/experts/tsconfig.client.json" },
-    { "path": "./packages/actvero/workbenches/tsconfig.client.json" }
+    { "path": "./packages/actvero/experts/tsconfig.client.json" }
   ]
 }

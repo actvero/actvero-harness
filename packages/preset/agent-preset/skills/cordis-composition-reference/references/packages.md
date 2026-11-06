@@ -19,7 +19,6 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@actvero/dsh-experts` | no | undefined |
 | `@actvero/dsh-model-gateway` | yes | undefined |
 | `@actvero/dsh-skills` | no | undefined |
-| `@actvero/dsh-workbenches` | yes | Actvero local workbench host and native conversation integration |
 
 ## api
 
