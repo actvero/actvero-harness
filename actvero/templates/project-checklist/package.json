@@ -1,0 +1,16 @@
+{
+  "name": "@local/project-checklist",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "dsh": "0.2.1-rc.3" },
+  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js" },
+  "dsh": {
+    "actveroWorkbench": 1,
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": ["@actvero/dsh-capability-ui", "@deepseek-ai/dsh-client-locale"]
+    }
+  }
+}

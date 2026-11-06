@@ -37,7 +37,10 @@
     // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
+    "actvero/templates/project-checklist/src/client/**/*.ts",
+    "actvero/templates/project-checklist/src/client/**/*.tsx",
     "scripts/client-build-environment.ts",
+    "scripts/actvero-workbench.client.ts",
     "scripts/bundle-input-isolation.ts",
     "scripts/experimental-package-policy.ts",
     "scripts/*.client.spec.ts",

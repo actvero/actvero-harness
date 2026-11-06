@@ -228,6 +228,7 @@
     "packages/*/*/tests/**/*.client.spec.ts",
     "packages/*/*/tests/**/*.client.spec.tsx",
     "packages/client/tsdown.client.ts",
+    "scripts/actvero-workbench.client.ts",
     "scripts/*.client.spec.ts",
     "scripts/client-bundle-css.spec.ts",
     "packages/typert/generator/tests/fixtures/**",

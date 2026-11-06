@@ -6,6 +6,8 @@
 
 工作台运行上下文、可选宿主能力及内置本地专家的后续设计见[设计记录](../.agents/notes/proposed/architecture/2026-11-05-actvero-workbench-runtime.zh.md)。该记录明确设计方向，不表示统一开发接口已经发布。
 
+从可编辑模板生成独立安装包的步骤见[本地工作台开发](workbench-development.zh.md)。
+
 ## 启动和入口
 
 完成依赖安装后，运行 `pnpm run actvero:dev`；已有最新构建时运行 `pnpm run actvero:start`。这两个入口使用独立开发数据，不读取已安装客户端的账户和会话。展开左侧栏，点击「DSH 工作台」打开兼容市场；右侧名称区域可切换普通会话与已加载的兼容工作台。「已安装」显示本地包及其实际运行状态。

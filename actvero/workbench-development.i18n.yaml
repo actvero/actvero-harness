@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for workbench-development.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/workbench-development.md
+/local-workbench-development:
+  en: 3c8792295f569f97
+  zh: 2ef41cbb03d755f1
+/local-workbench-development/summary:
+  en: 128d4ccf20e940e4
+  zh: 127438cb9f8b6355
+/local-workbench-development/table-of-contents:
+  en: b7e0323fc5e9210c
+  zh: 10df93f8914b1786
+/local-workbench-development/create-and-package:
+  en: b5ea061e0bfdaffc
+  zh: e3bc5614fe997a1b
+/local-workbench-development/import-and-verify:
+  en: c699d5d9d38d110f
+  zh: 9e909e7bd0fe480d
+/local-workbench-development/package-format:
+  en: 81e52ab4361110d6
+  zh: 01d6bb65bfa00acd
+/local-workbench-development/edit-the-business-view:
+  en: 187ba781d93e8682
+  zh: 20bccbb99c576bcd
+/local-workbench-development/limitations:
+  en: 25026a9536023fae
+  zh: f69046d4880b9d3c
