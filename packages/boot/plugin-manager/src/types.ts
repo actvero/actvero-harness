@@ -1,6 +1,6 @@
 /** Public plugin management records shared with clients. */
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
+import type { DshClientManifest, PluginLocalizedMeta } from '@deepseek-ai/dsh-package-manifest'
 import type { PluginInventoryEntry } from '@deepseek-ai/dsh-host-plugin-inventory/types'
 export type { PluginEntryId } from '@deepseek-ai/dsh-host-plugin-inventory/types'
 import type { PluginEntryId } from '@deepseek-ai/dsh-host-plugin-inventory/types'
@@ -55,6 +55,10 @@ export interface BundleRowInfo {
 /** One shipped, profile-installed, or discoverable on-demand bundle. */
 export interface BundleInfo {
   name: string
+  /** Declared client module dependencies, readable even while the bundle is disabled. */
+  client?: DshClientManifest
+  /** Installed files were replaced in this Host; restart before loading or removing them. */
+  restartRequired?: boolean
   /** Project-maintained shipped optional bundle or on-demand catalog entry, independent of installation and selection. */
   official: boolean
   /** Readable package location; on-demand catalog entries exclude undeclared transitive copies, and declared files may be missing. */
@@ -164,6 +168,8 @@ export type PluginInstallRequestId = Branded<'PluginInstallRequestId'>
 
 /** Bundle installation defaults to activation; callers that offer cancellation supply their request id. */
 export interface InstallBundleOptions {
+  /** Replace this exact installed release with a newer local .tgz; application waits for restart. */
+  replace?: { name: string; version: string; nextVersion: string }
   enabled?: boolean
   /** Save the resolved dependency version without a range; applies to any bundle installation. */
   saveExact?: boolean

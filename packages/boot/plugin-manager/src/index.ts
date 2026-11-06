@@ -20,6 +20,7 @@ import {
 } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-hmr'
 import type { ProfileContext, ProfileManifest } from '@deepseek-ai/dsh-app-boot'
+import { prepareReplacement, type Replacement } from './replacement.ts'
 import { bundleManifest, readProfileRegistry, registryArguments, runProfilePnpm, saveManifest, viewProfilePackage } from './operations.ts'
 import { classifyInstallFailure } from './install-failure.ts'
 import { officialBundleInstallTarget } from './official-install-target.ts'
@@ -223,6 +224,7 @@ export class PluginManager extends TypertRemoteService {
    * URLs against its default registry unless they belong to a named registry, so a later removal names it again.
    */
   private readonly installedFrom = new Map<string, Registry>()
+  private readonly replacements = new Set<string>()
   private readonly ownerEntryId: string | undefined
   private readonly packageOperations = new Set<Promise<unknown>>()
   private readonly profile: ProfileContext
@@ -337,7 +339,8 @@ export class PluginManager extends TypertRemoteService {
         try { target = { installTarget: officialBundleInstallTarget(name, this.profile.installAnchor, runtimeVersion) } }
         catch (error) { targetError = managementError(error) }
       }
-      const catalogMeta = offered === undefined ? {} : { meta: offered.meta }
+      const catalogMeta = { ...(offered === undefined ? {} : { meta: offered.meta }),
+        ...(this.replacements.has(name) ? { restartRequired: true } : {}) }
       if (offered !== undefined && !installed && !shipped) {
         bundles.push({ name, official, availability: 'missing', ...catalogMeta, ...target, enabled, installed, optional,
           removable: enabled, rows: [], overrides: [],
@@ -352,6 +355,7 @@ export class PluginManager extends TypertRemoteService {
       const readOnlyReason = this.protectsManager(name) ? 'management-required' as const : undefined
       let availability: BundleInfo['availability'] = 'missing'
       let version: string | undefined
+      let client: BundleInfo['client']
       try {
         const info = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
         availability = shipped ? 'installation' : 'profile'
@@ -362,11 +366,13 @@ export class PluginManager extends TypertRemoteService {
           continue
         }
         version = info.version
+        client = info.dsh?.client
         const compatibility = evaluatePluginCompatibility(info, exemptions)
         if (compatibility !== undefined && !compatibility.exempted) throw new ManagementFailure('incompatible-version', [incompatiblePlugin(compatibility)])
         const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
         const meta = offered?.meta ?? readPluginMeta(info.name ?? name, pathToFileURL(join(dir, 'package.json')).href)
-        bundles.push({ name, official, availability, ...target, ...(version === undefined ? {} : { version }),
+        bundles.push({ name, official, availability, ...target, ...catalogMeta,
+          ...client === undefined ? {} : { client }, ...(version === undefined ? {} : { version }),
           ...(info.description === undefined || info.description === '' ? {} : { description: info.description }),
           ...meta === undefined ? {} : { meta },
           ...sourceOf(info.name), enabled, installed, optional, removable: removable && readOnlyReason === undefined,
@@ -375,7 +381,8 @@ export class PluginManager extends TypertRemoteService {
           ...targetError === undefined ? {} : { error: targetError } })
       } catch (error) {
         if (enabled || installed || optional || offered !== undefined) {
-          bundles.push({ name, official, availability, ...catalogMeta, ...target, ...(version === undefined ? {} : { version }),
+          bundles.push({ name, official, availability, ...catalogMeta, ...target,
+            ...client === undefined ? {} : { client }, ...(version === undefined ? {} : { version }),
             ...sourceOf(), enabled, installed, optional, removable: removable && readOnlyReason === undefined,
             ...(readOnlyReason === undefined ? {} : { readOnlyReason }),
             error: targetError ?? managementError(error), rows: [], overrides: [] })
@@ -510,6 +517,10 @@ export class PluginManager extends TypertRemoteService {
   setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult> {
     return this.change(result => this.configure(async () => {
       await this.selectBundle(name, enabled)
+      if (this.replacements.has(name)) {
+        result.restartReason = 'package-moved'
+        return 'restart-required'
+      }
       Object.assign(result, enabled ? await this.publishAndReload(this.bundleRows(name).map(row => row.id)) : await this.reload())
     }), { stage: 'enable', target: name, enabled }, 'bundle')
   }
@@ -519,10 +530,12 @@ export class PluginManager extends TypertRemoteService {
    * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
    * only network failures or timeouts stop installation, while pnpm owns authentication and transport fallback. A run
    * that fails, is cancelled, or adds a package without a bundle patch restores
-   * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
+   * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay. Explicit replacements also restore
+   * the target package on installation failure and require a Host restart after successful installation.
    * @param spec One package spec, including local paths relative to the invocation directory.
    * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
-   * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
+   * the pending build scripts to allow, whether to save an exact dependency, the registry asked first,
+   * and reviewed versions for replacement.
    * @returns Package-manager diagnostics, the registries asked, and the observed activation outcome.
    */
   @Remote
@@ -538,10 +551,24 @@ export class PluginManager extends TypertRemoteService {
       if (spec.trim() === '' || spec.startsWith('-')) throw new ManagementFailure('invalid-spec')
       if (stopped()) throw new InstallCancelledError()
       const before = readProfileManifest('dsh', this.profile.dir).dependencies ?? {}
-      // With HMR, an installed package is removed before another version is installed, so its plugins stop first.
       const known = specPackageName(spec, before, this.profile.dir)
-      if (this.ownerContext.get('hmr') !== undefined && known !== undefined && Object.hasOwn(before, known)) {
+      if (options?.replace === undefined && this.ownerContext.get('hmr') !== undefined && known !== undefined && Object.hasOwn(before, known)) {
         throw new ManagementFailure('already-installed')
+      }
+      let replacement: Replacement | undefined
+      if (options?.replace !== undefined) {
+        if (this.replacements.has(options.replace.name)) throw new ManagementFailure('stop-profile')
+        const current = (await this.listBundles()).find(bundle => bundle.name === options.replace?.name)
+        if (!current?.installed || !current.removable || current.version !== options.replace.version) {
+          throw new ManagementFailure('stale-approval')
+        }
+        replacement = await prepareReplacement(spec, options.replace, this.profile.dir)
+        const compatibility = evaluatePluginCompatibility(replacement.manifest, readProfileVersionExemptions(this.profile.dir))
+        if (compatibility !== undefined && !compatibility.exempted) {
+          await replacement.dispose()
+          throw new ManagementFailure('incompatible-version', [incompatiblePlugin(compatibility)])
+        }
+        spec = replacement.spec
       }
       if (options?.approvedBuilds !== undefined) {
         await approveBuilds(this.profile.dir, options.approvedBuilds)
@@ -618,6 +645,7 @@ export class PluginManager extends TypertRemoteService {
         const target = installed[0]
         if (installed.length !== 1 || target === undefined) throw new ManagementFailure('ambiguous-install')
         name = target
+        if (options?.replace !== undefined && name !== options.replace.name) throw new ManagementFailure('ambiguous-install')
         const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
         const manifest = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
         if (manifest?.dsh?.bundle === undefined) throw new ManagementFailure('not-bundle')
@@ -629,6 +657,8 @@ export class PluginManager extends TypertRemoteService {
       } catch (error) {
         // pnpm has exited by now, so the files it rewrote go back as they were.
         await this.restoreFiles(files)
+        await replacement?.restore()
+        await replacement?.dispose()
         throw error
       }
       control.phase = 'applying'
@@ -637,14 +667,19 @@ export class PluginManager extends TypertRemoteService {
       if (version !== undefined) result.version = version
       result.target = name
       result.stage = 'enable'
-      return this.configure(async () => {
+      if (replacement !== undefined) this.replacements.add(name)
+      try { return await this.configure(async () => {
         if (options?.enabled !== false) await this.selectBundle(name, true)
+        if (replacement !== undefined) {
+          result.restartReason = 'package-moved'
+          return 'restart-required' as const
+        }
         // Without HMR the replaced package's plugins keep running until the restart the result already reports.
         if (Object.hasOwn(before, name) && this.ownerContext.get('hmr') === undefined) return
         // A selected bundle's own rows must start.
         const selected = bundleSelection(readProfileManifest('dsh', this.profile.dir)).includes(name)
         Object.assign(result, await this.publishAndReload(selected ? this.bundleRows(name).map(row => row.id) : []))
-      })
+      }) } finally { await replacement?.dispose() }
     }, { stage: 'install', target: spec, enabled: options?.enabled !== false }, 'install')
     control.result = result
     return result.finally(() => { if (requestId !== undefined) this.installs.delete(requestId) })
@@ -685,6 +720,7 @@ export class PluginManager extends TypertRemoteService {
   @Remote
   removeBundle(name: string): Promise<ChangeResult> {
     return this.change(async (result) => {
+      if (this.replacements.has(name)) throw new ManagementFailure('stop-profile')
       const installed = await this.configure(async () => {
         const bundle = (await this.listBundles()).find(item => item.name === name)
         if (bundle === undefined || !bundle.removable) throw new ManagementFailure('not-removable')

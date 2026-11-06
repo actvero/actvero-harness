@@ -202,10 +202,12 @@ Manage profile files and apply their declared reload lifecycle.
  * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
  * only network failures or timeouts stop installation, while pnpm owns authentication and transport fallback. A run
  * that fails, is cancelled, or adds a package without a bundle patch restores
- * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.
+ * `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay. Explicit replacements also restore
+ * the target package on installation failure and require a Host restart after successful installation.
  * @param spec One package spec, including local paths relative to the invocation directory.
  * @param options Whether to activate the installed bundle (defaults to true), the request id a cancellation names,
- * the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.
+ * the pending build scripts to allow, whether to save an exact dependency, the registry asked first,
+ * and reviewed versions for replacement.
  * @returns Package-manager diagnostics, the registries asked, and the observed activation outcome.
  */
 @Remote installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult>

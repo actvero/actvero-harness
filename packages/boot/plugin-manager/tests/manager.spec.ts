@@ -1,5 +1,5 @@
 /** Persistent manager behavior through a real profile Include and Loader. */
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { once } from 'node:events'
 import { createServer } from 'node:http'
@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path'
 import { homedir, tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execa } from 'execa'
+import { create } from 'tar'
 import type { Context } from '@deepseek-ai/cordis'
 import { afterAll, beforeAll, expect, it, onTestFinished, vi } from 'vitest'
 import {
@@ -1240,6 +1241,109 @@ it('installs and removes with the bundled pnpm when PATH contains no pnpm', asyn
   expect(removed.error).toBeUndefined()
   expect(removed.packageResult?.exitCode).toBe(0)
   expect(readProfileManifest('test', dir).dependencies ?? {}).not.toHaveProperty('@test/desktop-manager')
+})
+
+async function releaseArchive(root: string, name: string, version: string, engines?: { dsh: string }) {
+  const folder = join(root, `release-${version}`, 'package')
+  mkdirSync(folder, { recursive: true })
+  writeFileSync(join(folder, 'package.json'), JSON.stringify({ name, version,
+    ...(engines ? { engines } : {}),
+    dsh: { bundle: { patch: './cordis.patch.yml' }, client: { platform: 'web', inject: ['@actvero/dsh-capability-ui'] } },
+  }))
+  writeFileSync(join(folder, 'cordis.patch.yml'), '[]\n')
+  const archive = join(root, `release-${version}.tgz`)
+  await create({ cwd: join(folder, '..'), file: archive, gzip: true }, ['package/package.json', 'package/cordis.patch.yml'])
+  return archive
+}
+
+it('replaces a local release through bundled pnpm and keeps restart state across inventory refreshes', async () => {
+  const pnpm = fileURLToPath(new URL('../../../../apps/desktop/node_modules/pnpm/bin/pnpm.mjs', import.meta.url))
+  const { manager, dir } = await fixture('startup', false, undefined, {}, {
+    command: process.execPath, args: ['--expose-internals', pnpm], env: { PATH: '', ELECTRON_RUN_AS_NODE: '1' },
+  })
+  const manifest = readProfileManifest('test', dir)
+  delete manifest.dependencies
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  const name = '@test/versioned-workbench'
+  const first = await releaseArchive(dir, name, '1.0.0')
+  const newer = await releaseArchive(dir, name, '1.1.0')
+  expect((await manager.installBundle(first, { enabled: false, registry: null })).error).toBeUndefined()
+  const data = join(dir, 'business-data.json')
+  writeFileSync(data, '{"done":true}\n')
+  const result = await manager.installBundle(newer, { enabled: false, registry: null, replace: { name, version: '1.0.0', nextVersion: '1.1.0' } })
+  expect(result.error).toBeUndefined()
+  expect(result).toMatchObject({ application: 'restart-required', restartReason: 'package-moved', version: '1.1.0' })
+  expect((await manager.listBundles()).find(bundle => bundle.name === name)).toMatchObject({
+    enabled: false, installed: true, version: '1.1.0', restartRequired: true,
+    client: { platform: 'web', inject: ['@actvero/dsh-capability-ui'] },
+  })
+  expect(await manager.setBundleEnabled(name, true)).toMatchObject({ application: 'restart-required', restartReason: 'package-moved' })
+  expect(await manager.removeBundle(name)).toMatchObject({ application: 'failed', error: { code: 'stop-profile' } })
+  expect(await manager.installBundle(newer, { replace: { name, version: '1.1.0', nextVersion: '1.1.0' } })).toMatchObject({ application: 'failed', error: { code: 'stop-profile' } })
+  expect(readFileSync(data, 'utf8')).toBe('{"done":true}\n')
+})
+
+it.each([
+  ['pnpm', 'linked'], ['bundle', 'linked'], ['pnpm', 'hoisted'], ['bundle', 'hoisted'],
+] as const)('restores the old package and manifest after replacement %s failure with %s layout', async (failure, layout) => {
+  const { manager, dir, ctx } = await fixture('live', false, undefined, {}, undefined, (profile) => {
+    if (layout === 'hoisted') return
+    const old = join(profile, 'previous-release')
+    renameSync(join(profile, 'node_modules/extra'), old)
+    symlinkSync(old, join(profile, 'node_modules/extra'), 'junction')
+  })
+  const previous = await realpath(join(dir, 'node_modules/extra'))
+  const manifest = readFileSync(join(dir, 'package.json'), 'utf8')
+  const archive = await releaseArchive(dir, 'extra', '1.1.0')
+  const next = join(dir, 'invalid-release')
+  mkdirSync(next)
+  writeFileSync(join(next, 'package.json'), JSON.stringify({ name: 'extra', version: '1.1.0' }))
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm').mockImplementation(async (_profile, args) => {
+    expect(args[1]).toMatch(/\.plugin-manager[/\\]archives[/\\][a-f0-9]+\.tgz$/)
+    rmSync(join(dir, 'node_modules/extra'), { recursive: true, force: true })
+    symlinkSync(next, join(dir, 'node_modules/extra'), 'junction')
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ ...JSON.parse(manifest), dependencies: { extra: `file:${archive}` } }))
+    return { exitCode: failure === 'pnpm' ? 1 : 0, output: 'replacement fixture', truncated: false, logPath: join(dir, 'pnpm.log') }
+  })
+  onTestFinished(() => { pnpm.mockRestore() })
+  const result = await manager.installBundle(archive, { registry: null, replace: { name: 'extra', version: '1.0.0', nextVersion: '1.1.0' } })
+  expect(result.application).toBe('failed')
+  expect(await realpath(join(dir, 'node_modules/extra'))).toBe(previous)
+  expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(manifest)
+  expect(ctx.get('managedProbe')).toBe(true)
+  expect((await manager.listBundles()).find(bundle => bundle.name === 'extra')).toMatchObject({ version: '1.0.0', enabled: true })
+})
+
+it('refuses a release changed after its target version was reviewed', async () => {
+  const { manager, dir } = await fixture('live')
+  const archive = await releaseArchive(dir, 'extra', '1.2.0')
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm')
+  onTestFinished(() => { pnpm.mockRestore() })
+  expect(await manager.installBundle(archive, { replace: { name: 'extra', version: '1.0.0', nextVersion: '1.1.0' } })).toMatchObject({
+    application: 'failed', changed: false, error: { code: 'invalid-spec' },
+  })
+  expect(pnpm).not.toHaveBeenCalled()
+})
+
+it.each([
+  ['extra', '1.0.0', '1.0.0', undefined, 'invalid-spec'],
+  ['extra', '0.9.0', '1.0.0', undefined, 'invalid-spec'],
+  ['another', '1.1.0', '1.0.0', undefined, 'invalid-spec'],
+  ['extra', '1.1.0', '0.9.0', undefined, 'stale-approval'],
+  ['extra', '1.1.0', '1.0.0', { dsh: '999.0.0' }, 'incompatible-version'],
+] as const)('rejects unreviewed replacement %s %s against %s before pnpm', async (name, version, expected, engines, code) => {
+  const { manager, dir } = await fixture('live', false, undefined, {}, undefined, (profile) => {
+    const old = join(profile, 'previous-release')
+    renameSync(join(profile, 'node_modules/extra'), old)
+    symlinkSync(old, join(profile, 'node_modules/extra'), 'junction')
+  })
+  const archive = await releaseArchive(dir, name, version, engines)
+  const pnpm = vi.spyOn(operations, 'runProfilePnpm')
+  onTestFinished(() => { pnpm.mockRestore() })
+  expect(await manager.installBundle(archive, { replace: { name: 'extra', version: expected, nextVersion: version } })).toMatchObject({
+    application: 'failed', changed: false, error: { code },
+  })
+  expect(pnpm).not.toHaveBeenCalled()
 })
 
 const MIRROR = 'https://registry.npmmirror.com/'
