@@ -15,11 +15,17 @@
 .cardActions { position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; flex: none; }
 .openButton { height: 28px; padding: 0 12px; border-radius: 8px; font-size: 12px; }
 .description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; min-height: 40px; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
-.previewButton { position: relative; z-index: 1; display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
-.extraPreviews { position: absolute; inset: 0; display: grid; place-items: center; border-radius: inherit; background: var(--dsw-alias-bg-mask-1); color: var(--dsw-alias-label-primary); font-size: 20px; font-weight: 500; backdrop-filter: blur(3px); }
-.previewRow { display: grid; grid-template-rows: minmax(0, 1fr); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; height: 82px; width: 100%; margin-top: auto; }
-.preview { display: grid; place-items: center; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-tertiary); }
+.previewStrip { position: relative; min-width: 0; }
+.cardPreviews { z-index: 1; margin-top: auto; }
+.previewButton { display: block; flex: 0 0 calc((100% - 12px) / 2.5); height: 82px; min-width: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; scroll-snap-align: start; }
+.previewButton:only-child { flex-basis: 100%; }
+.previewRow { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 0 6px; }
+.previewRow > .previewFallback { width: 100%; height: 82px; }
+.preview { display: grid; place-items: center; box-sizing: border-box; min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid var(--dsw-alias-border-l4); border-radius: 8px; background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-tertiary); }
 .preview img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+.previewStrip .stripArrow { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; min-width: 28px; padding: 0; border-radius: 50%; corner-shape: round; background: var(--dsw-alias-bg-base); box-shadow: 0 1px 3px var(--dsw-alias-border-l3); }
+.stripPrevious { left: 4px; }
+.stripNext { right: 4px; }
 .previewFallback { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 8px; box-sizing: border-box; font-size: 12px; }
 .cardFoot { display: flex; align-items: center; gap: 12px; min-height: 20px; }
 .metadata { min-width: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
@@ -36,15 +42,13 @@
 .detailContent { overflow-y: auto; min-height: 0; }
 .detailLayout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr); gap: 28px; }
 .gallery { min-width: 0; }
-.largePreview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: 10px; background: var(--dsw-alias-interactive-bg-hover); overflow: hidden; cursor: zoom-in; }
-.largePreview .preview { width: 100%; border-radius: inherit; }
+.largePreview { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 1px solid var(--dsw-alias-border-l4); border-radius: 10px; background: var(--dsw-alias-interactive-bg-hover); overflow: hidden; cursor: zoom-in; }
+.largePreview .preview { width: 100%; border: 0; border-radius: inherit; }
 .largePreview img { object-fit: contain; }
-.galleryToolbar { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; }
-.galleryToolbar > div { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.galleryToolbar button { height: 28px; padding: 0 8px; font-size: 12px; }
-.thumbnails { display: flex; gap: 8px; overflow-x: auto; margin-top: 8px; padding: 2px; scrollbar-width: thin; }
-.thumbnail { flex: none; width: 72px; height: 52px; padding: 2px; border: 2px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; }
-.thumbnail[aria-pressed="true"] { border-color: var(--dsw-alias-state-business-primary); }
+.detailPreviews { margin-top: 12px; }
+.thumbnails { display: flex; gap: 8px; overflow-x: auto; padding: 2px 36px 6px; scroll-padding-inline: 36px; }
+.thumbnail { flex: none; width: 72px; height: 52px; padding: 2px; border: 1px solid var(--dsw-alias-border-l4); border-radius: 8px; background: transparent; cursor: pointer; }
+.thumbnail[aria-pressed="true"] { border-color: var(--dsw-alias-state-business-primary); box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary); }
 .thumbnail .preview { border: 0; border-radius: 4px; }
 .detailSummary { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }
 .detailIdentity { display: flex; align-items: center; gap: 10px; }
@@ -60,6 +64,10 @@
 @container (max-width: 680px) { .detailLayout { grid-template-columns: minmax(0, 1fr); gap: 20px; } .largePreview { aspect-ratio: 16 / 9; } }
 .page button:focus-visible { outline: 2px solid var(--dsw-alias-label-tertiary); outline-offset: -2px; }
 @media (hover: hover) {
+  .previewStrip .stripArrow { opacity: 0; pointer-events: none; }
+  .previewStrip:hover .stripArrow, .previewStrip:has(:focus-visible) .stripArrow { opacity: 1; pointer-events: auto; }
+  .previewStrip:hover .stripArrow:disabled, .previewStrip:has(:focus-visible) .stripArrow:disabled { opacity: .4; }
+  .previewStrip .stripArrow:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover-solid); }
   .card:hover { background: var(--dsw-alias-interactive-bg-hover); border-color: var(--dsw-alias-border-l3); }
   .more { opacity: 0; pointer-events: none; }
   .card:hover .more, .card:focus-within .more { opacity: 1; pointer-events: auto; }
