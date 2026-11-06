@@ -14,7 +14,7 @@ import { prepareDevelopmentProject } from '../../desktop/scripts/development-pro
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url))
 const fixtureName = 'actvero-manager-fixture'
-const title = '活动复盘工作台'
+const title = '活动复盘工作台 · Campaign Review Workspace'
 
 function version(path: string): string {
   return (JSON.parse(readFileSync(path, 'utf8')) as { version: string }).version
@@ -67,7 +67,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         function Panel() { return h('p', null, '已打开活动复盘业务页'); }
         return { inject: ['actveroWorkbenches'], apply(ctx) {
           ctx.effect(() => ctx.actveroWorkbenches.register({
-            id: '${fixtureName}', name: '${title}', description: '整理活动结果与待跟进事项', version: '1.0.0', category: 'content'
+            id: '${fixtureName}', name: '${title}', description: '整理活动结果与待跟进事项，汇总 Campaign Review 的渠道数据、反馈和负责人。', version: '1.0.0', category: 'content', iconUrl: 'data:image/png;base64,invalid', previewUrls: ${JSON.stringify(Array.from({ length: 5 }, () => 'data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')))}
           }, Panel));
         } };
       }});`)
@@ -103,12 +103,30 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         })
         const openManager = async () => {
           await page.getByRole('button', { name: '工作台', exact: true }).click()
-          await page.getByRole('heading', { name: '我的工作台' }).waitFor()
+          await page.getByRole('tab', { name: '我的工作台', exact: true }).waitFor()
         }
         await page.goto(ready.url)
         await openManager()
         const fixtureCard = page.locator('article').filter({ has: page.getByRole('heading', { name: title }) })
         const example = page.locator('article').filter({ has: page.getByRole('heading', { name: '项目清单' }) })
+        await expect.poll(() => example.locator('img').evaluateAll(images => images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0) && images.length === 1)).toBe(true)
+        const mine = page.getByRole('tab', { name: '我的工作台', exact: true })
+        await mine.focus()
+        await page.keyboard.press('ArrowRight')
+        await page.getByText('平台工作台即将开放', { exact: true }).waitFor()
+        expect(await page.getByRole('tab', { name: '平台工作台', exact: true }).getAttribute('aria-selected')).toBe('true')
+        await page.getByRole('button', { name: '查看我的工作台', exact: true }).click()
+        expect(await mine.getAttribute('aria-selected')).toBe('true')
+        await example.getByRole('button', { name: '查看详情 · 项目清单', exact: true }).click({ position: { x: 8, y: 8 } })
+        await page.getByRole('dialog').waitFor()
+        await page.keyboard.press('Escape')
+        await page.getByRole('dialog').waitFor({ state: 'hidden' })
+        await example.hover()
+        const more = example.getByRole('button', { name: '更多操作 · 项目清单', exact: true })
+        expect(await more.evaluate(element => getComputedStyle(element).opacity)).toBe('1')
+        await more.click()
+        await page.getByRole('menuitem', { name: '查看详情', exact: true }).click()
+        await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click()
         await page.getByRole('button', { name: '数据分析', exact: true }).click()
         await page.getByText('没有匹配的工作台').waitFor()
         await page.getByRole('button', { name: '清除筛选', exact: true }).click()
@@ -151,6 +169,28 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           })
           throw error
         }
+        await expect.poll(() => fixtureCard.locator('img').evaluateAll(images => images.length === 3 && images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0))).toBe(true)
+        const previewPositions = await fixtureCard.locator('img').evaluateAll(images => images.map(image => image.getBoundingClientRect().y))
+        expect(new Set(previewPositions).size).toBe(1)
+        await fixtureCard.getByText('+2', { exact: true }).waitFor()
+        await fixtureCard.getByRole('button', { name: `查看预览 · ${title} · 3`, exact: true }).click()
+        const detail = page.getByRole('dialog', { name: title, exact: true })
+        await detail.getByRole('heading', { name: title, exact: true }).waitFor()
+        await detail.getByText('3 / 5', { exact: true }).waitFor()
+        await detail.getByRole('button', { name: '下一张', exact: true }).click()
+        await detail.getByText('4 / 5', { exact: true }).waitFor()
+        await page.keyboard.press('ArrowRight')
+        await detail.getByText('5 / 5', { exact: true }).waitFor()
+        await detail.getByRole('button', { name: '查看预览 2', exact: true }).click()
+        await detail.getByText('2 / 5', { exact: true }).waitFor()
+        await detail.getByRole('button', { name: '放大查看', exact: true }).first().click()
+        await page.getByRole('dialog', { name: '大图预览', exact: true }).waitFor()
+        await page.keyboard.press('Escape')
+        await page.getByRole('dialog', { name: '大图预览', exact: true }).waitFor({ state: 'hidden' })
+        expect(await detail.isVisible()).toBe(true)
+        mkdirSync(join(repository, '.artifacts'), { recursive: true })
+        await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/actvero-workbench-details.png') })
+        await detail.getByRole('button', { name: '关闭', exact: true }).click()
         await page.getByRole('textbox', { name: '搜索工作台' }).fill('活动复盘')
         expect(await example.count()).toBe(0)
         await fixtureCard.getByRole('button', { name: '打开', exact: true }).click()
@@ -162,13 +202,27 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
 
         await page.getByRole('button', { name: '返回工作台列表' }).click()
         mkdirSync(join(repository, '.artifacts'), { recursive: true })
-        await page.screenshot({ path: join(repository, '.artifacts/actvero-workbench-manager.png') })
+        await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/actvero-workbench-manager.png') })
         const collapseSidebar = page.getByRole('button', { name: '收起侧边栏', exact: true })
         if (await collapseSidebar.isVisible()) await collapseSidebar.click()
-        await page.emulateMedia({ colorScheme: 'dark' })
-        await page.setViewportSize({ width: 650, height: 850 })
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-        await page.screenshot({ path: join(repository, '.artifacts/actvero-workbench-manager-narrow.png') })
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          for (const width of [900, 650, 390]) {
+            await page.setViewportSize({ width, height: 850 })
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+            expect(await fixtureCard.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+            await fixtureCard.getByRole('button', { name: '打开', exact: true }).waitFor()
+            await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/actvero-workbench-manager-${colorScheme}-${width}.png`) })
+            if (width === 390) {
+              await fixtureCard.getByRole('button', { name: `查看预览 · ${title} · 1`, exact: true }).click()
+              const detail = page.getByRole('dialog', { name: title, exact: true })
+              expect(await detail.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+              expect(await detail.getByRole('button', { name: '打开', exact: true }).isVisible()).toBe(true)
+              await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/actvero-workbench-details-${colorScheme}-390.png`) })
+              await detail.getByRole('button', { name: '关闭', exact: true }).click()
+            }
+          }
+        }
       } finally {
         await browser.close()
       }

@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Button,
+  Input,
+  Modal,
+  ImageLightbox,
+  ActionMenu,
   IconChecklistOutlineMedium,
   IconChevronLeftOutlineMedium,
-  IconDownloadOutlineMedium,
+  IconChevronRightOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsHooks, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ActveroWorkbench } from '../../contracts.ts'
 import type { WorkbenchAction, WorkbenchView } from './register.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { SourceTabs, catalogStyles } from '../sources.ts'
+import hubStyles from '../hub.module.css'
 import styles from './workbenches.module.css'
+import checklistPreview from './assets/project-checklist.png'
 
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
@@ -21,23 +28,125 @@ function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
 }
 
-function Card({ entry, builtIn, open, t }: Locale & { entry: ActveroWorkbench; builtIn: boolean; open: () => void }) {
-  const category = categoryOf(entry.category)
+function Mark({ entry, builtIn }: { entry: ActveroWorkbench; builtIn: boolean }) {
+  const [failed, setFailed] = useState<string>()
+  return <span className={styles.mark}>
+    {entry.iconUrl && failed !== entry.iconUrl
+      ? <img src={entry.iconUrl} alt="" onError={() => { setFailed(entry.iconUrl) }} />
+      : builtIn ? <IconChecklistOutlineMedium size={22} /> : <WorkbenchIcon size={22} />}
+  </span>
+}
+
+function PreviewImage({ url, t }: Locale & { url: string }) {
+  const [failed, setFailed] = useState<string>()
+  return <span className={styles.preview}>
+    {failed !== url ? <img src={url} alt="" loading="lazy" onError={() => { setFailed(url) }} />
+      : <span className={styles.previewFallback}><WorkbenchIcon size={22} /><span>{t('noPreview')}</span></span>}
+  </span>
+}
+
+function Card({ entry, builtIn, open, showDetails, t }: Locale & {
+  entry: ActveroWorkbench
+  builtIn: boolean
+  open: () => void
+  showDetails: (previewIndex: number) => void
+}) {
+  const previews = entry.previewUrls ?? []
   return <article className={styles.card}>
-    <div className={styles.cardHead}>
-      <span className={styles.mark} data-category={category}>
-        {builtIn ? <IconChecklistOutlineMedium size={21} /> : <WorkbenchIcon size={21} />}
-      </span>
-      <h3>{entry.name}</h3>
-      <Button variant="primary" onClick={open}>{t('open')}</Button>
+    <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
+    <header className={styles.cardHeader}>
+      <div className={styles.identity}>
+        <Mark entry={entry} builtIn={builtIn} />
+        <h3 className={styles.name} title={entry.name}>{entry.name}</h3>
+      </div>
+      <div className={styles.cardActions}>
+        <ActionMenu className={styles.more} label={`${t('more')} · ${entry.name}`}
+          items={[{ id: 'details', label: t('details') }]} onSelect={() => { showDetails(0) }} />
+        <Button className={styles.openButton} variant="primary" onClick={open}>{t('open')}</Button>
+      </div>
+    </header>
+    <p className={styles.description}>{entry.description}</p>
+    <div className={styles.previewRow}>
+      {previews.length ? previews.slice(0, 3).map((url, index) => (
+        <button key={`${index}:${url}`} className={styles.previewButton}
+          aria-label={`${t('viewPreview')} · ${entry.name} · ${index + 1}`} onClick={() => { showDetails(index) }}>
+          <PreviewImage url={url} t={t} />
+          {index === 2 && previews.length > 3 && <span className={styles.extraPreviews}>+{previews.length - 3}</span>}
+        </button>
+      )) : <span className={`${styles.preview} ${styles.previewFallback}`}><WorkbenchIcon size={22} /><span>{t('noPreview')}</span></span>}
     </div>
-    <p>{entry.description}</p>
     <footer className={styles.cardFoot}>
-      <span className={styles.categoryTag}>{t(category)}</span>
-      <span>{builtIn ? t('builtIn') : t('local')}</span>
-      <span>{t('versionPrefix')}{entry.version}</span>
+      <span className={styles.metadata}>{t(builtIn ? 'builtIn' : 'local')} · {t('versionPrefix')}{entry.version}</span>
     </footer>
   </article>
+}
+
+function Details({ entry, builtIn, initialPreview, onClose, open, t }: Locale & {
+  entry: ActveroWorkbench
+  builtIn: boolean
+  initialPreview: number
+  onClose: () => void
+  open: () => void
+}) {
+  const previews = entry.previewUrls ?? []
+  const [selected, setSelected] = useState(initialPreview)
+  const [enlarged, setEnlarged] = useState(false)
+  const thumbnails = useRef<HTMLDivElement>(null)
+  const selectedIndex = Math.min(selected, Math.max(0, previews.length - 1))
+  const current = previews[selectedIndex]
+  useEffect(() => {
+    thumbnails.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [selectedIndex])
+  const changePreview = (direction: number) => {
+    if (previews.length > 1) setSelected((selectedIndex + direction + previews.length) % previews.length)
+  }
+  return <>
+    <Modal open title={entry.name} closeLabel={t('close')} onClose={onClose} className={styles.detail}
+      contentClassName={styles.detailContent}
+      footer={<><span className={styles.ready}>{t('ready')}</span><Button variant="primary" onClick={open}>{t('open')}</Button></>}>
+      <div className={styles.detailLayout}>
+        <section className={styles.gallery} aria-label={t('previews')}
+          onKeyDown={(event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+            event.preventDefault()
+            changePreview(event.key === 'ArrowLeft' ? -1 : 1)
+          }}>
+          {current ? <>
+            <button className={styles.largePreview} aria-label={t('enlarge')} onClick={() => { setEnlarged(true) }}>
+              <PreviewImage url={current} t={t} />
+            </button>
+            <div className={styles.galleryToolbar}>
+              <span className={styles.metadata} aria-live="polite">{selectedIndex + 1} / {previews.length}</span>
+              <div>
+                <Button variant="ghost" onClick={() => { setEnlarged(true) }}>{t('enlarge')}</Button>
+                <Button variant="ghost" aria-label={t('previous')} disabled={previews.length < 2} onClick={() => { changePreview(-1) }}><IconChevronLeftOutlineMedium size={16} /></Button>
+                <Button variant="ghost" aria-label={t('next')} disabled={previews.length < 2} onClick={() => { changePreview(1) }}><IconChevronRightOutlineMedium size={16} /></Button>
+              </div>
+            </div>
+            <div className={styles.thumbnails} ref={thumbnails}>
+              {previews.map((url, index) => <button key={`${index}:${url}`} className={styles.thumbnail}
+                aria-label={`${t('viewPreview')} ${index + 1}`} aria-pressed={index === selectedIndex}
+                onClick={() => { setSelected(index) }}><PreviewImage url={url} t={t} /></button>)}
+            </div>
+            <p className={styles.previewNote}>{t('previewNote')}</p>
+          </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
+        </section>
+        <section className={styles.detailSummary} aria-label={t('about')}>
+          <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><span>{t(categoryOf(entry.category))}</span></div>
+          <h3>{t('about')}</h3>
+          <p className={styles.detailDescription}>{entry.description}</p>
+          {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
+          <dl className={styles.facts}>
+            <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : 'local')}</dd></div>
+            <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
+            {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
+          </dl>
+        </section>
+      </div>
+    </Modal>
+    {enlarged && current && <ImageLightbox src={current} alt={`${entry.name} · ${t('viewPreview')} ${selectedIndex + 1}`}
+      labels={{ dialog: t('originalPreview'), close: t('closePreview') }} onClose={() => { setEnlarged(false) }} />}
+  </>
 }
 
 /** Search, filter, import and open workbenches registered in the current profile. */
@@ -45,49 +154,60 @@ export function Manager({ t, useView, action }: Locale & ViewHooks & { action: W
   const view = useView(value => value)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('all')
+  const [source, setSource] = useState<'platform' | 'local'>('local')
+  const [detailSelection, setDetailSelection] = useState<{ id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const needle = query.trim().toLocaleLowerCase()
-  const builtIn = { id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0' }
-  const entries = [builtIn, ...view.entries].filter((entry) => {
+  const builtIn: ActveroWorkbench = { id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0', previewUrls: [checklistPreview] }
+  const catalog = [builtIn, ...view.entries]
+  const detail = catalog.find(entry => entry.id === detailSelection?.id)
+  const entries = catalog.filter((entry) => {
     if (category !== 'all' && categoryOf(entry.category) !== category) return false
-    return [entry.name, entry.description, t(categoryOf(entry.category))].some(value => value.toLocaleLowerCase().includes(needle))
+    return [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))].some(value => value.toLocaleLowerCase().includes(needle))
   })
 
-  return <section className={styles.page}>
-    <header className={styles.pageHeader}>
+  return <section className={`${hubStyles.page} ${styles.page}`}>
+    <header className={styles.pageTitle}>
       <h1>{t('title')}</h1>
-      <div className={styles.toolbar}>
-        <label className={styles.search}>
-          <IconSearchOutlineMedium size={16} />
-          <input aria-label={t('search')} placeholder={t('search')} value={query} onChange={event => setQuery(event.currentTarget.value)} />
-        </label>
-        <Button variant="primary" disabled={view.importing} onClick={() => fileInput.current?.click()}>
-          <IconDownloadOutlineMedium size={15} />{t(view.importing ? 'importing' : 'import')}
-        </Button>
-        <input ref={fileInput} type="file" accept=".tgz" hidden onChange={(event) => {
-          const file = event.currentTarget.files?.[0]
-          event.currentTarget.value = ''
-          if (file) void action.importFile(file)
-        }} />
-      </div>
     </header>
-    <div className={styles.sectionHeader}>
-      <h2>{t('mine')}</h2>
-      <p>{t('subtitle')}</p>
+    <div className={`${catalogStyles.toolbar} ${styles.toolbar}`}>
+      <Input className={catalogStyles.search} icon={<IconSearchOutlineMedium />}
+        aria-label={t('search')} placeholder={t('search')} value={query} onChange={(event) => { setQuery(event.currentTarget.value) }} />
+      <Button variant="outline" disabled={view.importing} onClick={() => fileInput.current?.click()}>
+        {t(view.importing ? 'importing' : 'import')}
+      </Button>
+      <input ref={fileInput} type="file" accept=".tgz" hidden onChange={(event) => {
+        const file = event.currentTarget.files?.[0]
+        event.currentTarget.value = ''
+        if (file) void action.importFile(file)
+      }} />
     </div>
-    <div className={styles.categories} role="group" aria-label={t('categories')}>
-      {categories.map(value => <Button key={value} variant="ghost" aria-pressed={value === category} onClick={() => setCategory(value)}>{t(value)}</Button>)}
+    <div className={styles.content}>
+      <SourceTabs value={source} platformLabel={t('platform')} localLabel={t('mine')}
+        count={source === 'local' ? entries.length : undefined} onChange={setSource} />
+      <nav className={catalogStyles.categories} aria-label={t('categories')}>
+        {categories.map(value => <Button key={value} variant="ghost" aria-pressed={value === category} onClick={() => { setCategory(value) }}>{t(value)}</Button>)}
+      </nav>
+      {view.notice && <p className={styles.notice} role="status">{t(view.notice)}</p>}
+      {source === 'platform' ? <div className={styles.platformEmpty}>
+        <span className={styles.platformMark}><WorkbenchIcon size={30} /></span>
+        <h2>{t('platformComing')}</h2>
+        <p>{t('platformDescription')}</p>
+        <Button variant="outline" onClick={() => { setSource('local') }}>{t('viewMine')}</Button>
+      </div> : entries.length > 0 ? <div className={catalogStyles.grid}>
+        {entries.map(entry => (
+          <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t}
+            showDetails={(previewIndex) => { setDetailSelection({ id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
+        ))}
+      </div> : <div className={styles.empty}>
+        <WorkbenchIcon size={27} />
+        <p>{t('empty')}</p>
+        <Button variant="ghost" onClick={() => { setQuery(''); setCategory('all') }}>{t('clear')}</Button>
+      </div>}
     </div>
-    {view.notice && <p className={styles.notice} role="status">{t(view.notice)}</p>}
-    {entries.length > 0 ? <div className={styles.grid}>
-      {entries.map(entry => (
-        <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} open={() => action.open(entry.id)} />
-      ))}
-    </div> : <div className={styles.empty}>
-      <WorkbenchIcon size={27} />
-      <p>{t('empty')}</p>
-      <Button variant="ghost" onClick={() => { setQuery(''); setCategory('all') }}>{t('clear')}</Button>
-    </div>}
+    {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === builtIn.id}
+      initialPreview={detailSelection.previewIndex} t={t} onClose={() => { setDetailSelection(undefined) }}
+      open={() => { setDetailSelection(undefined); action.open(detail.id) }} />}
   </section>
 }
 
@@ -101,7 +221,7 @@ export function OpenWorkbench({ t, useView, renderSlot, action }: Locale & ViewH
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entry?.name ?? t('title')
   return <section className={styles.openPage}>
     <header className={styles.openHeader}>
-      <Button variant="ghost" onClick={action.back}><IconChevronLeftOutlineMedium size={15} />{t('back')}</Button>
+      <Button variant="ghost" onClick={() => { action.back() }}><IconChevronLeftOutlineMedium size={15} />{t('back')}</Button>
       <h1 ref={heading} tabIndex={-1}>{name}</h1>
     </header>
     <div className={styles.business}>

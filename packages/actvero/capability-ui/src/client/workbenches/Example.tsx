@@ -35,7 +35,7 @@ export function Example({ t }: PropsLocale<'actvero.workbenches'>) {
       <span className={styles.meta}>{completed.length} / {items.length}</span>
     </header>
     {items.map(item => <label className={styles.checklistItem} key={item}>
-      <input type="checkbox" checked={completed.includes(item)} onChange={() => toggle(item)} />
+      <input type="checkbox" checked={completed.includes(item)} onChange={() =>{  toggle(item) }} />
       <span>{t(item)}</span>
     </label>)}
     <p role="status" className={styles.meta}>{save && t(save)}</p>

@@ -28,6 +28,8 @@ Enable through the ACTVERO desktop composition (`ACTVERO_DESKTOP=1`). The owning
 
 The three managers share source tabs, native icons and catalog skeletons. The skill picker reads the effective retained Session catalog, including directory skills and expert version pins. Both skill entry points insert a neutral atomic badge with the skill glyph; adding one preserves existing text and attachments and resumes typing after the badge. Missing connector artwork uses the link glyph, while expert rows retain portraits. Required MCP switches stay on and disabled; other configured connectors remain selectable alongside the expert.
 
+The workbench and expert managers share search controls, source tabs, category filters and responsive card grids. Compact workbench cards show a name, purpose, up to three previews and an Open action; the name or previews open details. Missing or failed images show a placeholder. Registered metadata supplies artwork and author information; see [client contracts](src/contracts.ts) and [local package integration](../../../actvero/workbenches.md).
+
 The client service `ctx.capabilityHub` opens an expert, skill or connector manager and displays transient notifications. Its interface is owned by [the client contracts](src/contracts.ts).
 
 <a id="model-experience"></a>
@@ -52,7 +54,7 @@ Opening or closing a menu changes no model request prefix. Capability changes af
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- This package contains navigation and shared catalog skeletons. It executes no resources and owns no credentials. Its client requires the ACTVERO native bridges.
+- Capability Center requires the ACTVERO native bridges and owns no credentials. The workbench manager supports local packages and registered business components; platform distribution and conversation binding are not connected.
 
 <a id="dev-note"></a>
 

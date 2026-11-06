@@ -1,5 +1,5 @@
 import { ExpertBadge } from './ExpertBadge.tsx'
-import { SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
+import { SourceTabs, catalogStyles } from '@actvero/dsh-capability-ui/client/sources'
 import { expertOptions } from './selector.ts'
 import { zh, en } from './locales.ts'
 import { CatalogSkeleton } from '@actvero/dsh-capability-ui/client/loading'
@@ -748,9 +748,9 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
       )
   return (
     <section className={styles.page}>
-      <header className={styles.toolbar}>
+      <header className={`${styles.toolbar} ${catalogStyles.toolbar}`}>
         <Input
-          className={styles.search}
+          className={`${styles.search} ${catalogStyles.search}`}
           icon={<IconSearchOutlineMedium />}
           placeholder={t('search')}
           aria-label={t('search')}
@@ -804,7 +804,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
             setPage(1)
           }}
         />
-        <nav className={styles.categories} aria-label={t('category')}>
+        <nav className={catalogStyles.categories} aria-label={t('category')}>
           {loadedSource !== source && pending ? (
             <div className={styles.skeletonCategories} aria-hidden="true">
               {Array.from({ length: 6 }, (_, i) => (
@@ -829,7 +829,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
         {pending ? (
           <CatalogSkeleton label={t('loading')} />
         ) : visible.length ? (
-          <div className={styles.grid}>
+          <div className={catalogStyles.grid}>
             {visible.map(expert => (
               <article key={expert.manifest.id} className={styles.card}>
                 <button
