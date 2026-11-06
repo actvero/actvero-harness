@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sidebar global panels > replaces one row with independent controls and restores its default on disposal, collapsed=false 1`] = `
+<div
+  data-testid="split-row"
+  data-wide="true"
+>
+  <button
+    aria-current="page"
+  >
+    Alpha panel
+  </button>
+  <button>
+    Switch item
+  </button>
+</div>
+`;
+
+exports[`sidebar global panels > replaces one row with independent controls and restores its default on disposal, collapsed=true 1`] = `
+<div
+  data-testid="split-row"
+  data-wide="false"
+>
+  <button
+    aria-current="page"
+  >
+    Alpha panel
+  </button>
+  <button>
+    Switch item
+  </button>
+</div>
+`;

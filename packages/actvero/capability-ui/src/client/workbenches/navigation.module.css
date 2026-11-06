@@ -1,0 +1,45 @@
+.anchor { display: block; min-width: 0; margin: 0 2px; }
+.anchor:has([data-wide="false"]) { margin: 0; }
+
+.row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 36px;
+  border-radius: var(--dsw-radius-md);
+  color: var(--dsw-alias-label-primary);
+}
+
+.row[data-active="true"], .row[data-open="true"] { background: var(--dsw-alias-interactive-bg-hover); }
+@media (hover: hover) {
+  .row:hover { background: var(--dsw-alias-interactive-bg-hover); }
+}
+.manage, .switchButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  padding: 7px 8px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  line-height: 22px;
+  cursor: pointer;
+}
+.manage { flex: 1; text-align: left; }
+.manage > span { white-space: nowrap; }
+.manage svg, .switchButton svg { flex: none; }
+.manage:focus-visible, .switchButton:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+.switchButton { max-width: 58%; gap: 6px; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+.row[data-active="true"] .switchButton { color: var(--dsw-alias-label-primary); }
+.currentName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.switchMenu { width: 0; max-width: calc(100vw - 24px); }
+.entryName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon { display: block; width: 18px; height: 18px; border-radius: var(--dsw-radius-sm); object-fit: contain; }
+.row[data-wide="false"] { width: 36px; height: 36px; margin: 0; }
+.row[data-wide="false"] .manage { justify-content: center; padding: 0; }

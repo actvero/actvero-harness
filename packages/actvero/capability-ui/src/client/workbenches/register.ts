@@ -7,6 +7,7 @@ import { readWorkbenchPackage } from './archive.ts'
 import { Example } from './Example.tsx'
 import { Manager, OpenWorkbench } from './Manager.tsx'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { Navigation } from './Navigation.tsx'
 import { en, zh } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -23,6 +24,16 @@ const namespace = 'actvero.workbenches'
 const managerPanel = 'actvero-workbench-manager' as MainPanelId
 const businessPanel = 'actvero-workbench-business' as MainPanelId
 type Notice = 'invalidPackage' | 'desktopOnly' | 'alreadyInstalled' | 'importFailed' | 'incompatible' | 'applied' | 'restart'
+const selectionKey = 'actvero.workbenches.selected.v1'
+
+function readSelection(): string | null {
+  try {
+    return localStorage.getItem(selectionKey)
+  } catch (error) {
+    console.warn('Unable to restore workbench selection', error)
+    return null
+  }
+}
 
 /** Profile catalog and foreground view state consumed by the registered slots. */
 export interface WorkbenchView {
@@ -43,7 +54,7 @@ export interface WorkbenchAction {
  * @param ctx Client plugin scope.
  */
 export function registerWorkbenches(ctx: Context): void {
-  let view: WorkbenchView = { entries: [], opened: null, importing: false, notice: null }
+  let view: WorkbenchView = { entries: [], opened: readSelection(), importing: false, notice: null }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
     view = { ...view, ...patch }
@@ -77,7 +88,13 @@ export function registerWorkbenches(ctx: Context): void {
 
   const action: WorkbenchAction = {
     open(id) {
+      if (id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === id)) return
       update({ opened: id })
+      try {
+        localStorage.setItem(selectionKey, id)
+      } catch (error) {
+        console.warn('Unable to save workbench selection', error)
+      }
       ctx.layout.selectPanel(businessPanel)
     },
     back() {
@@ -125,6 +142,9 @@ export function registerWorkbenches(ctx: Context): void {
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))
+  ctx.slots.inject('sidebar.panellist.row', () => ctx.slots.register({
+    name: 'sidebar.panellist.row', key: managerPanel, locale: namespace, inject,
+  }, Navigation))
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main', key: managerPanel, locale: namespace, inject,
   }, Manager))
