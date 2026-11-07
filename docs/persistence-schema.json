@@ -23420,7 +23420,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchSelection"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:13"
+        "packages/actvero/capability-ui/src/types.ts:23"
       ]
     },
     {
@@ -24334,7 +24334,7 @@
       "digest": "5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:60"
+        "packages/actvero/capability-ui/src/types.ts:70"
       ]
     },
     {
@@ -25353,7 +25353,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchExpert"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:11"
+        "packages/actvero/capability-ui/src/types.ts:21"
       ]
     },
     {

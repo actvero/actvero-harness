@@ -73,7 +73,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         import { readFile, writeFile } from 'node:fs/promises';
         import { join } from 'node:path';
         export const name = '${fixtureName}';
-        export const inject = ['actveroWorkbenchRuntime', 'agents', 'webServer', 'tools'];
+        export const inject = ['actveroWorkbenchRuntime', 'actveroWorkbenchPlatform', 'agents', 'webServer', 'tools'];
         export async function apply(ctx) {
           const runtime = ctx.actveroWorkbenchRuntime;
           ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', resourcesDirectory: import.meta.dirname }));
@@ -82,7 +82,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             const request = params.has('mode') ? { id: params.get('id') || '${fixtureName}', mode: params.get('mode'),
               sidebar: params.get('sidebar') || undefined, ai: params.get('ai') || undefined } : null;
             let result;
-            if (params.has('tool')) {
+            if (params.has('platform')) {
+              try { result = await ctx.actveroWorkbenchPlatform.models(await runtime.open('@local/ai-checklist'), AbortSignal.timeout(5000)); }
+              catch (error) { result = { error: error.message, code: error.code, details: error.details }; }
+            } else if (params.has('tool')) {
               const executed = await ctx.tools.execute({ callId: 'display-test', name: request ? 'workbench_open' : 'workbench_status',
                 arguments: request ? { id: request.id, mode: request.mode, ...(request.sidebar ? { sidebar: request.sidebar } : {}) } : {},
                 signal: AbortSignal.timeout(10000) });
@@ -142,6 +145,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             if (capabilitiesClosed) return
             if (message.type === 'actvero:mcp:request' || message.type === 'actvero:skills:request') {
               startedHost.sendCapabilityMessage({ type: message.type === 'actvero:mcp:request' ? 'actvero:mcp:result' : 'actvero:skills:result', id: message.id, value: [] })
+            } else if (message.type === 'actvero:workbench:request') {
+              startedHost.sendCapabilityMessage({ type: 'actvero:workbench:result', id: message.id,
+                value: { scope: 'a'.repeat(64), models: [{ id: 'fixture-image', name: '测试图片模型', description: '',
+                  operations: [{ kind: 'image.generate', inputModalities: ['text'], outputModalities: ['image'] }] }] } })
             } else if (message.type === 'actvero:experts:request') {
               startedHost.sendCapabilityMessage({ type: 'actvero:experts:result', id: message.id, error: 'expert_not_found' })
             }
@@ -797,6 +804,51 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.screenshot({ path: join(repository, `.artifacts/workbench-management-${colorScheme}.png`) })
           await page.keyboard.press('Escape')
         }
+        await openManager()
+        await page.getByRole('button', { name: '制作工作台', exact: true }).click()
+        const developer = page.getByRole('dialog', { name: '制作工作台', exact: true })
+        await developer.getByText(/本地开发需要 ACTVERO/).waitFor()
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          await page.setViewportSize({ width: 390, height: 850 })
+          expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+          await developer.getByRole('button', { name: '复制开发说明', exact: true }).waitFor()
+          await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-developer-${colorScheme}.png`) })
+        }
+        await page.keyboard.press('Escape')
+        await page.setViewportSize({ width: 1440, height: 1000 })
+        await page.emulateMedia({ colorScheme: 'light' })
+        const aiDevelopment = join(root, 'ai-development')
+        execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', aiDevelopment, '--template', 'ai', '@local/ai-checklist'], { cwd: repository })
+        execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'pack', aiDevelopment, root], { cwd: repository })
+        await importArchive(join(root, 'local-ai-checklist-1.0.0.tgz'))
+        await installStatus.waitFor({ timeout: 40_000 })
+        if ((await installStatus.innerText()).includes('重启')) await restart()
+        await openManager()
+        const aiCard = page.locator('article').filter({ has: page.getByRole('heading', { name: 'AI 项目清单', exact: true }) })
+        await aiCard.getByRole('button', { name: '打开', exact: true }).click()
+        const aiBusiness = page.getByRole('region', { name: 'AI 项目清单', exact: true })
+        expect(await aiBusiness.locator('[data-workbench-ai]').count()).toBe(0)
+        await aiBusiness.getByRole('checkbox', { name: '确认需求和交付范围', exact: true }).click()
+        await expect.poll(() => aiBusiness.getByRole('checkbox', { name: '确认需求和交付范围', exact: true }).isChecked()).toBe(true)
+        await aiBusiness.getByRole('textbox', { name: '输入待办事项', exact: true }).fill('真实长度的交付复核 / Campaign acceptance review')
+        await aiBusiness.getByRole('button', { name: '添加任务', exact: true }).click()
+        await aiBusiness.getByRole('checkbox', { name: '真实长度的交付复核 / Campaign acceptance review', exact: true }).waitFor()
+        const platformEndpoint = new URL('/__workbench_test/display?platform=1', page.url())
+        const platformResult: unknown = await (await fetch(platformEndpoint)).json()
+        expect(platformResult).toMatchObject({ scope: 'a'.repeat(64), models: [{ id: 'fixture-image' }] })
+        await aiBusiness.getByRole('button', { name: '查看可用模型', exact: true }).click()
+        try { await aiBusiness.getByText('可用模型: 测试图片模型', { exact: true }).waitFor() }
+        catch (error) { writeFileSync(join(repository, '.artifacts/workbench-platform-debug.json'), JSON.stringify({ text: await aiBusiness.innerText(), errors })); throw error }
+        await page.reload()
+        await openManager()
+        await aiCard.getByRole('button', { name: '打开', exact: true }).click()
+        expect(await aiBusiness.getByRole('checkbox', { name: '确认需求和交付范围', exact: true }).isChecked()).toBe(true)
+        expect(await page.getByText('工作台操作未完成。请确认会话未在运行、工作台已加载，然后重试。', { exact: true }).count()).toBe(0)
+        await aiBusiness.getByRole('button', { name: '请 AI 协助', exact: true }).click()
+        await aiBusiness.locator('[data-workbench-ai]').waitFor()
+        await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/workbench-ai-template.png') })
+        await openManager()
         expect(await display('?mode=business&ai=hide')).toMatchObject({ status: 'confirmed' })
         await page.getByRole('button', { name: '模拟工作台界面错误', exact: true }).click()
         await expect.poll(async () => (await display()).status).toBe('failed')

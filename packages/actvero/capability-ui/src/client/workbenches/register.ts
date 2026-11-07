@@ -231,13 +231,15 @@ export function registerWorkbenches(ctx: Context): void {
       update({ instance, preparing: false })
       return instance
     } catch (error) {
-      ctx.logger.warn('Unable to open workbench: %s', error)
-      if (generation === navigation && ctx.fiber.uid !== null) update({ preparing: false, runtimeFailed: true })
+      if (generation === navigation && ctx.fiber.uid !== null) {
+        ctx.logger.warn('Unable to open workbench: %s', error)
+        update({ preparing: false, runtimeFailed: true })
+      }
       throw error
     }
   }
   const registry: ActveroWorkbenchRegistry = {
-    register(descriptor, component) {
+    register(descriptor, component, options) {
       const { id, name, description, version } = descriptor
       if (!/^[a-z0-9@][a-z0-9@/._-]{0,213}$/.test(id) || !name.trim() || !description.trim() || !version.trim()) {
         throw new Error('Invalid Actvero workbench registration.')
@@ -245,7 +247,7 @@ export function registerWorkbenches(ctx: Context): void {
       if (view.entries.some(item => item.id === id)) throw new Error(`Duplicate Actvero workbench: ${id}`)
       const entry = { ...descriptor }
       const stop = ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
-        name: 'actvero.workbench.body', key: entry.id,
+        name: 'actvero.workbench.body', key: entry.id, locale: options?.locale,
       }, component))
       update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })
       return () => {
@@ -261,11 +263,13 @@ export function registerWorkbenches(ctx: Context): void {
       if (id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === id)) return
       linkedSession = null
       displaying.abort()
-      void load(id).then(() => {
+      const opening = load(id)
+      const generation = navigation
+      void opening.then(() => {
         const preference = view.visibility[`focus:${id}`] ?? (view.entries.find(item => item.id === id)?.display?.sidebar === 'focus')
         setFocus(preference)
         action.restoreChat()
-      }).catch(() => { failed() })
+      }).catch(() => { if (generation === navigation && ctx.fiber.uid !== null) failed() })
       try {
         localStorage.setItem(selectionKey, id)
       } catch (error) {
@@ -466,5 +470,9 @@ export function registerWorkbenches(ctx: Context): void {
       onSelect: async (option, session) => { await runtime.select(option.id, session.sessionId) },
     },
   }))
-  if (view.opened) void load(view.opened).catch(() => { failed() })
+  if (view.opened) {
+    const opening = load(view.opened)
+    const generation = navigation
+    void opening.catch(() => { if (generation === navigation && ctx.fiber.uid !== null) failed() })
+  }
 }

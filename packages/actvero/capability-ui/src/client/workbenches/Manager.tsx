@@ -239,6 +239,8 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
 export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks & { action: WorkbenchAction; resolveText: ResolveText }) {
   const view = useView(value => value)
   const [query, setQuery] = useState('')
+  const [developerOpen, setDeveloperOpen] = useState(false)
+  const [copyState, setCopyState] = useState<'copy' | 'copied' | 'copyFailed'>('copy')
   const [category, setCategory] = useState<Category>('all')
   const [source, setSource] = useState<'platform' | 'local'>('local')
   const [detailSelection, setDetailSelection] = useState<{ id: string; previewIndex: number }>()
@@ -262,6 +264,10 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     else if (operation === 'remove') setRemoveTarget(entry)
     else void action.setEnabled(entry.id, operation === 'enable')
   }
+  async function copyInstructions(): Promise<void> {
+    try { await navigator.clipboard.writeText(t('developPrompt')); setCopyState('copied') }
+    catch (_error) { setCopyState('copyFailed') }
+  }
   return <section className={`${hubStyles.page} ${styles.page}`}>
     <header className={styles.pageTitle}>
       <h1>{t('title')}</h1>
@@ -272,6 +278,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       <Button variant="outline" disabled={blocked} onClick={() => { updateTarget.current = undefined; fileInput.current?.click() }}>
         {t(view.busy ? 'busy' : 'import')}
       </Button>
+      <Button variant="primary" onClick={() => { setCopyState('copy'); setDeveloperOpen(true) }}>{t('develop')}</Button>
       <input ref={fileInput} type="file" accept=".tgz" hidden onChange={(event) => {
         const file = event.currentTarget.files?.[0]
         event.currentTarget.value = ''
@@ -309,6 +316,13 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       initialPreview={detailSelection.previewIndex} t={t} blocked={blocked} manage={(operation) => { manage(detail, operation) }}
       onClose={() => { setDetailSelection(undefined) }}
       open={() => { setDetailSelection(undefined); action.open(detail.id) }} />}
+    <Modal open={developerOpen} onClose={() => { setDeveloperOpen(false) }} title={t('develop')} closeLabel={t('close')}>
+      <p>{t('developHelp')}</p>
+      <p>{t('developPrerequisites')}</p>
+      <pre className={styles.developerPrompt}>{t('developPrompt')}</pre>
+      <Button variant="primary" onClick={() => { void copyInstructions() }}>{t('copy')}</Button>
+      <p role="status">{copyState !== 'copy' && t(copyState)}</p>
+    </Modal>
     <ConfirmDialog open={!!view.pendingUpdate} title={t('updateTitle')} closeLabel={t('close')}
       resourceName={`${catalog.find(entry => entry.id === view.pendingUpdate?.name)?.name ?? view.pendingUpdate?.name ?? ''} · ${view.pendingUpdate?.from ?? ''} → ${view.pendingUpdate?.to ?? ''}`}
       description={t('updateHelp')} cancelLabel={t('cancel')} confirmLabel={t('confirmUpdate')} pending={!!view.busy}

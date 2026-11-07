@@ -90,6 +90,10 @@ export class AccountController {
   snapshot(): AccountSnapshot {
     return structuredClone(this.view)
   }
+  /** Main-only request generation; changes immediately when account replacement or sign-out starts.
+   * @returns Monotonic identity-operation revision, containing no credential material.
+   */
+  identityRevision(): number { return this.generation }
   /** Main-only resource issuance shares the account's serialized refresh and organization lifetime. */
   async resourceToken(resource: string): Promise<{
     access_token: string

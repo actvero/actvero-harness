@@ -7,6 +7,16 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 export type WorkbenchId = Branded<'ActveroWorkbenchId'>
 /** Host-created business data instance, independent of its conversations. */
 export type WorkbenchInstanceId = Branded<'ActveroWorkbenchInstanceId'>
+/** Platform-owned model identity; selection never exposes a resource token. */
+export type WorkbenchModelId = Branded<'ActveroWorkbenchModelId'>
+/** Account and organization generation that owns one catalog response. */
+export type WorkbenchPlatformScopeId = Branded<'ActveroWorkbenchPlatformScopeId'>
+/** Sanitized operation metadata returned by the platform, without upstream URLs or credentials. */
+export interface WorkbenchModelOperation { kind: string; inputModalities: string[]; outputModalities: string[] }
+/** Available model metadata; operation kinds retain the platform's own vocabulary. */
+export interface WorkbenchPlatformModel { id: WorkbenchModelId; name: string; description: string; operations: WorkbenchModelOperation[] }
+/** One complete model directory bound to the account generation at request time. */
+export interface WorkbenchModelCatalog { scope: WorkbenchPlatformScopeId; models: WorkbenchPlatformModel[] }
 /** Optional instructions packaged with a workbench; no model configuration is required. */
 export interface WorkbenchExpert { name: string; version: string; instructions: string }
 /** Immutable environment selected for one conversation. */

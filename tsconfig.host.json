@@ -5,6 +5,8 @@
     "rewriteRelativeImportExtensions": false
   },
   "include": [
+    "actvero/templates/ai-checklist/src/document.ts",
+    "actvero/templates/ai-checklist/src/index.ts",
     "apps/web/tests/actvero-capabilities.e2e.ts",
     "apps/web/tests/actvero-workbenches.e2e.ts",
     "apps/web/tests/actvero-workbench-manager.e2e.ts",

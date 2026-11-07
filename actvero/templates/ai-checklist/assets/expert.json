@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "ai-checklist-assistant",
+  "name": "项目清单助手",
+  "version": "1.0.0",
+  "description": "整理工作台中的待办。",
+  "instructions": "先读取当前工作台数据，按用户要求添加任务或修改完成状态。调用工具成功后再汇报结果；遇到冲突先重新读取，保留手动修改。",
+  "skills": [
+    {
+      "key": "checklist",
+      "label": "清单操作",
+      "required": true,
+      "load": "always"
+    }
+  ],
+  "connectors": []
+}

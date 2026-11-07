@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbench-runtime-plan.md
 /workbench-runtime-implementation-plan:
-  en: c11f6fe636467022
-  zh: b0cd733f5cbdacfe
+  en: 7c8f84e894d3ee80
+  zh: d66b656bbfeaa3a7
 /workbench-runtime-implementation-plan/summary:
-  en: 6d0e401cc9fcbc35
-  zh: 1a5603d53cf327fa
+  en: 687a97a976df9a8d
+  zh: 00985f04b2c715fb
 /workbench-runtime-implementation-plan/contents:
   en: 02ff17fc3e5fed33
   zh: 8f9f3b8f33799f4b
@@ -51,8 +51,8 @@
   en: 3d5c263729078aa6
   zh: 6d3edf67a3299efb
 /workbench-runtime-implementation-plan/part-4-identity-and-platform-access/acceptance-criteria:
-  en: 84154b6a1039d69b
-  zh: f3fe4c23799fe067
+  en: cac888c626625e3b
+  zh: 7ee93239bf23e612
 /workbench-runtime-implementation-plan/part-5-developer-tooling:
   en: 72ee6f3edbe32a5f
   zh: cabc6d898a6425e6
@@ -60,8 +60,8 @@
   en: 0b2baaa7a2854ad2
   zh: 69cd064e929ab242
 /workbench-runtime-implementation-plan/part-5-developer-tooling/acceptance-criteria:
-  en: f6f09597879f4706
-  zh: f0a141e47c18e788
+  en: a3e43748c5728c5c
+  zh: 5df07c4202e5a5fb
 /workbench-runtime-implementation-plan/part-6-development-skill-and-end-to-end-acceptance:
   en: 0cc6b415295b4f2b
   zh: 401f08991ac1b420
@@ -69,8 +69,8 @@
   en: 5c54e812419babef
   zh: 96b3e9712c55a8ea
 /workbench-runtime-implementation-plan/part-6-development-skill-and-end-to-end-acceptance/acceptance-criteria:
-  en: 9553921cb4f5e062
-  zh: 8e80fae173defbe7
+  en: de5089072608cffd
+  zh: 1998cefcd44a55dc
 /workbench-runtime-implementation-plan/delivery-sequence:
   en: d8dbce5b6bdd0e50
   zh: a4d691f2a6d14959

@@ -14,6 +14,7 @@
     "types": ["node"]
   },
   "include": [
+    "actvero/templates/ai-checklist/src/document.ts",
     // The native/renderer keyboard fixture imports only these Cordis-free Desktop modules.
     "apps/desktop/tests/keyboard.spec.ts",
     "apps/desktop/src/keyboard.ts",
@@ -39,6 +40,8 @@
     "packages/client/tsdown.client.ts",
     "actvero/templates/project-checklist/src/client/**/*.ts",
     "actvero/templates/project-checklist/src/client/**/*.tsx",
+    "actvero/templates/ai-checklist/src/client/**/*.ts",
+    "actvero/templates/ai-checklist/src/client/**/*.tsx",
     "scripts/client-build-environment.ts",
     "scripts/actvero-workbench.client.ts",
     "scripts/bundle-input-isolation.ts",

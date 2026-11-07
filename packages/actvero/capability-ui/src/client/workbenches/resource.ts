@@ -3,11 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@actvero/dsh-capability-ui/remote'
-import type { WorkbenchDocument, WorkbenchInstanceId } from '../../types.ts'
-
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface ResourceProtocolMap { 'actvero-workbench': WorkbenchDocument }
-}
+import type { WorkbenchInstanceId } from '../../types.ts'
 
 /**
  * @param remote Native workbench document stream.

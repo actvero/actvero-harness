@@ -17,6 +17,20 @@ async function root(): Promise<string> {
 afterEach(async () => { await Promise.all(roots.splice(0).map(path => rm(path, { recursive: true, force: true }))) })
 
 describe('local workbench developer commands', () => {
+  it('builds the AI template with native data, its expert and declared local skill', async () => {
+    const path = await root()
+    const source = join(path, 'AI development')
+    await createWorkbench(source, undefined, 'ai')
+    const archive = await packWorkbench(source, path)
+    expect((await checkWorkbench(archive)).name).toBe('@local/ai-checklist')
+    await extract({ cwd: path, file: archive })
+    const expert = JSON.parse(await readFile(join(path, 'package/assets/expert.json'), 'utf8')) as { skills: { key: string }[] }
+    expect(expert.skills).toEqual([{ key: 'checklist', label: '清单操作', required: true, load: 'always' }])
+    expect(await readFile(join(path, 'package/assets/skills/checklist/SKILL.md'), 'utf8')).toContain('workbench_read')
+    expect(await readFile(join(path, 'package/lib/index.js'), 'utf8')).toContain('models:read')
+    expect(await readFile(join(path, 'package/lib/client.js'), 'utf8')).toContain('ai-checklist')
+  })
+
   it('copies a customized package, builds the real Client and releases its registration on disposal', async () => {
     const path = await root()
     const source = join(path, 'development with spaces')
@@ -56,6 +70,9 @@ describe('local workbench developer commands', () => {
     expect(entries[0]!.previewUrls.every(url => url.startsWith('data:image/png;base64,'))).toBe(true)
     for (const dispose of disposers.reverse()) dispose()
     expect(entries).toEqual([])
+    await writeFile(join(source, 'src/index.ts'), "import 'actvero-definitely-uninstalled-testdependency'; export function apply() {}\n")
+    await expect(packWorkbench(source, path)).rejects.toThrow('依赖未解析')
+    expect((await checkWorkbench(archive)).sha256).toBe(checked.sha256)
     const duplicate = join(path, 'duplicate.tgz')
     await create({ cwd: path, file: duplicate, gzip: true }, ['package', 'package/lib/index.js'])
     await expect(checkWorkbench(duplicate)).rejects.toThrow('重复路径')

@@ -16,6 +16,8 @@ description: "ACTVERO 新建工作台对话使用独立工作目录，业务文�
 
 直接构造 `WorkbenchRuntime` 的 Host 集成需要在配置中提供 `displayTimeoutMs`，单位为毫秒，用于限制等待客户端确认的时长。通过 Cordis 插件配置加载时可以省略，默认值为 `30000`；普通工作台作者无需更改。
 
+直接调用能力包 `apply()` 的 Host 集成应提供 `platformTimeoutMs`，单位为毫秒。通过 Cordis 插件配置加载可省略，默认 `30000`；这与 `WorkbenchRuntime` 的显示等待配置分别处理。手动实现 `WorkbenchClientContext` 的集成需要补上 `models()`；普通工作台组件由宿主注入，无需自行实现。
+
 ## 迁移
 
 1. 在 Host 服务中用 `runtime.open(id)` 获取实例，再用 `runtime.environment(instance)` 获取 `dataDirectory`。业务文件路径从该目录拼接，避免依赖进程目录或会话目录。参考[本地开发指南](../../../../actvero/workbench-development.zh.md#storage)。

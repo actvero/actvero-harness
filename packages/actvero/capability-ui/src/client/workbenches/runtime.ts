@@ -125,6 +125,12 @@ export class WorkbenchClientRuntime {
         return { user: { id: account.user.id, name: account.user.name }, organization: account.organization
           ? { tenantId: account.organization.tenantId, name: account.organization.name } : null }
       },
+      models: async () => {
+        if (!instanceId) throw new Error('Workbench has no platform provider')
+        const result = await this.ctx.remote.actveroWorkbenchPlatform.models({ instanceId })
+        if (!result.ok) throw result.error
+        return result.value
+      },
       conversation: async () => {
         if (!instanceId) throw new Error('Workbench has no conversation provider')
         const target = sessionId ?? this.conversations.get(instanceId)

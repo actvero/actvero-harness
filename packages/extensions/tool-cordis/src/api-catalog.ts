@@ -82,6 +82,19 @@ export interface TypeApiEntry {
 /** Every harness `ctx.<key>` service, sorted by key. */
 export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
+    key: 'actveroWorkbenchPlatform',
+    summary: 'Read-only platform consumer; model tokens stay in Electron Main.',
+    description: 'Read-only platform consumer; model tokens stay in Electron Main.',
+    methods: [
+      {
+        signature: '@Remote async models(target: WorkbenchTarget, signal: AbortSignal): Promise<WorkbenchModelCatalog>',
+        description: 'Read the current account\'s directory for an explicitly declared workbench capability.',
+        parameters: [{ name: 'target', description: 'Installed business instance; UI-only and undeclared providers are rejected.' }, { name: 'signal', description: 'Caller lifetime; cancellation stops Main\'s pending HTTP read.' }],
+        returns: 'Sanitized model metadata for one account generation, without credentials or service URLs.',
+      },
+    ],
+  },
+  {
     key: 'actveroWorkbenchRuntime',
     summary: 'Native Remote owner and in-process business-provider registry.',
     description: 'Native Remote owner and in-process business-provider registry.',
@@ -138,6 +151,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Read current business data; never returns a fabricated empty document.',
         parameters: [{ name: 'request', description: 'Instance to read.' }],
         returns: 'Persisted document.',
+      },
+      {
+        signature: 'platformAccess(request: WorkbenchTarget): string',
+        description: 'Require a loaded provider\'s explicit platform declaration.',
+        parameters: [{ name: 'request', description: 'Existing workbench instance.' }],
+        returns: 'Installed provider version; throws before any request when access was not declared.',
       },
       {
         signature: '@Remote async action(request: WorkbenchActionRequest): Promise<WorkbenchDocument>',
@@ -8871,12 +8890,32 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchLegacyProvider extends WorkbenchProviderBase, WorkbenchJsonStorage {\n}',
   },
   {
+    name: 'WorkbenchModelCatalog',
+    declaration: 'export interface WorkbenchModelCatalog {\n    scope: WorkbenchPlatformScopeId;\n    models: WorkbenchPlatformModel[];\n}',
+  },
+  {
+    name: 'WorkbenchModelId',
+    declaration: 'export type WorkbenchModelId = Branded<\'ActveroWorkbenchModelId\'>;',
+  },
+  {
+    name: 'WorkbenchModelOperation',
+    declaration: 'export interface WorkbenchModelOperation {\n    kind: string;\n    inputModalities: string[];\n    outputModalities: string[];\n}',
+  },
+  {
+    name: 'WorkbenchPlatformModel',
+    declaration: 'export interface WorkbenchPlatformModel {\n    id: WorkbenchModelId;\n    name: string;\n    description: string;\n    operations: WorkbenchModelOperation[];\n}',
+  },
+  {
+    name: 'WorkbenchPlatformScopeId',
+    declaration: 'export type WorkbenchPlatformScopeId = Branded<\'ActveroWorkbenchPlatformScopeId\'>;',
+  },
+  {
     name: 'WorkbenchProvider',
     declaration: 'export type WorkbenchProvider = WorkbenchLegacyProvider | WorkbenchCustomProvider;',
   },
   {
     name: 'WorkbenchProviderBase',
-    declaration: 'export interface WorkbenchProviderBase {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+    declaration: 'export interface WorkbenchProviderBase {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
   },
   {
     name: 'WorkbenchRuntimeContext',

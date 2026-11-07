@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
+import { parseArgs } from 'node:util'
 import { create, list } from 'tar'
 import { build } from 'tsdown'
 import semver from 'semver'
@@ -12,7 +13,7 @@ import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
-const template = join(repository, 'actvero/templates/project-checklist')
+const templates = { plain: 'project-checklist', ai: 'ai-checklist' } as const
 const packageName = z.string().max(214).regex(/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u)
 const manifestSchema = z.object({
   name: packageName,
@@ -37,12 +38,14 @@ async function json(path: string): Promise<unknown> {
   return value
 }
 
-/** Copy the editable checklist template without replacing an existing directory.
+/** Copy an editable workbench template without replacing an existing directory.
  * @param destination New development directory.
  * @param name Stable npm package identity; display text is edited in workbench.json.
+ * @param kind Plain business UI or native AI with a bundled expert.
  */
-export async function createWorkbench(destination: string, name = '@local/project-checklist'): Promise<void> {
-  packageName.parse(name)
+export async function createWorkbench(destination: string, name?: string, kind: keyof typeof templates = 'plain'): Promise<void> {
+  const template = join(repository, 'actvero/templates', templates[kind])
+  const resolvedName = packageName.parse(name ?? (kind === 'ai' ? '@local/ai-checklist' : '@local/project-checklist'))
   const directory = resolve(destination)
   await mkdir(dirname(directory), { recursive: true })
   await mkdir(directory)
@@ -50,7 +53,7 @@ export async function createWorkbench(destination: string, name = '@local/projec
     await cp(join(template, entry), join(directory, entry), { recursive: true, errorOnExist: true, force: false })
   }
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
-  await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, name }, null, 2) + '\n')
+  await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, name: resolvedName }, null, 2) + '\n')
 }
 
 /** Validate a built archive with the same preflight the desktop import uses.
@@ -104,7 +107,18 @@ export async function packWorkbench(directory: string, output: string): Promise<
     await mkdir(lib, { recursive: true })
     // Reuse the host/client compiler, including shared React, CSS Modules and image imports.
     for (const config of clientBundle(directory, ['src/index.ts'])({})) {
-      await build({ ...config, cwd: directory, outDir: lib, config: false, tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false })
+      await build({ ...config, cwd: directory, outDir: lib, config: false, tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false,
+        inputOptions: async (options, format, context) => {
+          const configured = typeof config.inputOptions === 'function'
+            ? await config.inputOptions(options, format, context) ?? options : { ...options, ...config.inputOptions }
+          return { ...configured, resolve: { ...configured.resolve, modules: ['node_modules', join(repository, 'node_modules')] },
+            onwarn(warning, report) {
+              if (warning.code === 'UNRESOLVED_IMPORT') throw new Error(`工作台依赖未解析，请安装构建依赖后重试：${warning.message}`)
+              if (configured.onwarn) configured.onwarn(warning, report)
+              else report(warning)
+            },
+          }
+        } })
     }
     for (const file of ['index.js', 'client.js']) await stat(join(lib, file))
     if ((await readdir(directory)).includes('assets')) await cp(join(directory, 'assets'), join(folder, 'assets'), { recursive: true })
@@ -135,11 +149,15 @@ export async function packWorkbench(directory: string, output: string): Promise<
 }
 
 async function main(): Promise<void> {
-  const [command, path, argument] = process.argv.slice(2)
-  if (!path || process.argv.length > 5) throw new Error('用法：workbench create <新目录> [包名] | pack <项目目录> [输出目录] | check <归档.tgz>')
+  const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' } } })
+  const [command, path, argument] = positionals
+  if (!path || positionals.length > 3) throw new Error('用法：workbench create <新目录> [包名] [--template plain|ai] | pack <项目目录> [输出目录] | check <归档.tgz>')
   if (command === 'create') {
-    await createWorkbench(path, argument)
+    const kind = z.enum(['plain', 'ai']).parse(values.template ?? 'plain')
+    await createWorkbench(path, argument, kind)
     console.log(`已创建工作台开发目录：${resolve(path)}`)
+  } else if (values.template !== undefined) {
+    throw new Error('--template 仅用于 create。')
   } else if (command === 'pack') {
     const archive = await packWorkbench(path, argument ?? join(path, 'dist'))
     console.log(JSON.stringify({ path: archive, ...await checkWorkbench(archive) }, null, 2))

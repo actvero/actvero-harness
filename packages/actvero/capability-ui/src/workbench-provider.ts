@@ -25,6 +25,8 @@ export interface WorkbenchProviderBase {
   resourcesDirectory?: string
   /** Enable native conversations. Defaults to true for legacy JSON providers and false for custom providers. */
   ai?: boolean
+  /** Fixed platform reads requested by this package; omission denies platform access. */
+  platform?: readonly 'models:read'[]
   expert?: WorkbenchExpert
   /** Optional dependency preparation; failure prevents the next model request. */
   prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>

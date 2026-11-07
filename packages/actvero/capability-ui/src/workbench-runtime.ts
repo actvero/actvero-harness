@@ -300,6 +300,16 @@ export class WorkbenchRuntime extends TypertRemoteService {
     return document
   }
 
+  /** Require a loaded provider's explicit platform declaration.
+   * @param request Existing workbench instance.
+   * @returns Installed provider version; throws before any request when access was not declared.
+   */
+  platformAccess(request: WorkbenchTarget): string {
+    const provider = this.loadedProvider(this.read(request).id)
+    if (!provider.platform?.includes('models:read')) throw new RemoteError('workbench/platform', 'Platform access was not declared.', { code: 'platform_not_declared' })
+    return provider.version
+  }
+
   /** Apply one business operation atomically with an expected revision.
    * @param request Instance, expected revision and provider-defined action.
    * @returns Document only after persistence succeeds.

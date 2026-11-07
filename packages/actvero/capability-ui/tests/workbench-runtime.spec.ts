@@ -1,6 +1,7 @@
 /** Native scopes, durable business state and concurrent workbench actions. */
 import { Context } from '@deepseek-ai/cordis'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
+import Skills from '@deepseek-ai/dsh-skill'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -53,17 +54,44 @@ async function harness(root?: string) {
     },
   }
   ctx.reflect.provide('sessionController', sessionController)
-  await ctx.plugin(Workbenches, { dataDirectory: join(directory, 'files'), displayTimeoutMs: 30000 })
+  const workbenches = await ctx.plugin(Workbenches, {
+    dataDirectory: join(directory, 'files'), displayTimeoutMs: 30000, platformTimeoutMs: 30000,
+  })
   const runtime = ctx.actveroWorkbenchRuntime
   const prepare = (agent: Agent) => ctx.waterfall(scopeTarget(agent, agent), 'agent/pre-step', {
     agent, messages: [], turn: 1, step: 1, signal: new AbortController().signal,
   }, async () => ({ kind: 'enter' as const, messages: [] }))
-  return { ctx, runtime, loop, prepare, directory }
+  return { ctx, runtime, loop, prepare, directory, workbenches }
 }
 
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('discovers the bundled developer skill when the native registry becomes available', async () => {
+    const { ctx, workbenches } = await harness()
+    await ctx.plugin(Skills)
+    const skill = await ctx.skills.get('develop-workbench')
+    expect(skill?.source).toBe('bundled')
+    expect(skill?.content).toContain('reference/guide.zh.md')
+    expect(skill?.resourceBase?.kind).toBe('directory')
+    if (skill?.resourceBase?.kind !== 'directory') throw new Error('Missing packaged developer resources')
+    expect(ctx.skills.renderContent(skill).replaceAll(skill.resourceBase.path, '<developer-skill>')).toMatchSnapshot()
+    await workbenches.dispose()
+    expect(await ctx.skills.get('develop-workbench')).toBeUndefined()
+  })
+
+  it('denies undeclared platform access and withdraws access with its loaded provider', async () => {
+    const { runtime } = await harness()
+    const document = await runtime.open(id)
+    expect(() => runtime.platformAccess(document)).toThrow()
+    const platformId = 'test:platform' as WorkbenchId
+    const remove = runtime.register({ id: platformId, name: '平台读取', version: '1.0.0', platform: ['models:read'] })
+    const target = await runtime.open(platformId)
+    expect(runtime.platformAccess(target)).toBe('1.0.0')
+    await remove()
+    expect(() => runtime.platformAccess(target)).toThrow()
+  })
+
   it('provides isolated stable directories without AI and preserves author-owned files through upgrades and reinstall', async () => {
     const first = await harness()
     const customId = 'test:file-storage' as WorkbenchId

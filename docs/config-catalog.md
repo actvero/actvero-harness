@@ -15,9 +15,15 @@ Each package entry labels its data with three identifiers: `inject` lists the se
 ## `@actvero/dsh-capability-ui`
 
 - `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
-- `source`: [`packages/actvero/capability-ui/src/workbench-runtime.ts:38`](../packages/actvero/capability-ui/src/workbench-runtime.ts)
+- `source`: [`packages/actvero/capability-ui/src/index.ts:20`](../packages/actvero/capability-ui/src/index.ts)
 
 ```ts config-catalog
+/** Deployment-owned managed files location. */
+export interface Config extends WorkbenchRuntimeConfig {
+  /** Maximum wait for a Main-owned platform read. */
+  platformTimeoutMs: number
+}
+
 /** Managed business directory and live Client acknowledgement deadline. */
 export interface WorkbenchRuntimeConfig {
   /** Absolute managed directory for workbench files and native workspaces. */

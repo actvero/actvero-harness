@@ -145,6 +145,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   workflowEngine: 'workflow.md',
   webhookRuntime: 'webhook.md',
   actveroWorkbenchRuntime: 'workspace.md',
+  actveroWorkbenchPlatform: 'workspace.md',
   workspaceRegistry: 'workspace.md',
   workspaceController: 'workspace.md',
   workspaceFiles: 'workspace.md',
@@ -878,6 +879,7 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  WorkbenchModelCatalog: 'Actvero platform metadata is owned by actvero/workbench-development.md#platform and packages/actvero/capability-ui/src/types.ts',
   WorkspaceDependencies: 'Native runtime paths are owned by packages/skill/tool-workspace-dependencies/README.md and src/index.ts',
   WorkbenchDisplayCommand: 'Actvero display protocol is owned by actvero/workbench-development.md#display and packages/actvero/capability-ui/src/types.ts',
   WorkbenchDisplayChannelId: 'Actvero display protocol is owned by actvero/workbench-development.md#display and packages/actvero/capability-ui/src/types.ts',

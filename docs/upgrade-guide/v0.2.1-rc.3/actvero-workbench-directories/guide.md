@@ -16,6 +16,8 @@ Bundled capability associations record an exact dependency digest. A changed dig
 
 Host integrations that construct `WorkbenchRuntime` directly must provide `displayTimeoutMs` in milliseconds to bound the wait for Client acknowledgement. Cordis plugin configuration can omit it and defaults to `30000`; ordinary workbench authors need no change.
 
+Host integrations calling the capability package’s `apply()` directly must supply `platformTimeoutMs` in milliseconds. Cordis plugin configuration may omit it and defaults to `30000`; it is separate from `WorkbenchRuntime` display waits. Integrations implementing `WorkbenchClientContext` themselves must add `models()`; ordinary workbench components receive it from the host.
+
 ## Migration
 
 1. Obtain the instance with `runtime.open(id)`, then its `dataDirectory` with `runtime.environment(instance)` in the Host service. Resolve business file paths from that directory instead of the process or session directory. See the [local development guide](../../../../actvero/workbench-development.md#storage).

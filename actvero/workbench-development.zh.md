@@ -16,11 +16,14 @@
 - [原生 AI 与共享数据](#native-ai)
 - [随包专家、Skill、MCP 与 CLI](#expert-bundle)
 - [显示控制与 Agent 入口](#display)
+- [身份与平台模型目录](#platform)
 - [限制](#limits)
 
 <a id="create"></a>
 
 ## 创建和打包
+
+也可在管理页点击「制作工作台」，复制说明并在新对话补充业务目标。原生 `develop-workbench` Skill 随客户端提供，引用构建时从本文生成的指南；它不会自动决定业务内容或发送任务。当前开发命令需要源码仓库和已安装依赖，客户端尚未附带独立编译器。
 
 先按[客户端开发说明](workbenches.zh.md)准备仓库依赖。创建命令只接受尚不存在的目标目录，保护已有文件。第二个参数是稳定包名，同一个工作台后续版本保持包名不变。
 
@@ -28,7 +31,10 @@
 pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist
 pnpm run actvero:workbench pack .artifacts/my-checklist .artifacts/workbenches
 pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0.tgz
+pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
 ```
+
+`create` 默认复制普通清单；追加 `--template ai` 生成带原生数据、AI 和本地专家 Skill 的「AI 项目清单」。两套模板均不需要登录即可使用本地功能，AI 模板首次打开保留 AI 入口而不创建对话。`pack` 所需的依赖由源码开发环境提供。
 
 `create` 复制可编辑的项目清单；`pack` 编译 Host 和 Client、生成 bundle patch，并输出经过校验的 `.tgz`、字节数与 SHA-256。打包不修改业务源码，不执行安装或发布。输出文件同名时替换先前的构建产物；构建失败保留原产物。输出目录省略时使用项目的 `dist`。
 
@@ -110,7 +116,7 @@ export async function apply(ctx) {
 
 基础模板仅注册业务界面。需要原生对话时，在 Host 入口注入 `actveroWorkbenchRuntime`，以 `ctx.effect(() => ctx.actveroWorkbenchRuntime.register(provider))` 注册与客户端相同的工作台标识。自定义存储提供者通过 `ai: true` 开启原生对话，可携带名称、版本与指令组成的本地专家；未设置时不显示 AI 入口，也不自动创建会话。采用 `storage` 适配器时才声明初始 JSON、业务操作函数和给模型的操作说明。旧式顶层 `initial/reduce/actionHelp` 注册继续可用，并保持默认启用 AI。专家使用会话所选模型，无需另配模型。可选准备函数失败会阻止绑定或后续模型请求；它不能把未记录的上下文偷偷加入模型请求。
 
-组件收到 `workbench` 上下文，包含业务实例、关联会话、运行目录查询、AI 是否启用、原生资源地址、打开对话、执行业务操作和读取公开账户信息的方法。`account()` 未登录时返回空，已登录时只返回用户及组织标识和名称；平台请求鉴权代理未接入，不要把这些公开字段当作凭据。`conversation()` 按需创建或恢复当前关联对话，`action()` 携带最新修订号保存。组件通过原生 `useResource` 读取数据，按自身容器宽度适配业务界面。悬浮预览使用 960 × 640 的业务视口等比缩小，禁用内部交互和滚动；编辑时进入工作台。
+组件收到 `workbench` 上下文，包含业务实例、关联会话、运行目录查询、AI 是否启用、原生资源地址、打开对话、执行业务操作和读取公开账户信息的方法。`account()` 未登录时返回空，已登录时只返回用户及组织标识和名称；这些公开字段不是凭据。`models()` 通过下述受控通道读取平台模型元信息。`conversation()` 按需创建或恢复当前关联对话，`action()` 携带最新修订号保存。注册组件时可向 `register(descriptor, component, { locale: namespace })` 传入已注册的本包语言命名空间，由宿主注入类型化 `t` 并响应语言切换。组件通过原生 `useResource` 读取数据，按自身容器宽度适配业务界面。悬浮预览使用 960 × 640 的业务视口等比缩小，禁用内部交互和滚动；编辑时进入工作台。
 
 Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器让多条关联对话共享其 JSON；自定义存储中的项目划分和对话对应关系由作者决定。普通「新会话」不自动继承工作台；工作台内部「新建工作台对话」关联同一实例。恢复已有对话时读取日志中的关联和专家版本；收起浮窗不取消关联，取消使用不删除清单。新建关联对话在文件根目录的 `.sessions/<instanceId>` 创建或复用以工作台命名的工作区，与业务数据目录分开，不要求用户选择文件夹。现有对话的目录保持原样。
 
@@ -182,10 +188,24 @@ const visible = workbench.displayState()
 
 只有结果 `status: 'confirmed'` 表示客户端确认宿主视图已挂载，不代表作者的远程业务请求全部完成。没有客户端返回 `unavailable`，多个客户端返回 `ambiguous`，业务页无法加载返回 `failed`；断线或超过 `displayTimeoutMs` 返回 `unknown`，应先查询状态再决定下一步。默认等待 30 秒，可在能力包 Host 配置中调整。取消返回 `cancelled`，已经创建的实例或会话不会因此删除；连接恢复不重放导航。`workbench.display()` 在未确认时拒绝，调用方应显示可恢复的失败提示。UI-only 卡片可显示，但不会出现在 Host 提供者目录中，也不能创建原生对话。
 
+<a id="platform"></a>
+
+## 身份与平台模型目录
+
+需要读取平台模型时，Host 提供者显式声明 `platform: ['models:read']`，业务组件按需调用 `await workbench.models()`。结果包含当前账户代际标识 `scope` 与 `models`；每个模型提供 `id`、`name`、`description` 和 `operations`，操作包含 `kind`、`inputModalities` 与 `outputModalities`。图片和视频操作不会被筛成只剩对话模型。没有声明能力、没有已加载的 Host 提供者、未登录或组织不可用时请求失败；本地清单仍可使用。
+
+请求经 Host 转交 Electron Main，由 Main 使用当前账号的只读模型目录授权访问固定服务。返回值不含资源令牌、平台服务地址或自定义请求头；工作台不能借此向任意 URL 发起带宿主凭据的请求。它只读取目录，不提供图片、视频生成、额度或文件上传的通用代理。第三方服务仍由作者自行接入。
+
+`scope` 仅用于区分账户与组织的请求代际，不是访问凭据。退出登录、替换平台或切换组织时作废旧请求；不缓存目录，后续调用重新读取当前授权。作者若缓存元信息，应在账户变化时清除，并按新 `scope` 更新，不把工作台业务目录视为自动按账号隔离。请求取消、超时、无权限、响应损坏和目录超限分别拒绝，不返回半份目录。Host 等待时限由 `platformTimeoutMs` 配置，默认 30 秒；远程访问只允许桌面所有者。
+
+AI 模板的「查看可用模型」展示最小接入方式。平台未登录时显示可恢复提示，不要求给专家独立配置模型，也不会把账户信息或模型目录自动发进对话。真实平台权限和付费生成需另行验证。
+
 <a id="limits"></a>
 
 ## 限制
 
-本工具是仓库内开发入口，不是已经发布的通用 SDK。只接入本地 `.tgz`，不支持 ZIP 导入、平台下载、发布、自动更新或携带平台鉴权的请求代理。专家依赖通过 Host 的 `activate` 显式加载；文件放入目录不会自动启用。平台依赖的下载安装不在本地加载器中处理。
+本工具是仓库内开发入口，不是已经发布的通用 SDK。只接入本地 `.tgz`，不支持 ZIP 导入、平台下载、发布或自动更新；受控平台通道目前仅支持模型目录读取。专家依赖通过 Host 的 `activate` 显式加载；文件放入目录不会自动启用。平台依赖的下载安装不在本地加载器中处理。
 
 安装包适用于 Actvero 自有工作台注册接口。旧 DSH 工作台使用不同的注册服务，不能仅修改标识就宣称兼容。DSH 参考文档保留在[离线快照](third-party/dsh-desktop-workbenches/development-guide.zh.md)，版本为 2026-10-27；它不是当前在线规范，也不替代本文的 Actvero 包约定。
+
+上游参考规范于 2026-11-08 实际在线获取，最终地址为 https://dshdesktop.com/workbench/docs/development.md ，HTTP 200，文档版本为 2026-10-27；本次未采用离线替代。本文对应 ACTVERO 本地运行框架，按当前源码接口编写，不宣称支持上游全部接口。

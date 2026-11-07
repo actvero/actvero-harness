@@ -1,0 +1,10 @@
+# Bilingual-pair consistency record for SKILL.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/templates/ai-checklist/assets/skills/checklist/SKILL.md
+/:
+  en: 391f4945056e4def
+  zh: a0999f81b5e35470
+/checklist-operations:
+  en: b815b3d3bb860eeb
+  zh: 2646d430cd356c3f

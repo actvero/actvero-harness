@@ -87,7 +87,11 @@ async function exercise(ctx) {
   const names = requests[0]?.tools?.map(tool => tool.name) ?? [];
   const file = await readFile(join(data, 'delivery.txt'), 'utf8');
   await runtime.detach({ sessionId: agent.id });
+  const developerSkill = await ctx.skills.get('develop-workbench');
   await writeFile(${JSON.stringify(report)}, JSON.stringify({ file, requests: requests.length,
+   developerSkill: developerSkill?.content.includes('reference/guide.zh.md') && developerSkill.source === 'bundled',
+   developerGuide: developerSkill?.resourceBase?.kind === 'directory'
+     && await readFile(join(developerSkill.resourceBase.path, 'reference/guide.zh.md'), 'utf8') === ${JSON.stringify(readFileSync(join(repository, 'actvero/workbench-development.zh.md'), 'utf8'))},
    skillInPrompt: modelText.includes('Use the bundled delivery CLI'), cliInPrompt: modelText.includes('Command argv:'),
    directVisible: names.includes('delivery_direct'), mcpVisible: names.some(name => name.startsWith('mcp__wb_')),
    leaked: !!ctx.tools.get('delivery_direct') || !!await ctx.skills.get('delivery'),
@@ -124,6 +128,7 @@ async function exercise(ctx) {
     if (result.file !== 'direct|cli|mcp') throw new Error(JSON.stringify(result))
     delete result.diagnostics
     expect(result).toEqual({ file: 'direct|cli|mcp', requests: 4, skillInPrompt: true, cliInPrompt: true,
-      directVisible: true, mcpVisible: true, leaked: false, released: true, digestRecorded: true, toolResults: 3 })
+      developerSkill: true, developerGuide: true, directVisible: true, mcpVisible: true,
+      leaked: false, released: true, digestRecorded: true, toolResults: 3 })
   } finally { await host?.stop(); rmSync(root, { recursive: true, force: true }) }
 })

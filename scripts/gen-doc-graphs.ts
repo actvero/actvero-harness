@@ -108,6 +108,10 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'actveroWorkbenchPlatform', pkg: '@actvero/dsh-capability-ui', title: 'Actvero workbench platform metadata',
+    mode: 'service', note: 'Reads declared model metadata through Electron Main without exposing credentials or arbitrary authenticated URLs.',
+  },
+  {
     key: 'workspaceDependencies',
     pkg: 'tool-workspace-dependencies',
     title: 'Native runtime preparation',

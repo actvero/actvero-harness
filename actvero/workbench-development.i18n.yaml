@@ -9,11 +9,11 @@
   en: 128d4ccf20e940e4
   zh: 127438cb9f8b6355
 /local-workbench-development/table-of-contents:
-  en: a9504bac953c196c
-  zh: 67503ea0d1466fea
+  en: 8b310787cbe11c7b
+  zh: ef9b6d308f57a436
 /local-workbench-development/create-and-package:
-  en: b5ea061e0bfdaffc
-  zh: e3bc5614fe997a1b
+  en: 08dbba492d07defb
+  zh: a830d8f95a1ceba5
 /local-workbench-development/import-and-verify:
   en: a5521312a645e1d0
   zh: 92d9ffcee83b8389
@@ -27,14 +27,17 @@
   en: a99b53f9205c3a1e
   zh: 441b9042cb9501fd
 /local-workbench-development/native-ai-and-shared-data:
-  en: cf1035d6cef5fcf0
-  zh: d302902e7be7e3d6
+  en: 29fc1ba1cbd0130c
+  zh: 67e5aadfb33b9eab
 /local-workbench-development/bundled-experts-skill-mcp-and-cli:
   en: 116740737536f936
   zh: e313302ac17e57ad
 /local-workbench-development/display-control-and-agent-entry-points:
-  en: 9d1c34b1536ed412
-  zh: f53fb40662e7fa11
+  en: ae26a117b0d1901e
+  zh: c89786341ef03bf3
+/local-workbench-development/identity-and-platform-model-directory:
+  en: 84ed712d72c834cc
+  zh: 6146f84aa9d858b9
 /local-workbench-development/limitations:
-  en: 963063c3bf5257ac
-  zh: 40b2062228b6bd12
+  en: 719c7c3d0cb18eae
+  zh: 9d717272e0389264

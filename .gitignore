@@ -78,3 +78,6 @@ vendor/**/src/**/*.d.ts
 # Handwritten CSS module declarations used by clean ACTVERO builds.
 !packages/actvero/*/src/client/css-modules.d.ts
 !packages/client/actvero-account/src/css.d.ts
+
+# Build-time projection of the canonical workbench development guide.
+/packages/actvero/capability-ui/assets/develop-workbench/reference/

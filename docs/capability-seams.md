@@ -7,10 +7,11 @@ A service can be a core spine service, a swappable capability seam, a bundle/com
 
 ```mermaid
 flowchart LR
+  pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
+  svc_actveroWorkbenchPlatform["ctx.actveroWorkbenchPlatform<br/>Actvero workbench platform metadata"]
   pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
   svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
   pkg__actvero_dsh_experts["@actvero/dsh-experts"]
-  pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
   svc_cotTranslation["ctx.cotTranslation<br/>Reasoning translation Remote"]
@@ -299,6 +300,7 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchPlatform
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchRuntime
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
@@ -619,6 +621,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.actveroWorkbenchPlatform` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Reads declared model metadata through Electron Main without exposing credentials or arbitrary authenticated URLs. |
 | `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | Resolves configured interpreter and package paths; Host consumers and the model tool share successful preparation and await disposal. |
 | `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Owns runtime directories, optional JSON-adapter data, conversation associations and scoped capability lifetimes. |
 | `ctx.cotTranslation` | `service` | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | - | - | Serves reasoning translations, reuses saved results, and joins ordinary Session activation for uncached inactive Sessions. |

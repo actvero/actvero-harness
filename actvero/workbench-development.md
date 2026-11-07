@@ -16,11 +16,14 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Native AI and shared data](#native-ai)
 - [Bundled experts, Skill, MCP and CLI](#expert-bundle)
 - [Display control and Agent entry points](#display)
+- [Identity and platform model directory](#platform)
 - [Limitations](#limits)
 
 <a id="create"></a>
 
 ## Create and package
+
+You can also choose “Create a workbench” in the manager, copy the instructions and describe your goal in a new conversation. The native `develop-workbench` skill ships with a guide generated from this document at build time; it neither chooses the business purpose nor sends a task automatically. The commands currently require a source checkout and installed dependencies; the desktop does not include a standalone compiler.
 
 Prepare repository dependencies using the [client development guide](workbenches.md). Creation requires a destination that does not exist, preserving existing files. The second argument is the stable package name; retain it across versions of the same workbench.
 
@@ -28,7 +31,10 @@ Prepare repository dependencies using the [client development guide](workbenches
 pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist
 pnpm run actvero:workbench pack .artifacts/my-checklist .artifacts/workbenches
 pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0.tgz
+pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
 ```
+
+`create` defaults to the plain checklist; add `--template ai` for “AI 项目清单”, with native data, AI and a local expert Skill. Both templates work locally without sign-in; the AI template initially offers an AI entry without creating a conversation. Build dependencies come from the source development environment.
 
 `create` copies the editable checklist; `pack` compiles Host and Client, generates the bundle patch, and reports the validated `.tgz`, byte count, and SHA-256. Packaging does not modify business sources, install, or publish. A same-named output replaces the previous artifact; a failed build preserves it. Omitting the output directory uses the project's `dist`.
 
@@ -110,7 +116,7 @@ For host-managed JSON, register a `storage: { initial, reduce, actionHelp }` ada
 
 The basic template registers a business UI only. To support native conversations, inject `actveroWorkbenchRuntime` in the Host entry and register a provider with the same identifier as the Client through `ctx.effect(() => ctx.actveroWorkbenchRuntime.register(provider))`. Custom-storage providers enable native conversations with `ai: true` and may declare a local expert containing a name, version and instructions. When omitted, AI controls stay hidden and no conversation is created automatically. Only the optional `storage` adapter requires initial JSON, a reducer and action documentation. Legacy top-level `initial/reduce/actionHelp` registrations remain supported with AI enabled by default. An expert uses the conversation model without separate configuration. An optional preparation function can block binding or a later request on failure; it must not inject unrecorded model context.
 
-Components receive `workbench` context with the business instance, associated conversation, runtime-directory lookup, AI availability, native resource address, conversation opener, business action and public account lookup. `account()` returns null while logged out and public user/organization identifiers and names while logged in. Platform authorization proxying is not connected; those fields are not credentials. `conversation()` creates or resumes the current associated conversation on demand, while `action()` saves against the latest revision. Components read through native `useResource` and adapt the business UI to their own container width. Floating previews scale a 960 × 640 business viewport proportionally with internal interaction and scrolling disabled; editing takes place in the full workbench.
+The component receives a `workbench` context with its instance, associated conversation, runtime-directory lookup, AI availability, native resource address, conversation opening, business actions and public account information. `account()` returns null when signed out, otherwise only user and organization identifiers and names; these fields are not credentials. `models()` reads platform metadata through the controlled channel below. `conversation()` creates or restores the current associated conversation on demand, while `action()` writes using the latest revision. Pass an already registered package locale namespace to `register(descriptor, component, { locale: namespace })` for native typed `t` injection and language updates. Components observe native `useResource` data and adapt to their own container width. Floating previews scale a 960 × 640 business viewport, disabling internal interaction and scrolling; enter the workbench to edit.
 
 The Host retains one stable default runtime instance per workbench. The JSON adapter shares its JSON across linked conversations; custom-storage authors own project organization and conversation-to-project associations. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. New linked conversations create or reuse a workspace named after the workbench at `.sessions/<instanceId>` beneath the configured files root, separate from business data and without a folder picker. Existing conversations keep their directory.
 
@@ -182,10 +188,24 @@ Resident tools `workbench_list`, `workbench_open`, and `workbench_status` list l
 
 Only `status: 'confirmed'` acknowledges a mounted host view, not completion of all author-owned remote business requests. No Client returns `unavailable`, multiple Clients return `ambiguous`, and a view that cannot load returns `failed`; connection loss or exceeding `displayTimeoutMs` returns `unknown`, requiring inspection before another action. The default wait is 30 seconds, configurable in the capability package's Host configuration. Cancellation returns `cancelled` without deleting an instance or conversation already created; reconnect does not replay navigation. `workbench.display()` rejects unconfirmed outcomes, which callers should present as recoverable failures. UI-only cards can display but do not appear in the Host provider catalog and cannot create native conversations.
 
+<a id="platform"></a>
+
+## Identity and platform model directory
+
+To read platform models, explicitly declare `platform: ['models:read']` on the Host provider and call `await workbench.models()` when needed. Results contain an account-generation `scope` and `models`; each model exposes `id`, `name`, `description` and `operations`, with `kind`, `inputModalities` and `outputModalities`. Image and video operations remain visible. Requests fail for undeclared capabilities, unloaded Host providers, signed-out users or unavailable organizations; local checklists remain usable.
+
+The Host forwards requests to Electron Main, which uses the current account’s read-only model-directory grant against a fixed service. Results contain no resource tokens, service endpoints or custom request headers; workbenches cannot use this channel to send host credentials to arbitrary URLs. It only reads metadata, without a generic image/video generation, quota or upload proxy. Authors integrate third-party services themselves.
+
+`scope` distinguishes account and organization request generations; it is not a credential. Sign-out, platform replacement and organization switching invalidate old reads. The directory is not cached; subsequent calls read the current authorization. Authors caching metadata must clear it on account changes and replace it using the new `scope`; business directories are not automatically partitioned by account. Cancellation, timeout, denied access, malformed responses and directory limits reject without returning partial results. `platformTimeoutMs` configures the Host wait, defaulting to 30 seconds; remote access requires the desktop owner.
+
+The AI template’s “View available models” demonstrates the minimal integration. Signed-out access shows a recoverable message without requiring a separate expert model or automatically inserting account information or model metadata into conversations. Real platform permissions and paid generation require separate verification.
+
 <a id="limits"></a>
 
 ## Limitations
 
-This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages without ZIP import, platform downloads, publishing, automatic updates or an authenticated platform request proxy. Expert dependencies load explicitly through Host `activate`; adding files does not enable them. The local loader does not download or install platform dependencies.
+This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages without ZIP import, platform downloads, publishing or automatic updates; controlled platform access currently supports model-directory reads only. Expert dependencies load explicitly through Host `activate`; adding files does not enable them. The local loader does not download or install platform dependencies.
 
 Packages target Actvero's workbench registration service. Legacy DSH workbenches use another service; changing a marker alone does not establish compatibility. The DSH reference is retained as an [offline snapshot](third-party/dsh-desktop-workbenches/development-guide.zh.md), version 2026-10-27; it is not the current online specification and does not replace these Actvero package rules.
+
+The upstream reference was actually fetched online on 2026-11-08 from the final URL https://dshdesktop.com/workbench/docs/development.md with HTTP 200 and document version 2026-10-27; no offline substitute was used. This guide describes the current ACTVERO local framework and does not claim support for every upstream API.

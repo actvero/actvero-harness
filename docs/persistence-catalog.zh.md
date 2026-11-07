@@ -202,7 +202,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'actvero/workbench': { schemaVersion: 1; selection: WorkbenchSelection | null }
 ```
 
-来源：[`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
 
 ### `agent/*`
 
@@ -5513,7 +5513,7 @@ SHA-256: `454a0fa879e38076bdcdbd87ef561cd67d7e43e58a287cf7dbaa7b6cf7847020`
 
 SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:11`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:21`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5531,7 +5531,7 @@ SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
 SHA-256: `26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:13`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:23`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -8031,7 +8031,7 @@ SHA-256: `9a2a9029f8d7ede05336980d8342737557f487b913bfd28853d0ab5214600ab5`
 
 SHA-256: `5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|

@@ -200,7 +200,7 @@ Source: [`packages/actvero/experts/src/projection.ts:9`](../packages/actvero/exp
 'actvero/workbench': { schemaVersion: 1; selection: WorkbenchSelection | null }
 ```
 
-Source: [`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
+Source: [`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
 
 ### `agent/*`
 
@@ -5511,7 +5511,7 @@ Array of [`UserMessage`](#persistence-type-sha256-2cf075b013d363ad743b5a49829006
 
 SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
-Sources: [`packages/actvero/capability-ui/src/types.ts:11`](../packages/actvero/capability-ui/src/types.ts)
+Sources: [`packages/actvero/capability-ui/src/types.ts:21`](../packages/actvero/capability-ui/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5529,7 +5529,7 @@ Sources: [`packages/actvero/capability-ui/src/types.ts:11`](../packages/actvero/
 
 SHA-256: `26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f`
 
-Sources: [`packages/actvero/capability-ui/src/types.ts:13`](../packages/actvero/capability-ui/src/types.ts)
+Sources: [`packages/actvero/capability-ui/src/types.ts:23`](../packages/actvero/capability-ui/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8029,7 +8029,7 @@ Sources: [`packages/web/web-search-deepseek/src/provider.ts:64`](../packages/web
 
 SHA-256: `5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77`
 
-Sources: [`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
+Sources: [`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|

@@ -27,8 +27,8 @@
   en: 4c97e4f7b98edf98
   zh: 87afcec66f67ed06
 /session-persistence-event-catalog/events/actvero/actvero-workbench-log-only:
-  en: 71c143215010b886
-  zh: fb9824656d36e752
+  en: bac7e13ef1a51d9e
+  zh: 023daef6eb88789d
 /session-persistence-event-catalog/events/agent:
   en: 9188862058c6986b
   zh: 9188862058c6986b
@@ -1353,11 +1353,11 @@
   en: 9e6d25a6dc4acc33
   zh: 2c6182c55c0c1989
 /session-persistence-event-catalog/resolved-persistence-types/workbenchexpert:
-  en: 7f3b3c5646d4832f
-  zh: 44bd93d8b214fcdc
+  en: c947afb9c9b41fe7
+  zh: b8c8db5ac349cfc1
 /session-persistence-event-catalog/resolved-persistence-types/workbenchselection:
-  en: 44955ef2cf2985f6
-  zh: 1630ddff43f384dc
+  en: bf342e4e67d36dd3
+  zh: 1d82f89925adebb2
 /session-persistence-event-catalog/resolved-persistence-types/workflowagentoutcome:
   en: d0a3f9aab18c3de5
   zh: 76ac69a835ca4e29
@@ -1944,8 +1944,8 @@
   en: 10a5a6d0723af3bf
   zh: 9650f3a323d6fd39
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection:
-  en: 4b7d910a068d2032
-  zh: 501ca88d47249581
+  en: e29c38287d520f1b
+  zh: dab542d020da5ece
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection~2:
   en: 28a844a6a64ca487
   zh: ac78d114288cd34e

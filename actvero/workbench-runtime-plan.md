@@ -2,11 +2,11 @@
 
 English | [中文](workbench-runtime-plan.zh.md)
 
-This plan is for engineers implementing the workbench host, developer tooling, and expert integration. Use it to sequence local runtime work and define acceptance criteria for each phase. Status: Parts 1–3, covering runtime directories, optional storage, AI and bundled experts, presentation control and resident Agent tools, are implemented and verified through an isolated client, real Desktop Host and focused regressions; Windows runtime acceptance remains pending. Parts 4–6 remain planned targets; see the [workbench development guide](workbench-development.md) for the current package format and interfaces.
+This plan is for engineers implementing the workbench host, tooling and expert integration. Status: all six local code areas are connected, including controlled model metadata, two templates and the native development Skill; real-account and Windows acceptance remain pending as described below. The [development guide](workbench-development.md) owns current package and API details.
 
 ## Summary
 
-Implement six parts: runtime and data directories; AI and bundled experts; presentation controls and Agent tools; identity and platform access; developer tooling; and a development Skill with end-to-end acceptance. Parts 1–3 provide a locally usable runtime framework; reuse existing package management and UI, and defer platform publishing and distribution.
+Implement six parts: runtime and data directories; AI and bundled experts; presentation controls and Agent tools; identity and platform access; developer tooling; and a development Skill with end-to-end acceptance. The local framework, templates and development Skill reuse existing host capabilities; reuse existing package management and UI, and defer platform publishing and distribution.
 
 ## Contents
 
@@ -134,6 +134,8 @@ Goal: workbenches can use the current login identity to request authorized platf
 
 Local features work while signed out or offline; protected services report missing authorization clearly; organization switches cannot reuse resource authorization from the previous organization; business frontends, model context, and logs contain no long-lived tokens. This phase excludes platform workbench publishing.
 
+Fixed model-directory reads and public account context are connected, with credentials held by Main. Generation, quota and arbitrary authenticated URLs are outside this capability; real signed-in organization and platform integration remain unverified.
+
 <a id="tooling"></a>
 
 ## Part 5: Developer tooling
@@ -152,6 +154,8 @@ Goal: engineers and users working with an Agent can create, debug, pack, and ins
 
 An engineer can follow the guide from an empty directory to generate both templates, build, validate, import, and load them without editing host source. Missing entries, incompatible dependencies, and malformed packages produce actionable errors; failed installations preserve the existing version and business data.
 
+Plain and `--template ai` templates reuse the source development toolchain; the manager provides a “Create a workbench” entry. Development requires a source environment, without an independent in-app compiler.
+
 <a id="skill"></a>
 
 ## Part 6: Development Skill and end-to-end acceptance
@@ -168,6 +172,8 @@ Goal: consolidate implemented interfaces, development workflows, and self-checks
 ### Acceptance criteria
 
 In a clean isolated development environment, complete workbench development and installation using only the Skill and guide. Ordinary business features work without AI, AI modifies data through expert-selected tools, and resumed conversations resolve the correct business context. Checks not actually executed are explicitly marked unverified.
+
+The capability package registers `develop-workbench` in the native Skill catalog and projects the canonical guide at build time. Existing focused checks cover native tools, Skill/CLI, MCP, versions and retained data; full real-account and Windows acceptance remain pending.
 
 <a id="delivery"></a>
 

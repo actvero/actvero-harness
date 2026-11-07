@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { app,dialog,ipcMain,shell,type BrowserWindow,type IpcMainInvokeEvent } from 'electron'
 import { mkdir,readFile,writeFile } from 'node:fs/promises'
 import { SecureJsonFile } from '../secure-json.ts'
+import { WorkbenchPlatform } from '../workbench-platform.ts'
 import { join } from 'node:path'
 import { createHash,randomUUID } from 'node:crypto'
 import { Skills } from '@actvero/dsh-skills/main'
@@ -25,12 +26,14 @@ export class Capabilities {
   private restored=new Map<string,string>()
   private firstPartyReady:Promise<void>=Promise.resolve()
   private active=new Map<string,AbortController>();private owner='';private channels:string[]=[]
+  private readonly workbenchPlatform:WorkbenchPlatform
   private available=false
   private skillRevision=0
   private readonly selections:ExpertSelections
   constructor(private account:AccountController,private windows:()=>readonly (BrowserWindow|undefined)[]){
     const root=join(app.getPath('userData'),'actvero-capabilities')
     this.root=root
+    this.workbenchPlatform=new WorkbenchPlatform(account)
     const issue=(resource:string)=>account.resourceToken(resource)
     const changed=()=>this.changed()
     this.connectors=new Connectors({ identity:()=>this.identity(),issue,changed,load:key=>this.read<string[]>(join(root,'connections',this.hash(key)+'.enc'),[]),save:(key,ids)=>this.save(join(root,'connections',this.hash(key)+'.enc'),ids),openExternal:url=>shell.openExternal(url),local:{ load:()=>this.read(join(root,'local-mcp.enc'),[]),save:value=>this.save(join(root,'local-mcp.enc'),value),openExternal:url=>shell.openExternal(url) } })
@@ -120,10 +123,12 @@ export class Capabilities {
   accountChanged(){
     const identity=this.identity(),key=identity?.key??'',available=identity?.available??false
     if(key===this.owner){
-      if(available!==this.available){this.available=available;this.selections.invalidate();this.changed()}
+      if(available!==this.available){
+        this.workbenchPlatform.invalidate();this.available=available;this.selections.invalidate();this.changed()
+      }
       return
     }
-    this.owner=key;this.available=available
+    this.workbenchPlatform.invalidate();this.owner=key;this.available=available
     this.restored.clear();this.packages.invalidate();this.skills.invalidate();this.connectors.invalidate();this.remote.invalidate()
     const send=this.send;this.close();this.send=send;this.changed()
   }
@@ -131,12 +136,12 @@ export class Capabilities {
   private save(path:string,value:unknown){return this.storage.save(path,value)}
   private authorize(event:IpcMainInvokeEvent){if(event.senderFrame!==event.sender.mainFrame||!this.windows().some(w=>w&&!w.isDestroyed()&&w.webContents===event.sender))throw new Error('unauthorized_sender');const url=new URL(event.senderFrame.url);if(url.protocol!==`${SCHEME}:`||url.hostname!=='app')throw new Error('unauthorized_origin')}
   attach(send:(message:CapabilityMainMessage)=>void){this.close();this.send=send}
-  close(){this.selections.invalidate();this.send=undefined;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error('capability_host_unavailable'))}this.pending.clear();for(const c of this.active.values())c.abort();this.active.clear()}
+  close(){this.workbenchPlatform.invalidate();this.selections.invalidate();this.send=undefined;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error('capability_host_unavailable'))}this.pending.clear();for(const c of this.active.values())c.abort();this.active.clear()}
   private changed(){for(const w of this.windows())if(w&&!w.isDestroyed())for(const kind of ['skills','connectors','experts'])w.webContents.send(`actvero:${kind}:changed`);try{this.send?.({ type:'actvero:skills:changed' });this.send?.({ type:'actvero:mcp:changed' });this.send?.({ type:'actvero:llm:changed' })}catch{/* Host restart republishes from persistent state. */}}
   private control(type:'actvero:skills:sync'|'actvero:experts:control',value:Record<string,unknown>):Promise<unknown>{return new Promise((resolve,reject)=>{if(!this.send){reject(new Error('capability_host_unavailable'));return}if(this.pending.size>=100){reject(new Error('operation_in_progress'));return}const id=randomUUID(),timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('capability_host_timeout'))},45000);this.pending.set(id,{ resolve,reject,timer });try{this.send({ type,id,...value } as CapabilityMainMessage)}catch(e){clearTimeout(timer);this.pending.delete(id);reject(e as Error)}})}
   /** Called only after the closed wire validator in DesktopHostProcess. */
-  receive(message:CapabilityHostMessage){if(message.type==='actvero:mcp:cancel'){this.active.get(message.id)?.abort();return}if(message.type==='actvero:skills:synced'||message.type==='actvero:experts:controlled'){const p=this.pending.get(message.id);if(!p)return;clearTimeout(p.timer);this.pending.delete(message.id);if(message.error)p.reject(new Error(message.error));else p.resolve(message.value);return}if(message.type==='actvero:llm:request'){void this.account.resourceToken(message.input.resource).then(value=>this.send?.({ type:'actvero:llm:result',id:message.id,value }),error=>this.send?.({ type:'actvero:llm:result',id:message.id,error:safeError(error) }));return}if(this.active.size>=100){this.reply(message,undefined,'operation_in_progress');return}const abort=new AbortController();this.active.set(message.id,abort);const work=async()=>{const p=message.input;if(message.type==='actvero:skills:request')return message.action==='list'?this.skills.hostList():this.skills.hostGet(String(p.id),String(p.versionId));if(message.type==='actvero:experts:request'){if(message.action==='connector-state')return this.connectorState(p);if(typeof p.operation==='string'&&message.action==='prepare')return (await this.selections.prepare(p.operation,String(p.id))).lock;if(typeof p.operation==='string'&&message.action==='resolve')return this.selections.resolve(p.operation,String(p.id));if(message.action==='activate'){if(typeof p.operation==='string')await this.selections.resolve(p.operation,String(p.id));else await this.experts.resolve(String(p.id));return this.connectorState({ ...p,snapshotId:p.id },true)}return this.experts.dispatch(message.action,p)}if(message.action==='snapshot'){const sessions=Array.isArray(p.sessions)?p.sessions.filter((v):v is string=>typeof v==='string'&&v.length<100):[];return [...await this.connectors.hostSnapshot(sessions),...await this.remote.snapshot(sessions)]}return String(p.id).startsWith('expert-mcp-')?this.remote.call(String(p.id),String(p.sessionId),String(p.method),p.params,abort.signal):this.connectors.call(String(p.id),String(p.sessionId),String(p.method),p.params,abort.signal)};void work().then(value=>this.reply(message,value),e=>this.reply(message,undefined,safeError(e))).finally(()=>this.active.delete(message.id))}
-  private reply(message:Extract<CapabilityHostMessage,{ action:string }>,value?:unknown,error?:string){try{this.send?.({ type:message.type.replace('request','result') as 'actvero:skills:result'|'actvero:experts:result'|'actvero:mcp:result',id:message.id,...(error?{ error }:{ value }) })}catch{/* Disconnected request belongs to the previous Host. */}}
+  receive(message:CapabilityHostMessage){if(message.type==='actvero:mcp:cancel'||message.type==='actvero:workbench:cancel'){this.active.get(message.id)?.abort();return}if(message.type==='actvero:skills:synced'||message.type==='actvero:experts:controlled'){const p=this.pending.get(message.id);if(!p)return;clearTimeout(p.timer);this.pending.delete(message.id);if(message.error)p.reject(new Error(message.error));else p.resolve(message.value);return}if(message.type==='actvero:llm:request'){void this.account.resourceToken(message.input.resource).then(value=>this.send?.({ type:'actvero:llm:result',id:message.id,value }),error=>this.send?.({ type:'actvero:llm:result',id:message.id,error:safeError(error) }));return}if(this.active.size>=100){this.reply(message,undefined,'operation_in_progress');return}const abort=new AbortController();this.active.set(message.id,abort);const work=async()=>{const p=message.input;if(message.type==='actvero:workbench:request')return this.workbenchPlatform.models(abort.signal);if(message.type==='actvero:skills:request')return message.action==='list'?this.skills.hostList():this.skills.hostGet(String(p.id),String(p.versionId));if(message.type==='actvero:experts:request'){if(message.action==='connector-state')return this.connectorState(p);if(typeof p.operation==='string'&&message.action==='prepare')return (await this.selections.prepare(p.operation,String(p.id))).lock;if(typeof p.operation==='string'&&message.action==='resolve')return this.selections.resolve(p.operation,String(p.id));if(message.action==='activate'){if(typeof p.operation==='string')await this.selections.resolve(p.operation,String(p.id));else await this.experts.resolve(String(p.id));return this.connectorState({ ...p,snapshotId:p.id },true)}return this.experts.dispatch(message.action,p)}if(message.action==='snapshot'){const sessions=Array.isArray(p.sessions)?p.sessions.filter((v):v is string=>typeof v==='string'&&v.length<100):[];return [...await this.connectors.hostSnapshot(sessions),...await this.remote.snapshot(sessions)]}return String(p.id).startsWith('expert-mcp-')?this.remote.call(String(p.id),String(p.sessionId),String(p.method),p.params,abort.signal):this.connectors.call(String(p.id),String(p.sessionId),String(p.method),p.params,abort.signal)};void work().then(value=>this.reply(message,value),e=>this.reply(message,undefined,safeError(e))).finally(()=>this.active.delete(message.id))}
+  private reply(message:Extract<CapabilityHostMessage,{ action:string }>,value?:unknown,error?:string){try{this.send?.({ type:message.type.replace('request','result') as 'actvero:skills:result'|'actvero:experts:result'|'actvero:mcp:result'|'actvero:workbench:result',id:message.id,...(error?{ error }:{ value }) })}catch{/* Disconnected request belongs to the previous Host. */}}
   /** Restores durable intent before Host takes its capability snapshot. No credential material leaves Main. */
   private async connectorState(p:Record<string,unknown>,force=false){
     const session=String(p.sessionId??'');if(!session||session.length>200)throw new Error('session_required')

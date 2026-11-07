@@ -178,6 +178,23 @@ interface SessionActivity {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxactveroworkbenchplatform--workbenchplatformaccess"></a>
+
+### `ctx.actveroWorkbenchPlatform` — `WorkbenchPlatformAccess`
+
+Read-only platform consumer; model tokens stay in Electron Main.
+
+```ts cordis-catalog
+/** Read the current account's directory for an explicitly declared workbench capability.
+ * @param target Installed business instance; UI-only and undeclared providers are rejected.
+ * @param signal Caller lifetime; cancellation stops Main's pending HTTP read.
+ * @returns Sanitized model metadata for one account generation, without credentials or service URLs.
+ */
+@Remote async models(target: WorkbenchTarget, signal: AbortSignal): Promise<WorkbenchModelCatalog>
+```
+
+Source: [`packages/actvero/capability-ui/src/workbench-platform.ts`](../../packages/actvero/capability-ui/src/workbench-platform.ts)
+
 <a id="ctxactveroworkbenchruntime--workbenchruntime"></a>
 
 ### `ctx.actveroWorkbenchRuntime` — `WorkbenchRuntime`
@@ -240,6 +257,12 @@ present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<W
  * @returns Persisted document.
  */
 @Remote read(request: WorkbenchTarget): WorkbenchDocument
+
+/** Require a loaded provider's explicit platform declaration.
+ * @param request Existing workbench instance.
+ * @returns Installed provider version; throws before any request when access was not declared.
+ */
+platformAccess(request: WorkbenchTarget): string
 
 /** Apply one business operation atomically with an expected revision.
  * @param request Instance, expected revision and provider-defined action.

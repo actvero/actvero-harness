@@ -54,6 +54,12 @@
     },
     {
       "path": "../../workspace/workspace/tsconfig.json"
+    },
+    {
+      "path": "../../skill/skill-filesystem/tsconfig.json"
+    },
+    {
+      "path": "../../skill/skill/tsconfig.json"
     }
   ],
   "exclude": [

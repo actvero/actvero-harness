@@ -1,8 +1,8 @@
 import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { LocaleNamespaceMap, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId } from './types.ts'
+import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog } from './types.ts'
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -17,6 +17,10 @@ export interface WorkbenchClientContext {
   resourceAddress: string | null
   /** Read the current signed-in identity, or null when unavailable. */
   account(): Promise<WorkbenchAccount | null>
+  /** Read the current account's model directory after the Host provider declares models:read.
+   * @returns Public model metadata; failures reject with workbench/platform and a stable code.
+   */
+  models(): Promise<WorkbenchModelCatalog>
   /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */
   environment(): Promise<WorkbenchEnvironment | null>
   /** Open or create the associated native conversation. */
@@ -59,9 +63,12 @@ export interface ActveroWorkbenchRegistry {
   /** Register a business panel for the lifetime of its provider.
    * @param descriptor Card metadata and stable identity.
    * @param component Native business component rendered when the user opens the card.
+   * @param options Native locale injection for this panel.
    * @returns Disposer that removes the card and business panel.
    */
-  register(descriptor: ActveroWorkbench, component: (props: WorkbenchBodyProps) => ReactNode): () => void
+  register<N extends keyof LocaleNamespaceMap | undefined = undefined>(
+    descriptor: ActveroWorkbench, component: (props: WorkbenchBodyProps & PropsLocale<N>) => ReactNode, options?: { locale: N },
+  ): () => void
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -78,6 +85,7 @@ export interface CapabilityBackNavigation { label:string; onBack():void }
 export interface CapabilityHub { open(tab:CapabilityTab):void;notify(text:string,tone?:'success'):void }
 declare module '@deepseek-ai/cordis' { interface Context { capabilityHub:CapabilityHub } }
 declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface ResourceProtocolMap { 'actvero-workbench': WorkbenchDocument }
   interface SlotMap {
     /** Provider business view shared by the full page and floating preview. */
     'actvero.workbench.body': { kind: 'keyed'; scope: 'root'; entryKey: string; owner: { workbench: WorkbenchClientContext } }

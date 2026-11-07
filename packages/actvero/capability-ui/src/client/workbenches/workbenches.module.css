@@ -111,3 +111,5 @@
   .exampleDescription { font-size: 13px; }
   .addTask { flex-wrap: wrap; }
 }
+
+.developerPrompt { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; font: inherit; }

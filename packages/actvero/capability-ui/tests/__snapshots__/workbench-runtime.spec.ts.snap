@@ -1,5 +1,44 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`workbench runtime > discovers the bundled developer skill when the native registry becomes available 1`] = `
+"<skill_content name="develop-workbench">
+<skill_resources>
+Base directory for this skill: <developer-skill>
+Resolve relative paths mentioned by this skill against the base directory before using them. Load referenced resources only as needed.
+</skill_resources>
+
+<skill_instructions>
+# 本地工作台开发
+
+面向为用户开发 ACTVERO 工作台的 Agent。交付可运行的业务界面和经过核验的本地包，保持作者对布局、存储和 AI 操作方式的选择权。
+
+## 确认业务目标
+
+先复用当前对话的明确需求。每次只问一个必要问题；名称未知时问“这个工作台想叫什么名字？”，允许暂定名。只有名称不等于业务范围已确认；目标和最小流程不清楚时等待回答，不创建业务代码、界面或包文件，不构建、安装或发布。可先只读检查目录、说明和未提交更改；现有代码和目录名不是用户的业务意图。
+
+## 阅读当前接口
+
+开工前完整读取随本 Skill 打包的 \`reference/guide.zh.md\`（工作台开发指南），核对目标客户端能力。它是 ACTVERO 自有框架的指南；不要直接套用旧 DSH 工作台注册接口。本 Skill 不复制接口清单。若指南与目标客户端版本不符，说明不支持的步骤，保留可校验结果，不声称已加载。
+
+## 开发与验证
+
+1. 确认最小业务流程和保存目录，保护未提交修改。不要求 GitHub 账号、仓库或虚构仓库地址。
+2. 通过指南中的 create 命令选择普通模板或 AI 模板；开发工具目前依赖已安装依赖的 ACTVERO 源码仓库。找不到工具链时明确说明缺少源码开发环境，不能用包内 Node 任意启动宿主应用，也不能声称客户端自带独立编译器。
+3. 业务数据使用宿主返回的稳定目录；作者可选文件、SQLite 或远程服务，也可用可选 JSON 适配器。一个目录不限定一个业务项目。不要把插件资源目录或临时目录当业务存储；路径不等于模型的文件授权。
+4. AI 是可选能力。需要时启用原生会话，专家默认沿用会话模型。随包专家决定使用业务工具、Skill、MCP、CLI 或已授权文件方式；不要额外造 Agent 引擎。包内依赖必须存在，不能静默跳过必需依赖。打开工作台不等于发送消息或授权执行任务。
+5. 公开账户信息不是令牌。平台模型目录通过指南的受控接口读取，只声明需要的能力；不得把宿主凭据发送到自定义地址，或要求用户提供登录令牌。其余平台服务只有接通并验证后才能描述为可用。
+6. 复用宿主图标、主题、按钮、菜单、提示和会话组件；业务按自身容器宽度排版。检查无会话、已关联会话、明暗主题、侧栏展开/收起、窄窗口和真实长度的中英文内容，保留公共导航。
+7. 运行相关测试、pack 和 check。检查 Host、Client、资源、专家声明和运行版本；格式正确、构建成功与真实加载是不同结果。
+8. 仅向用户指定的本地客户端安装。使用当前应用实际提供的安装工具；没有工具时提供校验后的包和导入步骤，不捏造 install_local_workbench 的存在。此客户端可从“工作台 → 导入工作台”导入 .tgz；安装结果需检查是否生效、待重启、失败或被覆盖。
+9. 不关闭用户正在使用的目标应用。需要重启时等开发任务结束后请用户通过顶部提示或 Harness 菜单重启；在目标外的隔离开发客户端可按已有授权完成重启。检查已安装列表、切换入口、真实业务界面和数据保留，未执行的项目标为待验证。
+
+## 完成汇报
+
+先说明能做什么、实际执行的操作和未验证项；技术文件与检查放在后面。最后以醒目的“接下来怎么用”三点收尾，之后不追加内容：① 用实际工作台名称说明开发、安装与加载状态，未完成不得宣称已安装；② 如需重启，请用户等任务结束后点击顶部“立即重启”或“Harness → 重启 Harness”，无需重启则直说；③ 展开侧栏，在“工作台”右侧的名称切换区域选择实际工作台，未安装则说明入口待确认，用户可直接试用或回来请求继续验收。
+</skill_instructions>
+</skill_content>"
+`;
+
 exports[`workbench runtime > loads the bundled expert and tools only for the linked conversation, then removes them on detach 1`] = `
 {
   "prompt": "You are an AI agent powered by DeepSeek Harness.

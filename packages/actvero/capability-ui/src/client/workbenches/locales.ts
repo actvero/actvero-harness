@@ -1,4 +1,9 @@
 export const zh = {
+  develop: '制作工作台',
+  developHelp: '复制下方说明，在新对话中告诉 AI 想做什么。开发助手会使用工作台开发技能，先和你确认最小功能，再开始制作。',
+  developPrerequisites: '本地开发需要 ACTVERO 源码开发环境。完成后导入工作台包；无需 GitHub 账号。',
+  developPrompt: '请使用 develop-workbench 技能帮我在本机制作一个工作台。先阅读随技能提供的开发指南，再逐步确认我的业务目标；需求明确前不要创建业务代码。只做本地开发和安装，不上传或发布。',
+  copy: '复制开发说明', copied: '已复制，可在新对话中粘贴并补充你的想法。', copyFailed: '复制失败，请选中上方说明手动复制。',
   showNavigation: '显示导航',
   focusWorkbench: '专注展示',
   askAI: '使用 AI',
@@ -113,6 +118,11 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  develop: 'Create a workbench',
+  developHelp: 'Copy the instructions below and describe your idea in a new conversation. The development assistant uses the workbench skill to confirm the minimum features before building.',
+  developPrerequisites: 'Local development requires an ACTVERO source development environment. Import the completed package; no GitHub account is needed.',
+  developPrompt: 'Use the develop-workbench skill to help me create a local workbench. Read its bundled guide, then clarify my business goal one question at a time. Do not create business code until the scope is clear. Develop and install locally without uploading or publishing.',
+  copy: 'Copy instructions', copied: 'Copied. Paste into a new conversation and describe your idea.', copyFailed: 'Could not copy. Select the instructions above and copy them manually.',
   showNavigation: 'Show navigation',
   focusWorkbench: 'Focus view',
   askAI: 'Use AI',

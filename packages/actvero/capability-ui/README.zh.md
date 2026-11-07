@@ -38,6 +38,8 @@ Host 配置 `dataDirectory` 指定工作台文件根目录，Actvero Profile 使
 
 工作台作者可设置首次显示建议，并通过 `workbench.display()` 切换业务主界面、原生对话和业务预览，`displayState()` 查询已挂载状态。标题栏可切换专注展示，离开时恢复导航展开状态；AI 与预览分别保存开关和位置。Host 的显示通道只接受本地所有者的可交互客户端，收到真实挂载确认才成功；断线或超时保留未知结果，不自动重放。用法和失败处理见[显示控制](../../../actvero/workbench-development.zh.md#display)。
 
+工作台的公开账户信息与受控模型目录通过宿主提供，模型目录要求 Host 显式声明 `models:read`，只读元信息，不返回凭据或开放任意地址代理。Host 的 `platformTimeoutMs` 默认 30 秒。原生 `develop-workbench` Skill 随包提供，开发入口和模板使用方式见[开发指南](../../../actvero/workbench-development.zh.md#platform)。
+
 <details>
 <summary>工作台运行机制</summary>
 
