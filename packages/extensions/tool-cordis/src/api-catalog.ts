@@ -87,14 +87,14 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Native Remote owner and in-process business-provider registry.',
     methods: [
       {
-        signature: 'register(provider: WorkbenchProvider): () => void',
+        signature: 'register(provider: WorkbenchProvider): () => Promise<void>',
         description: 'Register business behavior; unregistering leaves documents and selections intact.',
         parameters: [{ name: 'provider', description: 'Package-owned business implementation.' }],
-        returns: 'Disposer withdrawing the exact implementation.',
+        returns: 'Disposer withdrawing the exact implementation and awaiting its conversation capabilities.',
       },
       {
         signature: '@Remote list(): WorkbenchRuntimeEntry[]',
-        description: 'List providers that support conversation integration.',
+        description: 'List providers with a managed runtime, including those with author-owned storage.',
         parameters: [],
         returns: 'Runtime-ready provider metadata, independent of UI-only cards.',
       },
@@ -103,6 +103,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Resolve the provider\'s local default instance without creating a conversation.',
         parameters: [{ name: 'id', description: 'Installed provider identity.' }],
         returns: 'Existing business document or a durably initialized instance.',
+      },
+      {
+        signature: '@Remote async environment(request: WorkbenchTarget): Promise<WorkbenchEnvironment>',
+        description: 'Resolve runtime paths without creating a session or starting AI dependencies.',
+        parameters: [{ name: 'request', description: 'Existing instance returned by open().' }],
+        returns: 'Environment after its data directory is ready; directory failures reject without deleting existing data.',
       },
       {
         signature: '@Remote read(request: WorkbenchTarget): WorkbenchDocument',
@@ -3933,6 +3939,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Stream a complete Workspace baseline followed by ordered increments. A non-owner receives only the Workspaces and Sessions `allows()` admits. When a delivered Workspace is no longer admitted at its next change or the next order change, the stream sends a `replace` frame with the complete filtered state instead of a `remove`, because a Client never resurrects a removed Workspace; a `remove` frame reports a deletion and reaches only a Client that received that Workspace.',
         parameters: [{ name: 'signal', description: 'generation cancellation.' }],
         returns: 'baseline followed by ordered Workspace increments.',
+      },
+    ],
+  },
+  {
+    key: 'workspaceDependencies',
+    summary: 'Shared runtime preparation used by model tools and trusted Host integrations.',
+    description: 'Shared runtime preparation used by model tools and trusted Host integrations.',
+    methods: [
+      {
+        signature: 'resolve(): Promise<WorkspaceDependencies>',
+        description: 'Prepare or validate the configured payload, reusing successful preparation and retrying failures.',
+        parameters: [],
+        returns: 'Absolute paths into the application-owned runtime.',
       },
     ],
   },
@@ -8761,6 +8780,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchActionRequest extends WorkbenchTarget {\n    revision: number;\n    action: string;\n    args: string;\n}',
   },
   {
+    name: 'WorkbenchActivation',
+    declaration: 'export interface WorkbenchActivation {\n    digest: string;\n    expert: WorkbenchExpert | null;\n}',
+  },
+  {
     name: 'WorkbenchBinding',
     declaration: 'export interface WorkbenchBinding {\n    sessionId: SessionId;\n    selection: WorkbenchSelection | null;\n}',
   },
@@ -8769,8 +8792,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchBindRequest extends WorkbenchTarget {\n    sessionId?: SessionId;\n}',
   },
   {
+    name: 'WorkbenchCustomProvider',
+    declaration: 'export interface WorkbenchCustomProvider extends WorkbenchProviderBase {\n    storage?: WorkbenchJsonStorage;\n}',
+  },
+  {
     name: 'WorkbenchDocument',
     declaration: 'export interface WorkbenchDocument {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    revision: number;\n    json: string;\n}',
+  },
+  {
+    name: 'WorkbenchEnvironment',
+    declaration: 'export interface WorkbenchEnvironment extends WorkbenchTarget {\n    id: WorkbenchId;\n    version: string;\n    dataDirectory: string;\n    resourcesDirectory: string | null;\n    storage: \'json\' | \'custom\';\n    aiEnabled: boolean;\n}',
   },
   {
     name: 'WorkbenchExpert',
@@ -8785,20 +8816,32 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkbenchInstanceId = Branded<\'ActveroWorkbenchInstanceId\'>;',
   },
   {
+    name: 'WorkbenchJsonStorage',
+    declaration: 'export interface WorkbenchJsonStorage {\n    initial(): string;\n    reduce(json: string, action: string, args: string): string;\n    actionHelp: string;\n}',
+  },
+  {
+    name: 'WorkbenchLegacyProvider',
+    declaration: 'export interface WorkbenchLegacyProvider extends WorkbenchProviderBase, WorkbenchJsonStorage {\n}',
+  },
+  {
     name: 'WorkbenchProvider',
-    declaration: 'export interface WorkbenchProvider {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    expert?: WorkbenchExpert;\n    initial(): string;\n    reduce(json: string, action: string, args: string): string;\n    actionHelp: string;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n}',
+    declaration: 'export type WorkbenchProvider = WorkbenchLegacyProvider | WorkbenchCustomProvider;',
+  },
+  {
+    name: 'WorkbenchProviderBase',
+    declaration: 'export interface WorkbenchProviderBase {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
   },
   {
     name: 'WorkbenchRuntimeContext',
-    declaration: 'export interface WorkbenchRuntimeContext {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    sessionId: SessionId;\n    dataDirectory: string;\n}',
+    declaration: 'export interface WorkbenchRuntimeContext extends WorkbenchEnvironment {\n    sessionId: SessionId;\n}',
   },
   {
     name: 'WorkbenchRuntimeEntry',
-    declaration: 'export interface WorkbenchRuntimeEntry {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n}',
+    declaration: 'export interface WorkbenchRuntimeEntry {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    aiEnabled: boolean;\n}',
   },
   {
     name: 'WorkbenchSelection',
-    declaration: 'export interface WorkbenchSelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n}',
+    declaration: 'export interface WorkbenchSelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n    capabilityDigest?: string;\n}',
   },
   {
     name: 'WorkbenchTarget',
@@ -8899,6 +8942,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceDeleteValue',
     declaration: 'export interface WorkspaceDeleteValue {\n    readonly deleted: true;\n}',
+  },
+  {
+    name: 'WorkspaceDependencies',
+    declaration: 'export interface WorkspaceDependencies {\n    readonly python: string;\n    readonly node?: string;\n    readonly pnpm?: string;\n    readonly pythonPackages: string;\n    readonly nodePackages?: string;\n    readonly pythonDistributions: Readonly<Record<string, string>>;\n}',
   },
   {
     name: 'WorkspaceDiffHunk',

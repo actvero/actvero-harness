@@ -1,5 +1,5 @@
 /** Package generation, compatibility refusal and executable Client registration. */
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runInNewContext } from 'node:vm'
@@ -21,11 +21,14 @@ describe('local workbench developer commands', () => {
     const path = await root()
     const source = join(path, 'development with spaces')
     await createWorkbench(source, '@local/delivery-checklist')
+    await mkdir(join(source, 'assets', 'expert'), { recursive: true })
+    await writeFile(join(source, 'assets', 'expert', 'expert.json'), '{"instructions":"本地资源"}')
     const archive = await packWorkbench(source, path)
     const checked = await checkWorkbench(archive)
     expect(checked.name).toBe('@local/delivery-checklist')
     expect(checked.sha256).toMatch(/^[a-f0-9]{64}$/u)
     await extract({ cwd: path, file: archive })
+    expect(await readFile(join(path, 'package/assets/expert/expert.json'), 'utf8')).toContain('本地资源')
     const patch = load(await readFile(join(path, 'package/cordis.patch.yml'), 'utf8'))
     expect(patch).toEqual([{ insert: [{ id: '@local/delivery-checklist', name: '@local/delivery-checklist' }] }])
     interface Descriptor { id: string; name: string; version: string; previewUrls: string[] }

@@ -46,3 +46,5 @@ The source distribution defaults to `http://127.0.0.1:5194` for local platform d
 This development flow integrates login, quota presentation, platform-backed model selection, the [expert, skill and MCP managers](../packages/actvero/capability-ui/README.md), and the [DSH Desktop workbench host](workbenches.md). The `平台模型` provider reads the platform catalog and obtains short-lived per-model resource tokens through Electron Main; credentials never enter the renderer or Host. Signed release installers and update channels remain outside this development flow. Local workspaces and custom model configuration remain available. See the [desktop reference](../apps/desktop/README.md) for official packaging.
 
 [Capability integration and acceptance](capabilities.md).
+
+See the [workbench runtime implementation plan](workbench-runtime-plan.md) for planned runtime, optional AI, and developer-tooling work.

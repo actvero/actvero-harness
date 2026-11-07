@@ -57,6 +57,18 @@ export interface WorkspaceDependencies {
   readonly pythonDistributions: Readonly<Record<string, string>>
 }
 
+/** Shared runtime preparation used by model tools and trusted Host integrations. */
+export interface WorkspaceDependencyService {
+  /** Prepare or validate the configured payload, reusing successful preparation and retrying failures.
+   * @returns Absolute paths into the application-owned runtime.
+   */
+  resolve(): Promise<WorkspaceDependencies>
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context { workspaceDependencies: WorkspaceDependencyService }
+}
+
 const VERSION = /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/u
 const PLATFORMS = ['win32', 'darwin', 'linux']
 
@@ -287,6 +299,12 @@ export function apply(ctx: Context, config: Config): void {
     throw new Error('workspace dependencies: source and root must be absolute paths')
   }
   let preparation: Promise<WorkspaceDependencies> | undefined
+  const resolve = (): Promise<WorkspaceDependencies> => {
+    preparation ??= (config.root === undefined ? resolvePrimaryRuntime(config.source) : installPrimaryRuntime(config.source, config.root))
+      .catch((error: unknown) => { preparation = undefined; throw error })
+    return preparation
+  }
+  ctx.provide('workspaceDependencies', { resolve })
   ctx.effect(() => async () => {
     // Tool execution reports preparation failures; disposal only waits for filesystem work to settle.
     await preparation?.catch(() => undefined)
@@ -309,14 +327,7 @@ export function apply(ctx: Context, config: Config): void {
       },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, undefined, 2) }],
     },
-    execute: () => {
-      preparation ??= (config.root === undefined ? resolvePrimaryRuntime(config.source) : installPrimaryRuntime(config.source, config.root))
-        .catch((error: unknown) => {
-          preparation = undefined
-          throw error
-        })
-      return preparation
-    },
+    execute: resolve,
     presentCall: () => ({ card: 'generic', title: 'Load workspace dependencies', kind: 'read' }),
   }))
 }

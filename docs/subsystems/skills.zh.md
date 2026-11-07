@@ -6,6 +6,8 @@
 
 源码：[`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts)、[`packages/skill/skill-filesystem/src/index.ts`](../../packages/skill/skill-filesystem/src/index.ts)、[`packages/experimental/skill-badge/src/index.ts`](../../packages/experimental/skill-badge/src/index.ts)、[`packages/skill/skill-office/src/index.ts`](../../packages/skill/skill-office/src/index.ts)、[`packages/sandbox/sandbox-windows-acl/src/acl-skill.ts`](../../packages/sandbox/sandbox-windows-acl/src/acl-skill.ts) 与 [`packages/skill/tool-skill/src/index.ts`](../../packages/skill/tool-skill/src/index.ts)。
 
+Host 集成可通过 `ctx.workspaceDependencies.resolve()` 获取载体配置的解释器与包目录，与 `load_workspace_dependencies` 工具共用准备结果。成功结果在插件生命周期内复用，失败允许重试；文件准备结束后才能完成插件释放。配置、返回路径与离线 payload 规则由[运行时依赖包](../../packages/skill/tool-workspace-dependencies/README.zh.md)维护。
+
 ## 提供方注册表
 
 `ctx.skills` 组合本地、内嵌、远程或其他提供方。注册是同步的；远程初始化与发现属于 `list()` 的 await 阶段。提供方对象、选项与候选项以只读方式借用，语义字段会被校验。
@@ -339,6 +341,21 @@ async get(name: string, options: SkillViewOptions = {}): Promise<SkillDefinition
 ```
 
 Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts)
+
+<a id="ctxworkspacedependencies--workspacedependencyservice"></a>
+
+### `ctx.workspaceDependencies` — `WorkspaceDependencyService`
+
+Shared runtime preparation used by model tools and trusted Host integrations.
+
+```ts cordis-catalog
+/** Prepare or validate the configured payload, reusing successful preparation and retrying failures.
+ * @returns Absolute paths into the application-owned runtime.
+ */
+resolve(): Promise<WorkspaceDependencies>
+```
+
+Source: [`packages/skill/tool-workspace-dependencies/src/index.ts`](../../packages/skill/tool-workspace-dependencies/src/index.ts)
 
 <a id="skills-events"></a>
 

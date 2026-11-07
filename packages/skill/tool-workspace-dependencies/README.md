@@ -80,6 +80,8 @@ A container can copy both directories into an immutable image layer and set `DSH
 
 -----
 
+Host providers use `ctx.get("workspaceDependencies").resolve()` to share the tool’s prepared interpreters. This call creates no model request and shares the first successful result with the tool; failures are not cached, and plugin disposal awaits pending file preparation.
+
 <a id="model-experience"></a>
 ## Model Experience
 

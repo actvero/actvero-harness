@@ -2,7 +2,7 @@ import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchDocument, WorkbenchInstanceId } from './types.ts'
+import type { WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId } from './types.ts'
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -17,6 +17,8 @@ export interface WorkbenchClientContext {
   resourceAddress: string | null
   /** Read the current signed-in identity, or null when unavailable. */
   account(): Promise<WorkbenchAccount | null>
+  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */
+  environment(): Promise<WorkbenchEnvironment | null>
   /** Open or create the associated native conversation. */
   conversation(): Promise<void>
   /** Commit a provider-defined operation at the last observed revision. */

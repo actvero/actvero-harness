@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import { scopeTarget } from '@deepseek-ai/dsh-scope'
 import { randomUUID } from 'node:crypto'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
@@ -14,7 +15,7 @@ import Typert from '@deepseek-ai/dsh-typert-registry'
 import RemoteAccess from '@deepseek-ai/dsh-api-remote-access'
 import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it, onTestFinished } from 'vitest'
@@ -63,6 +64,173 @@ async function harness(root?: string) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('provides isolated stable directories without AI and preserves author-owned files through upgrades and reinstall', async () => {
+    const first = await harness()
+    const customId = 'test:file-storage' as WorkbenchId
+    const provider = { id: customId, name: '自由存储', version: '1.0.0', resourcesDirectory: import.meta.dirname, activate: async () => { throw new Error('AI must remain disabled') } }
+    const remove = first.runtime.register(provider)
+    const document = await first.runtime.open(customId)
+    const environment = await first.runtime.environment(document)
+    expect(environment).toEqual({ id: customId, instanceId: document.instanceId, version: '1.0.0',
+      dataDirectory: join(first.directory, 'files', document.instanceId), resourcesDirectory: import.meta.dirname, storage: 'custom', aiEnabled: false })
+    expect(first.ctx.agents.list()).toHaveLength(0)
+    await expect(first.runtime.bind(document)).rejects.toMatchObject({ code: 'workbench/ai-disabled' })
+    expect(first.ctx.agents.list()).toHaveLength(0)
+    await mkdir(join(environment.dataDirectory, 'project-a'))
+    await mkdir(join(environment.dataDirectory, 'project-b'))
+    await writeFile(join(environment.dataDirectory, 'project-a', 'notes.txt'), '中文业务数据 / Campaign review')
+    await writeFile(join(environment.dataDirectory, 'project-b', 'notes.txt'), '独立项目')
+    expect(first.runtime.read(document)).toEqual({ ...document, json: 'null', revision: 0 })
+    await expect(first.runtime.action({ ...document, action: 'write', args: '{}' })).rejects.toMatchObject({ code: 'workbench/unsupported-storage' })
+    const other = await first.runtime.environment(await first.runtime.open(id))
+    expect(other.dataDirectory).not.toBe(environment.dataDirectory)
+    await remove()
+    await expect(first.runtime.environment(document)).rejects.toMatchObject({ code: 'workbench/unavailable' })
+    await first.ctx.fiber.dispose()
+    const reopened = await harness(first.directory)
+    reopened.runtime.register({ ...provider, version: '2.0.0', resourcesDirectory: join(first.directory, 'package-v2') })
+    const restored = await reopened.runtime.environment(await reopened.runtime.open(customId))
+    expect(restored).toMatchObject({ instanceId: document.instanceId, dataDirectory: environment.dataDirectory, version: '2.0.0' })
+    expect(await readFile(join(restored.dataDirectory, 'project-a', 'notes.txt'), 'utf8')).toBe('中文业务数据 / Campaign review')
+    expect(await readFile(join(restored.dataDirectory, 'project-b', 'notes.txt'), 'utf8')).toBe('独立项目')
+  })
+
+  it('prepares custom conversation context without generic JSON tools or instructions', async () => {
+    const { ctx, runtime, prepare } = await harness()
+    const environments: string[] = []
+    runtime.register({ id: 'test:custom-tools' as WorkbenchId, name: '文件工作台', version: '1.0.0', ai: true,
+      prepare: async (environment) => { environments.push(environment.dataDirectory) },
+      expert: { name: '文件助手', version: '1.0.0', instructions: 'Use the packaged CLI to manage business files.' } })
+    const document = await runtime.open('test:custom-tools' as WorkbenchId)
+    const environment = await runtime.environment(document)
+    expect(environments).toEqual([])
+    const binding = await runtime.bind(document)
+    const agent = ctx.agents.get(binding.sessionId)!
+    expect(agent.session.header.cwd).not.toBe(environment.dataDirectory)
+    expect(agent.session.header.cwd).toContain(join('.sessions', document.instanceId))
+    await prepare(agent)
+    expect(environments).toEqual([environment.dataDirectory, environment.dataDirectory])
+    expect(ctx.tools.get('workbench_read', agent)).toBeUndefined()
+    expect(ctx.tools.get('workbench_action', agent)).toBeUndefined()
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: agent }))).toMatchInlineSnapshot(`
+      "You are an AI agent powered by DeepSeek Harness.
+
+      Workbench: 文件工作台 (1.0.0)
+      Use the packaged CLI to manage business files.
+      "
+    `)
+  })
+
+  it('activates scoped capabilities once, logs their digest and waits for withdrawal', async () => {
+    const { ctx, runtime, prepare, loop } = await harness()
+    const normal = await loop.create(SessionId('unrelated'))
+    let activations = 0
+    let disposed = 0
+    const customId = 'test:expert-bundle' as WorkbenchId
+    const remove = runtime.register({ id: customId, name: '随包专家', version: '1.0.0', ai: true,
+      activate: async (scope) => {
+        activations++
+        scope.get('tools')!.register(defineTool({ name: 'business_read', description: 'Read business files.', parameters: {},
+          output: { schema: { type: 'string' }, render: (_args, result) => [{ type: 'text', text: result }] },
+          execute: async () => 'author data' }))
+        scope.effect(() => () => { disposed++ })
+        return { digest: 'bundle-v1', expert: { name: '业务专家', version: '1.0.0', instructions: 'Use business_read.' } }
+      } })
+    const document = await runtime.open(customId)
+    const binding = await runtime.bind(document)
+    const agent = ctx.agents.get(binding.sessionId)!
+    await runtime.bind({ ...document, sessionId: agent.id })
+    await prepare(agent)
+    expect(activations).toBe(1)
+    expect(binding.selection?.capabilityDigest).toBe('bundle-v1')
+    expect(ctx.tools.get('business_read', agent)).toBeDefined()
+    expect(ctx.tools.get('business_read', normal)).toBeUndefined()
+    expect(ctx.tools.get('business_read')).toBeUndefined()
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: agent }))).toContain('Use business_read.')
+    await remove()
+    expect(disposed).toBe(1)
+    expect(ctx.tools.get('business_read', agent)).toBeUndefined()
+    runtime.register({ id: customId, name: '随包专家', version: '1.0.0', ai: true,
+      activate: async () => ({ digest: 'changed', expert: null }) })
+    await expect(prepare(agent)).rejects.toMatchObject({ code: 'workbench/unavailable' })
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.capabilityDigest).toBe('bundle-v1')
+    await runtime.bind({ ...document, sessionId: agent.id })
+    await prepare(agent)
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.capabilityDigest).toBe('changed')
+    await runtime.detach({ sessionId: agent.id })
+    expect(ctx.tools.get('business_read', agent)).toBeUndefined()
+  })
+
+  it('awaits capability cleanup when the owning native Agent is disposed', async () => {
+    const { ctx, runtime } = await harness()
+    let entered!: () => void
+    let release!: () => void
+    const closing = new Promise<void>((resolve) => { entered = resolve })
+    const proceed = new Promise<void>((resolve) => { release = resolve })
+    let released = false
+    const customId = 'test:agent-disposal' as WorkbenchId
+    runtime.register({ id: customId, name: '会话释放', version: '1.0.0', ai: true,
+      activate: async (scope) => {
+        scope.effect(() => async () => { entered(); await proceed; released = true })
+        return { digest: 'lifecycle-v1', expert: null }
+      } })
+    const document = await runtime.open(customId)
+    const handle = await ctx.agents.create({ sessionId: SessionId('owned-capabilities') })
+    await runtime.bind({ ...document, sessionId: handle.agent.id })
+    const disposal = handle.dispose()
+    try {
+      await closing
+      expect(released).toBe(false)
+    } finally { release(); await disposal }
+    expect(released).toBe(true)
+    expect(ctx.agents.get(handle.agent.id)).toBeUndefined()
+  })
+
+  it('withdraws pending activation and rolls back registrations on failure', async () => {
+    const { ctx, runtime } = await harness()
+    let entered!: () => void
+    const started = new Promise<void>((resolve) => { entered = resolve })
+    let released = false
+    const customId = 'test:cancel-bundle' as WorkbenchId
+    const remove = runtime.register({ id: customId, name: '取消加载', version: '1.0.0', ai: true,
+      activate: async (scope, _environment, signal) => {
+        scope.effect(() => () => { released = true })
+        entered()
+        await new Promise<void>((_resolve, reject) =>{  signal.addEventListener('abort', () => { reject(new Error('scope closed')) }, { once: true }) })
+        return { digest: 'unreachable', expert: null }
+      } })
+    const document = await runtime.open(customId)
+    const binding = runtime.bind(document)
+    const failure = expect(binding).rejects.toThrow('scope closed')
+    await started
+    await remove()
+    await failure
+    expect(released).toBe(true)
+    expect(ctx.sessionProjections.stateOf(ctx.agents.list()[0]!.session, 'actveroWorkbench')).toBeNull()
+    runtime.register({ id: customId, name: '失败加载', version: '1.0.0', ai: true,
+      activate: async (scope) => {
+        scope.effect(() => { released = false; return () => { released = true } })
+        throw new Error('required dependency missing')
+      } })
+    await expect(runtime.bind(document)).rejects.toThrow('required dependency missing')
+    expect(released).toBe(true)
+  })
+
+  it('supports an explicit JSON adapter and reports directory failures without replacing existing data', async () => {
+    const { runtime, directory } = await harness()
+    runtime.register({ id: 'test:adapter' as WorkbenchId, name: '适配器', version: '1.0.0', storage: checklistProvider })
+    const document = await runtime.open('test:adapter' as WorkbenchId)
+    expect(await runtime.environment(document)).toMatchObject({ storage: 'json', resourcesDirectory: null })
+    const saved = await runtime.action({ ...document, action: 'add', args: '{"text":"适配器任务"}' })
+    const dataDirectory = join(directory, 'files', document.instanceId)
+    await rm(dataDirectory, { recursive: true })
+    await writeFile(dataDirectory, 'do not overwrite')
+    await expect(runtime.environment(document)).rejects.toMatchObject({ code: 'workbench/failed' })
+    await expect(runtime.open(document.id)).rejects.toMatchObject({ code: 'workbench/failed' })
+    expect(runtime.read(document)).toEqual(saved)
+    expect(await readFile(dataDirectory, 'utf8')).toBe('do not overwrite')
+  })
+
   it('coalesces opening, rejects stale writes and restores documents after reopening', async () => {
     const first = await harness()
     const [a, b] = await Promise.all([first.runtime.open(id), first.runtime.open(id)])
@@ -77,6 +245,25 @@ describe('workbench runtime', () => {
     await first.ctx.fiber.dispose()
     const reopened = await harness(first.directory)
     expect(await reopened.runtime.open(id)).toEqual(saved)
+  })
+
+  it('retains legacy JSON for author migration and withdraws its tools when storage becomes custom', async () => {
+    const { ctx, runtime, prepare } = await harness()
+    const customId = 'test:storage-migration' as WorkbenchId
+    const remove = runtime.register({ ...checklistProvider, id: customId })
+    const document = await runtime.open(customId)
+    const saved = await runtime.action({ ...document, action: 'add', args: '{"text":"保留旧业务数据"}' })
+    const binding = await runtime.bind(document)
+    const agent = ctx.agents.get(binding.sessionId)!
+    await prepare(agent)
+    expect(ctx.tools.get('workbench_read', agent)).toBeDefined()
+    await remove()
+    runtime.register({ id: customId, name: checklistProvider.name, version: checklistProvider.version, ai: true })
+    await prepare(agent)
+    expect(ctx.tools.get('workbench_read', agent)).toBeUndefined()
+    expect(ctx.tools.get('workbench_action', agent)).toBeUndefined()
+    expect(runtime.read(document)).toEqual(saved)
+    expect(await runtime.environment(document)).toMatchObject({ storage: 'custom', instanceId: saved.instanceId })
   })
 
   it('shares live updates, stops following on abort and preserves legacy completion only once', async () => {
@@ -134,10 +321,10 @@ describe('workbench runtime', () => {
     const document = await runtime.open(customId)
     await expect(runtime.bind({ ...document, sessionId: agent.id })).rejects.toThrow('dependency unavailable')
     expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toBeNull()
-    remove()
+    await remove()
     const unload = runtime.register({ ...checklistProvider, id: customId })
     await runtime.bind({ ...document, sessionId: agent.id })
-    unload()
+    await unload()
     runtime.register({ ...checklistProvider, id: customId, version: '2.0.0' })
     await expect(prepare(agent)).rejects.toMatchObject({ code: 'workbench/unavailable' })
     expect(ctx.tools.get('workbench_action', agent)).toBeUndefined()

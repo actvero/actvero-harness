@@ -12,6 +12,7 @@ const legacyKey = 'actvero.workbenches.project-checklist.v1'
 export class WorkbenchClientRuntime {
   private readonly pending = new Map<string, Promise<WorkbenchDocument | null>>()
   private readonly conversations = new Map<WorkbenchInstanceId, SessionId>()
+  private readonly aiInstances = new Set<WorkbenchInstanceId>()
 
   /**
    * @param ctx Client services.
@@ -33,9 +34,12 @@ export class WorkbenchClientRuntime {
   private async load(id: string): Promise<WorkbenchDocument | null> {
     const catalog = await this.ctx.remote.actveroWorkbench.list()
     if (!catalog.ok) throw catalog.error
-    if (!catalog.value.some(item => item.id === id)) return null
+    const provider = catalog.value.find(item => item.id === id)
+    if (!provider) return null
     const result = await this.ctx.remote.actveroWorkbench.open(id as WorkbenchId)
     if (!result.ok) throw result.error
+    if (provider.aiEnabled) this.aiInstances.add(result.value.instanceId)
+    else this.aiInstances.delete(result.value.instanceId)
     if (id !== 'builtin:project-checklist') return result.value
     // The previous built-in stored only these three booleans in the renderer.
     let legacy: unknown
@@ -55,6 +59,12 @@ export class WorkbenchClientRuntime {
     }
     return result.value
   }
+
+  /** Inspect AI availability after open() resolves the installed provider.
+   * @param instanceId Opened instance, or null for a UI-only workbench.
+   * @returns Whether the provider enables native conversations.
+   */
+  supportsAI(instanceId: WorkbenchInstanceId | null): boolean { return instanceId !== null && this.aiInstances.has(instanceId) }
 
   /** Attach the chosen business instance and navigate to its native conversation.
    * @param id Workbench identity.
@@ -87,6 +97,12 @@ export class WorkbenchClientRuntime {
     return {
       instanceId, sessionId,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
+      environment: async () => {
+        if (!instanceId) return null
+        const result = await this.ctx.remote.actveroWorkbench.environment({ instanceId })
+        if (!result.ok) throw result.error
+        return result.value
+      },
       account: async () => {
         const account = await window.actveroAccount?.snapshot()
         if (account?.phase !== 'ready' || !account.user) return null

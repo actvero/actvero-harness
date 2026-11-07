@@ -34,6 +34,8 @@ Platform connectors and Local connectors use the same source tabs and card layou
 
 The Host adapter `ctx.actveroMcp` refreshes agent-scoped registrations and reports registered connector IDs and tool names for a session. It delegates authority and discovery to Electron Main and applies the expert policy before registration and execution. Its object interface is declared in [the Host plugin](src/index.ts).
 
+`ctx.actveroMcp.owns(name)` identifies this service’s managed tools. Expert policy filters and restricts only those tools, preserving conversation tools registered by independent native MCP plugins, which own their authorization, isolation and disposal.
+
 <a id="model-experience"></a>
 
 ## Model Experience

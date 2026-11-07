@@ -17,7 +17,7 @@
 ## `@actvero/dsh-capability-ui`
 
 - `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
-- `source`: [`packages/actvero/capability-ui/src/workbench-runtime.ts:27`](../packages/actvero/capability-ui/src/workbench-runtime.ts)
+- `source`: [`packages/actvero/capability-ui/src/workbench-runtime.ts:36`](../packages/actvero/capability-ui/src/workbench-runtime.ts)
 
 ```ts config-catalog
 /** Runtime deployment directory, resolved by the product profile. */

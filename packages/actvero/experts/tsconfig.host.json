@@ -47,6 +47,18 @@
     },
     {
       "path": "../../session/session-projection/tsconfig.json"
+    },
+    {
+      "path": "../../skill/skill-filesystem/tsconfig.json"
+    },
+    {
+      "path": "../../mcp/mcp-client/tsconfig.json"
+    },
+    {
+      "path": "../../skill/tool-workspace-dependencies/tsconfig.json"
+    },
+    {
+      "path": "../capability-ui/tsconfig.host.json"
     }
   ],
   "exclude": [

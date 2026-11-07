@@ -368,7 +368,9 @@ it('retries a failed tool preparation and renders its call presentation', async 
   try {
     expect((await execute()).isError).toBe(true)
     await writeFile(join(source, 'runtime.json'), metadata)
+    const service = await ctx.workspaceDependencies.resolve()
     expect((await execute()).isError).toBe(false)
+    expect(await ctx.workspaceDependencies.resolve()).toBe(service)
     expect(await readFile(join(root, 'runtime.json'))).toEqual(metadata)
     const descriptor = ctx.tools.get('load_workspace_dependencies')!
     expect(descriptor.presentCall?.({})).toEqual({ card: 'generic', title: 'Load workspace dependencies', kind: 'read' })

@@ -1,0 +1,76 @@
+# Bilingual-pair consistency record for workbench-runtime-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/workbench-runtime-plan.md
+/workbench-runtime-implementation-plan:
+  en: fd18cbe48bd3dcfd
+  zh: bdc56886b1319e7d
+/workbench-runtime-implementation-plan/summary:
+  en: b032086c47350c05
+  zh: a68755728a8aa6c0
+/workbench-runtime-implementation-plan/contents:
+  en: 02ff17fc3e5fed33
+  zh: 8f9f3b8f33799f4b
+/workbench-runtime-implementation-plan/design-scope:
+  en: e12ccfdd5fa5bc32
+  zh: 23b318c80f3f7f68
+/workbench-runtime-implementation-plan/existing-foundation:
+  en: 00c256a068210279
+  zh: 746b1556bea5c257
+/workbench-runtime-implementation-plan/part-1-runtime-and-data-directories:
+  en: 12822d2441a1ff6c
+  zh: 553a2260c6cd9b0d
+/workbench-runtime-implementation-plan/part-1-runtime-and-data-directories/deliverables:
+  en: 7ecda80443fffc1d
+  zh: 90c325586ad22ec8
+/workbench-runtime-implementation-plan/part-1-runtime-and-data-directories/acceptance-criteria:
+  en: da1c11e6f026217b
+  zh: 6787e1e75853f34f
+/workbench-runtime-implementation-plan/part-2-ai-and-bundled-experts:
+  en: bccdf855be86cc74
+  zh: 7de4d77bec079c3f
+/workbench-runtime-implementation-plan/part-2-ai-and-bundled-experts/deliverables:
+  en: 4bb2fd827bc48055
+  zh: 72f3d6223363a4dd
+/workbench-runtime-implementation-plan/part-2-ai-and-bundled-experts/acceptance-criteria:
+  en: 2183e3b49dc6754b
+  zh: dccf3fba537c987e
+/workbench-runtime-implementation-plan/part-3-presentation-controls-and-agent-tools:
+  en: 52ef4ec190323507
+  zh: 9e1ff4a1aa82d7ac
+/workbench-runtime-implementation-plan/part-3-presentation-controls-and-agent-tools/deliverables:
+  en: 6a911219e7b08d01
+  zh: de6dc4493eb12ff3
+/workbench-runtime-implementation-plan/part-3-presentation-controls-and-agent-tools/acceptance-criteria:
+  en: 0678bdf11268c1f2
+  zh: e881a5a0c7539cbd
+/workbench-runtime-implementation-plan/part-4-identity-and-platform-access:
+  en: 8caf1159b04fa444
+  zh: 17e3c9da9f06a4a4
+/workbench-runtime-implementation-plan/part-4-identity-and-platform-access/deliverables:
+  en: 3d5c263729078aa6
+  zh: 6d3edf67a3299efb
+/workbench-runtime-implementation-plan/part-4-identity-and-platform-access/acceptance-criteria:
+  en: 84154b6a1039d69b
+  zh: f3fe4c23799fe067
+/workbench-runtime-implementation-plan/part-5-developer-tooling:
+  en: 72ee6f3edbe32a5f
+  zh: cabc6d898a6425e6
+/workbench-runtime-implementation-plan/part-5-developer-tooling/deliverables:
+  en: 0b2baaa7a2854ad2
+  zh: 69cd064e929ab242
+/workbench-runtime-implementation-plan/part-5-developer-tooling/acceptance-criteria:
+  en: f6f09597879f4706
+  zh: f0a141e47c18e788
+/workbench-runtime-implementation-plan/part-6-development-skill-and-end-to-end-acceptance:
+  en: 0cc6b415295b4f2b
+  zh: 401f08991ac1b420
+/workbench-runtime-implementation-plan/part-6-development-skill-and-end-to-end-acceptance/deliverables:
+  en: 5c54e812419babef
+  zh: 96b3e9712c55a8ea
+/workbench-runtime-implementation-plan/part-6-development-skill-and-end-to-end-acceptance/acceptance-criteria:
+  en: 9553921cb4f5e062
+  zh: 8e80fae173defbe7
+/workbench-runtime-implementation-plan/delivery-sequence:
+  en: d8dbce5b6bdd0e50
+  zh: a4d691f2a6d14959

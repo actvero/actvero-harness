@@ -80,6 +80,8 @@ kind: "package-reference"
 
 -----
 
+Host 提供者通过 `ctx.get("workspaceDependencies").resolve()` 使用与工具相同的解释器准备结果。该调用不创建模型请求，首次成功后与工具共用缓存；失败不会缓存，插件退出等待正在进行的文件准备结束。
+
 <a id="model-experience"></a>
 ## 模型体验
 

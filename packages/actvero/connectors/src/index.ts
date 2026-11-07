@@ -6,7 +6,7 @@ import type { Inventory, Json } from './contracts.ts'
 export const name = 'actvero-connectors'
 export const inject = ['tools', 'agents']
 declare module '@deepseek-ai/cordis' { interface Context {
-  actveroMcp: { refresh():Promise<void>; names(sessionId:string):string[]; ids(sessionId:string):string[] }
+  actveroMcp: { refresh():Promise<void>; names(sessionId:string):string[]; ids(sessionId:string):string[]; owns(name:string):boolean }
   actveroExpertPolicy: { connectors(agent:import('@deepseek-ai/dsh-agent').Agent):Promise<readonly string[]|undefined> }
 }}
 type Snapshot = { id: string; inventory: Inventory; sessions: string[] }[]
@@ -56,7 +56,10 @@ export function apply(ctx: Context) {
   }
   async function sync() {
     if(flight) return flight
-    flight=(async()=>{let epoch:number;do {epoch=generation;await syncOnce()}while(!disposed&&epoch!==generation)})().finally(()=>{flight=undefined})
+    flight = (async () => {
+      let epoch: number
+      do { epoch = generation; await syncOnce() } while (!disposed && epoch !== generation)
+    })().finally(() => { flight = undefined })
     return flight
   }
   async function syncOnce() {
@@ -75,7 +78,8 @@ export function apply(ctx: Context) {
       for (const row of rows)
         for (const sessionId of row.sessions) {
           const agent = ctx.agents.list().find(a => a.id === sessionId)
-          if (!agent || (allowed.get(sessionId)!==undefined && !allowed.get(sessionId)!.includes(row.id))) continue
+          const selectedConnectors = allowed.get(sessionId)
+          if (!agent || (selectedConnectors !== undefined && !selectedConnectors.includes(row.id))) continue
           const key = `${sessionId}:${row.id}`
           keep.add(key)
           const signature = JSON.stringify(row.inventory)
@@ -133,14 +137,16 @@ export function apply(ctx: Context) {
             )
           }
           try {
-            for (const tool of row.inventory.tools)
+            for (const tool of row.inventory.tools) {
+              if (!tool.name) throw new Error('connector_tool_name_missing')
               register(
-                tool.name!,
-                tool.description ?? tool.name!,
+                tool.name,
+                tool.description ?? tool.name,
                 tool.inputSchema as ToolDefinition['parameters'],
                 'tools/call',
                 args => ({ name: tool.name, arguments: args }),
               )
+            }
             if (row.inventory.prompts.length) {
               register(
                 'prompts_list',
@@ -220,7 +226,7 @@ export function apply(ctx: Context) {
       clear()
     }
   }
-  ctx.provide('actveroMcp',{ refresh:()=>{generation++;return sync()},ids:(id:string)=>[...registrations.keys()].filter(key=>key.startsWith(id+':')).map(key=>key.slice(id.length+1)),names:(id:string)=>[...registeredNames].filter(([key])=>key.startsWith(id+':')).flatMap(([,names])=>names) })
+  ctx.provide('actveroMcp',{ owns:(name:string)=>[...registeredNames.values()].some(names=>names.includes(name)),refresh:()=>{generation++;return sync()},ids:(id:string)=>[...registrations.keys()].filter(key=>key.startsWith(id+':')).map(key=>key.slice(id.length+1)),names:(id:string)=>[...registeredNames].filter(([key])=>key.startsWith(id+':')).flatMap(([,names])=>names) })
   const receive = (raw: unknown) => {
     const m = raw as {
       type?: string
@@ -239,7 +245,8 @@ export function apply(ctx: Context) {
     if (!item) return
     pending.delete(m.id)
     item.cleanup()
-    m.error ? item.reject(new Error(m.error)) : item.resolve(m.value)
+    if (m.error) item.reject(new Error(m.error))
+    else item.resolve(m.value)
   }
   ctx.effect(() => {
     process.on('message', receive)

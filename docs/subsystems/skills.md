@@ -6,6 +6,8 @@ The [skill capability family](../../packages/skill) includes the Service Definit
 
 Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts), [`packages/skill/skill-filesystem/src/index.ts`](../../packages/skill/skill-filesystem/src/index.ts), [`packages/experimental/skill-badge/src/index.ts`](../../packages/experimental/skill-badge/src/index.ts), [`packages/skill/skill-office/src/index.ts`](../../packages/skill/skill-office/src/index.ts), [`packages/sandbox/sandbox-windows-acl/src/acl-skill.ts`](../../packages/sandbox/sandbox-windows-acl/src/acl-skill.ts), and [`packages/skill/tool-skill/src/index.ts`](../../packages/skill/tool-skill/src/index.ts).
 
+Host integrations call `ctx.workspaceDependencies.resolve()` for the configured interpreter and package paths, sharing preparation with `load_workspace_dependencies`. Successful results are reused for the plugin lifetime, failures may retry, and disposal awaits pending file preparation. The [runtime dependency package](../../packages/skill/tool-workspace-dependencies/README.md) owns configuration, returned paths and offline payload rules.
+
 ## Provider registry
 
 `ctx.skills` combines local, embedded, remote, or other providers. Registration is synchronous; remote initialization and discovery belong in awaited `list()`. Provider objects, options, and candidates are borrowed readonly, while semantic fields are validated.
@@ -339,6 +341,21 @@ async get(name: string, options: SkillViewOptions = {}): Promise<SkillDefinition
 ```
 
 Source: [`packages/skill/skill/src/index.ts`](../../packages/skill/skill/src/index.ts)
+
+<a id="ctxworkspacedependencies--workspacedependencyservice"></a>
+
+### `ctx.workspaceDependencies` — `WorkspaceDependencyService`
+
+Shared runtime preparation used by model tools and trusted Host integrations.
+
+```ts cordis-catalog
+/** Prepare or validate the configured payload, reusing successful preparation and retrying failures.
+ * @returns Absolute paths into the application-owned runtime.
+ */
+resolve(): Promise<WorkspaceDependencies>
+```
+
+Source: [`packages/skill/tool-workspace-dependencies/src/index.ts`](../../packages/skill/tool-workspace-dependencies/src/index.ts)
 
 <a id="skills-events"></a>
 

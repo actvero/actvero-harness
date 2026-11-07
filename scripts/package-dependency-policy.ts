@@ -66,6 +66,10 @@ const PEER_REQUIRED_HOST_EXPORTS = {
   // `instanceof` checks need the translator's own class instance.
   '@deepseek-ai/dsh-experimental-translator': ['TranslationError'],
   '@deepseek-ai/dsh-scope': ['carrierKeyOf', 'createScope', 'scopeOf', 'scopeTarget'],
+  // Workbench capabilities share the Host's native Skill registries and MCP plugin definitions.
+  '@deepseek-ai/dsh-skill': ['renderSkillContent'],
+  '@deepseek-ai/dsh-skill-filesystem': ['FileSystemSkillProvider'],
+  '@deepseek-ai/dsh-mcp-client': ['Config', 'apply', 'inject', 'name'],
   '@deepseek-ai/dsh-session': ['SESSION_FORMAT_VERSION'],
   '@deepseek-ai/dsh-session-persistence': ['SessionPersistenceNotFoundError'],
 } as const satisfies HostDependencyExports

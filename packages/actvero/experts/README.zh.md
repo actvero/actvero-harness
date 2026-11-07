@@ -40,6 +40,8 @@ Host 适配器 `ctx.actveroExpertPolicy` 根据专家快照和会话选择解析
 
 平台目录卡片对比本机保留的版本与最新发布，显示版本变化；打开或刷新目录时通过 DSH Toast 提示更新。查看详情不会清除更新状态，准备成功后才更新本机版本记录；准备窗口显示前后版本。已有对话继续显示快照中的名称、版本与头像。清单接受的头像也均可保存到会话投影。
 
+`@actvero/dsh-experts/workbench` 的 `WorkbenchExpertBundle` 为本地工作台加载随包指令、原生 Skill、MCP 与 CLI 说明。作者将 `bundle.activate` 交给工作台提供者的 `activate`；资源按工作台版本缓存，能力按关联会话注册并随其作用域释放。原生 Skill 和 MCP 复用宿主的 peer 实例。该入口不依赖 Main 专家记录，也不切换普通专家选择；同一对话可叠加普通专家和工作台环境。完整目录、固定摘要、取消与失败规则见[本地工作台开发](../../../actvero/workbench-development.zh.md#expert-bundle)。
+
 <a id="model-experience"></a>
 
 ## 模型体验

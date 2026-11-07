@@ -187,11 +187,11 @@ Native Remote owner and in-process business-provider registry.
 ```ts cordis-catalog
 /** Register business behavior; unregistering leaves documents and selections intact.
  * @param provider Package-owned business implementation.
- * @returns Disposer withdrawing the exact implementation.
+ * @returns Disposer withdrawing the exact implementation and awaiting its conversation capabilities.
  */
-register(provider: WorkbenchProvider): () => void
+register(provider: WorkbenchProvider): () => Promise<void>
 
-/** List providers that support conversation integration.
+/** List providers with a managed runtime, including those with author-owned storage.
  * @returns Runtime-ready provider metadata, independent of UI-only cards.
  */
 @Remote list(): WorkbenchRuntimeEntry[]
@@ -201,6 +201,12 @@ register(provider: WorkbenchProvider): () => void
  * @returns Existing business document or a durably initialized instance.
  */
 @Remote async open(id: WorkbenchId): Promise<WorkbenchDocument>
+
+/** Resolve runtime paths without creating a session or starting AI dependencies.
+ * @param request Existing instance returned by open().
+ * @returns Environment after its data directory is ready; directory failures reject without deleting existing data.
+ */
+@Remote async environment(request: WorkbenchTarget): Promise<WorkbenchEnvironment>
 
 /** Read current business data; never returns a fabricated empty document.
  * @param request Instance to read.

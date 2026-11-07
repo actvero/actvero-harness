@@ -11,16 +11,25 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { WorkbenchProvider, WorkbenchRuntimeContext } from './workbench-provider.ts'
+import type { WorkbenchActivation, WorkbenchProvider, WorkbenchRuntimeContext } from './workbench-provider.ts'
+import { workbenchAIEnabled, workbenchJsonStorage } from './workbench-provider.ts'
 import type { WorkbenchActionRequest, WorkbenchBinding, WorkbenchBindRequest, WorkbenchDocument, WorkbenchId,
-  WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget } from './types.ts'
+  WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget } from './types.ts'
 import type { workbenchDomain } from './workbench-storage.ts'
 import { workbenchProjection, workbenchIdSchema } from './workbench-projection.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { actveroWorkbenchRuntime: WorkbenchRuntime }
+}
+
+interface ActiveCapabilities {
+  scope: Scope
+  abort: AbortController
+  provider: WorkbenchProvider
+  activation: WorkbenchActivation | null
+  mounting: Promise<WorkbenchActivation> | undefined
 }
 
 /** Runtime deployment directory, resolved by the product profile. */
@@ -32,7 +41,7 @@ export interface WorkbenchRuntimeConfig {
 /** Native Remote owner and in-process business-provider registry. */
 export class WorkbenchRuntime extends TypertRemoteService {
   private readonly providers = new Map<WorkbenchId, WorkbenchProvider>()
-  private readonly scopes = new Map<Agent, Scope>()
+  private readonly scopes = new Map<Agent, ActiveCapabilities>()
   private readonly creating = new Map<WorkbenchId, Promise<WorkbenchDocument>>()
   private readonly listeners = new Set<() => void>()
   private disposed = false
@@ -44,27 +53,26 @@ export class WorkbenchRuntime extends TypertRemoteService {
    */
   constructor(ctx: Context, private readonly domain: Domain<typeof workbenchDomain>, private readonly config: WorkbenchRuntimeConfig) {
     super(ctx, 'actveroWorkbenchRuntime', { namespace: 'actveroWorkbench' })
+    if (!isAbsolute(config.dataDirectory)) throw new Error('Workbench dataDirectory must be absolute')
     ctx.typert.resources.register('actveroWorkbench', { field: 'instanceId' })
     ctx.sessionProjections.register(workbenchProjection)
     ctx.on('domain/changed', (change) => { if (change.domain === domain.name) this.changed() })
-    ctx.on('agent/disposed', ({ agent }) => {
-      const scope = this.scopes.get(agent)
-      this.scopes.delete(agent)
-      void scope?.dispose().catch((error: unknown) => { ctx.logger.warn('Unable to dispose workbench scope: %s', error) })
-    })
     ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
       const selection = this.selection(agent)
       if (selection) {
         const provider = this.provider(selection)
-        const context = this.environment(selection, agent.id)
-        await mkdir(context.dataDirectory, { recursive: true })
+        const context = { ...await this.environment(selection), sessionId: agent.id }
         await provider.prepare?.(context, signal)
         signal.throwIfAborted()
         this.provider(selection)
-        if (!this.scopes.has(agent)) {
-          const scope = createScope(ctx, agent)
-          this.scopes.set(agent, scope)
-          this.mountTools(scope.ctx)
+        const active = this.scopes.get(agent)
+        if (!active || active.provider !== provider || active.abort.signal.aborted) {
+          const activation = await this.activate(agent, provider, context, signal)
+          if (activation?.digest !== selection.capabilityDigest
+            || (activation && JSON.stringify(activation.expert) !== JSON.stringify(selection.expert))) {
+            await this.clearScope(agent)
+            throw new RemoteError('workbench/unavailable', 'Workbench dependencies changed. Select the installed workbench again.', {})
+          }
         }
       }
       return next()
@@ -75,39 +83,46 @@ export class WorkbenchRuntime extends TypertRemoteService {
       const selection = agent && this.selection(agent)
       if (!selection) return assembly
       const provider = this.provider(selection)
+      const storage = workbenchJsonStorage(provider)
       return { ...assembly,
         sections: [...assembly.sections, { name: 'actvero-workbench', text: '{{actvero_workbench}}' }],
         variables: { ...assembly.variables, actvero_workbench:
           `Workbench: ${selection.name} (${selection.version})\n${selection.expert?.instructions ?? ''}\n`
-          + `Use workbench_read to inspect current business data, then workbench_action to change it. Never claim a change before its tool succeeds.\n${provider.actionHelp}` },
+          + (storage ? `Use workbench_read to inspect current business data, then workbench_action to change it. Never claim a change before its tool succeeds.\n${storage.actionHelp}` : '') },
       }
     })
     ctx.effect(() => async () => {
       this.disposed = true
       this.changed()
-      await Promise.all([...this.scopes.values()].map(scope => scope.dispose()))
-      this.scopes.clear()
+      await Promise.all([...this.scopes.keys()].map(agent => this.clearScope(agent)))
     })
   }
 
   /** Register business behavior; unregistering leaves documents and selections intact.
    * @param provider Package-owned business implementation.
-   * @returns Disposer withdrawing the exact implementation.
+   * @returns Disposer withdrawing the exact implementation and awaiting its conversation capabilities.
    */
-  register(provider: WorkbenchProvider): () => void {
+  register(provider: WorkbenchProvider): () => Promise<void> {
     workbenchIdSchema.parse(provider.id)
     if (!provider.name.trim() || !provider.version.trim() || this.providers.has(provider.id)) throw new Error('Invalid or duplicate workbench provider')
+    if (provider.resourcesDirectory !== undefined && !isAbsolute(provider.resourcesDirectory)) throw new Error('Workbench resourcesDirectory must be absolute')
     this.providers.set(provider.id, provider)
     this.changed()
-    return () => { if (this.providers.get(provider.id) === provider) { this.providers.delete(provider.id); this.changed() } }
+    return async () => {
+      if (this.providers.get(provider.id) !== provider) return
+      this.providers.delete(provider.id)
+      this.changed()
+      await Promise.all([...this.scopes].filter(([, active]) => active.provider === provider).map(([agent]) => this.clearScope(agent)))
+    }
   }
 
-  /** List providers that support conversation integration.
+  /** List providers with a managed runtime, including those with author-owned storage.
    * @returns Runtime-ready provider metadata, independent of UI-only cards.
    */
   @Remote
   list(): WorkbenchRuntimeEntry[] {
-    return [...this.providers.values()].map(({ id, name, version }) => ({ id, name, version }))
+    return [...this.providers.values()].map(provider => ({ id: provider.id, name: provider.name, version: provider.version,
+      aiEnabled: workbenchAIEnabled(provider) }))
   }
 
   /** Resolve the provider's local default instance without creating a conversation.
@@ -121,19 +136,39 @@ export class WorkbenchRuntime extends TypertRemoteService {
     const existing = [...this.domain.table('instances').entries()].find(([, value]) => value.id === id)?.[1]
     if (existing) {
       if (!this.ctx.remoteAccess.allows({ kind: 'actveroWorkbench', id: existing.instanceId })) throw new RemoteError('workbench/unavailable', 'Workbench instance is not accessible.', {})
+      await this.ensureDirectory(existing.instanceId)
+      this.assertLoaded(provider)
       return existing
     }
     const pending = this.creating.get(id)
     if (pending) return pending
     const task = (async () => {
-      const json = provider.initial()
+      const storage = workbenchJsonStorage(provider)
+      const json = storage ? storage.initial() : 'null'
       JSON.parse(json)
       const document = { id, instanceId: randomUUID() as WorkbenchInstanceId, revision: 0, json }
+      await this.ensureDirectory(document.instanceId)
+      this.assertLoaded(provider)
       await this.domain.table('instances').put(document.instanceId, document)
       return document
     })()
     this.creating.set(id, task)
     try { return await task } finally { this.creating.delete(id) }
+  }
+
+  /** Resolve runtime paths without creating a session or starting AI dependencies.
+   * @param request Existing instance returned by open().
+   * @returns Environment after its data directory is ready; directory failures reject without deleting existing data.
+   */
+  @Remote
+  async environment(request: WorkbenchTarget): Promise<WorkbenchEnvironment> {
+    const document = this.read(request)
+    const provider = this.loadedProvider(document.id)
+    const dataDirectory = await this.ensureDirectory(document.instanceId)
+    this.assertLoaded(provider)
+    return { id: document.id, instanceId: document.instanceId, version: provider.version,
+      dataDirectory, resourcesDirectory: provider.resourcesDirectory ?? null,
+      storage: workbenchJsonStorage(provider) ? 'json' : 'custom', aiEnabled: workbenchAIEnabled(provider) }
   }
 
   /** Read current business data; never returns a fabricated empty document.
@@ -156,10 +191,12 @@ export class WorkbenchRuntime extends TypertRemoteService {
   async action(request: WorkbenchActionRequest): Promise<WorkbenchDocument> {
     const current = this.read(request)
     const provider = this.loadedProvider(current.id)
+    const storage = workbenchJsonStorage(provider)
+    if (!storage) throw new RemoteError('workbench/unsupported-storage', 'This workbench manages its own business storage.', {})
     return this.domain.table('instances').update(request.instanceId, (document) => {
       if (this.providers.get(current.id) !== provider) throw new RemoteError('workbench/unavailable', 'Workbench changed while saving.', {})
       if (document.revision !== request.revision) throw new RemoteError('workbench/conflict', 'Business data changed. Read the latest document and retry.', {})
-      const json = provider.reduce(document.json, request.action, request.args)
+      const json = storage.reduce(document.json, request.action, request.args)
       JSON.parse(json)
       return { ...document, json, revision: document.revision + 1 }
     })
@@ -173,11 +210,12 @@ export class WorkbenchRuntime extends TypertRemoteService {
   async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding> {
     const document = this.read(request)
     const provider = this.loadedProvider(document.id)
+    if (!workbenchAIEnabled(provider)) throw new RemoteError('workbench/ai-disabled', 'Native AI is disabled for this workbench.', {})
     const selection: WorkbenchSelection = { id: provider.id, instanceId: document.instanceId,
       name: provider.name, version: provider.version, expert: provider.expert ? { ...provider.expert } : null }
     let sessionId = request.sessionId
     if (!sessionId) {
-      const directory = this.environment(selection, '' as SessionId).dataDirectory
+      const directory = join(this.config.dataDirectory, '.sessions', selection.instanceId)
       await mkdir(directory, { recursive: true })
       const workspace = await this.ctx.workspaceRegistry.create(directory, provider.name)
       sessionId = (await this.ctx.sessionController.create({ sessionId: randomUUID() as SessionId, workspaceId: workspace.id })).sessionId
@@ -186,18 +224,21 @@ export class WorkbenchRuntime extends TypertRemoteService {
     if ('error' in resolved) throw new RemoteError('workbench/unavailable', 'Conversation is unavailable.', {})
     const agent = resolved.agent
     const selected = this.selection(agent)
-    if (selected?.instanceId === selection.instanceId && selected.id === selection.id && selected.version === selection.version) {
+    const active = this.scopes.get(agent)
+    if (selected?.instanceId === selection.instanceId && selected.id === selection.id && selected.version === selection.version
+      && (!provider.activate || (active?.provider === provider && !active.abort.signal.aborted))) {
       return { sessionId: agent.id, selection: selected }
     }
     return agent.runMaintenance(async (signal) => {
       this.provider(selection)
-      const context = this.environment(selection, agent.id)
-      await mkdir(context.dataDirectory, { recursive: true })
+      const context: WorkbenchRuntimeContext = { ...await this.environment(selection), sessionId: agent.id }
       await provider.prepare?.(context, signal)
       signal.throwIfAborted()
       this.provider(selection)
-      await this.clearScope(agent)
-      agent.session.append('actvero/workbench', { schemaVersion: 1, selection })
+      const activation = await this.activate(agent, provider, context, signal)
+      if (activation) { selection.expert = activation.expert; selection.capabilityDigest = activation.digest }
+      try { agent.session.append('actvero/workbench', { schemaVersion: 1, selection }) }
+      catch (error) { await this.clearScope(agent); throw error }
       return { sessionId: agent.id, selection }
     })
   }
@@ -252,16 +293,55 @@ export class WorkbenchRuntime extends TypertRemoteService {
   private provider(selection: WorkbenchSelection): WorkbenchProvider {
     const provider = this.providers.get(selection.id)
     if (!provider || provider.version !== selection.version) throw new RemoteError('workbench/unavailable', 'The selected workbench version is unavailable. Select the installed version to continue.', {})
+    if (!workbenchAIEnabled(provider)) throw new RemoteError('workbench/ai-disabled', 'Native AI is disabled for this workbench.', {})
     return provider
   }
-  private environment(selection: WorkbenchSelection, sessionId: SessionId): WorkbenchRuntimeContext {
-    return { id: selection.id, instanceId: selection.instanceId, sessionId,
-      dataDirectory: join(this.config.dataDirectory, selection.instanceId) }
+  private assertLoaded(provider: WorkbenchProvider): void {
+    if (this.providers.get(provider.id) !== provider) throw new RemoteError('workbench/unavailable', 'Workbench provider changed. Open the installed version again.', {})
+  }
+  private async ensureDirectory(instanceId: WorkbenchInstanceId): Promise<string> {
+    const directory = join(this.config.dataDirectory, instanceId)
+    try { await mkdir(directory, { recursive: true }) } catch (error) {
+      this.ctx.logger.warn('Unable to prepare workbench data directory: %s', error)
+      throw new RemoteError('workbench/failed', 'Workbench data directory is unavailable. Check disk access and retry.', {})
+    }
+    return directory
   }
   private async clearScope(agent: Agent): Promise<void> {
-    const scope = this.scopes.get(agent)
-    await scope?.dispose()
-    this.scopes.delete(agent)
+    const active = this.scopes.get(agent)
+    if (!active) return
+    active.abort.abort(new Error('Workbench capability scope closed'))
+    await active.scope.dispose()
+    if (this.scopes.get(agent) === active) this.scopes.delete(agent)
+  }
+  private async activate(
+    agent: Agent, provider: WorkbenchProvider, context: WorkbenchRuntimeContext, signal: AbortSignal,
+  ): Promise<WorkbenchActivation | null> {
+    await this.clearScope(agent)
+    if (!workbenchJsonStorage(provider) && !provider.activate) return null
+    const scope = createScope(agent.ctx, agent)
+    const active: ActiveCapabilities = { scope, provider, abort: new AbortController(), activation: null, mounting: undefined }
+    this.scopes.set(agent, active)
+    scope.ctx.effect(() => async () => {
+      active.abort.abort(new Error('Workbench capability scope closed'))
+      // bind or pre-step reports activation failures; disposal must also wait for the callback.
+      await active.mounting?.catch((_activationFailed: unknown) => {})
+      if (this.scopes.get(agent) === active) this.scopes.delete(agent)
+    })
+    const combined = AbortSignal.any([signal, active.abort.signal])
+    const stop = () => { void scope.dispose().catch((error: unknown) => { this.ctx.logger.warn('Unable to close workbench capabilities: %s', error) }) }
+    combined.addEventListener('abort', stop, { once: true })
+    try {
+      combined.throwIfAborted()
+      if (workbenchJsonStorage(provider)) this.mountTools(scope.ctx)
+      active.mounting = provider.activate?.(scope.ctx, context, combined)
+      active.activation = await active.mounting ?? null
+      combined.throwIfAborted()
+      this.assertLoaded(provider)
+      if (this.disposed) throw new RemoteError('workbench/unavailable', 'Workbench runtime is closed.', {})
+      return active.activation
+    } catch (error) { await this.clearScope(agent); throw error }
+    finally { combined.removeEventListener('abort', stop) }
   }
   private toolSelection(agent: Agent | undefined): WorkbenchSelection {
     const selection = agent && this.selection(agent)

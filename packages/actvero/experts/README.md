@@ -40,6 +40,8 @@ The Host adapter `ctx.actveroExpertPolicy` resolves the permitted connector IDs 
 
 Platform catalog cards compare the locally retained release with the latest release and show version changes. DSH Toast announces available updates when the catalog is opened or refreshed. Detail previews retain this status until preparation succeeds; preparation shows both versions. Existing conversation selections retain their snapshot name, version and avatar. Every portrait accepted by the manifest is also accepted by the session projection.
 
+`WorkbenchExpertBundle` from `@actvero/dsh-experts/workbench` loads local workbench instructions, native Skills, MCP and CLI descriptions. Authors supply `bundle.activate` as their provider’s `activate`; resources cache by workbench version while capabilities register per associated conversation and release with its scope. Native Skills and MCP use the Host's peer instances. This entry does not depend on Main expert records or change ordinary expert selection; both environments may coexist in one conversation. See [local workbench development](../../../actvero/workbench-development.md#expert-bundle) for directories, pinned digests, cancellation and failure rules.
+
 <a id="model-experience"></a>
 
 ## Model Experience

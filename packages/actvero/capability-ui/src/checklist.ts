@@ -2,7 +2,7 @@
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import type { WorkbenchProvider } from './workbench-provider.ts'
+import type { WorkbenchLegacyProvider } from './workbench-provider.ts'
 import type { WorkbenchId } from './types.ts'
 import { checklistDocument } from './checklist-data.ts'
 
@@ -13,7 +13,7 @@ const actions = z.discriminatedUnion('action', [
 ])
 
 /** Optional local expert and versioned checklist actions. */
-export const checklistProvider: WorkbenchProvider = {
+export const checklistProvider: WorkbenchLegacyProvider = {
   id: 'builtin:project-checklist' as WorkbenchId,
   name: '项目清单', version: '1.0.0',
   expert: { name: '项目清单助手', version: '1.0.0', instructions: '帮助用户整理待办、补充任务、更新完成状态。先读取项目清单，仅在用户要求时修改。准确报告工具结果；遇到并发修改先重新读取，不要覆盖用户的手动操作。' },

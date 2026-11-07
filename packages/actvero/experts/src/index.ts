@@ -15,7 +15,7 @@ import { normalizeExpertSelectionAvatar } from './avatar.ts'
 export const name='actvero-experts'
 export const inject=['agents','skills','tools','systemPrompt','sessionController','workspaceRegistry','sessionProjections','actveroMcp']
 declare module '@deepseek-ai/cordis' {interface Context {
-  actveroMcp:{ refresh():Promise<void>;names(sessionId:string):string[];ids(sessionId:string):string[] }
+  actveroMcp:{ refresh():Promise<void>;names(sessionId:string):string[];ids(sessionId:string):string[]; owns(name:string):boolean }
   actveroExpertPolicy:{ connectors(agent:Agent):Promise<readonly string[]|undefined> }
 }}
 
@@ -59,10 +59,10 @@ export function apply(ctx:Context){
     return { ...assembly,
       sections:[...assembly.sections,{ name:'actvero-expert',text:'{{actvero_expert}}' }],
       variables:{ ...assembly.variables,actvero_expert:`Expert: ${plan.expert.name} (${plan.expert.version})\n${plan.expert.instructions}\n\n${plan.skills.filter(s=>s.load==='always').map(skill=>ctx.skills.renderContent(skill)).join('\n\n')}` },
-      tools:assembly.tools.filter(t=>!t.name.startsWith('mcp_')||names.has(t.name)),
+      tools:assembly.tools.filter(t=>!ctx.actveroMcp.owns(t.name)||names.has(t.name)),
     }
   })
-  ctx.on('tools/pre-execute',async(exec,next)=>{if(exec.agent&&exec.name.startsWith('mcp_')&&await selected(exec.agent)){await runtime(exec.agent);if(!ctx.actveroMcp.names(exec.agent.id).includes(exec.name))return { kind:'deny',reason:'expert_connector_denied' }}return next()})
+  ctx.on('tools/pre-execute',async(exec,next)=>{if(exec.agent&&ctx.actveroMcp.owns(exec.name)&&await selected(exec.agent)){await runtime(exec.agent);if(!ctx.actveroMcp.names(exec.agent.id).includes(exec.name))return { kind:'deny',reason:'expert_connector_denied' }}return next()})
   const binding=async(input:Record<string,unknown>)=>{
     let agent:Agent|undefined
     if(typeof input.sessionId==='string'){const result=await ctx.sessionController.resolveAgent(input.sessionId as SessionId);if('error' in result)throw new Error('expert_session_missing');agent=result.agent}

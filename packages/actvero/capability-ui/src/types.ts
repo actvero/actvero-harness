@@ -16,13 +16,28 @@ export interface WorkbenchSelection {
   name: string
   version: string
   expert: WorkbenchExpert | null
+  /** Exact activated dependency generation; absent for providers without scoped capability loading. */
+  capabilityDigest?: string
 }
-/** Host-owned persisted business state. JSON content belongs to the provider. */
+/** Stable instance metadata. Custom storage starts at json "null", revision zero; existing JSON remains available for migration. */
 export interface WorkbenchDocument {
   id: WorkbenchId
   instanceId: WorkbenchInstanceId
   revision: number
   json: string
+}
+/** Session-independent runtime paths. Resource paths do not grant model or filesystem permissions. */
+export interface WorkbenchEnvironment extends WorkbenchTarget {
+  id: WorkbenchId
+  version: string
+  /** Stable writable root retained across reload, upgrade and uninstall; authors own layout and transactions. */
+  dataDirectory: string
+  /** Declared package resources, or null when the provider does not declare any. Never use for business writes. */
+  resourcesDirectory: string | null
+  /** JSON uses the optional host adapter; custom stores only instance metadata in the host. */
+  storage: 'json' | 'custom'
+  /** Whether the loaded provider enables native conversations. */
+  aiEnabled: boolean
 }
 /** Resource named by a business read or write. */
 export interface WorkbenchTarget { instanceId: WorkbenchInstanceId }
@@ -37,7 +52,7 @@ export interface WorkbenchBindRequest extends WorkbenchTarget { sessionId?: Sess
 /** Conversation association returned after a durable selection event. */
 export interface WorkbenchBinding { sessionId: SessionId; selection: WorkbenchSelection | null }
 /** Runtime provider summary. UI-only workbenches do not appear in this list. */
-export interface WorkbenchRuntimeEntry { id: WorkbenchId; name: string; version: string }
+export interface WorkbenchRuntimeEntry { id: WorkbenchId; name: string; version: string; aiEnabled: boolean }
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
@@ -65,5 +80,9 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workbench/invalid-action': Record<string, never>
     /** Business state could not be read or persisted. */
     'workbench/failed': Record<string, never>
+    /** The provider owns its storage and does not expose the generic JSON action API. */
+    'workbench/unsupported-storage': Record<string, never>
+    /** Native conversations are disabled by the workbench author. */
+    'workbench/ai-disabled': Record<string, never>
   }
 }

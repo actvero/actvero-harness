@@ -46,6 +46,10 @@
     "./remote-main": {
       "types": "./lib/types/remote-main.d.ts",
       "default": "./lib/remote-main.js"
+    },
+    "./workbench": {
+      "types": "./lib/types/workbench.d.ts",
+      "default": "./lib/workbench.js"
     }
   },
   "dsh": {
@@ -65,7 +69,10 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-skill": "workspace:*",
+    "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
+    "@deepseek-ai/dsh-mcp-client": "workspace:*"
   },
   "devDependencies": {
     "@actvero/dsh-capability-ui": "workspace:~",
@@ -92,7 +99,12 @@
     "@deepseek-ai/dsh-client-ui-commands": "workspace:*",
     "@actvero/dsh-connectors": "workspace:~",
     "@actvero/dsh-skills": "workspace:~",
-    "@deepseek-ai/dsh-session-projection": "workspace:*"
+    "@deepseek-ai/dsh-session-projection": "workspace:*",
+    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
+    "@deepseek-ai/dsh-scope": "workspace:*",
+    "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
+    "@deepseek-ai/dsh-mcp-client": "workspace:*",
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*"
   },
   "dependencies": {
     "zod": "^4.4.3"

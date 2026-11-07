@@ -9,8 +9,8 @@
   en: 128d4ccf20e940e4
   zh: 127438cb9f8b6355
 /local-workbench-development/table-of-contents:
-  en: be4d87feeee1a0df
-  zh: dc3f4aef2cc8142b
+  en: 3b327fb7c63c4792
+  zh: 1630835f3362ad95
 /local-workbench-development/create-and-package:
   en: b5ea061e0bfdaffc
   zh: e3bc5614fe997a1b
@@ -18,14 +18,20 @@
   en: a5521312a645e1d0
   zh: 92d9ffcee83b8389
 /local-workbench-development/package-format:
-  en: b3115f337e47c0f6
-  zh: ac40ee229ee4ad33
+  en: 73622ef7e8b37f8f
+  zh: 916b1aaf62a2b21b
 /local-workbench-development/edit-the-business-view:
-  en: a02d85f4490aa453
-  zh: 03bf33cd06fe7cf4
+  en: d155f7af1be57930
+  zh: 69a7ee8c8c87c7e9
+/local-workbench-development/runtime-directories-and-custom-storage:
+  en: a99b53f9205c3a1e
+  zh: 441b9042cb9501fd
 /local-workbench-development/native-ai-and-shared-data:
-  en: c950ac1caeed476a
-  zh: 7e946cc747e91f46
+  en: cf1035d6cef5fcf0
+  zh: d302902e7be7e3d6
+/local-workbench-development/bundled-experts-skill-mcp-and-cli:
+  en: 2fd4d3a21120a723
+  zh: dd042f1b96542d0d
 /local-workbench-development/limitations:
-  en: 84414703d63d5e00
-  zh: 3d9dac37b34065b5
+  en: 963063c3bf5257ac
+  zh: 40b2062228b6bd12

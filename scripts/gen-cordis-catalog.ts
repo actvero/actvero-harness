@@ -121,6 +121,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   settings: 'settings.md',
   sessionTitle: 'session-title.md',
   skills: 'skills.md',
+  workspaceDependencies: 'skills.md',
   spillStore: 'spill.md',
   storage: 'storage.md',
   storageDomain: 'storage.md',
@@ -877,6 +878,8 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  WorkspaceDependencies: 'Native runtime paths are owned by packages/skill/tool-workspace-dependencies/README.md and src/index.ts',
+  WorkbenchEnvironment: 'Actvero workbench directories are owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchProvider: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchRuntimeEntry: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchDocument: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',

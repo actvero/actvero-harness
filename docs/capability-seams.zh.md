@@ -9,6 +9,9 @@
 
 ```mermaid
 flowchart LR
+  pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
+  svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
+  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
   pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
@@ -439,6 +442,7 @@ flowchart LR
   pkg_terminal_bash --> svc_terminals
   pkg_token_meter --> svc_tokenMeter
   pkg_tool_subagent --> svc_subagentModelSelection
+  pkg_tool_workspace_dependencies --> svc_workspaceDependencies
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
   pkg_user_approval --> svc_approval
@@ -608,6 +612,7 @@ flowchart LR
   svc_workingDirectory --> pkg_tool_fs
   svc_workingDirectory --> pkg_tool_pwsh
   svc_workingDirectory --> pkg_tool_working_directory
+  svc_workspaceDependencies --> pkg__actvero_dsh_experts
   svc_workspaceRegistry --> pkg_api_session_controller
   svc_workspaceRegistry --> pkg_api_workspace_controller
   svc_worktrees --> pkg_experimental_tool_worktree
@@ -616,7 +621,8 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 管理持久化业务实例、会话关联及仅在关联会话中可用的工作台工具。 |
+| `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | 解析配置的解释器与包目录；Host 消费方与模型工具共用成功的准备结果，并等待释放。 |
+| `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 管理运行目录、可选 JSON 适配器数据、会话关联及能力作用域的生命周期。 |
 | `ctx.cotTranslation` | `service` | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | - | - | 为展开的思考内容提供有界的 Session 翻译请求，不改变模型可见历史。 |
 | `ctx.translator` | `service` | [`experimental-translator`](../packages/experimental/translator) | - | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | 解析 Google 或 Bing 请求，并可选保留统一的实验性 Session 记录。 |
 | `ctx.hmr` | `core` | [`hmr`](../packages/boot/hmr) | - | [`app-boot`](../packages/boot/app-boot) | - | 负责模块和精确配置监听；应用修改共用其队列，自动重载等待应用文件锁。 |

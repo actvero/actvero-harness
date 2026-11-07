@@ -108,11 +108,19 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'workspaceDependencies',
+    pkg: 'tool-workspace-dependencies',
+    title: 'Native runtime preparation',
+    mode: 'service',
+    consumers: ['@actvero/dsh-experts'],
+    note: 'Resolves configured interpreter and package paths; Host consumers and the model tool share successful preparation and await disposal.',
+  },
+  {
     key: 'actveroWorkbenchRuntime',
     pkg: '@actvero/dsh-capability-ui',
     title: 'Actvero local workbench runtime',
     mode: 'service',
-    note: 'Owns persisted business instances, conversation associations and scoped workbench tools.',
+    note: 'Owns runtime directories, optional JSON-adapter data, conversation associations and scoped capability lifetimes.',
   },
   {
     key: 'cotTranslation',

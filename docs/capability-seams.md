@@ -7,6 +7,9 @@ A service can be a core spine service, a swappable capability seam, a bundle/com
 
 ```mermaid
 flowchart LR
+  pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
+  svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
+  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
   pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
@@ -437,6 +440,7 @@ flowchart LR
   pkg_terminal_bash --> svc_terminals
   pkg_token_meter --> svc_tokenMeter
   pkg_tool_subagent --> svc_subagentModelSelection
+  pkg_tool_workspace_dependencies --> svc_workspaceDependencies
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
   pkg_user_approval --> svc_approval
@@ -606,6 +610,7 @@ flowchart LR
   svc_workingDirectory --> pkg_tool_fs
   svc_workingDirectory --> pkg_tool_pwsh
   svc_workingDirectory --> pkg_tool_working_directory
+  svc_workspaceDependencies --> pkg__actvero_dsh_experts
   svc_workspaceRegistry --> pkg_api_session_controller
   svc_workspaceRegistry --> pkg_api_workspace_controller
   svc_worktrees --> pkg_experimental_tool_worktree
@@ -614,7 +619,8 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Owns persisted business instances, conversation associations and scoped workbench tools. |
+| `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | Resolves configured interpreter and package paths; Host consumers and the model tool share successful preparation and await disposal. |
+| `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Owns runtime directories, optional JSON-adapter data, conversation associations and scoped capability lifetimes. |
 | `ctx.cotTranslation` | `service` | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | - | - | Serves reasoning translations, reuses saved results, and joins ordinary Session activation for uncached inactive Sessions. |
 | `ctx.translator` | `service` | [`experimental-translator`](../packages/experimental/translator) | - | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | Resolves Google or Bing requests and retains shared experimental records through the active Session writer. |
 | `ctx.hmr` | `core` | [`hmr`](../packages/boot/hmr) | - | [`app-boot`](../packages/boot/app-boot) | - | Owns module and exact configuration watchers; application mutations share its queue and automatic reloads await the application file lock. |

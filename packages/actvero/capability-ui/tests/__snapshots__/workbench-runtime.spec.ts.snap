@@ -78,6 +78,9 @@ Actions: add args={"text":"task description"}; complete args={"id":"item id from
       "type": "text",
     },
   ],
-  "tools": undefined,
+  "tools": [
+    "workbench_action",
+    "workbench_read",
+  ],
 }
 `;

@@ -26,7 +26,7 @@
 | `SessionEventEnvelope` | envelope | `5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc` | [`union (3 variants)`](#persistence-type-sha256-5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc) |
 | `event:actvero/connectors` | event | `da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb` | [`{ type: "actvero/connectors" }`](#persistence-type-sha256-da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb) |
 | `event:actvero/expert` | event | `55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5` | [`{ type: "actvero/expert" }`](#persistence-type-sha256-55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5) |
-| `event:actvero/workbench` | event | `e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293` | [`{ type: "actvero/workbench" }`](#persistence-type-sha256-e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293) |
+| `event:actvero/workbench` | event | `bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d` | [`{ type: "actvero/workbench" }`](#persistence-type-sha256-bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d) |
 | `event:agent-preset/selected` | event | `a10c17474eaf2ddab7095a099e0fe3d046fc18e56c3e344fc8894c05ff9ef97b` | [`{ type: "agent-preset/selected" }`](#persistence-type-sha256-a10c17474eaf2ddab7095a099e0fe3d046fc18e56c3e344fc8894c05ff9ef97b) |
 | `event:agent/inbox/spliced` | event | `0755b7d1128319ba2e389619cbbf2c961ad648882b4e91da7f3e9582cc8a2034` | [`{ type: "agent/inbox/spliced" }`](#persistence-type-sha256-0755b7d1128319ba2e389619cbbf2c961ad648882b4e91da7f3e9582cc8a2034) |
 | `event:approval/asked` | event | `3bfeb47b58606f4661904bc723da612782214c463d01e6d61cd6d6193d7374e1` | [`{ type: "approval/asked" }`](#persistence-type-sha256-3bfeb47b58606f4661904bc723da612782214c463d01e6d61cd6d6193d7374e1) |
@@ -202,7 +202,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'actvero/workbench': { schemaVersion: 1; selection: WorkbenchSelection | null }
 ```
 
-来源：[`packages/actvero/capability-ui/src/types.ts:45`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
 
 ### `agent/*`
 
@@ -5521,7 +5521,7 @@ SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 | `name` | 必需 | `string` |
 | `version` | 必需 | `string` |
 
-<a id="persistence-type-sha256-0566975bc5eac6868340de9f5c866df2fa97e1b3743bb579c70a7ae69a892324"></a>
+<a id="persistence-type-sha256-26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f"></a>
 
 <a id="persistence-type-packagesactverocapability-uisrctypestsworkbenchselection"></a>
 
@@ -5529,12 +5529,13 @@ SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
 ### `WorkbenchSelection`
 
-SHA-256: `0566975bc5eac6868340de9f5c866df2fa97e1b3743bb579c70a7ae69a892324`
+SHA-256: `26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f`
 
 来源：[`packages/actvero/capability-ui/src/types.ts:13`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
+| `capabilityDigest` | 可选 | `string` |
 | `expert` | 必需 | [`union (2 variants)`](#persistence-type-sha256-4a17c3d97fb8cf4e125398f8b252a2b43c8be5b1ebe3683e746c5d7b45cd441a) |
 | `id` | 必需 | `string` |
 | `instanceId` | 必需 | `string` |
@@ -5800,6 +5801,17 @@ SHA-256: `1ab2ef1296f157ba96998f179bb5daa9d21a82480da2901127aeab2730797c92`
 - `"error"`
 - `"success"`
 
+<a id="persistence-type-sha256-286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7"></a>
+
+### `union (2 variants)`
+
+SHA-256: `286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7`
+
+以下类型之一：
+
+- [`WorkbenchSelection`](#persistence-type-sha256-26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f)
+- `null`
+
 <a id="persistence-type-sha256-4a17c3d97fb8cf4e125398f8b252a2b43c8be5b1ebe3683e746c5d7b45cd441a"></a>
 
 ### `union (2 variants)`
@@ -5821,17 +5833,6 @@ SHA-256: `50cf02d875f8a1f1411f4a6fbcffab9120ccef5f74a47331fbf29480e5f68f48`
 
 - `"fork"`
 - `"fresh"`
-
-<a id="persistence-type-sha256-7360f5c03c99d5cc445fe36aea8e0700e930d3176627a94805f51f691d0a3bda"></a>
-
-### `union (2 variants)`
-
-SHA-256: `7360f5c03c99d5cc445fe36aea8e0700e930d3176627a94805f51f691d0a3bda`
-
-以下类型之一：
-
-- [`WorkbenchSelection`](#persistence-type-sha256-0566975bc5eac6868340de9f5c866df2fa97e1b3743bb579c70a7ae69a892324)
-- `null`
 
 <a id="persistence-type-sha256-9947aa5938fe19a895298da412917acbf9ffb5093a73ab8baa257e6ae9e63a07"></a>
 
@@ -8024,6 +8025,19 @@ SHA-256: `9a2a9029f8d7ede05336980d8342737557f487b913bfd28853d0ab5214600ab5`
 | `content` | 必需 | [`tuple (1 positions)`](#persistence-type-sha256-8f6d609794bf5afc01d7ccf3e03811d32f4b8047f58a2c9a98db0154c2ad7cb9) |
 | `role` | 必需 | `"user"` |
 
+<a id="persistence-type-sha256-5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77"></a>
+
+### `{ schemaVersion, selection }`
+
+SHA-256: `5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77`
+
+来源：[`packages/actvero/capability-ui/src/types.ts:60`](../packages/actvero/capability-ui/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `schemaVersion` | 必需 | `1` |
+| `selection` | 必需 | [`union (2 variants)`](#persistence-type-sha256-286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7) |
+
 <a id="persistence-type-sha256-7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc"></a>
 
 ### `{ schemaVersion, selection }`
@@ -8036,19 +8050,6 @@ SHA-256: `7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc`
 |---|---|---|
 | `schemaVersion` | 必需 | `1` |
 | `selection` | 必需 | [`union (2 variants)`](#persistence-type-sha256-dbd0d5671c2580c3397aa5658cd23715bb9dcb5d84a0a6637d0016a593d199fd) |
-
-<a id="persistence-type-sha256-b0d336419f140a8efd70badf991011f71bf118040f7cf484f8ddd038a0ea0a60"></a>
-
-### `{ schemaVersion, selection }`
-
-SHA-256: `b0d336419f140a8efd70badf991011f71bf118040f7cf484f8ddd038a0ea0a60`
-
-来源：[`packages/actvero/capability-ui/src/types.ts:45`](../packages/actvero/capability-ui/src/types.ts)
-
-| 属性 | 存在性 | 类型 |
-|---|---|---|
-| `schemaVersion` | 必需 | `1` |
-| `selection` | 必需 | [`union (2 variants)`](#persistence-type-sha256-7360f5c03c99d5cc445fe36aea8e0700e930d3176627a94805f51f691d0a3bda) |
 
 <a id="persistence-type-sha256-8bb8c3751a6ce64b61aba1ec7ae798c00a5803c4d868a0430873216c6569ed52"></a>
 
@@ -8187,17 +8188,17 @@ SHA-256: `55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5`
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"actvero/expert"` |
 
-<a id="persistence-type-sha256-e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293"></a>
+<a id="persistence-type-sha256-bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d"></a>
 
 <a id="persistence-type-eventactveroworkbench"></a>
 
 ### `{ type: "actvero/workbench" }`
 
-SHA-256: `e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293`
+SHA-256: `bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d`
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
-| `data` | 必需 | [`{ schemaVersion, selection }`](#persistence-type-sha256-b0d336419f140a8efd70badf991011f71bf118040f7cf484f8ddd038a0ea0a60) |
+| `data` | 必需 | [`{ schemaVersion, selection }`](#persistence-type-sha256-5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77) |
 | `ignorable` | 可选 | `true` |
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |

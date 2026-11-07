@@ -11,6 +11,7 @@ export const instanceIdSchema = z.uuid().transform(value => value as WorkbenchIn
 export const selectionSchema = z.object({
   id: workbenchIdSchema, instanceId: instanceIdSchema, name: z.string().min(1), version: z.string().min(1),
   expert: z.object({ name: z.string(), version: z.string(), instructions: z.string() }).strict().nullable(),
+  capabilityDigest: z.string().min(1).optional(),
 }).strict().nullable()
 
 const eventSchema = z.object({ schemaVersion: z.literal(1), selection: selectionSchema }).strict()

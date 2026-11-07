@@ -565,7 +565,7 @@
       "kind": "event",
       "event": "actvero/workbench",
       "surface": false,
-      "digest": "e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293",
+      "digest": "bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d",
       "schema": {
         "root": 0,
         "nodes": [
@@ -631,56 +631,33 @@
             "kind": "object",
             "properties": [
               {
-                "name": "expert",
+                "name": "capabilityDigest",
                 "type": 5,
+                "optional": true
+              },
+              {
+                "name": "expert",
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "id",
-                "type": 7,
+                "type": 5,
                 "optional": false
               },
               {
                 "name": "instanceId",
-                "type": 7,
+                "type": 5,
                 "optional": false
               },
               {
                 "name": "name",
-                "type": 7,
+                "type": 5,
                 "optional": false
               },
               {
                 "name": "version",
-                "type": 7,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "union",
-            "types": [
-              6,
-              8
-            ]
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "instructions",
-                "type": 7,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 7,
-                "optional": false
-              },
-              {
-                "name": "version",
-                "type": 7,
+                "type": 5,
                 "optional": false
               }
             ],
@@ -689,6 +666,34 @@
           {
             "kind": "primitive",
             "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              8
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "instructions",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
           },
           {
             "kind": "primitive",
@@ -22834,15 +22839,6 @@
       ]
     },
     {
-      "digest": "0566975bc5eac6868340de9f5c866df2fa97e1b3743bb579c70a7ae69a892324",
-      "names": [
-        "packages/actvero/capability-ui/src/types.ts#WorkbenchSelection"
-      ],
-      "sources": [
-        "packages/actvero/capability-ui/src/types.ts:13"
-      ]
-    },
-    {
       "digest": "05a2796621b1ee6c03ef7abe560b25116bb4da4d592312117242a78415a32b04",
       "names": [],
       "sources": []
@@ -23419,12 +23415,26 @@
       "sources": []
     },
     {
+      "digest": "26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f",
+      "names": [
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchSelection"
+      ],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:13"
+      ]
+    },
+    {
       "digest": "2765e9119edf5816ac1ab4c95c5ee32c90403f3742962eff11544f7752d59d2e",
       "names": [],
       "sources": []
     },
     {
       "digest": "277b61f9c6f8170425fa6ffe06cfa14376757a896a4749cb82a687d7364c4fc9",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7",
       "names": [],
       "sources": []
     },
@@ -24321,6 +24331,13 @@
       "sources": []
     },
     {
+      "digest": "5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77",
+      "names": [],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:60"
+      ]
+    },
+    {
       "digest": "5f758f3de5f00c18968a7c6d347083aac5c9ae13f6a79c78f6611b23c4973564",
       "names": [
         "packages/subagent/subagent/src/descriptor.ts#OneShotSubagentDescriptorData"
@@ -24609,11 +24626,6 @@
     },
     {
       "digest": "72ec79127a9c0d0241b1106a74cc2b24c81ce467170f1c3c93f7b71a9496d227",
-      "names": [],
-      "sources": []
-    },
-    {
-      "digest": "7360f5c03c99d5cc445fe36aea8e0700e930d3176627a94805f51f691d0a3bda",
       "names": [],
       "sources": []
     },
@@ -25571,13 +25583,6 @@
       ]
     },
     {
-      "digest": "b0d336419f140a8efd70badf991011f71bf118040f7cf484f8ddd038a0ea0a60",
-      "names": [],
-      "sources": [
-        "packages/actvero/capability-ui/src/types.ts:45"
-      ]
-    },
-    {
       "digest": "b158f3ff6923714807c0d73882f0b05dc87f8fa85c9e90814852d48bbc866081",
       "names": [
         "packages/core/session/src/types.ts#RequestContext"
@@ -25804,6 +25809,11 @@
     },
     {
       "digest": "bbc5696e3f13c758237b316e3cf08cda0b9fd51ffe672539883457769faa185d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d",
       "names": [],
       "sources": []
     },
@@ -26179,11 +26189,6 @@
     },
     {
       "digest": "e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05",
-      "names": [],
-      "sources": []
-    },
-    {
-      "digest": "e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293",
       "names": [],
       "sources": []
     },

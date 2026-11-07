@@ -107,11 +107,12 @@ export async function packWorkbench(directory: string, output: string): Promise<
       await build({ ...config, cwd: directory, outDir: lib, config: false, tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false })
     }
     for (const file of ['index.js', 'client.js']) await stat(join(lib, file))
+    if ((await readdir(directory)).includes('assets')) await cp(join(directory, 'assets'), join(folder, 'assets'), { recursive: true })
     await mkdir(join(folder, 'locale'))
     await writeFile(join(folder, 'locale/en.json'), JSON.stringify({ meta: { title: metadata.name, description: metadata.description } }) + '\n')
     await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, description: metadata.description,
       exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
-      files: ['lib', 'locale', 'cordis.patch.yml'],
+      files: ['lib', 'locale', 'assets', 'cordis.patch.yml'],
     }, null, 2) + '\n')
     await writeFile(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${JSON.stringify(manifest.name)}\n      name: ${JSON.stringify(manifest.name)}\n`)
     const archiveName = `${manifest.name.replace(/^@/u, '').replaceAll('/', '-')}-${manifest.version}.tgz`

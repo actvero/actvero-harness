@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`caches packaged skills by version, preserves native invocation policy and withdraws the scope 1`] = `
+"Use the declared business tools.
+
+Business data directory: <data>
+
+Packaged resources directory: <bundle>
+
+<skill_content name="delivery">
+<skill_resources>
+Base directory for this skill: <bundle>/skills/delivery
+Resolve relative paths mentioned by this skill against the base directory before using them. Load referenced resources only as needed.
+</skill_resources>
+
+<skill_instructions>
+Read business files before changing them.
+</skill_instructions>
+</skill_content>"
+`;

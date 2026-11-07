@@ -34,6 +34,8 @@ kind: "package-reference"
 
 Host 适配器 `ctx.actveroMcp` 刷新 Agent 范围内的注册，并返回会话已注册的连接 ID 和工具名。它将授权和发现交给 Electron Main，并在注册与执行前应用专家策略。其对象接口声明在 [Host 插件](src/index.ts) 中。
 
+`ctx.actveroMcp.owns(name)` 标识本服务管理的工具。专家策略只筛选和限制这些工具，不拦截由独立原生 MCP 插件注册的会话工具；独立插件自行管理其授权、隔离和释放。
+
 <a id="model-experience"></a>
 
 ## 模型体验
