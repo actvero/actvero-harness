@@ -1,6 +1,7 @@
 /** Full business view and conversation-owned floating workbench preview. */
-import { useEffect, useState } from 'react'
-import { Button, Tooltip, IconCloseOutlineMedium, IconFullscreenOutlineMedium, IconNewChatOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useRef, useState } from 'react'
+import { Button, Tooltip, IconCloseOutlineRegular, IconFullscreenOutlineRegular, IconNewChatOutlineRegular,
+  IconChevronDownOutlineRegular, IconSparkleRegular, IconLoadingOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchInstanceId } from '../../types.ts'
@@ -36,32 +37,44 @@ export function BusinessContent({ id, workbench, renderSlot, t }: FactoryCompone
 /** Full business page with an optional floating native conversation. */
 export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & PropsRenderFactories & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, runtimeFailed, chat, entries } = useView(value => value)
+  const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, entries } = useView(value => value)
   const [conversationPending, setConversationPending] = useState(false)
+  const launcher = useRef<HTMLButtonElement>(null)
   const conversation = (fresh: boolean) => {
     if (conversationPending) return
     setConversationPending(true)
     void action.conversation(fresh).finally(() => { setConversationPending(false) })
   }
-  useEffect(() => () => { action.collapseChat() }, [action])
+  const collapse = () => { action.collapseChat(); requestAnimationFrame(() => { launcher.current?.focus() }) }
+  useEffect(() => () => { action.releaseChat() }, [action])
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entries.find(item => item.id === opened)?.name ?? t('title')
   return <section className={styles.page} aria-label={name}>
-    <header className={styles.toolbar}>
-      <span className={styles.title}>{name}</span>
-      {instance && <>
-        <Button variant="ghost" disabled={conversationPending} onClick={() => { conversation(false) }}>{t('askAI')}</Button>
-        <Tooltip label={t('newConversation')}><Button variant="ghost" disabled={conversationPending} aria-label={t('newConversation')}
-          onClick={() => { conversation(true) }}><IconNewChatOutlineMedium /></Button></Tooltip>
-      </>}
+    <header className={styles.pageHeader} data-window-drag>
+      <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
+        onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
+      <span className={styles.separator} aria-hidden="true" />
+      <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
       : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
         : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
-    {chat && <aside className={styles.chatFloat} aria-label={t('workbenchConversation')}>
-      <header className={styles.toolbar}><span className={styles.title}>{t('workbenchConversation')}</span>
-        <Button variant="ghost" onClick={() => { action.focusChat() }}>{t('fullConversation')}</Button>
-        <Tooltip label={t('collapse')}><Button variant="ghost" aria-label={t('collapse')} onClick={() => { action.collapseChat() }}><IconCloseOutlineMedium /></Button></Tooltip>
+    {instance && <Tooltip label={t('askAI')} side="left"><button ref={launcher} type="button" className={styles.aiLauncher}
+      hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={conversationPending}
+      onClick={() => { if (chat && !chatCollapsed) collapse(); else conversation(false) }}>
+      {conversationPending ? <IconLoadingOutlineRegular className={styles.spinner} size={22} /> : <IconSparkleRegular size={22} />}
+    </button></Tooltip>}
+    {chat && <aside className={styles.chatFloat} hidden={chatCollapsed} aria-label={t('workbenchConversation')}
+      onKeyDown={(event) => { if (event.key === 'Escape' && !event.defaultPrevented) { event.stopPropagation(); collapse() } }}>
+      <header className={styles.toolbar}><IconSparkleRegular /><span className={styles.title}>{t('workbenchConversation')}</span>
+        <div className={styles.actions}>
+          <Tooltip label={t('newConversation')}><Button size="sm" className={styles.iconButton} disabled={conversationPending}
+            aria-label={t('newConversation')} onClick={() => { conversation(true) }}><IconNewChatOutlineRegular /></Button></Tooltip>
+          <Tooltip label={t('fullConversation')}><Button size="sm" className={styles.iconButton} aria-label={t('fullConversation')}
+            onClick={() => { action.focusChat() }}><IconFullscreenOutlineRegular /></Button></Tooltip>
+          <Tooltip label={t('collapse')}><Button size="sm" className={styles.iconButton} aria-label={t('collapse')}
+            onClick={collapse}><IconChevronDownOutlineRegular /></Button></Tooltip>
+        </div>
       </header>
       <SessionProvider session={chat}>{renderSlot('actvero.workbench.chat', {})}</SessionProvider>
     </aside>}
@@ -97,7 +110,7 @@ export function WorkbenchBadge({ t, useProjection, sessionId, action }: PropsRun
     <Tooltip label={t('detachWorkbench')}><button type="button" className={styles.remove} disabled={pending} aria-label={t('detachWorkbench')}
       onClick={() => { setPending(true); void action.detach().catch(() => { action.failed() }).finally(() => { setPending(false) }) }}>
       <span className={styles.mark}>{icon ? <img src={icon} alt="" /> : <WorkbenchIcon />}</span>
-      <IconCloseOutlineMedium className={styles.cross} />
+      <IconCloseOutlineRegular className={styles.cross} />
     </button></Tooltip>
     <Tooltip label={selection.name}><button type="button" className={styles.badgeName}
       onClick={() => { action.open(selection.id, selection.instanceId, sessionId) }}>{selection.name}</button></Tooltip>
@@ -112,22 +125,24 @@ export function WorkbenchUtilities({ t, useProjection, sessionId, action, render
   const [floating, setFloating] = useState(false)
   if (!selection) return null
   return <div className={styles.utilities}>
-    <Tooltip label={t('floatWorkbench')}><Button variant="ghost" aria-label={t('floatWorkbench')} aria-pressed={floating}
+    <Tooltip label={t('floatWorkbench')}><Button size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
       onClick={() => { setFloating(value => !value) }}><WorkbenchIcon /></Button></Tooltip>
     <Tooltip label={t('fullWorkbench')}>
-      <Button variant="ghost" aria-label={t('fullWorkbench')}
+      <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
         onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
-        <IconFullscreenOutlineMedium /></Button></Tooltip>
+        <IconFullscreenOutlineRegular /></Button></Tooltip>
     {floating && <aside className={styles.workbenchFloat} aria-label={t('floatWorkbench')} onKeyDown={(event) => {
       if (event.key === 'Escape') { event.stopPropagation(); setFloating(false) }
     }}>
-      <header className={styles.toolbar}><span className={styles.title}>{selection.name}</span>
-        <Tooltip label={t('fullWorkbench')}>
-          <Button variant="ghost" aria-label={t('fullWorkbench')}
-            onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
-            <IconFullscreenOutlineMedium /></Button></Tooltip>
-        <Tooltip label={t('collapse')}><Button variant="ghost" aria-label={t('collapse')}
-          onClick={() => { setFloating(false) }}><IconCloseOutlineMedium /></Button></Tooltip>
+      <header className={styles.toolbar}><WorkbenchIcon /><span className={styles.title}>{selection.name}</span>
+        <div className={styles.actions}>
+          <Tooltip label={t('fullWorkbench')}>
+            <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
+              onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
+              <IconFullscreenOutlineRegular /></Button></Tooltip>
+          <Tooltip label={t('collapse')}><Button size="sm" className={styles.iconButton} aria-label={t('collapse')}
+            onClick={() => { setFloating(false) }}><IconCloseOutlineRegular /></Button></Tooltip>
+        </div>
       </header>
       {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.instanceId, sessionId) })}
     </aside>}

@@ -49,6 +49,7 @@ export interface WorkbenchView extends WorkbenchManagement {
   preparing: boolean
   runtimeFailed: boolean
   chat: SessionReference | null
+  chatCollapsed: boolean
 }
 
 /** Human-triggered navigation and local installation. */
@@ -58,6 +59,7 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
   context(instanceId: WorkbenchInstanceId | null): WorkbenchClientContext
   conversation(fresh: boolean): Promise<void>
   collapseChat(): void
+  releaseChat(): void
   focusChat(): void
 }
 
@@ -67,7 +69,7 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
 export function registerWorkbenches(ctx: Context): void {
   const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) })
   let view: WorkbenchView = { ...management.initial, entries: [], remembered: [], opened: readSelection(),
-    instance: null, preparing: false, runtimeFailed: false, chat: null }
+    instance: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
     view = { ...view, ...patch }
@@ -85,16 +87,18 @@ export function registerWorkbenches(ctx: Context): void {
   let linkedSession: SessionId | null = null
   const runtime = new WorkbenchClientRuntime(ctx)
   const failed = () => { ctx.capabilityHub.notify(ctx.locale.bind(namespace)('runtimeFailed')) }
-  const collapseChat = () => { chatGeneration++; view.chat?.release(); update({ chat: null }) }
+  const collapseChat = () => { chatGeneration++; update({ chatCollapsed: true }) }
+  const releaseChat = () => { chatGeneration++; view.chat?.release(); update({ chat: null, chatCollapsed: true }) }
   const showChat = async (id: SessionId) => {
-    collapseChat()
+    if (view.chat?.sessionId === id) { update({ chatCollapsed: false }); return }
+    releaseChat()
     const generation = chatGeneration
     const reference = ctx.sessions.retain(id, { source: 'actveroWorkbench' })
     try {
       await reference.ready
       if (generation !== chatGeneration || ctx.fiber.uid === null) { reference.release(); return }
       linkedSession = id
-      update({ chat: reference })
+      update({ chat: reference, chatCollapsed: false })
     } catch (error) { reference.release(); throw error }
   }
   const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null) => {
@@ -105,7 +109,7 @@ export function registerWorkbenches(ctx: Context): void {
   }
   const load = async (id: string, target?: WorkbenchInstanceId) => {
     const generation = ++navigation
-    collapseChat()
+    releaseChat()
     update({ opened: id, instance: null, preparing: true, runtimeFailed: false })
     try {
       const result = target ? await ctx.remote.actveroWorkbench.read({ instanceId: target }) : null
@@ -150,16 +154,17 @@ export function registerWorkbenches(ctx: Context): void {
       ctx.layout.selectPanel(businessPanel)
     },
     back() {
-      collapseChat()
+      releaseChat()
       ctx.layout.selectPanel(managerPanel)
     },
     context: instanceId => context(instanceId, linkedSession),
     collapseChat,
+    releaseChat,
     focusChat() {
       const id = view.chat?.sessionId
       if (!id) return
       ctx.uiWorkspace.openSession(id)
-      collapseChat()
+      releaseChat()
       ctx.layout.selectPanel(null)
     },
     async conversation(fresh) {
@@ -192,7 +197,7 @@ export function registerWorkbenches(ctx: Context): void {
   })
   ctx.effect(() => ctx.reflect.provide('actveroWorkbenches', registry))
   ctx.effect(() => ctx.resources.register(workbenchResource(ctx.remote.actveroWorkbench)))
-  ctx.effect(() => () => { navigation++; collapseChat() })
+  ctx.effect(() => () => { navigation++; releaseChat() })
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
   const t = ctx.locale.bind(namespace)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
