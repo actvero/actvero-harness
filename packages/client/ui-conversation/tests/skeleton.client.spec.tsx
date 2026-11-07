@@ -576,6 +576,7 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.getByTestId('view-conversation.session.header.corner')).toBeTruthy()
     expect(b.view.queryByRole('tablist')).toBeNull()
     expect(b.slotCalls).not.toContain('conversation.session.header.utilities')
+    expect(b.slotCalls).toContain('conversation.session.header.resident-utilities')
     expect(b.slotCalls).not.toContain('conversation.session.header.actions')
     expect(b.view.getByText('探索未至之境')).toBeTruthy()
     expect(b.view.getByText('预览版')).toBeTruthy()

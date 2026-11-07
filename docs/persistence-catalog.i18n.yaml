@@ -9,8 +9,8 @@
   en: 1387c4505dde2faf
   zh: 48570fa1c13d6910
 /session-persistence-event-catalog/persistence-type-fingerprints:
-  en: 985a889f02b8483d
-  zh: 777a911711cd707d
+  en: e6a474fce1cee514
+  zh: 4b1f7de8315cb949
 /session-persistence-event-catalog/event-envelope:
   en: 689f781d95689e20
   zh: 602f6a7f0835d698
@@ -24,8 +24,11 @@
   en: 42a0361de088b08a
   zh: b18f6d08162141fc
 /session-persistence-event-catalog/events/actvero/actvero-expert-log-only:
-  en: 4534129d4b9673bd
-  zh: e58514d8b889b0d1
+  en: 4c97e4f7b98edf98
+  zh: 87afcec66f67ed06
+/session-persistence-event-catalog/events/actvero/actvero-workbench-log-only:
+  en: a1dc30f608ca30ef
+  zh: c9e0435091ce7fe4
 /session-persistence-event-catalog/events/agent:
   en: 9188862058c6986b
   zh: 9188862058c6986b
@@ -327,8 +330,11 @@
   en: 334debf98af860bd
   zh: 334debf98af860bd
 /session-persistence-event-catalog/resolved-persistence-types/actvero-expert:
-  en: 96c25f972a255868
-  zh: 96c25f972a255868
+  en: 1c9605e22520cbc3
+  zh: 1c9605e22520cbc3
+/session-persistence-event-catalog/resolved-persistence-types/actvero-workbench:
+  en: 41e515712111fefc
+  zh: 41e515712111fefc
 /session-persistence-event-catalog/resolved-persistence-types/after:
   en: 5bb3dfb05cb37efb
   zh: 5bb3dfb05cb37efb
@@ -1344,8 +1350,14 @@
   en: bd3aedd570ded4d2
   zh: f020d0816d3a6c1a
 /session-persistence-event-catalog/resolved-persistence-types/usermessage~2:
-  en: b99d66ffe277f0bc
-  zh: eacc9c1f62ae66c1
+  en: 9e6d25a6dc4acc33
+  zh: 2c6182c55c0c1989
+/session-persistence-event-catalog/resolved-persistence-types/workbenchexpert:
+  en: cbc19757b917bb8b
+  zh: 147a6749cbe75c1d
+/session-persistence-event-catalog/resolved-persistence-types/workbenchselection:
+  en: d4e692f3bfda5777
+  zh: be7e016dd38651fc
 /session-persistence-event-catalog/resolved-persistence-types/workflowagentoutcome:
   en: d0a3f9aab18c3de5
   zh: 76ac69a835ca4e29
@@ -1368,11 +1380,11 @@
   en: 0223d7ffb67ac272
   zh: c2a8221caab6d350
 /session-persistence-event-catalog/resolved-persistence-types/number~2:
-  en: 2786fef560851bb4
-  zh: 5d787475356b2606
+  en: e7e911f3bf89cd44
+  zh: b14ab7c4d3834077
 /session-persistence-event-catalog/resolved-persistence-types/string:
-  en: 009c7ecb8c7d3bb5
-  zh: 7f56d672f376b22f
+  en: c4af88a9d34211e3
+  zh: fd7fde8079868093
 /session-persistence-event-catalog/resolved-persistence-types/string~2:
   en: 0089620bf4638263
   zh: 1922bef1713094bb
@@ -1389,15 +1401,21 @@
   en: d4d63e6e0832fd5b
   zh: 3af90f9fc14f48da
 /session-persistence-event-catalog/resolved-persistence-types/union-2-variants:
-  en: f692844b29923b2e
-  zh: 72f12bca08d63267
+  en: c8711a25b23d46e8
+  zh: 31925c0fcb90d232
 /session-persistence-event-catalog/resolved-persistence-types/union-2-variants~2:
-  en: 69d360cf5a1ae6b4
-  zh: f23faf39a2a0e6f1
+  en: a2cea967e59212c6
+  zh: 38b995ce2e100c52
 /session-persistence-event-catalog/resolved-persistence-types/union-2-variants~3:
+  en: f62e26aec02c0e1a
+  zh: e8c84e06a17c9d87
+/session-persistence-event-catalog/resolved-persistence-types/union-2-variants~4:
+  en: ebe1b3aa11e364df
+  zh: aaa7653a7c95991a
+/session-persistence-event-catalog/resolved-persistence-types/union-2-variants~5:
   en: 6ed05b351d251d6a
   zh: b8e175ed1ebe5c49
-/session-persistence-event-catalog/resolved-persistence-types/union-2-variants~4:
+/session-persistence-event-catalog/resolved-persistence-types/union-2-variants~6:
   en: 6c75d89fb6df2010
   zh: 434c20f41e95323b
 /session-persistence-event-catalog/resolved-persistence-types/union-3-variants:
@@ -1926,8 +1944,11 @@
   en: e07dc21a34d0dddb
   zh: 4639dcefd805d0f7
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection:
-  en: 28a844a6a64ca487
-  zh: ac78d114288cd34e
+  en: c42252ea17639942
+  zh: 75f6182a85cf4cf6
+/session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection~2:
+  en: 35ae42fc2a75dc69
+  zh: 593a82ee72fb844b
 /session-persistence-event-catalog/resolved-persistence-types/sessionformatversion-sessionid-throughseq:
   en: 8aaa02b06896492d
   zh: 4dd0e1ee40d8f22d
@@ -1956,8 +1977,11 @@
   en: 7ce7755079e8dca8
   zh: 608a28b3fd54d7c9
 /session-persistence-event-catalog/resolved-persistence-types/type-actvero-expert:
-  en: a9bf568da2323f96
-  zh: 2cbb3a32649567da
+  en: 9368dcdb062e4a1d
+  zh: dc78110ceb430a5a
+/session-persistence-event-catalog/resolved-persistence-types/type-actvero-workbench:
+  en: 5537556e17533266
+  zh: 8a82d10701025d3d
 /session-persistence-event-catalog/resolved-persistence-types/type-agent-preset-selected:
   en: c8c731ee23bed85a
   zh: f4ffc80f7828701d

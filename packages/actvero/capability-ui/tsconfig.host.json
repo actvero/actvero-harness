@@ -9,11 +9,51 @@
     "noUnusedParameters": false
   },
   "include": [
-    "src/index.ts"
+    "src/index.ts",
+    "src/types.ts",
+    "src/workbench-*.ts",
+    "src/checklist.ts",
+    "src/checklist-data.ts"
   ],
   "references": [
     {
       "path": "../../../vendor/cordis/tsconfig.json"
+    },
+    {
+      "path": "../../core/agent/tsconfig.json"
+    },
+    {
+      "path": "../../core/scope/tsconfig.json"
+    },
+    {
+      "path": "../../core/tools/tsconfig.json"
+    },
+    {
+      "path": "../../core/system-prompt/tsconfig.json"
+    },
+    {
+      "path": "../../core/session/tsconfig.json"
+    },
+    {
+      "path": "../../session/session-projection/tsconfig.json"
+    },
+    {
+      "path": "../../storage/storage-domain/tsconfig.json"
+    },
+    {
+      "path": "../../typert/protocol/tsconfig.json"
+    },
+    {
+      "path": "../../typert/registry/tsconfig.json"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.host.json"
+    },
+    {
+      "path": "../../api/remote-access/tsconfig.host.json"
+    },
+    {
+      "path": "../../workspace/workspace/tsconfig.json"
     }
   ],
   "exclude": [

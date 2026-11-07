@@ -102,3 +102,14 @@
 .checklist h2 { margin: 0; font-size: 16px; font-weight: 500; }
 .meta { color: var(--dsw-alias-label-secondary); font-size: 12px; }
 .checklistItem { display: flex; align-items: start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--dsw-alias-border-l2); overflow-wrap: anywhere; }
+
+.addTask { display: flex; align-items: center; gap: 8px; margin-top: 16px; min-width: 0; }
+.addTask input { flex: 1; min-width: 0; }
+.addTask button { flex-shrink: 0; }
+@container (max-width: 460px) {
+  .examplePage { padding: 16px; }
+  .checklist { padding: 12px; }
+  .examplePage h1 { font-size: 18px; }
+  .exampleDescription { font-size: 13px; }
+  .addTask { flex-wrap: wrap; }
+}

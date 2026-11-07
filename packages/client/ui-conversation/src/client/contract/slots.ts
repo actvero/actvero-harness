@@ -239,6 +239,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'session'
       owner: ConversationHeaderActionOwnerProps
     }
+    /** Right-aligned Session utilities available before the first message, in ascending order. */
+    'conversation.session.header.resident-utilities': {
+      kind: 'list'
+      scope: 'session'
+      owner: ConversationHeaderActionOwnerProps
+    }
     /** Global navigation before the Session title, available without a Session. */
     'conversation.header.leading': {
       kind: 'single'
@@ -634,6 +640,7 @@ export type ConversationSessionHeaderSlotProps =
     'conversation.session.header.lineage'
     | 'conversation.session.header.actions'
     | 'conversation.session.header.utilities'
+    | 'conversation.session.header.resident-utilities'
     | 'conversation.session.header.corner'
     | 'conversation.session.header.views.actions'
   >

@@ -1,4 +1,18 @@
 export const zh = {
+  askAI: 'AI 协助',
+  newConversation: '新建工作台对话',
+  workbenchConversation: '工作台对话',
+  fullConversation: '进入对话',
+  floatWorkbench: '悬浮查看工作台',
+  fullWorkbench: '进入工作台',
+  collapse: '收起',
+  detachWorkbench: '取消使用工作台',
+  preparing: '正在打开工作台…',
+  runtimeFailed: '工作台操作未完成。请确认会话未在运行、工作台已加载，然后重试。',
+  addTask: '添加任务',
+  taskPlaceholder: '输入待办事项',
+  saveConflict: '内容已被更新，请查看最新清单后重试。',
+
   update: '更新版本',
   enable: '启用',
   disable: '停用',
@@ -95,6 +109,20 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  askAI: 'Ask AI',
+  newConversation: 'New workbench conversation',
+  workbenchConversation: 'Workbench conversation',
+  fullConversation: 'Open conversation',
+  floatWorkbench: 'Floating workbench',
+  fullWorkbench: 'Open workbench',
+  collapse: 'Collapse',
+  detachWorkbench: 'Stop using workbench',
+  preparing: 'Opening workbench…',
+  runtimeFailed: 'Could not complete the workbench action. Check that the conversation is idle and the workbench is loaded, then retry.',
+  addTask: 'Add task',
+  taskPlaceholder: 'Enter a task',
+  saveConflict: 'The content changed. Review the latest checklist and try again.',
+
   update: 'Update version',
   enable: 'Enable',
   disable: 'Disable',

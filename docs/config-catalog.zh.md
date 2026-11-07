@@ -11,6 +11,23 @@
 
 每个包的条目用三个标识符标注：`inject` 列出插件注入的服务键，其 `cordis.yml` 树还必须加载这些服务的提供者；`refs` 列出声明引用、但未粘贴在此处的类型；`source` 链接到声明配置的源文件。范围限定为 harness 层级（`packages/`）；配置树还可能加载的 vendored cordis 插件（控制台日志记录器等）固定为上游源代码（参见 [vendoring policy](../vendor/README.md)），未收录于此目录。
 
+<!-- BEGIN GENERATED config-catalog:@actvero/dsh-capability-ui -->
+<a id="actverodsh-capability-ui"></a>
+
+## `@actvero/dsh-capability-ui`
+
+- `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
+- `source`: [`packages/actvero/capability-ui/src/workbench-runtime.ts:27`](../packages/actvero/capability-ui/src/workbench-runtime.ts)
+
+```ts config-catalog
+/** Runtime deployment directory, resolved by the product profile. */
+export interface WorkbenchRuntimeConfig {
+  /** Absolute managed directory for workbench files and native workspaces. */
+  dataDirectory: string
+}
+```
+<!-- END GENERATED config-catalog:@actvero/dsh-capability-ui -->
+
 <!-- BEGIN GENERATED config-catalog:@actvero/dsh-model-gateway -->
 <a id="actverodsh-model-gateway"></a>
 
@@ -4612,7 +4629,6 @@ export interface Config {
 <!-- BEGIN GENERATED config-catalog:no-config -->
 | `package` | `inject` | `source` |
 | --- | --- | --- |
-| `@actvero/dsh-capability-ui` | — | [`packages/actvero/capability-ui/src/index.ts`](../packages/actvero/capability-ui/src/index.ts) |
 | `@actvero/dsh-client-account` | — | [`packages/client/actvero-account/src/index.ts`](../packages/client/actvero-account/src/index.ts) |
 | `@actvero/dsh-connectors` | `tools` · `agents` | [`packages/actvero/connectors/src/index.ts`](../packages/actvero/connectors/src/index.ts) |
 | `@actvero/dsh-experts` | `agents` · `skills` · `tools` · `systemPrompt` · `sessionController` · `workspaceRegistry` · `sessionProjections` · `actveroMcp` | [`packages/actvero/experts/src/index.ts`](../packages/actvero/experts/src/index.ts) |

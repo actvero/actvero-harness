@@ -561,6 +561,155 @@
       }
     },
     {
+      "key": "event:actvero/workbench",
+      "kind": "event",
+      "event": "actvero/workbench",
+      "surface": false,
+      "digest": "e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 9,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "schemaVersion",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "selection",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              8
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "expert",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "instanceId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              6,
+              8
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "instructions",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": "actvero/workbench"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:agent-preset/selected",
       "kind": "event",
       "event": "agent-preset/selected",
@@ -22685,6 +22834,15 @@
       ]
     },
     {
+      "digest": "0566975bc5eac6868340de9f5c866df2fa97e1b3743bb579c70a7ae69a892324",
+      "names": [
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchSelection"
+      ],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:13"
+      ]
+    },
+    {
       "digest": "05a2796621b1ee6c03ef7abe560b25116bb4da4d592312117242a78415a32b04",
       "names": [],
       "sources": []
@@ -23740,6 +23898,11 @@
       "sources": []
     },
     {
+      "digest": "4a17c3d97fb8cf4e125398f8b252a2b43c8be5b1ebe3683e746c5d7b45cd441a",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "4a9bef9f27a942520cc2279ca7dd3082556e4bff543f66b5c0333e1bbed1cd86",
       "names": [
         "packages/subagent/subagent/src/continuation-messages.ts#AgentMessageSource"
@@ -23791,6 +23954,8 @@
     {
       "digest": "4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b",
       "names": [
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchId",
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchInstanceId",
         "packages/api/session-controller/src/types.ts#SessionRequestId",
         "packages/attachment/attachment/src/brand.ts#AttachmentId",
         "packages/compaction/compaction/src/brand.ts#CompactionId",
@@ -23817,6 +23982,8 @@
         "packages/workflow/workflow/src/types.ts#WorkflowRunId"
       ],
       "sources": [
+        "packages/actvero/capability-ui/src/types.ts:7",
+        "packages/actvero/capability-ui/src/types.ts:9",
         "packages/api/session-controller/src/types.ts:409",
         "packages/attachment/attachment/src/brand.ts:6",
         "packages/compaction/compaction/src/brand.ts:4",
@@ -24442,6 +24609,11 @@
     },
     {
       "digest": "72ec79127a9c0d0241b1106a74cc2b24c81ce467170f1c3c93f7b71a9496d227",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "7360f5c03c99d5cc445fe36aea8e0700e930d3176627a94805f51f691d0a3bda",
       "names": [],
       "sources": []
     },
@@ -25164,6 +25336,15 @@
       ]
     },
     {
+      "digest": "a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c",
+      "names": [
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchExpert"
+      ],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:11"
+      ]
+    },
+    {
       "digest": "a6567ccb2e530606b775371eb4fa31468d72084339968e8b0440a516a23b39dc",
       "names": [],
       "sources": []
@@ -25387,6 +25568,13 @@
       ],
       "sources": [
         "packages/attachment/attachment/src/types.ts:11"
+      ]
+    },
+    {
+      "digest": "b0d336419f140a8efd70badf991011f71bf118040f7cf484f8ddd038a0ea0a60",
+      "names": [],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:45"
       ]
     },
     {
@@ -25811,6 +25999,11 @@
       "sources": []
     },
     {
+      "digest": "d146926fa019e81971082bc4ebb3ed957eed4522c0e39b7e780109385b784323",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d28765f87d6b6ab408e0b2f3e7e297791b004b806d8e302c49903ebae815feb2",
       "names": [],
       "sources": []
@@ -25986,6 +26179,11 @@
     },
     {
       "digest": "e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "e0b97011626682c4253680ff3365877bbedb1f925407d2141b736dfb5a8dc293",
       "names": [],
       "sources": []
     },

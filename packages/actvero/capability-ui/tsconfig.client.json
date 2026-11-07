@@ -10,7 +10,9 @@
   },
   "include": [
     "src/client",
-    "src/contracts.ts"
+    "src/contracts.ts",
+    "src/types.ts",
+    "src/checklist-data.ts"
   ],
   "references": [
     {
@@ -44,10 +46,28 @@
       "path": "../../client/ui-conversation/tsconfig.client.json"
     },
     {
-      "path": "tsconfig.host.json"
+      "path": "../../api/remotes/tsconfig.client.json"
     },
     {
-      "path": "../../api/remotes/tsconfig.client.json"
+      "path": "../../client/resources/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-workspace/tsconfig.json"
+    },
+    {
+      "path": "../../client/actvero-account/tsconfig.client.json"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../typert/protocol"
     }
   ]
 }
