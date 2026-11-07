@@ -13,7 +13,7 @@ import {
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ActveroWorkbench } from '../../contracts.ts'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
@@ -323,20 +323,5 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         setDetailSelection(undefined)
         void action.remove(name)
       }} />
-  </section>
-}
-
-/** Native main-area seat for the currently opened business panel. */
-export function OpenWorkbench({ t, useView, renderSlot, action }: Locale & ViewHooks
-  & PropsRenderSlots<'actvero.workbench.body'> & { action: WorkbenchAction }) {
-  const { entries, opened } = useView(value => value)
-  const entry = entries.find(item => item.id === opened)
-  const name = opened === 'builtin:project-checklist' ? t('sampleName') : entry?.name ?? t('title')
-  const unavailable = <div className={styles.empty}>
-    <p role="status">{t('unavailable')}</p>
-    <Button variant="outline" onClick={() => { action.back() }}>{t('back')}</Button>
-  </div>
-  return <section className={styles.business} aria-label={name}>
-    {opened ? renderSlot('actvero.workbench.body', {}, { entryKey: opened, fallback: unavailable }) : unavailable}
   </section>
 }

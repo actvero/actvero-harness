@@ -178,6 +178,66 @@ interface SessionActivity {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxactveroworkbenchruntime--workbenchruntime"></a>
+
+### `ctx.actveroWorkbenchRuntime` — `WorkbenchRuntime`
+
+Native Remote owner and in-process business-provider registry.
+
+```ts cordis-catalog
+/** Register business behavior; unregistering leaves documents and selections intact.
+ * @param provider Package-owned business implementation.
+ * @returns Disposer withdrawing the exact implementation.
+ */
+register(provider: WorkbenchProvider): () => void
+
+/** List providers that support conversation integration.
+ * @returns Runtime-ready provider metadata, independent of UI-only cards.
+ */
+@Remote list(): WorkbenchRuntimeEntry[]
+
+/** Resolve the provider's local default instance without creating a conversation.
+ * @param id Installed provider identity.
+ * @returns Existing business document or a durably initialized instance.
+ */
+@Remote async open(id: WorkbenchId): Promise<WorkbenchDocument>
+
+/** Read current business data; never returns a fabricated empty document.
+ * @param request Instance to read.
+ * @returns Persisted document.
+ */
+@Remote read(request: WorkbenchTarget): WorkbenchDocument
+
+/** Apply one business operation atomically with an expected revision.
+ * @param request Instance, expected revision and provider-defined action.
+ * @returns Document only after persistence succeeds.
+ */
+@Remote async action(request: WorkbenchActionRequest): Promise<WorkbenchDocument>
+
+/** Bind an idle existing conversation or create one in the managed files directory.
+ * @param request Business instance and optional existing conversation.
+ * @returns Conversation identity and the durably recorded environment.
+ */
+@Remote async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding>
+
+/** Stop using a workbench without deleting business data or conversation history.
+ * @param request Conversation to unlink; running turns are governed by native maintenance admission.
+ * @returns The cleared association.
+ */
+@Remote async detach(request: { sessionId: SessionId }): Promise<WorkbenchBinding>
+
+/** Observe authoritative business data while at least one UI is viewing it.
+ * @param request Instance to observe.
+ * @param signal Remote stream lifetime.
+ * @returns Initial state and subsequent durable changes, coalesced without polling.
+ */
+@Remote({ mode: 'stream' }) async *follow(request: WorkbenchTarget, signal: AbortSignal): AsyncIterable<WorkbenchDocument>
+```
+
+Types: [SessionId](core.zh.md)
+
+Source: [`packages/actvero/capability-ui/src/workbench-runtime.ts`](../../packages/actvero/capability-ui/src/workbench-runtime.ts)
+
 <a id="ctxdirectorypicker--directorypicker-abstract-seam"></a>
 
 ### `ctx.directoryPicker` — `DirectoryPicker` (abstract seam)

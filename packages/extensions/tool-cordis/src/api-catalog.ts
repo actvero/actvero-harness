@@ -82,6 +82,61 @@ export interface TypeApiEntry {
 /** Every harness `ctx.<key>` service, sorted by key. */
 export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
+    key: 'actveroWorkbenchRuntime',
+    summary: 'Native Remote owner and in-process business-provider registry.',
+    description: 'Native Remote owner and in-process business-provider registry.',
+    methods: [
+      {
+        signature: 'register(provider: WorkbenchProvider): () => void',
+        description: 'Register business behavior; unregistering leaves documents and selections intact.',
+        parameters: [{ name: 'provider', description: 'Package-owned business implementation.' }],
+        returns: 'Disposer withdrawing the exact implementation.',
+      },
+      {
+        signature: '@Remote list(): WorkbenchRuntimeEntry[]',
+        description: 'List providers that support conversation integration.',
+        parameters: [],
+        returns: 'Runtime-ready provider metadata, independent of UI-only cards.',
+      },
+      {
+        signature: '@Remote async open(id: WorkbenchId): Promise<WorkbenchDocument>',
+        description: 'Resolve the provider\'s local default instance without creating a conversation.',
+        parameters: [{ name: 'id', description: 'Installed provider identity.' }],
+        returns: 'Existing business document or a durably initialized instance.',
+      },
+      {
+        signature: '@Remote read(request: WorkbenchTarget): WorkbenchDocument',
+        description: 'Read current business data; never returns a fabricated empty document.',
+        parameters: [{ name: 'request', description: 'Instance to read.' }],
+        returns: 'Persisted document.',
+      },
+      {
+        signature: '@Remote async action(request: WorkbenchActionRequest): Promise<WorkbenchDocument>',
+        description: 'Apply one business operation atomically with an expected revision.',
+        parameters: [{ name: 'request', description: 'Instance, expected revision and provider-defined action.' }],
+        returns: 'Document only after persistence succeeds.',
+      },
+      {
+        signature: '@Remote async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding>',
+        description: 'Bind an idle existing conversation or create one in the managed files directory.',
+        parameters: [{ name: 'request', description: 'Business instance and optional existing conversation.' }],
+        returns: 'Conversation identity and the durably recorded environment.',
+      },
+      {
+        signature: '@Remote async detach(request: { sessionId: SessionId }): Promise<WorkbenchBinding>',
+        description: 'Stop using a workbench without deleting business data or conversation history.',
+        parameters: [{ name: 'request', description: 'Conversation to unlink; running turns are governed by native maintenance admission.' }],
+        returns: 'The cleared association.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *follow(request: WorkbenchTarget, signal: AbortSignal): AsyncIterable<WorkbenchDocument>',
+        description: 'Observe authoritative business data while at least one UI is viewing it.',
+        parameters: [{ name: 'request', description: 'Instance to observe.' }, { name: 'signal', description: 'Remote stream lifetime.' }],
+        returns: 'Initial state and subsequent durable changes, coalesced without polling.',
+      },
+    ],
+  },
+  {
     key: 'agentDefaultModel',
     summary: 'Owns the default model selection independently of any Host or transport.',
     description: 'Owns the default model selection independently of any Host or transport. Each operation reads the owning Config references.',
@@ -8700,6 +8755,54 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WeeklyScheduleRecord',
     declaration: 'export interface WeeklyScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'weekly\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly time: string;\n    readonly timeZone: string;\n    readonly weekdays: number[];\n    readonly scheduledAt: string;\n}',
+  },
+  {
+    name: 'WorkbenchActionRequest',
+    declaration: 'export interface WorkbenchActionRequest extends WorkbenchTarget {\n    revision: number;\n    action: string;\n    args: string;\n}',
+  },
+  {
+    name: 'WorkbenchBinding',
+    declaration: 'export interface WorkbenchBinding {\n    sessionId: SessionId;\n    selection: WorkbenchSelection | null;\n}',
+  },
+  {
+    name: 'WorkbenchBindRequest',
+    declaration: 'export interface WorkbenchBindRequest extends WorkbenchTarget {\n    sessionId?: SessionId;\n}',
+  },
+  {
+    name: 'WorkbenchDocument',
+    declaration: 'export interface WorkbenchDocument {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    revision: number;\n    json: string;\n}',
+  },
+  {
+    name: 'WorkbenchExpert',
+    declaration: 'export interface WorkbenchExpert {\n    name: string;\n    version: string;\n    instructions: string;\n}',
+  },
+  {
+    name: 'WorkbenchId',
+    declaration: 'export type WorkbenchId = Branded<\'ActveroWorkbenchId\'>;',
+  },
+  {
+    name: 'WorkbenchInstanceId',
+    declaration: 'export type WorkbenchInstanceId = Branded<\'ActveroWorkbenchInstanceId\'>;',
+  },
+  {
+    name: 'WorkbenchProvider',
+    declaration: 'export interface WorkbenchProvider {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    expert?: WorkbenchExpert;\n    initial(): string;\n    reduce(json: string, action: string, args: string): string;\n    actionHelp: string;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n}',
+  },
+  {
+    name: 'WorkbenchRuntimeContext',
+    declaration: 'export interface WorkbenchRuntimeContext {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    sessionId: SessionId;\n    dataDirectory: string;\n}',
+  },
+  {
+    name: 'WorkbenchRuntimeEntry',
+    declaration: 'export interface WorkbenchRuntimeEntry {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n}',
+  },
+  {
+    name: 'WorkbenchSelection',
+    declaration: 'export interface WorkbenchSelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n}',
+  },
+  {
+    name: 'WorkbenchTarget',
+    declaration: 'export interface WorkbenchTarget {\n    instanceId: WorkbenchInstanceId;\n}',
   },
   {
     name: 'WorkflowAgentEndInfo',

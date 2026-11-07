@@ -9,6 +9,23 @@ Both language versions of this file are GENERATED from source (`scripts/gen-conf
 
 Each package entry labels its data with three identifiers: `inject` lists the service keys the plugin injects, so its `cordis.yml` tree must also load providers for those services; `refs` lists the referenced types that are not pasted here; `source` links the file that declares the config. Scope is the harness tier (`packages/`); the vendored cordis plugins a config tree may also load (the console logger, …) are pinned upstream source ([vendoring policy](../vendor/README.md)) and not catalogued here.
 
+<!-- BEGIN GENERATED config-catalog:@actvero/dsh-capability-ui -->
+<a id="actverodsh-capability-ui"></a>
+
+## `@actvero/dsh-capability-ui`
+
+- `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
+- `source`: [`packages/actvero/capability-ui/src/workbench-runtime.ts:27`](../packages/actvero/capability-ui/src/workbench-runtime.ts)
+
+```ts config-catalog
+/** Runtime deployment directory, resolved by the product profile. */
+export interface WorkbenchRuntimeConfig {
+  /** Absolute managed directory for workbench files and native workspaces. */
+  dataDirectory: string
+}
+```
+<!-- END GENERATED config-catalog:@actvero/dsh-capability-ui -->
+
 <!-- BEGIN GENERATED config-catalog:@actvero/dsh-model-gateway -->
 <a id="actverodsh-model-gateway"></a>
 
@@ -4610,7 +4627,6 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 <!-- BEGIN GENERATED config-catalog:no-config -->
 | `package` | `inject` | `source` |
 | --- | --- | --- |
-| `@actvero/dsh-capability-ui` | — | [`packages/actvero/capability-ui/src/index.ts`](../packages/actvero/capability-ui/src/index.ts) |
 | `@actvero/dsh-client-account` | — | [`packages/client/actvero-account/src/index.ts`](../packages/client/actvero-account/src/index.ts) |
 | `@actvero/dsh-connectors` | `tools` · `agents` | [`packages/actvero/connectors/src/index.ts`](../packages/actvero/connectors/src/index.ts) |
 | `@actvero/dsh-experts` | `agents` · `skills` · `tools` · `systemPrompt` · `sessionController` · `workspaceRegistry` · `sessionProjections` · `actveroMcp` | [`packages/actvero/experts/src/index.ts`](../packages/actvero/experts/src/index.ts) |

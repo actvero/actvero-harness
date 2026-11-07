@@ -152,6 +152,8 @@
     - id: actvero-capability-ui
       name: '@actvero/dsh-capability-ui'
       disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+      config:
+        dataDirectory: !!js dshHomePath('actvero-workbench-data')
 
     - id: actvero-workbenches
       name: 'dsh-desktop-workbenches'

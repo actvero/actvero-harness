@@ -143,6 +143,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   web: 'web.md',
   workflowEngine: 'workflow.md',
   webhookRuntime: 'webhook.md',
+  actveroWorkbenchRuntime: 'workspace.md',
   workspaceRegistry: 'workspace.md',
   workspaceController: 'workspace.md',
   workspaceFiles: 'workspace.md',
@@ -876,6 +877,15 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  WorkbenchProvider: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchRuntimeEntry: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchDocument: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchId: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchTarget: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchActionRequest: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchBindRequest: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchBinding: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+
   ProductEvent: 'Desktop event fields are owned by packages/client/product-analytics/README.md and src/events.ts',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',

@@ -35,7 +35,7 @@
   border-bottom: none;
 }
 
-.headerBlank .headerCorner {
+.headerBlank .headerUtilities:empty + .headerCorner {
   margin-left: auto;
 }
 
@@ -166,7 +166,8 @@ button.crumb:hover {
   flex: none;
   align-items: center;
   gap: 8px;
-  margin-left: 20px;
+  margin-left: auto;
+  padding-left: 20px;
 }
 
 .headerUtilities:empty {

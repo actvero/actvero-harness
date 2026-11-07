@@ -182,11 +182,12 @@ export function ConversationSessionHeader({
                 {renderSlot('conversation.session.header.actions', {})}
               </div>
             </div>
-            <div className={css.headerUtilities}>
-              {renderSlot('conversation.session.header.utilities', {})}
-            </div>
           </>
         )}
+        <div className={css.headerUtilities}>
+          {!hideChrome && renderSlot('conversation.session.header.utilities', {})}
+          {renderSlot('conversation.session.header.resident-utilities', {})}
+        </div>
         <div className={css.headerCorner} data-conversation-header-corner="">
           {renderSlot('conversation.session.header.corner', {})}
         </div>

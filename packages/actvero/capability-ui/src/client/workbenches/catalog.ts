@@ -18,7 +18,7 @@ export interface WorkbenchItem extends ActveroWorkbench {
  * @param resolveText Current locale's package text resolver.
  * @returns Installed and independently contributed workbenches.
  */
-export function workbenchCatalog(view: WorkbenchView, resolveText: ResolveText): WorkbenchItem[] {
+export function workbenchCatalog(view: Pick<WorkbenchView, 'entries' | 'remembered' | 'bundles' | 'restart'>, resolveText: ResolveText): WorkbenchItem[] {
   const installed = view.bundles.filter(bundle => bundle.installed && (
     bundle.client?.inject?.includes('@actvero/dsh-capability-ui') || view.remembered.some(entry => entry.id === bundle.name)
   ))

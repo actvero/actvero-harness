@@ -1,0 +1,83 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`workbench runtime > loads the bundled expert and tools only for the linked conversation, then removes them on detach 1`] = `
+{
+  "prompt": "You are an AI agent powered by DeepSeek Harness.
+
+Workbench: 项目清单 (1.0.0)
+帮助用户整理待办、补充任务、更新完成状态。先读取项目清单，仅在用户要求时修改。准确报告工具结果；遇到并发修改先重新读取，不要覆盖用户的手动操作。
+Use workbench_read to inspect current business data, then workbench_action to change it. Never claim a change before its tool succeeds.
+Actions: add args={"text":"task description"}; complete args={"id":"item id from read","completed":true or false}. Read returns json (business document with items) and revision. import-legacy is reserved for initial UI migration.",
+  "schemas": [
+    {
+      "description": "Read current business data and revision of this conversation’s selected workbench.",
+      "name": "workbench_read",
+      "parameters": {
+        "properties": {},
+        "type": "object",
+      },
+    },
+    {
+      "description": "Apply a documented workbench action to the last observed revision. Read again on conflict; never overwrite a concurrent edit.",
+      "name": "workbench_action",
+      "parameters": {
+        "properties": {
+          "action": {
+            "type": "string",
+          },
+          "args": {
+            "description": "JSON object for the documented business action.",
+            "type": "string",
+          },
+          "revision": {
+            "type": "integer",
+          },
+        },
+        "required": [
+          "revision",
+          "action",
+          "args",
+        ],
+        "type": "object",
+      },
+    },
+  ],
+}
+`;
+
+exports[`workbench runtime > records the expert request and AI business action through the native loop 1`] = `
+{
+  "data": {
+    "items": [
+      {
+        "completed": true,
+        "id": "sampleItem1",
+        "text": "确认需求和交付范围",
+      },
+      {
+        "completed": false,
+        "id": "sampleItem2",
+        "text": "整理项目资料",
+      },
+      {
+        "completed": false,
+        "id": "sampleItem3",
+        "text": "检查交付内容",
+      },
+    ],
+    "legacyImported": false,
+  },
+  "system": [
+    {
+      "text": "You are an AI agent powered by DeepSeek Harness.
+
+Workbench: 项目清单 (1.0.0)
+帮助用户整理待办、补充任务、更新完成状态。先读取项目清单，仅在用户要求时修改。准确报告工具结果；遇到并发修改先重新读取，不要覆盖用户的手动操作。
+Use workbench_read to inspect current business data, then workbench_action to change it. Never claim a change before its tool succeeds.
+Actions: add args={"text":"task description"}; complete args={"id":"item id from read","completed":true or false}. Read returns json (business document with items) and revision. import-legacy is reserved for initial UI migration.",
+      "type": "text",
+    },
+  ],
+  "tools": undefined,
+}
+`;

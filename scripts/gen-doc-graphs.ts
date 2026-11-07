@@ -108,6 +108,13 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'actveroWorkbenchRuntime',
+    pkg: '@actvero/dsh-capability-ui',
+    title: 'Actvero local workbench runtime',
+    mode: 'service',
+    note: 'Owns persisted business instances, conversation associations and scoped workbench tools.',
+  },
+  {
     key: 'cotTranslation',
     pkg: 'experimental-client-ui-cot-translation',
     title: 'Reasoning translation Remote',

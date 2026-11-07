@@ -14,7 +14,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 
 | Package | Config | Description |
 |---|---|---|
-| `@actvero/dsh-capability-ui` | no | undefined |
+| `@actvero/dsh-capability-ui` | yes | undefined |
 | `@actvero/dsh-connectors` | no | undefined |
 | `@actvero/dsh-experts` | no | undefined |
 | `@actvero/dsh-model-gateway` | yes | undefined |

@@ -31,6 +31,7 @@
       "@actvero/dsh-experts/remote-main": ["./packages/actvero/experts/src/remote-main.ts"],
 
       "@actvero/dsh-capability-ui/client/contracts": ["./packages/actvero/capability-ui/src/contracts.ts"],
+      "@actvero/dsh-capability-ui/types": ["./packages/actvero/capability-ui/src/types.ts"],
       "@actvero/dsh-capability-ui": ["./packages/actvero/capability-ui/src/index.ts"],
       "@actvero/dsh-capability-ui/client": ["./packages/actvero/capability-ui/src/client/index.ts"],
       "@actvero/dsh-capability-ui/client/sources": ["./packages/actvero/capability-ui/src/client/sources.ts"],

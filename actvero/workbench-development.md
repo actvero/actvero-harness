@@ -12,6 +12,7 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Import and verify](#install)
 - [Package format](#format)
 - [Edit the business view](#business)
+- [Native AI and shared data](#native-ai)
 - [Limitations](#limits)
 
 <a id="create"></a>
@@ -73,10 +74,22 @@ Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and mai
 
 The example isolates browser local storage by package name and restores progress after reload. A failed read reports an error and disables changes instead of overwriting unreadable data. This storage belongs to the current client configuration; it provides no project, account, or organization isolation and no backup. Production business data requires its own storage design.
 
+<a id="native-ai"></a>
+
+## Native AI and shared data
+
+The basic template registers a business UI only. To support native conversations, inject `actveroWorkbenchRuntime` in the Host entry and register a provider with the same identifier as the Client through `ctx.effect(() => ctx.actveroWorkbenchRuntime.register(provider))`. Supply initial JSON, a business reducer and model-visible action documentation. An optional local expert contains a name, version and instructions; it uses the conversation model without separate configuration. An optional preparation function can block binding or a later request on failure; it must not inject unrecorded model context.
+
+Components receive `workbench` context with the business instance, associated conversation, native resource address, conversation opener, business action and public account lookup. `account()` returns null while logged out and public user/organization identifiers and names while logged in. Platform authorization proxying is not connected; those fields are not credentials. `conversation()` creates or resumes the current associated conversation on demand, while `action()` saves against the latest revision. Components read through native `useResource` and adapt to their own container width in full and floating views.
+
+Each Host workbench currently has one default business instance shared by linked conversations. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. The Host manages instance files beneath its configured directory; new linked conversations create or reuse a workspace named after the workbench at that directory without a folder picker. Existing conversations keep their directory.
+
+See the runnable [built-in checklist provider](../packages/actvero/capability-ui/src/checklist.ts) and [Client](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx). Verify first use without a conversation, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment, floating views and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
+
 <a id="limits"></a>
 
 ## Limitations
 
-This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages, with no ZIP import, platform downloads, publishing, automatic updates, authenticated user context, or workbench thread binding. Merely adding expert, MCP, or Skill files does not load them; those capabilities require explicit runtime interfaces.
+This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages without ZIP import, platform downloads, publishing, automatic updates or an authenticated platform request proxy. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
 
 Packages target Actvero's workbench registration service. Legacy DSH workbenches use another service; changing a marker alone does not establish compatibility. The DSH reference is retained as an [offline snapshot](third-party/dsh-desktop-workbenches/development-guide.zh.md), version 2026-10-27; it is not the current online specification and does not replace these Actvero package rules.
