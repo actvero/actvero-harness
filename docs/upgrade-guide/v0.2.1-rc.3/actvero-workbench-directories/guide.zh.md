@@ -14,6 +14,8 @@ description: "ACTVERO 新建工作台对话使用独立工作目录，业务文�
 
 随包能力的会话关联会记录精确依赖摘要。恢复时摘要或编译指令变化会阻止后续请求，应重新选择当前安装的工作台；只读查看原会话记录仍可继续。取消关联和提供者注销现在等待能力释放，手动调用 `register()` 返回的注销函数时应 `await`，通过 `ctx.effect` 交给 Cordis 管理的调用无需改写。
 
+直接构造 `WorkbenchRuntime` 的 Host 集成需要在配置中提供 `displayTimeoutMs`，单位为毫秒，用于限制等待客户端确认的时长。通过 Cordis 插件配置加载时可以省略，默认值为 `30000`；普通工作台作者无需更改。
+
 ## 迁移
 
 1. 在 Host 服务中用 `runtime.open(id)` 获取实例，再用 `runtime.environment(instance)` 获取 `dataDirectory`。业务文件路径从该目录拼接，避免依赖进程目录或会话目录。参考[本地开发指南](../../../../actvero/workbench-development.zh.md#storage)。

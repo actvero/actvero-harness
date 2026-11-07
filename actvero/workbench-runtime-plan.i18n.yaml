@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbench-runtime-plan.md
 /workbench-runtime-implementation-plan:
-  en: fd18cbe48bd3dcfd
-  zh: bdc56886b1319e7d
+  en: c11f6fe636467022
+  zh: b0cd733f5cbdacfe
 /workbench-runtime-implementation-plan/summary:
-  en: b032086c47350c05
-  zh: a68755728a8aa6c0
+  en: 6d0e401cc9fcbc35
+  zh: 1a5603d53cf327fa
 /workbench-runtime-implementation-plan/contents:
   en: 02ff17fc3e5fed33
   zh: 8f9f3b8f33799f4b
@@ -42,8 +42,8 @@
   en: 6a911219e7b08d01
   zh: de6dc4493eb12ff3
 /workbench-runtime-implementation-plan/part-3-presentation-controls-and-agent-tools/acceptance-criteria:
-  en: 0678bdf11268c1f2
-  zh: e881a5a0c7539cbd
+  en: e62163cd41adf170
+  zh: e6b674168719fe93
 /workbench-runtime-implementation-plan/part-4-identity-and-platform-access:
   en: 8caf1159b04fa444
   zh: 17e3c9da9f06a4a4

@@ -2,11 +2,11 @@
 
 English | [中文](workbench-runtime-plan.zh.md)
 
-This plan is for engineers implementing the workbench host, developer tooling, and expert integration. Use it to sequence local runtime work and define acceptance criteria for each phase. Status: Part 1 runtime directories, optional storage and AI enablement, and Part 2 bundled expert loading are implemented and verified through an isolated client, real Desktop Host and focused regressions; Windows runtime acceptance remains pending. Parts 3–6 remain planned targets; see the [workbench development guide](workbench-development.md) for the current package format and interfaces.
+This plan is for engineers implementing the workbench host, developer tooling, and expert integration. Use it to sequence local runtime work and define acceptance criteria for each phase. Status: Parts 1–3, covering runtime directories, optional storage, AI and bundled experts, presentation control and resident Agent tools, are implemented and verified through an isolated client, real Desktop Host and focused regressions; Windows runtime acceptance remains pending. Parts 4–6 remain planned targets; see the [workbench development guide](workbench-development.md) for the current package format and interfaces.
 
 ## Summary
 
-Implement six parts: runtime and data directories; AI and bundled experts; presentation controls and Agent tools; identity and platform access; developer tooling; and a development Skill with end-to-end acceptance. Prioritize the first two parts, reuse existing package management and UI, and defer platform publishing and distribution.
+Implement six parts: runtime and data directories; AI and bundled experts; presentation controls and Agent tools; identity and platform access; developer tooling; and a development Skill with end-to-end acceptance. Parts 1–3 provide a locally usable runtime framework; reuse existing package management and UI, and defer platform publishing and distribution.
 
 ## Contents
 
@@ -114,6 +114,8 @@ Goal: users and Agents can open workbenches, choose presentation modes, and resu
 ### Acceptance criteria
 
 Verify entry, exit, sidebar restoration, popup collapse, position persistence, and linked-session switching on macOS and Windows. After an Agent opens a workbench, returned state matches the UI. Narrow windows retain public navigation, previews do not block essential controls, and presentation changes preserve business context.
+
+The local implementation provides `workbench.display()`, `displayState()`, and resident catalog, navigation and status tools. Each Client window has a separate acknowledgement channel; missing or multiple windows, load failure, cancellation and unknown outcomes remain distinct, and reconnect never replays navigation. Business views retain first-use layout defaults and separately remember user choices and both window positions; reload reuses associated conversations. Isolated browser acceptance covers real tool execution, author calls, multi-window refusal, dragging, themes and narrow viewports; Windows device acceptance remains pending.
 
 <a id="identity"></a>
 

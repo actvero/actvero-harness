@@ -119,7 +119,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:79',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:90',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -148,7 +148,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:74',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:85',
   },
   {
     key: 'actvero.workbench.body',
@@ -165,11 +165,13 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Commit a provider-defined operation at the last observed revision. */\n  action(revision: number, action: string, args: string): Promise<WorkbenchDocument>\n}',
+      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Display this workbench through native navigation without sending a message.\n   * @param options Presentation choices for this instance and its associated conversation.\n   * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.\n   */\n  display(options: Omit<WorkbenchDisplayRequest, \'id\' | \'sessionId\'>): Promise<WorkbenchDisplayState>\n  /** Read the actual foreground view without starting AI or changing navigation.\n   * @returns Mounted host view; throws when its workbench renderer has failed.\n   */\n  displayState(): WorkbenchDisplayState\n  /** Comm /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'SessionId',
       'WorkbenchAccount',
+      'WorkbenchDisplayRequest',
+      'WorkbenchDisplayState',
       'WorkbenchDocument',
       'WorkbenchEnvironment',
       'WorkbenchInstanceId',
@@ -195,7 +197,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.body\', () => ctx.slots.register(\n      { name: \'actvero.workbench.body\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:72',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:83',
   },
   {
     key: 'actvero.workbench.chat',
@@ -2510,7 +2512,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'main\', () => ctx.slots.register(\n      { name: \'main\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:73',
+    source: 'packages/client/ui-layout/src/client/index.ts:74',
   },
   {
     key: 'main.conversation',
@@ -3053,7 +3055,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'rightbar\', () => ctx.slots.register(\n      { name: \'rightbar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:87',
+    source: 'packages/client/ui-layout/src/client/index.ts:88',
   },
   {
     key: 'rightbar.session',
@@ -3693,7 +3695,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.bottom\', () => ctx.slots.register(\n      { name: \'shell.bottom\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:94',
+    source: 'packages/client/ui-layout/src/client/index.ts:95',
   },
   {
     key: 'shell.leading',
@@ -3724,7 +3726,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.leading\', () => ctx.slots.register(\n      { name: \'shell.leading\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:119',
+    source: 'packages/client/ui-layout/src/client/index.ts:120',
   },
   {
     key: 'shell.overlay',
@@ -3787,7 +3789,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.overlay\', () => ctx.slots.register(\n      { name: \'shell.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:105',
+    source: 'packages/client/ui-layout/src/client/index.ts:106',
   },
   {
     key: 'shell.quota-notice',
@@ -3862,7 +3864,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar\', () => ctx.slots.register(\n      { name: \'sidebar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:68',
+    source: 'packages/client/ui-layout/src/client/index.ts:69',
   },
   {
     key: 'sidebar.brand.mark',

@@ -51,6 +51,8 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+`ctx.layout.sidebarExpanded` observes responsive sidebar expansion; `setSidebarExpanded(expanded)` toggles only when the actual state differs. A temporary focus view saves expansion before changing it and restores it when leaving; this does not enter operating-system fullscreen or change business pages or sessions.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 

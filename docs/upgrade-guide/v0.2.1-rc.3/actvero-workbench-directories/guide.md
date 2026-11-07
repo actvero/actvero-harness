@@ -14,6 +14,8 @@ New custom-storage providers default to AI disabled and enable it with `ai: true
 
 Bundled capability associations record an exact dependency digest. A changed digest or compiled instructions block later requests on resume; select the currently installed workbench again. Existing Session records remain readable. Detachment and provider unregistration await capability disposal; manually invoking the disposer returned by `register()` must be awaited, while calls owned through `ctx.effect` need no rewrite.
 
+Host integrations that construct `WorkbenchRuntime` directly must provide `displayTimeoutMs` in milliseconds to bound the wait for Client acknowledgement. Cordis plugin configuration can omit it and defaults to `30000`; ordinary workbench authors need no change.
+
 ## Migration
 
 1. Obtain the instance with `runtime.open(id)`, then its `dataDirectory` with `runtime.environment(instance)` in the Host service. Resolve business file paths from that directory instead of the process or session directory. See the [local development guide](../../../../actvero/workbench-development.md#storage).

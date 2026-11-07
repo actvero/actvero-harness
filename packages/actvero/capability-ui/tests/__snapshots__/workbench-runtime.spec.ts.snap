@@ -10,6 +10,61 @@ Use workbench_read to inspect current business data, then workbench_action to ch
 Actions: add args={"text":"task description"}; complete args={"id":"item id from read","completed":true or false}. Read returns json (business document with items) and revision. import-legacy is reserved for initial UI migration.",
   "schemas": [
     {
+      "description": "List loaded local workbench providers. This does not open a view or start AI.",
+      "name": "workbench_list",
+      "parameters": {
+        "properties": {},
+        "type": "object",
+      },
+    },
+    {
+      "description": "Inspect the actual workbench view in the connected Client. Unavailable or unknown is not an open view.",
+      "name": "workbench_status",
+      "parameters": {
+        "properties": {},
+        "type": "object",
+      },
+    },
+    {
+      "description": "Open a loaded workbench in the connected Client. Business mode does not start AI unless ai is show. Conversation/preview reuse an associated conversation or create one; they do not send a message. Only confirmed means the Client mounted the view. Reuse workbench_status after an unknown result.",
+      "name": "workbench_open",
+      "parameters": {
+        "properties": {
+          "ai": {
+            "enum": [
+              "show",
+              "hide",
+            ],
+            "type": "string",
+          },
+          "id": {
+            "description": "Exact installed id from workbench_list.",
+            "type": "string",
+          },
+          "mode": {
+            "enum": [
+              "business",
+              "conversation",
+              "preview",
+            ],
+            "type": "string",
+          },
+          "sidebar": {
+            "enum": [
+              "preserve",
+              "focus",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "id",
+          "mode",
+        ],
+        "type": "object",
+      },
+    },
+    {
       "description": "Read current business data and revision of this conversation’s selected workbench.",
       "name": "workbench_read",
       "parameters": {
@@ -40,6 +95,65 @@ Actions: add args={"text":"task description"}; complete args={"id":"item id from
         ],
         "type": "object",
       },
+    },
+  ],
+}
+`;
+
+exports[`workbench runtime > records resident tools without requiring a selected workbench or a connected Client 1`] = `
+{
+  "requests": [
+    [
+      "workbench_list",
+      "workbench_open",
+      "workbench_status",
+    ],
+    [
+      "workbench_list",
+      "workbench_open",
+      "workbench_status",
+    ],
+    [
+      "workbench_list",
+      "workbench_open",
+      "workbench_status",
+    ],
+    [
+      "workbench_list",
+      "workbench_open",
+      "workbench_status",
+    ],
+  ],
+  "results": [
+    {
+      "callId": "catalog",
+      "content": [
+        {
+          "text": "[{"id":"builtin:project-checklist","name":"项目清单","version":"1.0.0","aiEnabled":true}]",
+          "type": "text",
+        },
+      ],
+      "isError": false,
+    },
+    {
+      "callId": "status",
+      "content": [
+        {
+          "text": "{"status":"unavailable","reason":"No answering Client is connected. Open the desktop or Web Client."}",
+          "type": "text",
+        },
+      ],
+      "isError": false,
+    },
+    {
+      "callId": "open",
+      "content": [
+        {
+          "text": "{"status":"unavailable","reason":"No answering Client is connected. Open the desktop or Web Client."}",
+          "type": "text",
+        },
+      ],
+      "isError": false,
     },
   ],
 }
@@ -80,7 +194,10 @@ Actions: add args={"text":"task description"}; complete args={"id":"item id from
   ],
   "tools": [
     "workbench_action",
+    "workbench_list",
+    "workbench_open",
     "workbench_read",
+    "workbench_status",
   ],
 }
 `;

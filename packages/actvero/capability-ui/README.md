@@ -36,6 +36,8 @@ Workbench cards join the Plugin Manager inventory with registered business compo
 
 Host configuration requires `dataDirectory` for workbench files; the Actvero Profile supplies its isolated `actvero-workbench-data` directory. The Host retains a stable instance and data directory per workbench. `environment()` exposes its directory, version and optional resources directory without a session. Authors may use files, SQLite or remote services and organize multiple business projects. Native Storage Domain stores only instance metadata and optional JSON-adapter state; new custom instances use a `json: "null"` metadata placeholder without copying business content; switching from JSON storage retains its content for author-managed migration. Updates, disable and uninstall retain directories; authors own concurrent writes, backups and data migration. A new conversation does not copy the checklist. The Session log restores the selected workbench, version and bundled expert instructions. An unavailable selected version blocks subsequent requests until the user selects a loaded version.
 
+Workbench authors can declare first-use presentation defaults and call `workbench.display()` to select business, native conversation or preview modes; `displayState()` reads the mounted view. The header toggles focus and leaving restores navigation expansion; AI and previews save visibility and positions separately. The Host channel accepts answering owner Clients only and succeeds after mount acknowledgement; disconnect or timeout remains unknown and is never replayed. See [display control](../../../actvero/workbench-development.md#display) for usage and failures.
+
 <details>
 <summary>Workbench runtime</summary>
 
@@ -55,11 +57,11 @@ The client service `ctx.capabilityHub` opens an expert, skill or connector manag
 
 #### What the model sees
 
-The manager and popup add no model context themselves. A skill selection inserts the native `/skill-name` command into the draft; an expert or connector selection changes Host-owned capabilities for the selected conversation. Sending a message still follows the native recorded Session path. A linked workbench supplies its name, version, optional expert instructions, business action documentation and, only with a JSON adapter, conversation-scoped `workbench_read` and `workbench_action` tools. Custom-storage authors provide their own tools and instructions. Tools read business data on request; browsing does not send it to the model, and account information is not injected into prompts. The native Session log records the selected environment and subsequent requests retain the actual prompts, tool schemas and results.
+The manager and popup add no model context themselves. A skill selection inserts the native `/skill-name` command into the draft; an expert or connector selection changes Host-owned capabilities for the selected conversation. Sending a message still follows the native recorded Session path. A linked workbench supplies its name, version, optional expert instructions, business action documentation and, only with a JSON adapter, conversation-scoped `workbench_read` and `workbench_action` tools. Custom-storage authors provide their own tools and instructions. Tools read business data on request; browsing does not send it to the model, and account information is not injected into prompts. The native Session log records the selected environment and subsequent requests retain the actual prompts, tool schemas and results. The Host registers resident `workbench_list`, `workbench_open`, and `workbench_status` without a selected workbench. Results distinguish confirmation, failure, cancellation and unknown outcomes; native tool cards show catalog, navigation or inspection. The catalog lists Host providers only; catalog and display queries send no business data.
 
 #### Token effect
 
-Manager browsing and popup search consume no model tokens. Sending the chosen command or using enabled capabilities adds only the native request content described by their owning modules.
+Manager browsing and popup search consume no model tokens. Resident display-tool schemas join subsequent model requests, and their results follow native logging. Sending the chosen command or using enabled capabilities adds only the native request content described by their owning modules.
 
 #### KV Cache effect
 

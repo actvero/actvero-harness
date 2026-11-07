@@ -68,11 +68,55 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         main: './index.js', exports: { '.': './index.js', './client': './client.js' },
         dsh: { actveroWorkbench: 1, bundle: { patch: './cordis.patch.yml' }, client: { platform: 'web', inject: ['@actvero/dsh-capability-ui'] } },
       }))
-      writeFileSync(join(folder, 'index.js'), `export const name = '${fixtureName}'; export function apply() {}`)
+      const environmentReport = join(root, 'workbench-environment.json')
+      writeFileSync(join(folder, 'index.js'), `
+        import { readFile, writeFile } from 'node:fs/promises';
+        import { join } from 'node:path';
+        export const name = '${fixtureName}';
+        export const inject = ['actveroWorkbenchRuntime', 'agents', 'webServer', 'tools'];
+        export async function apply(ctx) {
+          const runtime = ctx.actveroWorkbenchRuntime;
+          ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', resourcesDirectory: import.meta.dirname }));
+          ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/__workbench_test/display', handler: async (req, res) => {
+            const params = new URL(req.url, 'http://127.0.0.1').searchParams;
+            const request = params.has('mode') ? { id: params.get('id') || '${fixtureName}', mode: params.get('mode'),
+              sidebar: params.get('sidebar') || undefined, ai: params.get('ai') || undefined } : null;
+            let result;
+            if (params.has('tool')) {
+              const executed = await ctx.tools.execute({ callId: 'display-test', name: request ? 'workbench_open' : 'workbench_status',
+                arguments: request ? { id: request.id, mode: request.mode, ...(request.sidebar ? { sidebar: request.sidebar } : {}) } : {},
+                signal: AbortSignal.timeout(10000) });
+              if (executed.isError || executed.content[0]?.type !== 'text') throw new Error(JSON.stringify(executed));
+              result = JSON.parse(executed.content[0].text);
+            } else result = await runtime.present(request, AbortSignal.timeout(10000));
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ ...result, sessions: ctx.agents.list().length }));
+          }}));
+          const before = ctx.agents.list().length;
+          const document = await runtime.open('${fixtureName}');
+          const environment = await runtime.environment(document);
+          const file = join(environment.dataDirectory, 'campaign.txt');
+          try { await writeFile(file, '作者自定义文件 / Campaign review', { flag: 'wx' }); }
+          catch (error) { if (error.code !== 'EEXIST') throw error; }
+          await writeFile(${JSON.stringify(environmentReport)}, JSON.stringify({ ...environment,
+            text: await readFile(file, 'utf8'), sessionsCreated: ctx.agents.list().length - before }));
+        }
+      `)
       writeFileSync(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${fixtureName}\n      name: ${fixtureName}\n`)
       writeFileSync(join(folder, 'client.js'), `window.__ModuleLoader__.load({ id: '${fixtureName}', factory(require) {
-        const h = require('react').createElement;
-        function Panel() { return h('p', null, '已打开活动复盘业务页'); }
+        const { createElement: h, useEffect, useState } = require('react');
+        function Panel({ workbench }) {
+          const [storage, setStorage] = useState('');
+          const [crash, setCrash] = useState(false);
+          if (crash) throw new Error('Intentional workbench render failure');
+          useEffect(() => { let active = true;
+            workbench.environment().then(value => { if (active) setStorage(value?.storage ?? 'ui-only'); });
+            return () => { active = false; };
+          }, [workbench]);
+          return h('div', null, h('p', null, '已打开活动复盘业务页'), h('p', { 'data-workbench-storage': storage }, storage),
+            h('button', { onClick: () => workbench.display({ mode: 'business', sidebar: 'focus', ai: 'hide' }) }, '作者专注展示'),
+            h('button', { onClick: () => setCrash(true) }, '模拟工作台界面错误'));
+        }
         return { inject: ['actveroWorkbenches'], apply(ctx) {
           ctx.effect(() => ctx.actveroWorkbenches.register({
             id: '${fixtureName}', name: '${title}', description: '整理活动结果与待跟进事项，汇总 Campaign Review 的渠道数据、反馈和负责人。', version: '1.0.0', category: 'content', iconUrl: 'data:image/png;base64,invalid', previewUrls: ${JSON.stringify(Array.from({ length: 5 }, () => 'data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')))}
@@ -146,6 +190,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await page.getByRole('region', { name: '项目清单', exact: true }).waitFor()
         expect(await page.getByRole('button', { name: '返回工作台列表' }).count()).toBe(1)
         expect(await page.getByRole('dialog').count()).toBe(0)
+        const chat = page.getByRole('complementary', { name: '工作台对话', exact: true })
+        await chat.getByRole('button', { name: /^切换对话 · / }).waitFor()
+        await chat.getByRole('button', { name: '收起', exact: true }).click()
         await openManager()
         expect(await switcher.textContent()).toContain('项目清单')
         const fixtureCard = page.locator('article').filter({ has: page.getByRole('heading', { name: title }) })
@@ -231,18 +278,22 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await expect.poll(() => page.getByRole('checkbox', { name: '确认需求和交付范围' }).isChecked()).toBe(true)
         await page.getByRole('textbox', { name: '输入待办事项' }).fill('准备 Campaign Review 交付材料')
         await page.getByRole('button', { name: '添加任务', exact: true }).click()
-        await page.getByRole('checkbox', { name: '准备 Campaign Review 交付材料' }).waitFor()
+        await page.getByRole('checkbox', { name: '准备 Campaign Review 交付材料' }).click()
         const checklistPage = page.getByRole('region', { name: '项目清单', exact: true })
         const titleBar = checklistPage.locator('[data-window-drag]')
         expect((await titleBar.boundingBox())!.height).toBe(50)
         expect(await checklistPage.getByRole('heading', { name: '项目清单', exact: true }).count()).toBe(1)
-        const launcher = page.getByRole('button', { name: 'AI 协助', exact: true })
+        const launcher = page.getByRole('button', { name: '使用 AI', exact: true })
         const launcherRect = (await launcher.boundingBox())!
         expect(launcherRect.x + launcherRect.width).toBe(1416)
         expect(launcherRect.y + launcherRect.height).toBe(976)
+        await launcher.hover()
+        const launcherTooltip = page.getByRole('tooltip', { name: '使用 AI', exact: true })
+        await launcherTooltip.waitFor()
+        const tooltipRect = (await launcherTooltip.boundingBox())!
+        expect(tooltipRect.y + tooltipRect.height).toBeLessThan(launcherRect.y)
         await launcher.click()
-        const chat = page.getByRole('complementary', { name: '工作台对话', exact: true })
-        await chat.getByRole('button', { name: '取消使用工作台', exact: true }).waitFor()
+        await chat.getByRole('button', { name: '项目清单', exact: true }).waitFor()
         await expect.poll(() => chat.getByRole('button', { name: '添加文件或调用指令', exact: true }).isEnabled()).toBe(true)
         const draft = chat.locator('[data-composer-input]')
         await writeComposerDraft(page, draft, 'Campaign Review：保留这份草稿')
@@ -254,11 +305,24 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await chat.waitFor()
         expect(await draft.textContent()).toBe('Campaign Review：保留这份草稿')
         const chatRect = (await chat.boundingBox())!
+        expect(chatRect.width).toBe(400)
+        expect(chatRect.y).toBe(64)
+        expect(chatRect.height).toBe(700)
+        expect(chatRect.y + chatRect.height).toBeLessThanOrEqual(976)
+        await page.mouse.move(chatRect.x + 8, chatRect.y + 3)
+        await page.mouse.down()
+        await page.mouse.move(chatRect.x - 112, chatRect.y + 43, { steps: 1 })
+        await page.mouse.up()
+        await expect.poll(async () => Math.round((await chat.boundingBox())?.x ?? 0)).toBe(Math.round(chatRect.x - 120))
+        await chat.getByRole('button', { name: '收起', exact: true }).click()
+        await page.getByRole('button', { name: '使用 AI', exact: true }).click()
+        await expect.poll(async () => Math.round((await chat.boundingBox())?.x ?? 0)).toBe(Math.round(chatRect.x - 120))
+        const movedChatRect = (await chat.boundingBox())!
         for (const label of ['新建对话', '全屏对话', '收起']) {
           const control = chat.getByRole('button', { name: label, exact: true })
           const rect = (await control.boundingBox())!
-          expect(rect.x).toBeGreaterThan(chatRect.x + chatRect.width / 2)
-          expect(rect.y).toBeLessThan(chatRect.y + 48)
+          expect(rect.x).toBeGreaterThan(movedChatRect.x + movedChatRect.width / 2)
+          expect(rect.y).toBeLessThan(movedChatRect.y + 48)
           expect(rect.height).toBe(28)
           await control.hover()
           await page.getByRole('tooltip', { name: label, exact: true }).waitFor()
@@ -282,25 +346,109 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await page.emulateMedia({ colorScheme: 'light' })
         await chat.getByRole('button', { name: '新建对话', exact: true }).click()
         await expect.poll(() => draft.textContent()).toBe('')
+        await expect.poll(() => chat.getByRole('button', { name: '新建对话', exact: true }).isEnabled()).toBe(true)
+        await writeComposerDraft(page, draft, 'Draft B：另一条对话的草稿')
+        await expect.poll(() => draft.textContent()).toBe('Draft B：另一条对话的草稿')
+        const conversationTitle = chat.getByRole('button', { name: /^切换对话 · / })
+        await expect.poll(() => conversationTitle.isEnabled()).toBe(true)
+        await conversationTitle.click()
+        const conversations = page.getByRole('menu').getByRole('menuitem')
+        await expect.poll(() => conversations.count()).toBe(2)
+        const menuRect = (await page.getByRole('menu').boundingBox())!
+        const titleRect = (await conversationTitle.boundingBox())!
+        expect(menuRect.x).toBeCloseTo(titleRect.x, 0)
+        expect(menuRect.width).toBeCloseTo(titleRect.width, 0)
+        expect(menuRect.y).toBeGreaterThan(titleRect.y + titleRect.height)
+        // Reload reuses the first conversation; only explicit New creates the second.
+        // Host order puts the most recent first; the selected row has a trailing check.
+        await conversations.filter({ hasNot: page.locator('svg') }).first().click()
+        await expect.poll(() => draft.textContent()).toBe('Campaign Review：保留这份草稿')
+        await conversationTitle.click()
+        await conversations.filter({ hasNot: page.locator('svg') }).first().click()
+        await expect.poll(() => draft.textContent()).toBe('Draft B：另一条对话的草稿')
+        await conversationTitle.focus()
+        await page.keyboard.press('Enter')
+        await page.getByRole('menu').waitFor()
+        await page.keyboard.press('Escape')
+        await page.getByRole('menu').waitFor({ state: 'hidden' })
+        expect(await chat.isVisible()).toBe(true)
+        await expect.poll(() => conversationTitle.evaluate(element => element === document.activeElement)).toBe(true)
         await chat.getByRole('button', { name: '全屏对话', exact: true }).click()
         await expect.poll(() => page.getByRole('button', { name: '添加文件或调用指令', exact: true }).isEnabled()).toBe(true)
-        await page.getByRole('button', { name: '悬浮查看工作台', exact: true }).click()
-        const floating = page.getByRole('complementary', { name: '悬浮查看工作台', exact: true })
-        await floating.getByRole('checkbox', { name: '准备 Campaign Review 交付材料' }).click()
-        await expect.poll(() => floating.getByRole('checkbox', { name: '准备 Campaign Review 交付材料' }).isChecked()).toBe(true)
+        const floating = page.getByRole('complementary', { name: '悬浮工作台', exact: true })
+        await floating.waitFor()
+        const previewCanvas = floating.locator('[inert]')
+        const previewTask = previewCanvas.locator('label').filter({ hasText: '准备 Campaign Review 交付材料' }).locator('input')
+        await expect.poll(() => previewTask.isChecked()).toBe(true)
+        expect(await floating.getByRole('checkbox').count()).toBe(0)
+        expect(await previewCanvas.evaluate(element => ({ width: (element as HTMLElement).offsetWidth,
+          height: (element as HTMLElement).offsetHeight, transform: getComputedStyle(element).transform })))
+          .toEqual({ width: 960, height: 640, transform: 'matrix(0.3125, 0, 0, 0.3125, 0, 0)' })
+        expect(await previewCanvas.locator(':scope > div').evaluate(element => getComputedStyle(element).overflow)).toBe('hidden')
         const floatRect = await floating.boundingBox()
-        expect(floatRect!.height).toBeLessThan(500)
-        expect(floatRect!.width).toBeLessThanOrEqual(480)
-        const floatControl = await page.getByRole('button', { name: '悬浮查看工作台', exact: true }).boundingBox()
+        expect(floatRect!.height).toBe(200)
+        expect(floatRect!.width).toBe(300)
+        expect(await floating.locator(':scope > header').count()).toBe(0)
+        const previewActions = floating.locator(':scope > div').first()
+        await page.mouse.move(0, 0)
+        await page.getByRole('button', { name: '悬浮工作台', exact: true }).focus()
+        await expect.poll(() => previewActions.evaluate(element => getComputedStyle(element).opacity)).toBe('0')
+        await floating.hover()
+        await expect.poll(() => previewActions.evaluate(element => getComputedStyle(element).opacity)).toBe('1')
+        expect(await previewActions.evaluate((element) => {
+          const style = getComputedStyle(element)
+          return { background: style.backgroundColor, border: style.borderWidth, shadow: style.boxShadow }
+        })).toEqual({ background: 'rgba(0, 0, 0, 0)', border: '0px', shadow: 'none' })
+        const previewEnter = floating.getByRole('button', { name: '进入工作台', exact: true })
+        expect(await previewEnter.evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)')
+        const previewScroll = await floating.evaluate(element => element.scrollTop)
+        await page.mouse.wheel(0, 300)
+        expect(await floating.evaluate(element => element.scrollTop)).toBe(previewScroll)
+        // Drag from the rendered canvas, without invoking any business control.
+        await page.mouse.move(floatRect!.x + 100, floatRect!.y + 100)
+        await page.mouse.down()
+        await page.mouse.move(floatRect!.x - 80, floatRect!.y + 220, { steps: 6 })
+        await page.mouse.up()
+        const movedFloat = (await floating.boundingBox())!
+        expect(movedFloat.x).toBeCloseTo(floatRect!.x - 180, 0)
+        expect(movedFloat.y).toBeCloseTo(floatRect!.y + 120, 0)
+        // Fast movement and native capture loss retain the last rendered location.
+        await page.mouse.move(movedFloat.x + 100, movedFloat.y + 100)
+        await page.mouse.down()
+        await page.mouse.move(movedFloat.x - 60, movedFloat.y + 180)
+        await floating.evaluate((element) => {
+          element.addEventListener('pointermove', (event) => {
+            if (event instanceof PointerEvent && element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+          }, { once: true })
+        })
+        await page.mouse.move(movedFloat.x - 80, movedFloat.y + 200)
+        await page.mouse.up()
+        const interruptedFloat = (await floating.boundingBox())!
+        expect(interruptedFloat.x).toBeCloseTo(movedFloat.x - 180, 0)
+        expect(interruptedFloat.y).toBeCloseTo(movedFloat.y + 100, 0)
+        await expect.poll(() => floating.getAttribute('data-dragging')).toBe(null)
+        await floating.focus()
+        await page.keyboard.press('ArrowRight')
+        const rememberedFloat = (await floating.boundingBox())!
+        expect(rememberedFloat.x).toBe(interruptedFloat.x + 16)
+        expect(await previewTask.isChecked()).toBe(true)
+        await page.mouse.move(0, 0)
+        await floating.getByRole('button', { name: '收起', exact: true }).focus()
+        await expect.poll(() => previewActions.evaluate(element => getComputedStyle(element).opacity)).toBe('1')
+        const floatControl = await page.getByRole('button', { name: '悬浮工作台', exact: true }).boundingBox()
         expect(floatControl!.x).toBeGreaterThan(1000)
         await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/actvero-workbench-floating.png') })
-        await page.setViewportSize({ width: 900, height: 700 })
+        await page.setViewportSize({ width: 390, height: 720 })
         await page.emulateMedia({ colorScheme: 'dark' })
+        await expect.poll(async () => {
+          const rect = (await floating.boundingBox())!
+          return rect.x + rect.width
+        }).toBeLessThanOrEqual(374)
         const narrowFloat = await floating.boundingBox()
-        expect(narrowFloat!.x).toBeGreaterThanOrEqual(0)
-        expect(narrowFloat!.x + narrowFloat!.width).toBeLessThanOrEqual(900)
-        expect(narrowFloat!.y + narrowFloat!.height).toBeLessThanOrEqual(700)
-        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(900)
+        expect(narrowFloat!.x).toBeGreaterThanOrEqual(16)
+        expect(narrowFloat!.x + narrowFloat!.width).toBeLessThanOrEqual(374)
+        expect(narrowFloat!.y + narrowFloat!.height).toBeLessThanOrEqual(704)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
         await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/actvero-workbench-floating-dark.png') })
         await page.setViewportSize({ width: 1440, height: 1000 })
         await page.emulateMedia({ colorScheme: 'light' })
@@ -308,13 +456,36 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         expect(await page.getByRole('button', { name: '取消使用工作台', exact: true }).count()).toBe(1)
         await page.reload()
         await page.getByRole('button', { name: '取消使用工作台', exact: true }).waitFor()
-        await page.getByRole('button', { name: '悬浮查看工作台', exact: true }).click()
-        await expect.poll(() => floating.getByRole('checkbox', { name: '准备 Campaign Review 交付材料' }).isChecked()).toBe(true)
+        expect(await floating.count()).toBe(0)
+        expect(await page.getByRole('button', { name: '悬浮工作台', exact: true }).getAttribute('aria-pressed')).toBe('false')
+        await page.getByRole('button', { name: '悬浮工作台', exact: true }).click()
+        await expect.poll(() => previewTask.isChecked()).toBe(true)
+        const restoredFloat = (await floating.boundingBox())!
+        expect(restoredFloat.x).toBeCloseTo(rememberedFloat.x, 0)
+        expect(restoredFloat.y).toBeCloseTo(rememberedFloat.y, 0)
+        const floatToggle = page.getByRole('button', { name: '悬浮工作台', exact: true })
+        await page.mouse.move(0, 0)
+        await floatToggle.hover()
+        const floatTip = page.getByRole('tooltip', { name: '悬浮工作台', exact: true })
+        await floatTip.waitFor()
+        const toggleRect = (await floatToggle.boundingBox())!
+        expect((await floatTip.boundingBox())!.y).toBeGreaterThan(toggleRect.y + toggleRect.height)
+        await floating.hover()
         await floating.getByRole('button', { name: '进入工作台', exact: true }).click()
-        await page.getByRole('button', { name: 'AI 协助', exact: true }).click()
+        // Each presentation remembers its own visibility, including across navigation.
+        await chat.getByRole('button', { name: '全屏对话', exact: true }).click()
+        await floating.waitFor()
+        await floating.hover()
+        await floating.getByRole('button', { name: '进入工作台', exact: true }).click()
+        await chat.getByRole('button', { name: '收起', exact: true }).click()
+        await openManager()
+        await example.getByRole('button', { name: '打开', exact: true }).click()
+        await launcher.waitFor()
+        expect(await chat.isVisible()).toBe(false)
+        await launcher.click()
         await chat.getByRole('button', { name: '全屏对话', exact: true }).click()
         await page.getByRole('button', { name: '取消使用工作台', exact: true }).click()
-        await page.getByRole('button', { name: '悬浮查看工作台', exact: true }).waitFor({ state: 'hidden' })
+        await page.getByRole('button', { name: '悬浮工作台', exact: true }).waitFor({ state: 'hidden' })
         await page.getByRole('button', { name: '添加文件或调用指令', exact: true }).click()
         await page.getByRole('option', { name: /工作台/ }).click()
         await page.getByRole('option', { name: '项目清单', exact: true }).click()
@@ -330,7 +501,13 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await page.getByText('请选择有效的 Actvero 工作台 .tgz 包。').waitFor()
         await importArchive(archive)
         const installStatus = page.getByText(/工作台已安装。|变更已保存，重启 Harness 后生效。/)
-        await installStatus.waitFor({ timeout: 40_000 })
+        try {
+          await installStatus.waitFor({ timeout: 40_000 })
+        } catch (error) {
+          console.error('Workbench import did not complete', { page: await page.locator('body').innerText(),
+            diagnostic: await page.locator('details pre').allTextContents(), errors })
+          throw error
+        }
         const needsRestart = (await installStatus.innerText()).includes('重启')
         const restart = async () => {
           await page.goto('about:blank')
@@ -388,10 +565,55 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         expect(await example.count()).toBe(0)
         await fixtureCard.getByRole('button', { name: '打开', exact: true }).click()
         await page.getByText('已打开活动复盘业务页').waitFor()
+        await page.locator('[data-workbench-storage="custom"]').waitFor()
+        expect(await page.getByRole('button', { name: '使用 AI', exact: true }).count()).toBe(0)
+        const initialEnvironment = JSON.parse(readFileSync(environmentReport, 'utf8')) as { dataDirectory: string; storage: string; text: string; sessionsCreated: number }
+        expect({ storage: initialEnvironment.storage, text: initialEnvironment.text, sessionsCreated: initialEnvironment.sessionsCreated }).toMatchInlineSnapshot(`
+          {
+            "sessionsCreated": 0,
+            "storage": "custom",
+            "text": "作者自定义文件 / Campaign review",
+          }
+        `)
         if (!needsRestart) await restart()
         else await openManager()
         await fixtureCard.getByRole('button', { name: '打开', exact: true }).click()
         await page.getByText('已打开活动复盘业务页').waitFor()
+        await page.locator('[data-workbench-storage="custom"]').waitFor()
+        const restoredEnvironment = JSON.parse(readFileSync(environmentReport, 'utf8')) as { dataDirectory: string; text: string }
+        expect(restoredEnvironment.dataDirectory).toBe(initialEnvironment.dataDirectory)
+        expect(restoredEnvironment.text).toBe(initialEnvironment.text)
+        const display = async (query = '') => page.evaluate(async (query) => {
+          const response = await fetch(`/__workbench_test/display${query}`)
+          return response.json() as Promise<{
+            status: string
+            state?: { id: string; mode: string; aiVisible: boolean; sidebar: string }
+            sessions: number
+          }>
+        }, query)
+        await expect.poll(async () => (await display()).status).toBe('confirmed')
+        const beforeDisplay = await display()
+        const focused = await display('?mode=business&sidebar=focus&ai=hide')
+        expect(focused).toMatchObject({ status: 'confirmed', state: { id: fixtureName, mode: 'business', aiVisible: false, sidebar: 'collapsed' } })
+        expect(focused.sessions).toBe(beforeDisplay.sessions)
+        expect(await page.getByText('已打开活动复盘业务页').isVisible()).toBe(true)
+        const repeated = await display('?mode=business&sidebar=focus&tool=1')
+        expect(repeated.sessions).toBe(beforeDisplay.sessions)
+        expect(repeated).toMatchObject({ status: 'confirmed', state: { id: fixtureName, mode: 'business', sidebar: 'collapsed' } })
+        expect(await display('?tool=1')).toMatchObject({ status: 'confirmed', state: { id: fixtureName } })
+        await display('?mode=business&sidebar=preserve&ai=hide')
+        await page.getByRole('button', { name: '作者专注展示', exact: true }).click()
+        await expect.poll(async () => (await display()).state?.sidebar).toBe('collapsed')
+        await display('?mode=business&sidebar=preserve&ai=hide')
+        const missing = await display('?mode=business&id=missing-client')
+        expect(missing.status).toBe('failed')
+        await expect.poll(async () => (await display()).state?.id).toBe(fixtureName)
+        const secondClient = await context.newPage()
+        try {
+          await secondClient.goto(page.url())
+          await expect.poll(async () => (await display()).status).toBe('ambiguous')
+        } finally { await secondClient.close() }
+        await expect.poll(async () => (await display()).status).toBe('confirmed')
         const business = page.getByRole('region', { name: title, exact: true })
         const businessGeometry = await business.evaluate((element) => {
           const rect = element.getBoundingClientRect()
@@ -410,7 +632,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await page.getByRole('menuitem', { name: '项目清单', exact: true }).click()
         await expect.poll(() => page.getByRole('checkbox', { name: '确认需求和交付范围' }).isChecked()).toBe(true)
         await switcher.click()
-        await page.getByRole('menuitem', { name: '单图工作台', exact: true }).focus()
+        await page.keyboard.press('End')
+        await expect.poll(() => page.getByRole('menuitem', { name: '单图工作台', exact: true })
+          .evaluate(element => element === document.activeElement)).toBe(true)
         await page.keyboard.press('Enter')
         await page.getByRole('region', { name: '单图工作台', exact: true }).waitFor()
         for (const colorScheme of ['light', 'dark'] as const) {
@@ -546,7 +770,12 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         expect(await scope.isChecked()).toBe(true)
         await openManager()
         await importArchive(checklistArchive)
-        await page.getByText('不支持降级。请选择比已安装版本更新的工作台包。').waitFor()
+        try { await page.getByText('不支持降级。请选择比已安装版本更新的工作台包。').waitFor() }
+        catch (error) {
+          writeFileSync(join(repository, '.artifacts/workbench-downgrade-page.txt'), await page.locator('body').innerText())
+          await page.screenshot({ path: join(repository, '.artifacts/workbench-downgrade-failure.png') })
+          throw error
+        }
         await menu('卸载')
         const removeDialog = page.getByRole('dialog', { name: '卸载工作台', exact: true })
         await removeDialog.getByRole('button', { name: '取消', exact: true }).click()
@@ -568,7 +797,16 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.screenshot({ path: join(repository, `.artifacts/workbench-management-${colorScheme}.png`) })
           await page.keyboard.press('Escape')
         }
+        expect(await display('?mode=business&ai=hide')).toMatchObject({ status: 'confirmed' })
+        await page.getByRole('button', { name: '模拟工作台界面错误', exact: true }).click()
+        await expect.poll(async () => (await display()).status).toBe('failed')
         expect(errors.filter(error => /ReferenceError|TypeError|SyntaxError/u.test(error))).toEqual([])
+        const displayEndpoint = new URL('/__workbench_test/display', page.url())
+        await browser.close()
+        await expect.poll(async () => {
+          const response = await fetch(displayEndpoint)
+          return (await response.json() as { status: string }).status
+        }).toBe('unavailable')
       } finally {
         await browser.close()
       }

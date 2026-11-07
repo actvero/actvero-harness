@@ -53,7 +53,7 @@ async function harness(root?: string) {
     },
   }
   ctx.reflect.provide('sessionController', sessionController)
-  await ctx.plugin(Workbenches, { dataDirectory: join(directory, 'files') })
+  await ctx.plugin(Workbenches, { dataDirectory: join(directory, 'files'), displayTimeoutMs: 30000 })
   const runtime = ctx.actveroWorkbenchRuntime
   const prepare = (agent: Agent) => ctx.waterfall(scopeTarget(agent, agent), 'agent/pre-step', {
     agent, messages: [], turn: 1, step: 1, signal: new AbortController().signal,
@@ -358,6 +358,38 @@ describe('workbench runtime', () => {
       tools: adapter.requests[0]?.tools?.map(tool => tool.name),
       data: checklistDocument.parse(JSON.parse(runtime.read(document).json)),
     }).toMatchSnapshot()
+  })
+
+  it('does not expose an answering display channel through unscoped in-process calls', async () => {
+    const { runtime } = await harness()
+    await expect(runtime.displayCommands(new AbortController().signal)[Symbol.asyncIterator]().next()).rejects.toMatchObject({ code: 'workbench/unavailable' })
+    expect(() => runtime.show({ id, mode: 'business' }, new AbortController().signal)).toThrow('Owner Client required')
+  })
+
+  it('records resident tools without requiring a selected workbench or a connected Client', async () => {
+    const { ctx, runtime, loop } = await harness()
+    const adapter = new MockAdapter([
+      toolCallResponse('catalog', 'workbench_list', {}),
+      toolCallResponse('status', 'workbench_status', {}),
+      toolCallResponse('open', 'workbench_open', { id: 'builtin:project-checklist', mode: 'business' }),
+      textResponse('当前没有连接客户端，尚未打开界面。'),
+    ])
+    ctx.effect(() => ctx.llm.registerAdapter(['mock'], adapter))
+    const agent = await loop.create(SessionId('display-tools'), { provider: 'mock', model: 'mock' })
+    const idle = new Promise<void>((resolve) => {
+      const stop = ctx.on('agent/status', (event) => { if (event.agent === agent && event.status === 'idle') { stop(); resolve() } })
+    })
+    agent.followup(createUserMessage({ content: [{ type: 'text', text: '列出工作台，查看状态并打开项目清单' }], source: { kind: 'user' } }))
+    await idle
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toBeNull()
+    expect(runtime.list()).toHaveLength(1)
+    const results = agent.session.snapshotEvents().filter(event => event.type === 'tool/result')
+    expect(results).toHaveLength(3)
+    expect(JSON.stringify(results)).toContain('unavailable')
+    expect(JSON.stringify(results)).not.toContain('confirmed')
+    expect({ requests: adapter.requests.map(item => item.tools?.map(tool => tool.name)),
+      results: results.map(event => ({ callId: event.data.message.toolCallId,
+        content: event.data.message.content, isError: event.data.message.isError })) }).toMatchSnapshot()
   })
 
   it('rejects invalid business actions without changing the stored document', async () => {

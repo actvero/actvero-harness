@@ -2,7 +2,7 @@ import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId } from './types.ts'
+import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId } from './types.ts'
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -21,6 +21,15 @@ export interface WorkbenchClientContext {
   environment(): Promise<WorkbenchEnvironment | null>
   /** Open or create the associated native conversation. */
   conversation(): Promise<void>
+  /** Display this workbench through native navigation without sending a message.
+   * @param options Presentation choices for this instance and its associated conversation.
+   * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.
+   */
+  display(options: Omit<WorkbenchDisplayRequest, 'id' | 'sessionId'>): Promise<WorkbenchDisplayState>
+  /** Read the actual foreground view without starting AI or changing navigation.
+   * @returns Mounted host view; throws when its workbench renderer has failed.
+   */
+  displayState(): WorkbenchDisplayState
   /** Commit a provider-defined operation at the last observed revision. */
   action(revision: number, action: string, args: string): Promise<WorkbenchDocument>
 }
@@ -39,6 +48,8 @@ export interface ActveroWorkbench {
   readonly iconUrl?: string
   /** Representative screenshots or outputs; the card displays the first three. */
   readonly previewUrls?: readonly string[]
+  /** First-use defaults; saved user choices take precedence. Enabled AI restores a conversation unless ai is hide. */
+  readonly display?: { sidebar?: 'preserve' | 'focus'; ai?: 'show' | 'hide' }
   readonly author?: string
   readonly tags?: readonly string[]
 }

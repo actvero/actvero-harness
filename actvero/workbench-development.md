@@ -15,6 +15,7 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Runtime directories and custom storage](#storage)
 - [Native AI and shared data](#native-ai)
 - [Bundled experts, Skill, MCP and CLI](#expert-bundle)
+- [Display control and Agent entry points](#display)
 - [Limitations](#limits)
 
 <a id="create"></a>
@@ -159,6 +160,27 @@ The installed package is the local version cache. During a provider lifetime, `W
 Authors may register business tools directly in `activate(ctx, environment, signal)`, or append native capabilities after `await bundle.activate(...)` and return its result. All registrations, listeners and child plugins belong to the supplied `ctx` and honor `signal`, without external global registries. On binding failure, the host releases all newly mounted capabilities and keeps the previous association record; the next execution prepares that association again. Detachment, conversation disposal and provider removal await capability release and the loading callback. Host `open()` and `environment()` calls do not start dependencies; closing the AI window does not detach an existing association.
 
 Verify manual operations, direct business tools, Skill/CLI and MCP against the same business file and read it back from the business UI. Cover conversation isolation, repeated opening, missing dependencies, startup failure, cancellation, removal and restart. An unchanged workbench version reuses local resources offline; model and remote MCP requests may still require a network.
+
+<a id="display"></a>
+
+## Display control and Agent entry points
+
+Workbench authors may register optional client metadata `display: { sidebar: 'focus', ai: 'hide' }` as first-use layout defaults. `focus` collapses left navigation without entering operating-system fullscreen; omission preserves navigation. `ai: 'hide'` retains the AI entry without proactively creating a conversation; omission restores an associated conversation when AI is enabled. Users toggle navigation with the header's Focus view control and collapse floating windows from their upper-right controls; visibility preferences are saved separately and take precedence on subsequent opens. Leaving the business main view restores the preceding navigation expansion, while widths and narrow-window behavior follow the host layout rules.
+
+Business components may also control presentation. These calls wait for the Client to mount the host view; they send no message and execute no expert tool.
+
+```js
+await workbench.display({ mode: 'business', sidebar: 'focus', ai: 'hide' })
+await workbench.display({ mode: 'business', ai: 'show' })
+await workbench.display({ mode: 'preview' })
+const visible = workbench.displayState()
+```
+
+`business` uses the main content area, with `ai` showing or collapsing the AI window; `conversation` displays native conversation with the business preview collapsed; `preview` floats a business preview over native conversation. The latter modes require AI, reuse the associated conversation when available, and otherwise create a native associated conversation. Existing conversations must belong to the same runtime instance; repeated navigation reuses the instance and association. Business previews and AI windows remember visibility and positions separately; dragging or keyboard movement does not change business data. The preview is an inert scaled view; enter the business main view to edit.
+
+Resident tools `workbench_list`, `workbench_open`, and `workbench_status` list loaded Host providers, choose presentation, and query the Client's actual view. They do not require a workbench selected in the calling thread. Agent business opens collapse AI by default without rebinding the running caller; explicit conversation or preview opens reuse a matching association or create another associated conversation. Bundled experts still define business tools; presentation tools grant no additional business permissions.
+
+Only `status: 'confirmed'` acknowledges a mounted host view, not completion of all author-owned remote business requests. No Client returns `unavailable`, multiple Clients return `ambiguous`, and a view that cannot load returns `failed`; connection loss or exceeding `displayTimeoutMs` returns `unknown`, requiring inspection before another action. The default wait is 30 seconds, configurable in the capability package's Host configuration. Cancellation returns `cancelled` without deleting an instance or conversation already created; reconnect does not replay navigation. `workbench.display()` rejects unconfirmed outcomes, which callers should present as recoverable failures. UI-only cards can display but do not appear in the Host provider catalog and cannot create native conversations.
 
 <a id="limits"></a>
 

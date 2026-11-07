@@ -191,6 +191,33 @@ Native Remote owner and in-process business-provider registry.
  */
 register(provider: WorkbenchProvider): () => Promise<void>
 
+/** Serve display commands only to the local owner's answering Client. Requests do not survive stream replacement.
+ * @param signal Carrier lifetime.
+ * @returns Readiness followed by live display requests; shutdown settles pending results as unknown.
+ */
+@Remote({ mode: 'stream' }) async *displayCommands(signal: AbortSignal): AsyncIterable<WorkbenchDisplayCommand>
+
+/** Route one acknowledgement only to the stream owned by the same authenticated Peer.
+ * @param channelId Host-issued Client attachment identity.
+ * @param requestId Host-issued correlation identity.
+ * @param result Observed UI result, never a synthesized business-open success.
+ */
+@Remote acknowledgeDisplay(channelId: WorkbenchDisplayChannelId, requestId: WorkbenchDisplayRequestId, result: WorkbenchDisplayResult): void
+
+/** Request display from an owner Client through the same bounded acknowledgement path as Agent tools.
+ * @param request Installed workbench and display choices.
+ * @param signal Carrier cancellation.
+ * @returns Confirmation or an explicit unavailable, ambiguous, failed or uncertain outcome.
+ */
+@Remote show(request: WorkbenchDisplayRequest, signal: AbortSignal): Promise<WorkbenchDisplayResult>
+
+/** Request Client navigation without binding the calling Agent or changing its business data.
+ * @param request Installed workbench and display choices.
+ * @param signal Cancellation; timeout or carrier loss reports an unknown outcome.
+ * @returns Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.
+ */
+present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<WorkbenchDisplayResult>
+
 /** List providers with a managed runtime, including those with author-owned storage.
  * @returns Runtime-ready provider metadata, independent of UI-only cards.
  */

@@ -1,14 +1,16 @@
 /** Full business view and conversation-owned floating workbench preview. */
 import { useEffect, useRef, useState } from 'react'
-import { Button, Tooltip, IconCloseOutlineRegular, IconFullscreenOutlineRegular, IconNewChatOutlineRegular,
+import { Button, Menu, Tooltip, IconCloseOutlineRegular, IconFullscreenOutlineRegular, IconNewChatOutlineRegular,
   IconChevronDownOutlineRegular, IconSparkleRegular, IconLoadingOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsHooks } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchInstanceId } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type {} from '@actvero/dsh-client-account/client'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { FloatingPreview } from './FloatingPreview.tsx'
 import styles from './runtime.module.css'
 
 type Locale = PropsLocale<'actvero.workbenches'>
@@ -17,7 +19,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotFactoryMap {
     /** One business panel, independent of the conversation display mode. */
     'actvero.workbench.content': { scope: 'root'
-      props: { id: string; workbench: WorkbenchClientContext }
+      props: { id: string; workbench: WorkbenchClientContext; preview?: boolean }
       locale: 'actvero.workbenches'
       children: { 'actvero.workbench.body': { kind: 'keyed'; scope: 'root' } } }
   }
@@ -28,47 +30,70 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Render the same provider component at either presentation size. */
-export function BusinessContent({ id, workbench, renderSlot, t }: FactoryComponentPropsOf<'actvero.workbench.content'>) {
-  return <div className={styles.content}>{renderSlot('actvero.workbench.body', { workbench }, {
+export function BusinessContent({ id, workbench, preview, renderSlot, t }: FactoryComponentPropsOf<'actvero.workbench.content'>) {
+  return <div className={`${styles.content} ${preview ? styles.previewContent : ''}`}>{renderSlot('actvero.workbench.body', { workbench }, {
     entryKey: id, fallback: <p role="status">{t('unavailable')}</p>,
   })}</div>
 }
 
 /** Full business page with an optional floating native conversation. */
-export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, SessionProvider, action }:
-  Locale & WorkbenchViewHooks & PropsRenderFactories & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, entries } = useView(value => value)
-  const [conversationPending, setConversationPending] = useState(false)
+export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action, useSidebarExpanded }:
+  Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
+  & PropsRenderSlots<'actvero.workbench.chat'> & PropsHooks<{ sidebarExpanded: { getSnapshot(): boolean; subscribe(listener: () => void): () => void } }> & { action: WorkbenchAction }) {
+  const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const sidebarExpanded = useSidebarExpanded(value => value)
+  const sessions = useSessions(value => value)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const linked = sessions.ids.map(id => sessions.byId[id]).filter(summary =>
+    instance !== null && summary.projectionValues?.actveroWorkbench?.instanceId === instance.instanceId)
+  const chatTitle = (chat && sessions.byId[chat.sessionId]?.title) || t('newConversation')
   const launcher = useRef<HTMLButtonElement>(null)
   const conversation = (fresh: boolean) => {
-    if (conversationPending) return
-    setConversationPending(true)
-    void action.conversation(fresh).finally(() => { setConversationPending(false) })
+    void action.conversation(fresh)
   }
-  const collapse = () => { action.collapseChat(); requestAnimationFrame(() => { launcher.current?.focus() }) }
+  const collapse = () => { setMenuOpen(false); action.collapseChat(); requestAnimationFrame(() => { launcher.current?.focus() }) }
   useEffect(() => () => { action.releaseChat() }, [action])
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entries.find(item => item.id === opened)?.name ?? t('title')
-  return <section className={styles.page} aria-label={name}>
+  return <section className={styles.page} aria-label={name}
+    data-workbench-main={!preparing && !runtimeFailed ? opened : undefined} data-workbench-instance={instance?.instanceId}
+    data-workbench-session={chat?.sessionId}>
     <header className={styles.pageHeader} data-window-drag>
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
       <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
+      <Button size="sm" className={styles.focusButton} aria-pressed={!sidebarExpanded}
+        onClick={() => { action.toggleFocus() }}>{t(sidebarExpanded ? 'focusWorkbench' : 'showNavigation')}</Button>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
       : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
         : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
-    {instance && <Tooltip label={t('askAI')} side="left"><button ref={launcher} type="button" className={styles.aiLauncher}
-      hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={conversationPending}
+    {instance && action.supportsAI(instance.instanceId) && <Tooltip label={t('askAI')} side="top"><button ref={launcher} type="button" className={styles.aiLauncher}
+      hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={chatPreparing}
       onClick={() => { if (chat && !chatCollapsed) collapse(); else conversation(false) }}>
-      {conversationPending ? <IconLoadingOutlineRegular className={styles.spinner} size={22} /> : <IconSparkleRegular size={22} />}
+      {chatPreparing ? <IconLoadingOutlineRegular className={styles.spinner} size={22} />
+        : renderFactorySlot('actvero.brand.mark', {}, { fallback: <IconSparkleRegular size={22} /> })}
     </button></Tooltip>}
-    {chat && <aside className={styles.chatFloat} hidden={chatCollapsed} aria-label={t('workbenchConversation')}
-      onKeyDown={(event) => { if (event.key === 'Escape' && !event.defaultPrevented) { event.stopPropagation(); collapse() } }}>
-      <header className={styles.toolbar}><IconSparkleRegular /><span className={styles.title}>{t('workbenchConversation')}</span>
+    {chat && instance && <FloatingPreview key={instance.instanceId} instanceId={instance.instanceId} mode="chat" hidden={chatCollapsed} t={t} collapse={collapse} enter={() => { action.focusChat() }}>
+      <header className={styles.toolbar} data-workbench-drag="">
+        <Menu open={menuOpen && !chatCollapsed} onClose={() => { setMenuOpen(false) }} portal autoFocus minWidthFromAnchor
+          className={styles.titleMenu} listClassName={styles.conversationMenu} selectedId={chat.sessionId}
+          anchor={<Button size="sm" className={styles.titleTrigger} disabled={chatPreparing}
+            aria-label={`${t('switchConversation')} · ${chatTitle}`} aria-haspopup="menu" aria-expanded={menuOpen}
+            onClick={() => { setMenuOpen(value => !value) }}>
+            <span className={styles.title}>{chatTitle}</span><IconChevronDownOutlineRegular size={14} />
+          </Button>}
+          items={linked.map(summary => ({ id: summary.id,
+            label: <span className={styles.conversationName}>{summary.title || t('newConversation')}</span>,
+          }))}
+          onSelect={(id) => {
+            setMenuOpen(false)
+            const selected = linked.find(summary => summary.id === id)
+            if (selected) void action.switchConversation(selected.id)
+          }} />
         <div className={styles.actions}>
-          <Tooltip label={t('newConversation')}><Button size="sm" className={styles.iconButton} disabled={conversationPending}
+          <Tooltip label={t('newConversation')}><Button size="sm" className={styles.iconButton} disabled={chatPreparing}
             aria-label={t('newConversation')} onClick={() => { conversation(true) }}><IconNewChatOutlineRegular /></Button></Tooltip>
           <Tooltip label={t('fullConversation')}><Button size="sm" className={styles.iconButton} aria-label={t('fullConversation')}
             onClick={() => { action.focusChat() }}><IconFullscreenOutlineRegular /></Button></Tooltip>
@@ -77,7 +102,7 @@ export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, Sessi
         </div>
       </header>
       <SessionProvider session={chat}>{renderSlot('actvero.workbench.chat', {})}</SessionProvider>
-    </aside>}
+    </FloatingPreview>}
   </section>
 }
 
@@ -97,54 +122,52 @@ export interface ConversationWorkbenchActions {
   context(instanceId: WorkbenchInstanceId, sessionId: SessionId): WorkbenchClientContext
   failed(): void
   icon(id: string): string | undefined
+  preview(instanceId: WorkbenchInstanceId, visible: boolean): void
 }
 
-/** Selected workbench badge; hover exposes removal without changing the active expert. */
+/** Selected workbench badge follows the composer expert badge's compact and removal behavior. */
 export function WorkbenchBadge({ t, useProjection, sessionId, action }: PropsRuntime<'conversation.input.left'> & Locale
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
   const [pending, setPending] = useState(false)
   if (!selection) return null
   const icon = action.icon(selection.id)
-  return <div className={styles.badge}>
-    <Tooltip label={t('detachWorkbench')}><button type="button" className={styles.remove} disabled={pending} aria-label={t('detachWorkbench')}
+  const mark = icon ? <img src={icon} alt="" /> : <WorkbenchIcon />
+  return <span className={styles.badge} data-workbench-badge="">
+    <Tooltip label={t('detachWorkbench')} disabled={pending}><button type="button" className={styles.badgeRemove}
+      disabled={pending} aria-label={t('detachWorkbench')}
       onClick={() => { setPending(true); void action.detach().catch(() => { action.failed() }).finally(() => { setPending(false) }) }}>
-      <span className={styles.mark}>{icon ? <img src={icon} alt="" /> : <WorkbenchIcon />}</span>
-      <IconCloseOutlineRegular className={styles.cross} />
+      <span className={styles.mark} aria-hidden="true">{mark}</span>
+      <span className={styles.cross} aria-hidden="true"><IconCloseOutlineRegular /></span>
     </button></Tooltip>
-    <Tooltip label={selection.name}><button type="button" className={styles.badgeName}
-      onClick={() => { action.open(selection.id, selection.instanceId, sessionId) }}>{selection.name}</button></Tooltip>
-  </div>
+    <Tooltip label={selection.name} disabled={pending}><button type="button" className={styles.badgeTrigger} disabled={pending}
+      aria-label={selection.name} onClick={() => { action.open(selection.id, selection.instanceId, sessionId) }}>
+      <span className={styles.compactMark} aria-hidden="true">{mark}</span>
+      <span className={styles.badgeName}>{selection.name}</span>
+    </button></Tooltip>
+  </span>
 }
 
 /** Conversation utilities appear only while this thread has a workbench association. */
-export function WorkbenchUtilities({ t, useProjection, sessionId, action, renderFactorySlot }:
-  PropsRuntime<'conversation.session.header.resident-utilities'> & Locale & PropsRenderFactories
+export function WorkbenchUtilities({ t, useProjection, useView, sessionId, action, renderFactorySlot }:
+  PropsRuntime<'conversation.session.header.resident-utilities'> & Locale & PropsRenderFactories & WorkbenchViewHooks
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
-  const [floating, setFloating] = useState(false)
+  const floating = useView(value => !selection || value.visibility[`preview:${sessionId}:${selection.instanceId}`] !== false)
+  const trigger = useRef<HTMLButtonElement>(null)
   if (!selection) return null
-  return <div className={styles.utilities}>
-    <Tooltip label={t('floatWorkbench')}><Button size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
-      onClick={() => { setFloating(value => !value) }}><WorkbenchIcon /></Button></Tooltip>
-    <Tooltip label={t('fullWorkbench')}>
+  const collapse = () => { action.preview(selection.instanceId, false); trigger.current?.focus() }
+  return <div className={styles.utilities} data-workbench-conversation={selection.id}
+    data-workbench-instance={selection.instanceId} data-workbench-session={sessionId}>
+    <Tooltip label={t('floatWorkbench')} side="bottom"><Button ref={trigger} size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
+      onClick={() => { action.preview(selection.instanceId, !floating) }}><WorkbenchIcon /></Button></Tooltip>
+    <Tooltip label={t('fullWorkbench')} side="bottom">
       <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
-        onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
+        onClick={() => { action.open(selection.id, selection.instanceId, sessionId) }}>
         <IconFullscreenOutlineRegular /></Button></Tooltip>
-    {floating && <aside className={styles.workbenchFloat} aria-label={t('floatWorkbench')} onKeyDown={(event) => {
-      if (event.key === 'Escape') { event.stopPropagation(); setFloating(false) }
-    }}>
-      <header className={styles.toolbar}><WorkbenchIcon /><span className={styles.title}>{selection.name}</span>
-        <div className={styles.actions}>
-          <Tooltip label={t('fullWorkbench')}>
-            <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
-              onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
-              <IconFullscreenOutlineRegular /></Button></Tooltip>
-          <Tooltip label={t('collapse')}><Button size="sm" className={styles.iconButton} aria-label={t('collapse')}
-            onClick={() => { setFloating(false) }}><IconCloseOutlineRegular /></Button></Tooltip>
-        </div>
-      </header>
-      {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.instanceId, sessionId) })}
-    </aside>}
+    {floating && <FloatingPreview key={selection.instanceId} instanceId={selection.instanceId} t={t} collapse={collapse}
+      enter={() => { action.open(selection.id, selection.instanceId, sessionId) }}>
+      {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.instanceId, sessionId), preview: true })}
+    </FloatingPreview>}
   </div>
 }

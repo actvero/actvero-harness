@@ -78,6 +78,21 @@ export class WorkbenchClientRuntime {
     this.ctx.layout.selectPanel(null)
   }
 
+  /** Reuse an associated conversation or create one without selecting a UI panel.
+   * @param instanceId Business instance.
+   * @param sessionId Existing associated conversation; omission prefers this Client's last one.
+   * @returns Native conversation identity after its binding is ready.
+   */
+  async conversation(instanceId: WorkbenchInstanceId, sessionId?: SessionId): Promise<SessionId> {
+    let target = sessionId ?? this.conversations.get(instanceId)
+    if (!target) {
+      await this.ctx.sessions.refresh()
+      const sessions = this.ctx.sessions.list.getSnapshot()
+      target = sessions.ids.find(id => sessions.byId[id]?.projectionValues?.actveroWorkbench?.instanceId === instanceId)
+    }
+    return this.bind(instanceId, target)
+  }
+
   private async bind(instanceId: WorkbenchInstanceId, sessionId?: SessionId): Promise<SessionId> {
     const result = await this.ctx.remote.actveroWorkbench.bind({ instanceId, ...(sessionId ? { sessionId } : {}) })
     if (!result.ok) throw result.error
@@ -93,9 +108,10 @@ export class WorkbenchClientRuntime {
    * @returns Capabilities bound to this instance.
    */
   context(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null,
-    showConversation: (id: SessionId) => Promise<void>): WorkbenchClientContext {
+    showConversation: (id: SessionId) => Promise<void>,
+    display: WorkbenchClientContext['display'], displayState: WorkbenchClientContext['displayState']): WorkbenchClientContext {
     return {
-      instanceId, sessionId,
+      instanceId, sessionId, display, displayState,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
       environment: async () => {
         if (!instanceId) return null
@@ -112,7 +128,7 @@ export class WorkbenchClientRuntime {
       conversation: async () => {
         if (!instanceId) throw new Error('Workbench has no conversation provider')
         const target = sessionId ?? this.conversations.get(instanceId)
-        const bound = await this.bind(instanceId, target)
+        const bound = await this.conversation(instanceId, target)
         await showConversation(bound)
       },
       action: async (revision, action, args) => {

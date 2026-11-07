@@ -1,9 +1,13 @@
 export const zh = {
-  askAI: 'AI 协助',
+  showNavigation: '显示导航',
+  focusWorkbench: '专注展示',
+  askAI: '使用 AI',
+  switchConversation: '切换对话',
   newConversation: '新建对话',
   workbenchConversation: '工作台对话',
   fullConversation: '全屏对话',
-  floatWorkbench: '悬浮查看工作台',
+  floatWorkbench: '悬浮工作台',
+  movePreview: '拖动窗口，或聚焦后按方向键移动。',
   fullWorkbench: '进入工作台',
   collapse: '收起',
   detachWorkbench: '取消使用工作台',
@@ -109,11 +113,15 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
-  askAI: 'Ask AI',
+  showNavigation: 'Show navigation',
+  focusWorkbench: 'Focus view',
+  askAI: 'Use AI',
+  switchConversation: 'Switch conversation',
   newConversation: 'New conversation',
   workbenchConversation: 'Workbench conversation',
   fullConversation: 'Full conversation',
   floatWorkbench: 'Floating workbench',
+  movePreview: 'Drag the window, or focus it and use the arrow keys to move.',
   fullWorkbench: 'Open workbench',
   collapse: 'Collapse',
   detachWorkbench: 'Stop using workbench',

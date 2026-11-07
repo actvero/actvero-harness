@@ -51,6 +51,8 @@ Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶�
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+`ctx.layout.sidebarExpanded` 提供当前响应式侧栏展开状态的可观察值，`setSidebarExpanded(expanded)` 只在状态不符时切换。跨插件临时专注展示应先保存展开状态，离开时恢复；该操作不进入操作系统全屏，也不修改业务页面或会话。
+
 <details>
 <summary>实现细节——点击展开</summary>
 

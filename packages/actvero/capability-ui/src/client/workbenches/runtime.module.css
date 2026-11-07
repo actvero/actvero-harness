@@ -5,48 +5,68 @@
 .pageTitle { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; }
 .separator { flex: none; height: 16px; border-left: 0.5px solid var(--dsw-alias-border-l3); }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 48px; box-sizing: border-box; padding: 10px 16px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
-.toolbar > svg { flex: none; }
-.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsw-alias-label-primary); font-size: 13px; line-height: 20px; font-weight: 500; }
+.titleMenu { flex: 1; min-width: 0; }
+.titleTrigger { width: 100%; min-width: 0; justify-content: flex-start; padding-inline: 4px; }
+.titleTrigger > svg { flex: none; }
+/* Native Menu supplies the trigger width as its minimum; content must not widen it. */
+.conversationMenu { width: 0; min-width: 0; }
+.conversationName { display: block; white-space: normal; overflow-wrap: anywhere; }
+.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; color: var(--dsw-alias-label-primary); font-size: 13px; line-height: 20px; font-weight: 500; }
 .actions, .utilities { display: flex; align-items: center; gap: 8px; flex: none; }
 .iconButton { flex: none; width: 28px; padding: 0; color: var(--dsw-alias-label-secondary); }
 .iconButton[aria-pressed='true'] { background: var(--dsw-alias-interactive-bg-active); color: var(--dsw-alias-label-primary); }
 .content { flex: 1; min-width: 0; min-height: 0; overflow: auto; container-type: inline-size; }
 .workbenchFloat, .chatFloat { box-sizing: border-box; position: fixed; z-index: 30; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 0; border-radius: var(--dsw-radius-panel); background: var(--dsw-alias-bg-base); box-shadow: var(--dsw-elevation-panel); }
-.workbenchFloat { top: max(84px, var(--dsh-frame-overlay-top, 0px)); right: 24px; width: min(440px, calc(100vw - 32px)); height: min(340px, calc(100dvh - 112px)); }
-.chatFloat { right: 24px; bottom: 24px; width: min(480px, calc(100vw - 32px)); height: min(640px, calc(100dvh - max(84px, var(--dsh-frame-overlay-top, 0px)))); }
+/* Saved coordinates stay within the viewport during CSS layout, before resize observers run. */
+.workbenchFloat { top: max(84px, var(--dsh-frame-overlay-top, 0px)); right: 24px; --actvero-floating-width: min(300px, calc(100vw - 32px)); --actvero-floating-height: min(200px, calc(100dvh - 112px)); width: var(--actvero-floating-width); height: var(--actvero-floating-height); }
+.previewContent { overflow: hidden; }
+.previewCanvas { display: flex; flex: none; transform-origin: top left; pointer-events: none; user-select: none; }
+.workbenchFloat { cursor: grab; touch-action: none; -webkit-app-region: no-drag; }
+.workbenchFloat[data-dragging] { cursor: grabbing; }
+.workbenchFloat:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
+.previewActions { position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px; }
+.previewActions .iconButton { background: var(--dsw-alias-button-floating-fill); box-shadow: var(--dsw-shadow-lv1); }
+.previewActions .iconButton:active { background: var(--dsw-alias-interactive-bg-active); }
+@media (hover: hover) {
+  .previewActions .iconButton:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+  .previewActions { opacity: 0; pointer-events: none; }
+  .workbenchFloat:hover .previewActions, .workbenchFloat:focus-within .previewActions { opacity: 1; pointer-events: auto; }
+}
+.chatFloat { top: max(64px, var(--dsh-frame-overlay-top, 0px)); right: 24px; --actvero-floating-width: min(400px, calc(100vw - 32px)); --actvero-floating-height: min(700px, calc(100dvh - 88px)); height: var(--actvero-floating-height); width: var(--actvero-floating-width); }
 .chatFloat[hidden] { display: none; }
 /* The compact native model trigger keeps all composer actions reachable in the floating window. */
 .chatBody { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; --dsh-composer-model-text-display: none; --dsh-composer-model-icon-display: block; }
 .chatBody > * { width: 100%; min-width: 0; }
-.aiLauncher { position: absolute; right: 24px; bottom: 24px; z-index: 25; display: grid; place-items: center; box-sizing: border-box; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; corner-shape: round; color: var(--dsw-alias-label-primary-foreground); background: var(--dsw-alias-button-primary-fill); box-shadow: var(--dsw-elevation-panel); cursor: pointer; }
+.aiLauncher { position: absolute; right: 24px; bottom: 24px; z-index: 25; display: grid; place-items: center; box-sizing: border-box; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; corner-shape: round; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); box-shadow: var(--dsw-elevation-panel); cursor: pointer; }
 .aiLauncher[hidden] { display: none; }
 .aiLauncher:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 4px; }
 .aiLauncher:disabled { cursor: wait; }
-@media (hover: hover) { .aiLauncher:hover { background: var(--dsw-alias-button-primary-hover); } }
+@media (hover: hover) { .aiLauncher:hover { background: var(--dsw-alias-interactive-bg-hover); } }
 .spinner { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 @media (max-width: 600px) {
   .workbenchFloat, .chatFloat { right: 16px; }
-  .chatFloat { bottom: 16px; }
+  .chatFloat { --actvero-floating-height: calc(100dvh - 88px); }
   .aiLauncher { right: 16px; bottom: 16px; }
   .toolbar { padding-inline: 12px; }
 }
-.badge { display: inline-flex; align-items: center; max-width: 180px; border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-label-secondary); }
-.badge:focus-within { background: var(--dsw-alias-bg-layer-3); }
-@media (hover: hover) { .badge:hover { background: var(--dsw-alias-bg-layer-3); } }
-.remove, .badgeName { border: 0; background: none; color: inherit; cursor: pointer; font: inherit; }
-.remove { display: grid; place-items: center; width: 28px; height: 28px; padding: 4px; border-radius: var(--dsw-radius-sm); flex-shrink: 0; }
-.mark, .cross { grid-area: 1 / 1; display: flex; }
-.mark img { width: 18px; height: 18px; object-fit: cover; border-radius: var(--dsw-radius-xs); }
-.cross { opacity: 0; }
-.remove:focus-visible .mark { opacity: 0; }
-.remove:focus-visible .cross { opacity: 1; }
-@media (hover: hover) {
-  .remove:hover .mark { opacity: 0; }
-  .remove:hover .cross { opacity: 1; }
-}
-.badgeName { padding: 4px 6px 4px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.remove:focus-visible, .badgeName:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
+.badge { display:inline-flex; min-width:0; max-width:220px; border-radius:var(--dsw-radius-sm); color:var(--dsw-alias-label-secondary); }
+.badgeTrigger,.badgeRemove { box-sizing:border-box; height:28px; border:0; border-radius:inherit; background:transparent; color:inherit; cursor:pointer; }
+.badgeTrigger { display:inline-flex; align-items:center; min-width:0; padding:0 4px 0 0; font-size:13px; font-weight:500; line-height:20px; }
+.badge button:disabled { color:var(--dsw-alias-label-dimmed); cursor:default; }
+.badge:has(.badgeTrigger:not(:disabled)):hover,.badge:has(button:focus-visible) { background:var(--dsw-alias-interactive-bg-hover-solid); color:var(--dsw-alias-label-primary); }
+.mark,.compactMark { display:grid; place-items:center; flex:none; width:20px; height:20px; overflow:hidden; border-radius:var(--dsw-radius-xs); background:var(--dsw-specific-selector); font-size:11px; line-height:1; }
+.mark img,.compactMark img { width:100%; height:100%; object-fit:cover; }
+.compactMark { display:var(--dsh-composer-leading-icon-display,none); margin-inline-start:4px; }
+.badgeName { display:var(--dsh-composer-leading-detail-display,block); min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.badgeRemove { display:var(--dsh-composer-leading-detail-display,grid); place-items:center; flex:none; width:28px; padding:0; }
+.badgeRemove > span { grid-area:1 / 1; }
+.cross { display:grid; opacity:0; }
+.badge:hover .badgeRemove:not(:disabled) .mark,.badgeRemove:focus-visible .mark { opacity:0; }
+.badge:hover .badgeRemove:not(:disabled) .cross,.badgeRemove:focus-visible .cross { opacity:1; }
+.badge button:focus-visible { outline:none; box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)); }
 .notice { padding: 16px 24px; color: var(--dsw-alias-label-secondary); }
-@container (max-width: 540px) { .badgeName { display: none; } }
+@container (max-width:540px) { .badge { --dsh-composer-leading-detail-display:none; --dsh-composer-leading-icon-display:grid; } }
+
+.focusButton { margin-inline-start: auto; flex: none; }

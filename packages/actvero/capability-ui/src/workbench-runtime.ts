@@ -7,15 +7,17 @@ import type {} from '@deepseek-ai/dsh-api-remote-access'
 import type {} from '@deepseek-ai/dsh-workspace'
 import { createScope, type Scope } from '@deepseek-ai/dsh-scope'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService, principalOf, type PeerId } from '@deepseek-ai/dsh-typert-protocol'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { mkdir } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { WorkbenchActivation, WorkbenchProvider, WorkbenchRuntimeContext } from './workbench-provider.ts'
+import { WorkbenchDisplay } from './workbench-display.ts'
 import { workbenchAIEnabled, workbenchJsonStorage } from './workbench-provider.ts'
 import type { WorkbenchActionRequest, WorkbenchBinding, WorkbenchBindRequest, WorkbenchDocument, WorkbenchId,
+  WorkbenchDisplayChannelId, WorkbenchDisplayCommand, WorkbenchDisplayRequest, WorkbenchDisplayRequestId, WorkbenchDisplayResult,
   WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget } from './types.ts'
 import type { workbenchDomain } from './workbench-storage.ts'
 import { workbenchProjection, workbenchIdSchema } from './workbench-projection.ts'
@@ -32,10 +34,12 @@ interface ActiveCapabilities {
   mounting: Promise<WorkbenchActivation> | undefined
 }
 
-/** Runtime deployment directory, resolved by the product profile. */
+/** Managed business directory and live Client acknowledgement deadline. */
 export interface WorkbenchRuntimeConfig {
   /** Absolute managed directory for workbench files and native workspaces. */
   dataDirectory: string
+  /** Maximum live Client display acknowledgement wait. */
+  displayTimeoutMs: number
 }
 
 /** Native Remote owner and in-process business-provider registry. */
@@ -45,6 +49,8 @@ export class WorkbenchRuntime extends TypertRemoteService {
   private readonly creating = new Map<WorkbenchId, Promise<WorkbenchDocument>>()
   private readonly listeners = new Set<() => void>()
   private disposed = false
+  private readonly display: WorkbenchDisplay
+  private readonly displays = new Map<WorkbenchDisplayChannelId, ReturnType<WorkbenchDisplay['attach']> & { peerId: PeerId }>()
 
   /**
    * @param ctx Host context with native sessions, tools, projections and storage.
@@ -53,6 +59,8 @@ export class WorkbenchRuntime extends TypertRemoteService {
    */
   constructor(ctx: Context, private readonly domain: Domain<typeof workbenchDomain>, private readonly config: WorkbenchRuntimeConfig) {
     super(ctx, 'actveroWorkbenchRuntime', { namespace: 'actveroWorkbench' })
+    this.display = new WorkbenchDisplay(config.displayTimeoutMs)
+    this.mountDisplayTools(ctx)
     if (!isAbsolute(config.dataDirectory)) throw new Error('Workbench dataDirectory must be absolute')
     ctx.typert.resources.register('actveroWorkbench', { field: 'instanceId' })
     ctx.sessionProjections.register(workbenchProjection)
@@ -93,6 +101,8 @@ export class WorkbenchRuntime extends TypertRemoteService {
     })
     ctx.effect(() => async () => {
       this.disposed = true
+      for (const client of this.displays.values()) client.dispose()
+      this.displays.clear()
       this.changed()
       await Promise.all([...this.scopes.keys()].map(agent => this.clearScope(agent)))
     })
@@ -114,6 +124,113 @@ export class WorkbenchRuntime extends TypertRemoteService {
       this.changed()
       await Promise.all([...this.scopes].filter(([, active]) => active.provider === provider).map(([agent]) => this.clearScope(agent)))
     }
+  }
+
+  /** Serve display commands only to the local owner's answering Client. Requests do not survive stream replacement.
+   * @param signal Carrier lifetime.
+   * @returns Readiness followed by live display requests; shutdown settles pending results as unknown.
+   */
+  @Remote({ mode: 'stream' })
+  async *displayCommands(signal: AbortSignal): AsyncIterable<WorkbenchDisplayCommand> {
+    const invocation = this.ctx.invocation
+    const peer = invocation?.peer
+    if (!peer || principalOf(invocation) || peer.interactions !== 'answer') {
+      throw new RemoteError('workbench/unavailable', 'An answering owner Client is required.', {})
+    }
+    const queue: WorkbenchDisplayCommand[] = []
+    let wake: (() => void) | undefined
+    const stop = () => { wake?.() }
+    let closed = false
+    const attachment = this.display.attach((command) => { queue.push(command); wake?.() })
+    const channelId = randomUUID() as WorkbenchDisplayChannelId
+    const client = {
+      peerId: peer.id,
+      reply: (requestId: WorkbenchDisplayRequestId, result: WorkbenchDisplayResult) => { attachment.reply(requestId, result) },
+      dispose: () => { closed = true; attachment.dispose(); wake?.() },
+    }
+    const active = () => !signal.aborted && !closed && !this.disposed && this.displays.get(channelId) === client
+    this.displays.set(channelId, client)
+    signal.addEventListener('abort', stop, { once: true })
+    try {
+      yield { type: 'ready', channelId }
+      while (active()) {
+        if (!queue.length) await new Promise<void>((resolve) => { wake = resolve })
+        wake = undefined
+        if (!active()) break
+        const command = queue.shift()
+        if (command) yield command
+      }
+    } finally {
+      signal.removeEventListener('abort', stop)
+      client.dispose()
+      if (this.displays.get(channelId) === client) this.displays.delete(channelId)
+    }
+  }
+
+  /** Route one acknowledgement only to the stream owned by the same authenticated Peer.
+   * @param channelId Host-issued Client attachment identity.
+   * @param requestId Host-issued correlation identity.
+   * @param result Observed UI result, never a synthesized business-open success.
+   */
+  @Remote
+  acknowledgeDisplay(channelId: WorkbenchDisplayChannelId, requestId: WorkbenchDisplayRequestId, result: WorkbenchDisplayResult): void {
+    const invocation = this.ctx.invocation
+    const peer = invocation?.peer
+    if (!peer || principalOf(invocation)) throw new RemoteError('workbench/unavailable', 'Owner Client required.', {})
+    const client = this.displays.get(channelId)
+    if (client?.peerId === peer.id) client.reply(requestId, result)
+  }
+
+  /** Request display from an owner Client through the same bounded acknowledgement path as Agent tools.
+   * @param request Installed workbench and display choices.
+   * @param signal Carrier cancellation.
+   * @returns Confirmation or an explicit unavailable, ambiguous, failed or uncertain outcome.
+   */
+  @Remote
+  show(request: WorkbenchDisplayRequest, signal: AbortSignal): Promise<WorkbenchDisplayResult> {
+    const invocation = this.ctx.invocation
+    if (!invocation || principalOf(invocation)) throw new RemoteError('workbench/unavailable', 'Owner Client required.', {})
+    return this.present(request, signal)
+  }
+
+  /** Request Client navigation without binding the calling Agent or changing its business data.
+   * @param request Installed workbench and display choices.
+   * @param signal Cancellation; timeout or carrier loss reports an unknown outcome.
+   * @returns Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.
+   */
+  present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<WorkbenchDisplayResult> {
+    if (this.disposed) return Promise.resolve({ status: 'unavailable', reason: 'Workbench runtime is closed.' })
+    return this.display.request(request, signal)
+  }
+
+  private mountDisplayTools(ctx: Context): void {
+    const output = { schema: { type: 'string' as const }, render: (_args: object, json: string) => [{ type: 'text' as const, text: json }] }
+    ctx.tools.register(defineTool({ name: 'workbench_list', description: 'List loaded local workbench providers. This does not open a view or start AI.',
+      parameters: {}, output, execute: () => Promise.resolve(JSON.stringify(this.list())),
+      presentCall: () => ({ card: 'generic', title: 'List workbenches', kind: 'other' }),
+    }))
+    ctx.tools.register(defineTool({ name: 'workbench_status', description: 'Inspect the actual workbench view in the connected Client. Unavailable or unknown is not an open view.',
+      parameters: {}, output, execute: async (_args, exec) => JSON.stringify(await this.present(null, exec.signal)),
+      presentCall: () => ({ card: 'generic', title: 'Inspect workbench view', kind: 'other' }),
+    }))
+    ctx.tools.register(defineTool({ name: 'workbench_open',
+      description: 'Open a loaded workbench in the connected Client. Business mode does not start AI unless ai is show. Conversation/preview reuse an associated conversation or create one; they do not send a message. Only confirmed means the Client mounted the view. Reuse workbench_status after an unknown result.',
+      parameters: {
+        id: { type: 'string', required: true, description: 'Exact installed id from workbench_list.' },
+        mode: { type: 'string', enum: ['business', 'conversation', 'preview'], required: true },
+        sidebar: { type: 'string', enum: ['preserve', 'focus'] },
+        ai: { type: 'string', enum: ['show', 'hide'] },
+      }, output,
+      execute: async (args, exec) => {
+        const selection = exec.agent && this.selection(exec.agent)
+        const request: WorkbenchDisplayRequest = { ...args, id: args.id as WorkbenchId,
+          ...(selection?.id === args.id ? { sessionId: exec.agent?.id } : {}),
+          ...(args.mode === 'business' && args.ai === undefined ? { ai: 'hide' as const } : {}),
+        }
+        return JSON.stringify(await this.present(request, exec.signal))
+      },
+      presentCall: args => ({ card: 'generic', title: 'Open workbench', kind: 'other', rawInput: args }),
+    }))
   }
 
   /** List providers with a managed runtime, including those with author-owned storage.

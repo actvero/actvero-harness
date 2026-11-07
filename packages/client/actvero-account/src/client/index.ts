@@ -13,6 +13,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     'actvero.account': CopyKey
   }
+  interface SlotFactoryMap {
+    /** Shared app artwork, using the same configured image as the sidebar. */
+    'actvero.brand.mark': { scope: 'root'; inject: Pick<Operations, 'hooks'> }
+  }
 }
 export const inject = ['slots', 'locale']
 /** Registers the native account in official settings and brand slots. */
@@ -58,6 +62,9 @@ export function apply(ctx: Context): void {
       },
     },
   }
+  ctx.effect(() => ctx.slots.registerFactory({
+    name: 'actvero.brand.mark', scope: 'root', inject: () => ({ hooks: operations.hooks }),
+  }, BrandMark))
   ctx.slots.inject('conversation.hero.heading', () =>
     ctx.slots.register({ name: 'conversation.hero.heading', locale: 'actvero.account' }, HeroHeading),
   )

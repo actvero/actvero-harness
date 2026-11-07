@@ -84,5 +84,41 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workbench/unsupported-storage': Record<string, never>
     /** Native conversations are disabled by the workbench author. */
     'workbench/ai-disabled': Record<string, never>
+    /** Display was not confirmed; inspect the current view after unknown or cancelled outcomes. */
+    'workbench/display': { status: Exclude<WorkbenchDisplayResult['status'], 'confirmed'> }
   }
 }
+
+/** Client-owned view modes; focus hides navigation, never enters operating-system fullscreen. */
+export interface WorkbenchDisplayRequest {
+  id: WorkbenchId
+  mode: 'business' | 'conversation' | 'preview'
+  /** Existing associated conversation; omitted conversation modes reuse or create a native conversation. */
+  sessionId?: SessionId
+  /** Omission preserves the user's saved choice. */
+  sidebar?: 'preserve' | 'focus'
+  /** Omission restores the saved visibility. Showing AI may create a native conversation. */
+  ai?: 'show' | 'hide'
+}
+/** Observed Client state; null identities mean that no workbench is on the foreground view. */
+export interface WorkbenchDisplayState {
+  id: WorkbenchId | null
+  instanceId: WorkbenchInstanceId | null
+  sessionId: SessionId | null
+  mode: 'business' | 'conversation' | 'other'
+  aiVisible: boolean
+  previewVisible: boolean
+  sidebar: 'expanded' | 'collapsed'
+}
+/** Confirmed host view mount, or an explicit failure; unknown may have partially changed the view. */
+export type WorkbenchDisplayResult = { status: 'confirmed'; state: WorkbenchDisplayState }
+  | { status: 'unavailable' | 'ambiguous' | 'unknown' | 'failed' | 'cancelled'; reason: string }
+/** Correlation identity minted by the Host for one live Client request. */
+export type WorkbenchDisplayRequestId = Branded<'WorkbenchDisplayRequestId'>
+/** One Client attachment, independent of the Peer shared by browser documents. */
+export type WorkbenchDisplayChannelId = Branded<'WorkbenchDisplayChannelId'>
+/** Commands for one live answering Client stream; never replay navigation after connection loss. */
+export type WorkbenchDisplayCommand = { type: 'ready'; channelId: WorkbenchDisplayChannelId }
+  | { type: 'inspect'; requestId: WorkbenchDisplayRequestId }
+  | { type: 'open'; requestId: WorkbenchDisplayRequestId; request: WorkbenchDisplayRequest }
+  | { type: 'cancel'; requestId: WorkbenchDisplayRequestId }

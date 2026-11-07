@@ -15,6 +15,7 @@
 - [运行目录与自定义存储](#storage)
 - [原生 AI 与共享数据](#native-ai)
 - [随包专家、Skill、MCP 与 CLI](#expert-bundle)
+- [显示控制与 Agent 入口](#display)
 - [限制](#limits)
 
 <a id="create"></a>
@@ -159,6 +160,27 @@ MCP 绑定文件采用原生 `dsh-mcp-client` 配置，例如 `{ "transport": "s
 使用 `activate(ctx, environment, signal)` 也可直接注册业务工具，或在 `await bundle.activate(...)` 后追加原生能力并返回结果。所有注册、监听和子插件必须归属传入的 `ctx`，响应 `signal`，不得使用外部全局注册表。绑定失败时，宿主释放此次新增的全部能力并保留之前的关联记录；再次执行会重新准备原关联。取消关联、会话结束或提供者卸载时，宿主等待能力释放和加载回调结束。Host 的 `open()` 和 `environment()` 不启动依赖，关闭 AI 浮窗也不取消已有关联。
 
 验收时用手动操作、显式业务工具、Skill/CLI 和 MCP 修改同一份业务文件，并从业务界面重新读取；检查不同会话的能力隔离、重复打开、依赖缺失、启动失败、加载取消、卸载和重启恢复。工作台版本一致时应可离线复用；模型和远程 MCP 的实际请求仍可能需要网络。
+
+<a id="display"></a>
+
+## 显示控制与 Agent 入口
+
+工作台作者在客户端注册元信息中设置可选的 `display: { sidebar: 'focus', ai: 'hide' }`，作为第一次打开的布局建议。`focus` 收起左侧导航，不进入操作系统全屏；未指定时保留导航。`ai: 'hide'` 保留 AI 入口但不主动创建对话；未指定时，启用 AI 的工作台恢复关联对话。用户可以通过标题栏的「专注展示」切换导航，通过浮窗右上角收起窗口；显示开关分别记忆，后续打开优先使用已保存的选择。离开业务主界面时恢复进入前的导航展开状态，宽度和窄窗口行为沿用宿主规则。
+
+业务组件也可主动控制显示。以下调用通过宿主等待客户端实际挂载；不会发送消息，也不执行专家工具。
+
+```js
+await workbench.display({ mode: 'business', sidebar: 'focus', ai: 'hide' })
+await workbench.display({ mode: 'business', ai: 'show' })
+await workbench.display({ mode: 'preview' })
+const visible = workbench.displayState()
+```
+
+`business` 让业务占据主内容区，`ai` 选择显示或收起 AI 浮窗；`conversation` 显示原生对话并收起业务预览；`preview` 在原生对话上悬浮业务预览。后两种需要工作台启用 AI，优先复用当前关联对话，否则创建一个原生关联对话。已有对话必须属于同一运行实例；重复进入复用实例和已关联会话。业务预览与 AI 浮窗各自记住开关和位置；拖动或键盘移动不会改变业务数据。预览是不可编辑的等比画面，需要操作时进入业务主界面。
+
+常驻工具 `workbench_list` 列出已加载的 Host 提供者；`workbench_open` 选择显示方式，`workbench_status` 查询客户端当前状态。它们不要求当前线程已选择工作台。Agent 打开业务界面默认收起 AI，不自动把正在运行的调用线程重新绑定；显式选择对话或预览时，已有同工作台关联可继续使用，否则创建另一条关联对话。业务工具仍由随包专家决定，显示工具不会授予额外业务权限。
+
+只有结果 `status: 'confirmed'` 表示客户端确认宿主视图已挂载，不代表作者的远程业务请求全部完成。没有客户端返回 `unavailable`，多个客户端返回 `ambiguous`，业务页无法加载返回 `failed`；断线或超过 `displayTimeoutMs` 返回 `unknown`，应先查询状态再决定下一步。默认等待 30 秒，可在能力包 Host 配置中调整。取消返回 `cancelled`，已经创建的实例或会话不会因此删除；连接恢复不重放导航。`workbench.display()` 在未确认时拒绝，调用方应显示可恢复的失败提示。UI-only 卡片可显示，但不会出现在 Host 提供者目录中，也不能创建原生对话。
 
 <a id="limits"></a>
 

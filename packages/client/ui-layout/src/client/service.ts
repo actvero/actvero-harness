@@ -28,6 +28,8 @@ export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
 export interface ILayout {
   /** Selected central panel from the same root store used by `usePanelInfo`. */
   readonly panelInfo: HostObservable<PanelInfo>
+  /** Actual responsive sidebar expansion; subscribing does not change saved widths. */
+  readonly sidebarExpanded: HostObservable<boolean>
   /**
    * Select a global central panel without changing the current Session.
    * @param panelId - registered main key, or null to show the Conversation.
@@ -41,6 +43,10 @@ export interface ILayout {
   beginNavigation(): AbortSignal
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /** Set expansion without toggling an already matching state.
+   * @param expanded Whether navigation should be expanded in the current viewport.
+   */
+  setSidebarExpanded(expanded: boolean): void
   /**
    * Report the right panel's presentation without changing its expanded state.
    * @param track - whether the normal panel width reserves a grid track,
@@ -61,11 +67,13 @@ export class LayoutController implements ILayout {
    * @param panels - actions of the instance shared with the root entry.
    * @param hasMainPanel - checks the live main-slot registry for a panel id.
    * @param panelInfo - root store's shared central-panel selection source.
+   * @param sidebarExpanded - live responsive expansion from the same root store.
    */
   constructor(
     private readonly panels: PanelActions,
     private readonly hasMainPanel: (id: MainPanelId) => boolean,
     readonly panelInfo: HostObservable<PanelInfo>,
+    readonly sidebarExpanded: HostObservable<boolean>,
   ) {}
 
   /** Select a global panel or return to the Conversation. */
@@ -92,6 +100,11 @@ export class LayoutController implements ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void {
     this.panels.toggleSidebar()
+  }
+
+  /** Set the sidebar expansion in the current viewport. */
+  setSidebarExpanded(expanded: boolean): void {
+    if (this.sidebarExpanded.getSnapshot() !== expanded) this.panels.toggleSidebar()
   }
 
   /** Report the right panel's track and fullscreen presentation. */

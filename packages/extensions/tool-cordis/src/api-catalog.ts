@@ -93,6 +93,29 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Disposer withdrawing the exact implementation and awaiting its conversation capabilities.',
       },
       {
+        signature: '@Remote({ mode: \'stream\' }) async *displayCommands(signal: AbortSignal): AsyncIterable<WorkbenchDisplayCommand>',
+        description: 'Serve display commands only to the local owner\'s answering Client. Requests do not survive stream replacement.',
+        parameters: [{ name: 'signal', description: 'Carrier lifetime.' }],
+        returns: 'Readiness followed by live display requests; shutdown settles pending results as unknown.',
+      },
+      {
+        signature: '@Remote acknowledgeDisplay(channelId: WorkbenchDisplayChannelId, requestId: WorkbenchDisplayRequestId, result: WorkbenchDisplayResult): void',
+        description: 'Route one acknowledgement only to the stream owned by the same authenticated Peer.',
+        parameters: [{ name: 'channelId', description: 'Host-issued Client attachment identity.' }, { name: 'requestId', description: 'Host-issued correlation identity.' }, { name: 'result', description: 'Observed UI result, never a synthesized business-open success.' }],
+      },
+      {
+        signature: '@Remote show(request: WorkbenchDisplayRequest, signal: AbortSignal): Promise<WorkbenchDisplayResult>',
+        description: 'Request display from an owner Client through the same bounded acknowledgement path as Agent tools.',
+        parameters: [{ name: 'request', description: 'Installed workbench and display choices.' }, { name: 'signal', description: 'Carrier cancellation.' }],
+        returns: 'Confirmation or an explicit unavailable, ambiguous, failed or uncertain outcome.',
+      },
+      {
+        signature: 'present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<WorkbenchDisplayResult>',
+        description: 'Request Client navigation without binding the calling Agent or changing its business data.',
+        parameters: [{ name: 'request', description: 'Installed workbench and display choices.' }, { name: 'signal', description: 'Cancellation; timeout or carrier loss reports an unknown outcome.' }],
+        returns: 'Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.',
+      },
+      {
         signature: '@Remote list(): WorkbenchRuntimeEntry[]',
         description: 'List providers with a managed runtime, including those with author-owned storage.',
         parameters: [],
@@ -8794,6 +8817,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkbenchCustomProvider',
     declaration: 'export interface WorkbenchCustomProvider extends WorkbenchProviderBase {\n    storage?: WorkbenchJsonStorage;\n}',
+  },
+  {
+    name: 'WorkbenchDisplayChannelId',
+    declaration: 'export type WorkbenchDisplayChannelId = Branded<\'WorkbenchDisplayChannelId\'>;',
+  },
+  {
+    name: 'WorkbenchDisplayCommand',
+    declaration: 'export type WorkbenchDisplayCommand = {\n    type: \'ready\';\n    channelId: WorkbenchDisplayChannelId;\n} | {\n    type: \'inspect\';\n    requestId: WorkbenchDisplayRequestId;\n} | {\n    type: \'open\';\n    requestId: WorkbenchDisplayRequestId;\n    request: WorkbenchDisplayRequest;\n} | {\n    type: \'cancel\';\n    requestId: WorkbenchDisplayRequestId;\n};',
+  },
+  {
+    name: 'WorkbenchDisplayRequest',
+    declaration: 'export interface WorkbenchDisplayRequest {\n    id: WorkbenchId;\n    mode: \'business\' | \'conversation\' | \'preview\';\n    sessionId?: SessionId;\n    sidebar?: \'preserve\' | \'focus\';\n    ai?: \'show\' | \'hide\';\n}',
+  },
+  {
+    name: 'WorkbenchDisplayRequestId',
+    declaration: 'export type WorkbenchDisplayRequestId = Branded<\'WorkbenchDisplayRequestId\'>;',
+  },
+  {
+    name: 'WorkbenchDisplayResult',
+    declaration: 'export type WorkbenchDisplayResult = {\n    status: \'confirmed\';\n    state: WorkbenchDisplayState;\n} | {\n    status: \'unavailable\' | \'ambiguous\' | \'unknown\' | \'failed\' | \'cancelled\';\n    reason: string;\n};',
+  },
+  {
+    name: 'WorkbenchDisplayState',
+    declaration: 'export interface WorkbenchDisplayState {\n    id: WorkbenchId | null;\n    instanceId: WorkbenchInstanceId | null;\n    sessionId: SessionId | null;\n    mode: \'business\' | \'conversation\' | \'other\';\n    aiVisible: boolean;\n    previewVisible: boolean;\n    sidebar: \'expanded\' | \'collapsed\';\n}',
   },
   {
     name: 'WorkbenchDocument',

@@ -15,8 +15,8 @@
   en: b9d4d58097c4260a
   zh: 411e827d681a6509
 /native-capability-navigation/runtime:
-  en: 9a734ec571506619
-  zh: 4549b09a14345501
+  en: 3afa478d20afbf19
+  zh: 2866c734ce61a8b4
 /native-capability-navigation/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -24,11 +24,11 @@
   en: 57e071c0ccd41e4a
   zh: 18fd9c2388448f2f
 /native-capability-navigation/model-experience/native-capability-selection/what-the-model-sees:
-  en: 7f537606d85f0427
-  zh: 2c6b381ca4e57692
+  en: f0da779ec9a2cb69
+  zh: 1b15a427f0109a7a
 /native-capability-navigation/model-experience/native-capability-selection/token-effect:
-  en: 17e3ef48427ab7ca
-  zh: f5a7f802fb1d3d38
+  en: 206c79813a1e74e4
+  zh: 028517e2cd493828
 /native-capability-navigation/model-experience/native-capability-selection/kv-cache-effect:
   en: d48fc2bb2a40cab6
   zh: fee4f09759e65c5d

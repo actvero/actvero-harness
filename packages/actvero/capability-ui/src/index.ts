@@ -12,7 +12,10 @@ export { WorkbenchRuntime } from './workbench-runtime.ts'
 /** Services required by business storage and native conversation integration. */
 export const inject = ['agents', 'sessionController', 'sessionProjections', 'tools', 'systemPrompt', 'storageDomain', 'typert', 'remoteAccess', 'workspaceRegistry']
 /** Deployment-owned managed files location. */
-export const Config: z<WorkbenchRuntimeConfig> = z.object({ dataDirectory: z.string().required() })
+export const Config: z<WorkbenchRuntimeConfig> = z.object({
+  dataDirectory: z.string().required(),
+  displayTimeoutMs: z.number().step(1).min(1).max(600000).default(30000),
+})
 /** Open authoritative data before advertising runtime availability.
  * @param ctx Host plugin scope.
  * @param config Managed files location supplied by the product profile.
