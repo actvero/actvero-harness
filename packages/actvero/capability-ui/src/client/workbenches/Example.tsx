@@ -1,6 +1,6 @@
 /** Built-in business view; human controls and AI actions share the Host document. */
 import { useState } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Checkbox, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { WorkbenchBodyProps } from '../../contracts.ts'
@@ -26,15 +26,12 @@ export function Example({ t, workbench, useResource }: PropsLocale<'actvero.work
     finally { setPending(false) }
   }
   return <div className={styles.examplePage}>
-    <h1>{t('sampleName')}</h1>
     <p className={styles.exampleDescription}>{t('sampleDescription')}</p>
     {!state ? <p role="status">{t(resource.status === 'loading' ? 'preparing' : 'unavailable')}</p> : <section className={styles.checklist}>
       <header><h2>{t('sampleSection')}</h2><span className={styles.meta}>{state.items.filter(item => item.completed).length} / {state.items.length}</span></header>
-      {state.items.map(item => <label className={styles.checklistItem} key={item.id}>
-        <input type="checkbox" disabled={pending || resource.status !== 'live'} checked={item.completed}
-          onChange={() => { void submit('complete', { id: item.id, completed: !item.completed }) }} />
-        <span>{item.text}</span>
-      </label>)}
+      {state.items.map(item => <Checkbox className={styles.checklistItem} key={item.id} label={item.text}
+        disabled={pending || resource.status !== 'live'} checked={item.completed}
+        onChange={(completed) => { void submit('complete', { id: item.id, completed }) }} />)}
       <form className={styles.addTask} onSubmit={(event) => { event.preventDefault(); if (text.trim()) void submit('add', { text }) }}>
         <Input value={text} maxLength={2000} placeholder={t('taskPlaceholder')} aria-label={t('taskPlaceholder')}
           onChange={(event) => { setText(event.target.value) }} />

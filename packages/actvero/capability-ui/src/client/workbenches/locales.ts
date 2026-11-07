@@ -1,8 +1,8 @@
 export const zh = {
   askAI: 'AI 协助',
-  newConversation: '新建工作台对话',
+  newConversation: '新建对话',
   workbenchConversation: '工作台对话',
-  fullConversation: '进入对话',
+  fullConversation: '全屏对话',
   floatWorkbench: '悬浮查看工作台',
   fullWorkbench: '进入工作台',
   collapse: '收起',
@@ -110,9 +110,9 @@ export const zh = {
 
 export const en: Record<keyof typeof zh, string> = {
   askAI: 'Ask AI',
-  newConversation: 'New workbench conversation',
+  newConversation: 'New conversation',
   workbenchConversation: 'Workbench conversation',
-  fullConversation: 'Open conversation',
+  fullConversation: 'Full conversation',
   floatWorkbench: 'Floating workbench',
   fullWorkbench: 'Open workbench',
   collapse: 'Collapse',

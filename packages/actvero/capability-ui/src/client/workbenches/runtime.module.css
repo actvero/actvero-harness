@@ -1,24 +1,52 @@
-.page { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; overflow: hidden; padding-top: var(--dsh-frame-top-clearance, 0px); }
-.toolbar { display: flex; align-items: center; gap: 4px; flex-shrink: 0; min-height: 48px; padding: 8px 16px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
-.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+.page { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; overflow: hidden; }
+/* The 50px row shares the conversation title's 25px centre. The shell supplies
+   the traffic-light/leading-control clearance when the macOS sidebar is hidden. */
+.pageHeader { box-sizing: border-box; display: flex; align-items: center; gap: 12px; flex: none; height: 50px; padding: 10px 20px; padding-inline-start: max(20px, var(--dsh-frame-leading-clearance, 0px)); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.pageTitle { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; }
+.separator { flex: none; height: 16px; border-left: 0.5px solid var(--dsw-alias-border-l3); }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 48px; box-sizing: border-box; padding: 10px 16px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.toolbar > svg { flex: none; }
+.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsw-alias-label-primary); font-size: 13px; line-height: 20px; font-weight: 500; }
+.actions, .utilities { display: flex; align-items: center; gap: 8px; flex: none; }
+.iconButton { flex: none; width: 28px; padding: 0; color: var(--dsw-alias-label-secondary); }
+.iconButton[aria-pressed='true'] { background: var(--dsw-alias-interactive-bg-active); color: var(--dsw-alias-label-primary); }
 .content { flex: 1; min-width: 0; min-height: 0; overflow: auto; container-type: inline-size; }
-.workbenchFloat, .chatFloat { box-sizing: border-box; position: fixed; z-index: 30; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--dsw-alias-border-l2); border-radius: 16px; background: var(--dsw-alias-bg-layer-2); box-shadow: var(--dsw-elevation-panel); }
-.workbenchFloat { top: 88px; right: 24px; width: min(480px, calc(100vw - 32px)); height: min(370px, calc(100dvh - 180px)); }
-.chatFloat { top: 88px; right: 24px; bottom: 24px; width: min(480px, calc(100vw - 32px)); }
-.chatBody { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.workbenchFloat, .chatFloat { box-sizing: border-box; position: fixed; z-index: 30; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 0; border-radius: var(--dsw-radius-panel); background: var(--dsw-alias-bg-base); box-shadow: var(--dsw-elevation-panel); }
+.workbenchFloat { top: max(84px, var(--dsh-frame-overlay-top, 0px)); right: 24px; width: min(440px, calc(100vw - 32px)); height: min(340px, calc(100dvh - 112px)); }
+.chatFloat { right: 24px; bottom: 24px; width: min(480px, calc(100vw - 32px)); height: min(640px, calc(100dvh - max(84px, var(--dsh-frame-overlay-top, 0px)))); }
+.chatFloat[hidden] { display: none; }
+/* The compact native model trigger keeps all composer actions reachable in the floating window. */
+.chatBody { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; --dsh-composer-model-text-display: none; --dsh-composer-model-icon-display: block; }
 .chatBody > * { width: 100%; min-width: 0; }
-.utilities { display: flex; align-items: center; gap: 2px; }
-.badge { display: inline-flex; align-items: center; max-width: 180px; border-radius: 10px; color: var(--dsw-alias-label-secondary); }
-.badge:hover, .badge:focus-within { background: var(--dsw-alias-bg-layer-3); }
+.aiLauncher { position: absolute; right: 24px; bottom: 24px; z-index: 25; display: grid; place-items: center; box-sizing: border-box; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; corner-shape: round; color: var(--dsw-alias-label-primary-foreground); background: var(--dsw-alias-button-primary-fill); box-shadow: var(--dsw-elevation-panel); cursor: pointer; }
+.aiLauncher[hidden] { display: none; }
+.aiLauncher:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 4px; }
+.aiLauncher:disabled { cursor: wait; }
+@media (hover: hover) { .aiLauncher:hover { background: var(--dsw-alias-button-primary-hover); } }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+@media (max-width: 600px) {
+  .workbenchFloat, .chatFloat { right: 16px; }
+  .chatFloat { bottom: 16px; }
+  .aiLauncher { right: 16px; bottom: 16px; }
+  .toolbar { padding-inline: 12px; }
+}
+.badge { display: inline-flex; align-items: center; max-width: 180px; border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-label-secondary); }
+.badge:focus-within { background: var(--dsw-alias-bg-layer-3); }
+@media (hover: hover) { .badge:hover { background: var(--dsw-alias-bg-layer-3); } }
 .remove, .badgeName { border: 0; background: none; color: inherit; cursor: pointer; font: inherit; }
-.remove { display: grid; place-items: center; width: 28px; height: 28px; padding: 4px; border-radius: 8px; flex-shrink: 0; }
+.remove { display: grid; place-items: center; width: 28px; height: 28px; padding: 4px; border-radius: var(--dsw-radius-sm); flex-shrink: 0; }
 .mark, .cross { grid-area: 1 / 1; display: flex; }
-.mark img { width: 18px; height: 18px; object-fit: cover; border-radius: 5px; }
+.mark img { width: 18px; height: 18px; object-fit: cover; border-radius: var(--dsw-radius-xs); }
 .cross { opacity: 0; }
-.remove:hover .mark, .remove:focus-visible .mark { opacity: 0; }
-.remove:hover .cross, .remove:focus-visible .cross { opacity: 1; }
+.remove:focus-visible .mark { opacity: 0; }
+.remove:focus-visible .cross { opacity: 1; }
+@media (hover: hover) {
+  .remove:hover .mark { opacity: 0; }
+  .remove:hover .cross { opacity: 1; }
+}
 .badgeName { padding: 4px 6px 4px 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .remove:focus-visible, .badgeName:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
 .notice { padding: 16px 24px; color: var(--dsw-alias-label-secondary); }
 @container (max-width: 540px) { .badgeName { display: none; } }
-@media (max-width: 600px) { .workbenchFloat, .chatFloat { right: 16px; top: 64px; } .toolbar { padding-inline: 12px; } }

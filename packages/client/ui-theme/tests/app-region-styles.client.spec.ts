@@ -67,6 +67,12 @@ interface ChromeRow {
 
 const CHROME_ROWS: readonly ChromeRow[] = [
   {
+    file: 'actvero/capability-ui/src/client/workbenches/runtime.module.css',
+    selector: '.pageHeader',
+    markup: 'actvero/capability-ui/src/client/workbenches/RuntimeView.tsx',
+    height: ['height', '50px'],
+  },
+  {
     file: 'client/ui-settings-account/src/client/OnboardingSurface.module.css',
     selector: '.dragBand',
     markup: 'client/ui-settings-account/src/client/OnboardingSurface.tsx',

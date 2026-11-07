@@ -1,9 +1,10 @@
-/** Grid mark shared by the sidebar and the local workbench cards. */
+/** Native application mark shared by workbench navigation and controls. */
+import { IconAppsAddOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+
+/** Render the shared workbench mark.
+ * @param props Icon size in CSS pixels.
+ * @returns Native outline icon.
+ */
 export function WorkbenchIcon({ size = 16 }: { size?: number }) {
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.65">
-    <rect x="2.75" y="2.75" width="5.5" height="5.5" rx="1.1" />
-    <rect x="11.75" y="2.75" width="5.5" height="5.5" rx="1.1" />
-    <rect x="2.75" y="11.75" width="5.5" height="5.5" rx="1.1" />
-    <rect x="11.75" y="11.75" width="5.5" height="5.5" rx="1.1" />
-  </svg>
+  return <IconAppsAddOutlineRegular size={size} />
 }
