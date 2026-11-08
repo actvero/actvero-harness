@@ -51,6 +51,8 @@ Host 提供者通过 Cordis effect 注册元信息、可选 JSON 适配器与专
 
 `WorkbenchProvider.activate` 在原生会话作用域内挂载作者能力，返回精确依赖摘要与可选专家指令。绑定完成后才将结果写入关联事件；失败会释放本次注册并保留原关联记录。重复激活复用当前作用域，取消关联或提供者卸载等待资源释放。恢复时摘要变化要求重新选择工作台。通过[随包专家加载器](../../../actvero/workbench-development.zh.md#expert-bundle)可复用原生 Skill、MCP 和解释器，不强制采用通用 JSON 工具。
 
+包的 Host 和 Client 注册在产生贡献前共用[兼容解析](src/workbench-protocol.ts)，开发模板和归档预检沿用同一要求；声明方式见[包格式](../../../actvero/workbench-development.zh.md#format)。注销立即撤下可用状态、取消准备与激活，并等待已开始的调用及会话作用域释放；完成前保留工作台标识，重复注销等待同一结果。准备失败会停止模型请求并释放该会话的工具，关联日志和业务数据保持不变。提供者必须响应 AbortSignal、等待自己启动的任务结束，且不能在回调中等待自己的注销；宿主无法强制终止不合作的同进程代码。Cordis 负责贡献释放并记录清理异常，不能据此保证外部副作用已回滚。
+
 <a id="model-experience"></a>
 
 ## 模型体验

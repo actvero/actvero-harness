@@ -2,7 +2,7 @@
 
 English | [中文](workbench-architecture-plan.zh.md)
 
-This document is for engineers implementing the workbench framework, SDK, developer tools, and expert integration. It defines the next architecture, delivery stages, and acceptance criteria; workbench authors can use it to understand planned capabilities. Status: proposed, not a statement that these APIs are available. Current development, packaging, and installation remain governed by the [workbench development guide](workbench-development.md); existing local capabilities are described in the [workbench runtime implementation plan](workbench-runtime-plan.md).
+This document is for engineers implementing the workbench framework, SDK, developer tools, and expert integration. It defines the architecture, delivery stages, and acceptance criteria; workbench authors can use it to understand planned capabilities. Stage one implements compatibility declarations and asynchronous release of existing providers; stages two through six remain planned, so not all host extension APIs described here are available. Current development, packaging, and installation follow the [workbench development guide](workbench-development.md); existing local capabilities are described in the [workbench runtime implementation plan](workbench-runtime-plan.md).
 
 ## 1. Product model and responsibilities
 
@@ -14,7 +14,7 @@ Using the plugin mechanism does not make arbitrary host modification a supported
 
 ## 2. Current baseline and main gaps
 
-The following baseline comes from the current implementation and existing documentation, not from runtime acceptance checks repeated for this proposal.
+The following table separates existing capabilities from subsequent goals; see the [runtime documentation](../packages/actvero/capability-ui/README.md) for current compatibility declarations and provider release behavior.
 
 | Area | Existing foundation | Next-stage change |
 | --- | --- | --- |
@@ -163,6 +163,8 @@ New durable associations or model-visible context follow repository persistence-
 | Six: generality acceptance | Independent development validation with the collaborative whiteboard and another non-canvas workbench | Both workbench types use no private patches and complete their agreed business flows |
 
 Stages two and three share input-reference design, which should be reviewed together at the protocol stage. Implementation can follow dependencies, but completing one component does not complete the architecture. Each stage covers normal operation, disablement/removal, cancellation, failure, and recovery; model-input changes add replayable session snapshots. macOS, Windows, real-account, and offline evidence and unverified items are recorded separately.
+
+Stage one is covered by [lifecycle and compatibility regressions](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts), [developer-command tests](../scripts/actvero-workbench.client.spec.ts), [real installation and restart tests](../apps/web/tests/actvero-workbench-manager.e2e.ts), and [native-session replay of preparation failure](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts). Templates, the developer Skill, and archive preflight share one compatibility declaration; existing workbenches without a declaration retain the original extension API. The next stage starts with toolbar extensions and designs native input references alongside them, without changing business data formats.
 
 Keep the existing create, doctor, typecheck, build, check, pack, and bind toolchain, adding host compatibility, dependency, resource, actual loading, and disposal checks. The development Skill documents entry-point selection, directories, extension registration, data ownership, AI lifecycles, and acceptance. A separate frontend Skill supplies optional visual standards, defaults to native DSH semantics and components, and allows personalized business views.
 

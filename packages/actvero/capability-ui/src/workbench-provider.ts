@@ -2,6 +2,7 @@
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Context } from '@deepseek-ai/cordis'
 import type { WorkbenchEnvironment, WorkbenchExpert, WorkbenchId } from './types.ts'
+import type { WorkbenchProtocol } from './workbench-protocol.ts'
 
 /** Per-conversation context; business data stays separate from model-visible instructions. */
 export interface WorkbenchRuntimeContext extends WorkbenchEnvironment {
@@ -18,6 +19,8 @@ export interface WorkbenchJsonStorage {
 }
 /** Metadata and optional conversation preparation shared by both storage modes. */
 export interface WorkbenchProviderBase {
+  /** Host API requirements shared with the Client registration; omitted for legacy packages. */
+  protocol?: WorkbenchProtocol
   id: WorkbenchId
   name: string
   version: string
@@ -28,9 +31,13 @@ export interface WorkbenchProviderBase {
   /** Fixed platform reads requested by this package; omission denies platform access. */
   platform?: readonly 'models:read'[]
   expert?: WorkbenchExpert
-  /** Optional dependency preparation; failure prevents the next model request. */
+  /** Prepare before binding and each model step. Observe cancellation and settle only after owned work stops;
+   * failure prevents the model request and releases this conversation's capabilities. Persistent registrations belong in activate.
+   */
   prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>
-  /** Mount conversation-scoped capabilities; failures dispose contributions. Returned expert instructions are captured in the Session. */
+  /** Mount capabilities through the supplied scope once per binding lifetime. Failures dispose contributions.
+   * Observe cancellation; do not await your own unregister or scope disposal. Returned instructions are captured in the Session.
+   */
   activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>
 }
 /** Exact dependency generation and optional compiled expert instructions for a conversation. */

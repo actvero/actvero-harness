@@ -12,6 +12,7 @@ import { WorkbenchPlatformAccess } from './workbench-platform.ts'
 
 export type * from './types.ts'
 export type * from './workbench-provider.ts'
+export type { WorkbenchProtocol } from './workbench-protocol.ts'
 export { WorkbenchPlatformAccess } from './workbench-platform.ts'
 export { WorkbenchRuntime } from './workbench-runtime.ts'
 /** Services required by business storage and native conversation integration. */
@@ -44,8 +45,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     child.effect(() => () => provider.dispose())
   })
   const domain = await ctx.storageDomain.open(workbenchDomain)
-  ctx.effect(() => () => domain.close())
-  const runtime = new WorkbenchRuntime(ctx, domain, config)
-  new WorkbenchPlatformAccess(ctx, runtime, config.platformTimeoutMs)
-  ctx.effect(() => runtime.register(checklistProvider))
+  ctx.effect(function* () {
+    // Keep storage available until runtime calls and provider scopes have stopped.
+    yield () => domain.close()
+    const runtime = new WorkbenchRuntime(ctx, domain, config)
+    new WorkbenchPlatformAccess(ctx, runtime, config.platformTimeoutMs)
+    yield runtime.register(checklistProvider)
+  })
 }

@@ -3,5 +3,12 @@
   "description": "整理交付前的待办，跟进每一步的完成情况。",
   "category": "office",
   "author": "本地开发",
-  "tags": ["项目交付", "待办清单"]
+  "tags": [
+    "项目交付",
+    "待办清单"
+  ],
+  "protocol": {
+    "schemaVersion": 1,
+    "hostApi": "^1.0.0"
+  }
 }

@@ -2,7 +2,7 @@
 
 [English](workbench-architecture-plan.md) | 中文
 
-本文面向工作台框架、SDK、开发工具和专家集成的研发人员，用于确定下一阶段架构、拆分交付和验收；工作台作者可据此了解计划开放的能力。状态：拟实施，本文不表示这些接口已经可用。当前开发、打包和安装仍以[工作台开发指南](workbench-development.zh.md)为准；已有本地运行能力见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)。
+本文面向工作台框架、SDK、开发工具和专家集成的研发人员，用于确定架构、拆分交付和验收；工作台作者可据此了解计划开放的能力。阶段一已实现兼容声明和现有提供者的异步释放管理；阶段二至六仍待实施，本文中的宿主扩展接口并非全部可用。当前开发、打包和安装以[工作台开发指南](workbench-development.zh.md)为准；已有本地运行能力见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)。
 
 ## 1. 产品形态与职责
 
@@ -14,7 +14,7 @@
 
 ## 2. 当前基线与主要缺口
 
-以下基线来自当前实现和已有文档，不代表本次重新执行过运行验收。
+以下列出基础能力与后续目标；兼容声明和提供者释放的当前行为见[运行时说明](../packages/actvero/capability-ui/README.zh.md)。
 
 | 领域 | 当前基础 | 下一阶段改造 |
 | --- | --- | --- |
@@ -163,6 +163,8 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 | 六：通用性验收 | 协作白板和另一种非画布工作台的独立开发验证 | 两类工作台均不依赖私有补丁，并完成约定业务流程 |
 
 阶段二和三共享输入引用设计，协议评审时一并确定；实现可按依赖顺序交付，不以单个组件完成宣称整体架构完成。每阶段覆盖正常流程、停用/卸载、取消、失败和恢复；涉及模型输入的变更补充可重放的会话快照。macOS、Windows、真实账号和离线场景分别记录实测证据与待验证项。
+
+阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。下一阶段从顶栏扩展开始，同时设计原生输入引用，不改写业务数据格式。
 
 开发入口延续现有 create、doctor、typecheck、build、check、pack 和 bind 工具链，补充宿主兼容、依赖、资源、真实加载和释放检查。开发 Skill 说明入口选择、目录、扩展注册、数据职责、AI 生命周期和验收步骤；前端 Skill 单独提供可选视觉标准，默认复用 DSH 原生语义与组件，允许业务视图个性化。
 

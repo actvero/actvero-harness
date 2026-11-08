@@ -1,3 +1,5 @@
+import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
+
 const MAX_FILE_BYTES = 8 * 1024 * 1024
 const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
 const MAX_MANIFEST_BYTES = 128 * 1024
@@ -68,6 +70,7 @@ export async function readWorkbenchPackage(file: File): Promise<{ name: string; 
     if (typeof manifest?.version !== 'string' || !manifest.version || typeof bundle?.patch !== 'string' || !bundle.patch) return undefined
     if (client?.platform !== 'web' || !Array.isArray(client.inject) || !client.inject.includes('@actvero/dsh-capability-ui')) return undefined
     if (dsh?.actveroWorkbench !== 1 || (typeof entry !== 'string' && !record(entry))) return undefined
+    resolveWorkbenchProtocol(dsh.actveroWorkbenchProtocol)
     return { name, version: manifest.version }
   } catch (error) {
     if (error instanceof Error) return undefined

@@ -1255,6 +1255,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -1370,9 +1373,6 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
-      semver:
-        specifier: ^7.8.5
-        version: 7.8.5
 
   packages/actvero/connectors:
     dependencies:

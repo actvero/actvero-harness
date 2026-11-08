@@ -22,7 +22,7 @@ export function apply(ctx: Context): void {
   const resourcesDirectory = fileURLToPath(new URL('../assets/', import.meta.url))
   const expert = new WorkbenchExpertBundle({ directory: resourcesDirectory })
   const provider: WorkbenchCustomProvider = {
-    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
     resourcesDirectory, ai: true, activate: expert.activate, platform: ['models:read'],
     storage: {
       initial: () => JSON.stringify({ items: [{ id: 'scope', text: '确认需求和交付范围', completed: false }] }),

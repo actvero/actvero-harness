@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import { createHash } from 'node:crypto'
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { z } from 'zod'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
 const sources = {
@@ -10,6 +11,7 @@ const sources = {
   'guide.zh.md': 'actvero/workbench-development.zh.md',
   'api/client.ts': 'packages/actvero/capability-ui/src/contracts.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',
+  'api/workbench-protocol.ts': 'packages/actvero/capability-ui/src/workbench-protocol.ts',
   'api/types.ts': 'packages/actvero/capability-ui/src/types.ts',
   'api/expert.ts': 'packages/actvero/experts/src/contracts.ts',
 } as const
@@ -18,9 +20,10 @@ const sources = {
  * @param destination Disposable generated reference directory owned by the caller.
  */
 export function generateWorkbenchSkillReference(destination: string): void {
-  const baseline: { version: string } = JSON.parse(readFileSync(join(repository, 'actvero/upstream.lock.json'), 'utf8'))
-  const capability: { version: string } = JSON.parse(readFileSync(join(repository, 'packages/actvero/capability-ui/package.json'), 'utf8'))
-  const experts: { version: string } = JSON.parse(readFileSync(join(repository, 'packages/actvero/experts/package.json'), 'utf8'))
+  const version = z.object({ version: z.string() })
+  const baseline = version.parse(JSON.parse(readFileSync(join(repository, 'actvero/upstream.lock.json'), 'utf8')))
+  const capability = version.parse(JSON.parse(readFileSync(join(repository, 'packages/actvero/capability-ui/package.json'), 'utf8')))
+  const experts = version.parse(JSON.parse(readFileSync(join(repository, 'packages/actvero/experts/package.json'), 'utf8')))
   rmSync(destination, { recursive: true, force: true })
   mkdirSync(destination, { recursive: true })
   for (const [target, source] of Object.entries(sources)) {

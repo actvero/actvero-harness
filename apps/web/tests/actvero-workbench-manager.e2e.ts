@@ -76,7 +76,11 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         export const inject = ['actveroWorkbenchRuntime', 'actveroWorkbenchPlatform', 'agents', 'webServer', 'tools'];
         export async function apply(ctx) {
           const runtime = ctx.actveroWorkbenchRuntime;
-          ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', resourcesDirectory: import.meta.dirname }));
+          let refused = false;
+          try { runtime.register({ id: '${fixtureName}', name: '不兼容', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^2' } }); }
+          catch (error) { if (error.code !== 'incompatible-host') throw error; refused = true; }
+          if (!refused) throw new Error('Host admitted an incompatible workbench');
+          ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^1' }, resourcesDirectory: import.meta.dirname }));
           ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/__workbench_test/display', handler: async (req, res) => {
             const params = new URL(req.url, 'http://127.0.0.1').searchParams;
             const request = params.has('mode') ? { id: params.get('id') || '${fixtureName}', mode: params.get('mode'),
@@ -121,8 +125,12 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             h('button', { onClick: () => setCrash(true) }, '模拟工作台界面错误'));
         }
         return { inject: ['actveroWorkbenches'], apply(ctx) {
+          let refused = false;
+          try { ctx.actveroWorkbenches.register({ id: '${fixtureName}', name: '不兼容', description: '拒绝加载', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^2' } }, Panel); }
+          catch (error) { if (error.code !== 'incompatible-host') throw error; refused = true; }
+          if (!refused) throw new Error('Client admitted an incompatible workbench');
           ctx.effect(() => ctx.actveroWorkbenches.register({
-            id: '${fixtureName}', name: '${title}', description: '整理活动结果与待跟进事项，汇总 Campaign Review 的渠道数据、反馈和负责人。', version: '1.0.0', category: 'content', iconUrl: 'data:image/png;base64,invalid', previewUrls: ${JSON.stringify(Array.from({ length: 5 }, () => 'data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')))}
+            id: '${fixtureName}', name: '${title}', protocol: { schemaVersion: 1, hostApi: '^1' }, description: '整理活动结果与待跟进事项，汇总 Campaign Review 的渠道数据、反馈和负责人。', version: '1.0.0', category: 'content', iconUrl: 'data:image/png;base64,invalid', previewUrls: ${JSON.stringify(Array.from({ length: 5 }, () => 'data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')))}
           }, Panel));
           ctx.effect(() => ctx.actveroWorkbenches.register({
             id: '${fixtureName}-single', name: '单图工作台', description: '单张图片的预览', version: '1.0.0',
@@ -139,7 +147,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       await create({ cwd: root, file: archive, gzip: true }, ['package/package.json', 'package/index.js', 'package/client.js', 'package/cordis.patch.yml'])
       const development = join(root, 'checklist-source')
       const developerCommand = join(repository, 'scripts/actvero-workbench.client.ts')
-      execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', development], { cwd: repository })
+      execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', development, '@local/project-checklist', '--template', 'plain'], { cwd: repository })
       execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'pack', development, root], { cwd: repository })
       const checklistArchive = join(root, 'local-project-checklist-1.0.0.tgz')
 

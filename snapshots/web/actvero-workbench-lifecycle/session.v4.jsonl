@@ -1,0 +1,11 @@
+{"type":"session","version":4,"id":"{{session:1}}","createdAt":1794150106297,"cwd":"{{cwd}}","isSeeded":false,"delegationDepth":0,"agentPreset":"standard"}
+{"type":"permission/preset","data":{"preset":"workspace-write"}}
+{"type":"sandbox/mode","data":{"mode":"workspace-write"}}
+{"type":"approval/policy","data":{"policy":"ask"}}
+{"type":"actvero/workbench","data":{"schemaVersion":1,"selection":{"id":"test:lifecycle","instanceId":"{{id:1}}","name":"生命周期验收","version":"1.0.0","expert":null}}}
+{"type":"agent/inbox/spliced","data":{"target":"next-turn","start":0,"inserted":[{"content":[{"type":"text","text":"查看当前工作台的数据。"}],"source":{"kind":"user"},"role":"user","id":"{{message:1}}"}]}}
+{"type":"turn/start","data":{"turn":1}}
+{"type":"agent/inbox/spliced","data":{"target":"next-turn","start":0,"removedCount":1,"inserted":[]}}
+{"type":"turn/end","data":{"turn":1,"reason":{"kind":"error","error":{"message":"Workbench dependency offline","code":"UNKNOWN"}}}}
+{"type":"actvero/workbench","data":{"schemaVersion":1,"selection":{"id":"test:lifecycle","instanceId":"{{id:1}}","name":"生命周期验收","version":"1.0.0","expert":null}}}
+{"type":"actvero/workbench","data":{"schemaVersion":1,"selection":null}}

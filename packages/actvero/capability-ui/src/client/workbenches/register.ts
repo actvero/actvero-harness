@@ -7,6 +7,7 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchId, WorkbenchDocument, WorkbenchInstanceId } from '../../types.ts'
 import type { WorkbenchClientContext } from '../../contracts.ts'
+import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
 import { Example } from './Example.tsx'
@@ -261,6 +262,7 @@ export function registerWorkbenches(ctx: Context): void {
   }
   const registry: ActveroWorkbenchRegistry = {
     register(descriptor, component, options) {
+      resolveWorkbenchProtocol(descriptor.protocol)
       const { id, name, description, version } = descriptor
       if (!/^[a-z0-9@][a-z0-9@/._-]{0,213}$/.test(id) || !name.trim() || !description.trim() || !version.trim()) {
         throw new Error('Invalid Actvero workbench registration.')

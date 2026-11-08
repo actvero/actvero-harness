@@ -1,5 +1,9 @@
 {
   "name": "空白工作台",
   "description": "从已确认的业务流程开始开发。",
-  "category": "uncategorized"
+  "category": "uncategorized",
+  "protocol": {
+    "schemaVersion": 1,
+    "hostApi": "^1.0.0"
+  }
 }

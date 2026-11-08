@@ -92,6 +92,8 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 ## 包格式
 
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.0.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
 | 文件或字段 | 用途 |
@@ -100,6 +102,8 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 | `package.json.type` | 必须为 `module`，Host 与 Client 使用 ESM |
 | `package.json.icon` | 可选的包内图标，例如 `./assets/icon.svg`；支持 SVG、PNG、JPEG、WebP，文件不超过 256 KiB |
 | `engines.dsh` | 所支持的 DSH 运行时版本范围；模板锁定当前开发基线 |
+| `workbench.json.protocol` | `schemaVersion: 1` 与 `hostApi: "^1.0.0"`；Host 和 Client 注册均读取这份声明 |
+| `dsh.actveroWorkbenchProtocol` | 打包时从上述声明生成，客户端导入预检和 check 校验同一宿主 API 要求 |
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
 | `exports["."]` / `exports["./client"]` | 本工具输出的 `./lib/index.js` 和 `./lib/client.js` |
@@ -191,7 +195,7 @@ import metadata from '../workbench.json'
 export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, ai: true,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol, ai: true,
   }))
 }
 ```
@@ -222,7 +226,7 @@ export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx: Context): void {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }

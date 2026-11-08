@@ -19,7 +19,7 @@ import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-j
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { describe, expect, it, onTestFinished } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as Workbenches from '../src/index.ts'
 import { checklistProvider } from '../src/checklist.ts'
@@ -67,6 +67,123 @@ async function harness(root?: string) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('rejects incompatible, duplicate and closed registrations before exposing a provider', async () => {
+    const { runtime, workbenches } = await harness()
+    const customId = 'test:protocol' as WorkbenchId
+    const provider = { id: customId, name: '兼容协议', version: '1.0.0' }
+    expect(() => runtime.register({ ...provider, protocol: { schemaVersion: 1, hostApi: '^2' } })).toThrow(expect.objectContaining({ code: 'incompatible-host' }))
+    expect(runtime.list().some(entry => entry.id === customId)).toBe(false)
+    const remove = runtime.register({ ...provider, protocol: { schemaVersion: 1, hostApi: '^1' } })
+    expect(() => runtime.register(provider)).toThrow('Duplicate')
+    await remove()
+    await workbenches.dispose()
+    expect(() => runtime.register(provider)).toThrow('closed')
+    expect(runtime.list()).toEqual([])
+  })
+
+  it.each(['prepare', 'activate'] as const)('reserves an id while %s settles and prevents reentrant replacement', async (phase) => {
+    const { ctx, runtime } = await harness()
+    const started = Promise.withResolvers<undefined>()
+    const proceed = Promise.withResolvers<undefined>()
+    let signal: AbortSignal | undefined
+    let replacement: unknown
+    let activations = 0
+    let releases = 0
+    const customId = 'test:retiring' as WorkbenchId
+    const identity = { id: customId, name: '卸载准备', version: '1.0.0', ai: true }
+    const wait = async (received: AbortSignal) => {
+      signal = received
+      received.addEventListener('abort', () => {
+        try { runtime.register(identity) } catch (error) { replacement = error }
+      }, { once: true })
+      started.resolve(undefined)
+      await proceed.promise
+    }
+    const remove = runtime.register({ ...identity,
+      prepare: async (_context, received) => { if (phase === 'prepare') await wait(received) },
+      activate: async (scope, _context, received) => {
+        activations++
+        scope.effect(() => () => { releases++ })
+        if (phase === 'activate') await wait(received)
+        return { digest: 'cancelled', expert: null }
+      },
+    })
+    const document = await runtime.open(customId)
+    const binding = runtime.bind(document)
+    const failed = expect(binding).rejects.toThrow()
+    await started.promise
+    let withdrawn = false
+    const retirement = remove()
+    void retirement.then(() => { withdrawn = true })
+    try {
+      expect(remove()).toBe(retirement)
+      expect(signal?.aborted).toBe(true)
+      expect(replacement).toMatchObject({ message: 'Workbench provider is still retiring' })
+      expect(withdrawn).toBe(false)
+      expect(runtime.list().some(entry => entry.id === customId)).toBe(false)
+      await expect(runtime.open(customId)).rejects.toMatchObject({ code: 'workbench/unavailable' })
+      expect(() => runtime.register(identity)).toThrow('retiring')
+    } finally { proceed.resolve(undefined); await retirement; await failed }
+    expect(activations).toBe(phase === 'activate' ? 1 : 0)
+    expect(releases).toBe(activations)
+    expect(ctx.sessionProjections.stateOf(ctx.agents.list()[0]!.session, 'actveroWorkbench')).toBeNull()
+    const next = runtime.register(identity)
+    await remove()
+    expect(runtime.list().some(entry => entry.id === customId)).toBe(true)
+    await next()
+  })
+
+  it('withdraws active tools when preparation fails on a later turn and preserves the logged binding', async () => {
+    const { ctx, runtime, prepare } = await harness()
+    let fail = false
+    runtime.register({ ...checklistProvider, id: 'test:prepare-failure' as WorkbenchId,
+      prepare: async () => { if (fail) throw new Error('dependency offline') },
+    })
+    const document = await runtime.open('test:prepare-failure' as WorkbenchId)
+    const binding = await runtime.bind(document)
+    const agent = ctx.agents.get(binding.sessionId)!
+    expect(ctx.tools.get('workbench_read', agent)).toBeDefined()
+    fail = true
+    await expect(prepare(agent)).rejects.toThrow('dependency offline')
+    expect(ctx.tools.get('workbench_read', agent)).toBeUndefined()
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toEqual(binding.selection)
+    fail = false
+    await prepare(agent)
+    expect(ctx.tools.get('workbench_read', agent)).toBeDefined()
+  })
+
+  it('keeps runtime teardown pending until preparation exits without committing a selection', async () => {
+    const { ctx, runtime, workbenches } = await harness()
+    const close = vi.spyOn(ctx.storageDomain.get('actvero_workbench')!, 'close')
+    onTestFinished(() => { close.mockRestore() })
+    const started = Promise.withResolvers<undefined>()
+    const proceed = Promise.withResolvers<undefined>()
+    const cancelled = Promise.withResolvers<undefined>()
+    const customId = 'test:runtime-shutdown' as WorkbenchId
+    runtime.register({ id: customId, name: '宿主释放', version: '1.0.0', ai: true,
+      prepare: async (_context, signal) => {
+        signal.addEventListener('abort', () => { cancelled.resolve(undefined) }, { once: true })
+        started.resolve(undefined)
+        await proceed.promise
+      },
+    })
+    const document = await runtime.open(customId)
+    const binding = runtime.bind(document)
+    const failed = expect(binding).rejects.toThrow()
+    await started.promise
+    let stopped = false
+    const disposal = workbenches.dispose().then(() => { stopped = true })
+    try {
+      await cancelled.promise
+      expect(stopped).toBe(false)
+      expect(close).not.toHaveBeenCalled()
+      expect(() => runtime.register({ id: customId, name: '新版本', version: '2.0.0' })).toThrow('closed')
+    } finally { proceed.resolve(undefined); await disposal; await failed }
+    expect(stopped).toBe(true)
+    expect(close).toHaveBeenCalledOnce()
+    expect(ctx.agents.list()[0]!.session.snapshotEvents().some(event => event.type === 'actvero/workbench')).toBe(false)
+  })
+
   it('discovers the bundled developer skill when the native registry becomes available', async () => {
     const { ctx, workbenches } = await harness()
     await ctx.plugin(Skills)

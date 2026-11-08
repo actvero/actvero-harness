@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { LocaleNamespaceMap, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog } from './types.ts'
+export type { WorkbenchProtocol } from './workbench-protocol.ts'
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -43,6 +44,8 @@ export type WorkbenchBodyProps = PropsRuntime<'actvero.workbench.body'>
 
 /** Card metadata declared by an installed Actvero workbench client. */
 export interface ActveroWorkbench {
+  /** Host API requirements shared with the Host registration; omitted for legacy packages. */
+  readonly protocol?: import('./workbench-protocol.ts').WorkbenchProtocol
   readonly id: string
   readonly name: string
   readonly description: string

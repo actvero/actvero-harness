@@ -11,6 +11,7 @@ import semver from 'semver'
 import { z } from 'zod'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
+import { resolveWorkbenchProtocol } from '../packages/actvero/capability-ui/src/workbench-protocol.ts'
 import { bindWorkbenchProject, initializeWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
@@ -29,6 +30,7 @@ const manifestSchema = z.object({
   }).loose(),
 }).loose()
 const metadataSchema = z.object({
+  protocol: z.unknown().optional(),
   name: z.string().trim().min(1), description: z.string().trim().min(1),
   category: z.enum(['office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized']).optional(),
   author: z.string().optional(), tags: z.array(z.string()).optional(),
@@ -65,7 +67,8 @@ export async function createWorkbench(destination: string, name?: string, kind: 
  */
 export async function doctorWorkbench(directory: string): Promise<{ name: string; baseline: string; warnings: string[] }> {
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
-  metadataSchema.parse(await json(join(directory, 'workbench.json')))
+  const metadata = metadataSchema.parse(await json(join(directory, 'workbench.json')))
+  resolveWorkbenchProtocol(metadata.protocol)
   const baseline = z.object({ version: z.string() }).parse(await json(join(repository, 'actvero/upstream.lock.json')))
   if (!semver.satisfies(baseline.version, manifest.engines.dsh, { includePrerelease: true })) {
     throw new Error(`工作台要求 DSH ${manifest.engines.dsh}，当前开发基线为 ${baseline.version}。`)
@@ -103,6 +106,7 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
   } })
   if (invalidPaths.length) throw new Error('工作台包包含重复路径、链接或包目录之外的文件。')
   const manifest = manifestSchema.parse(JSON.parse(Buffer.concat(manifestChunks).toString('utf8')))
+  resolveWorkbenchProtocol(manifest.dsh.actveroWorkbenchProtocol)
   for (const file of [manifest.exports['.'], manifest.exports['./client'], manifest.dsh.bundle.patch]) {
     if (!files.has(`package/${file.slice(2)}`)) throw new Error(`工作台包缺少入口文件：${file}`)
   }
@@ -149,6 +153,7 @@ export async function packWorkbench(directory: string, output: string): Promise<
     delete packaged.scripts
     delete packaged.devDependencies
     await writeFile(join(folder, 'package.json'), JSON.stringify({ ...packaged, description: metadata.description,
+      dsh: { ...manifest.dsh, actveroWorkbenchProtocol: resolveWorkbenchProtocol(metadata.protocol) },
       exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
       files: ['lib', 'locale', 'assets', 'cordis.patch.yml'],
     }, null, 2) + '\n')

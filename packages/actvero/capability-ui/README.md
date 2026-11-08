@@ -51,6 +51,8 @@ The client service `ctx.capabilityHub` opens an expert, skill or connector manag
 
 `WorkbenchProvider.activate` mounts author capabilities in a native conversation scope and returns an exact dependency digest plus optional expert instructions. Only successful binding records the result; failure releases new contributions and keeps the prior association event. Repeated activation reuses the live scope; detachment or provider removal awaits release. A changed digest on resume requires selecting the workbench again. The [bundled expert loader](../../../actvero/workbench-development.md#expert-bundle) reuses native Skills, MCP and interpreters without requiring generic JSON tools.
 
+Host and Client registrations share [compatibility resolution](src/workbench-protocol.ts) before contributing effects; templates and archive preflight use the same requirements, documented in [package format](../../../actvero/workbench-development.md#format). Unregistration immediately withdraws availability, cancels preparation and activation, and waits for started calls and conversation scopes to settle; the identity remains reserved until completion, and repeated disposal awaits the same result. Preparation failure stops the model request and releases that conversation’s tools without changing its binding log or business data. Providers must observe AbortSignal, await their own tasks, and never await their own unregistration inside a callback; the host cannot forcibly stop uncooperative in-process code. Cordis releases contributions and logs cleanup exceptions; this does not guarantee rollback of external effects.
+
 <a id="model-experience"></a>
 
 ## Model Experience

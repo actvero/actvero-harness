@@ -81,7 +81,7 @@ describe('local workbench developer commands', () => {
     }
     const plugin = await import(pathToFileURL(join(path, 'package/lib/index.js')).href) as { apply(context: typeof ctx): void }
     plugin.apply(ctx)
-    expect(providers).toEqual([{ id: '@local/native-ai-only', name: '项目清单', version: '1.0.0', ai: true }])
+    expect(providers).toEqual([{ id: '@local/native-ai-only', name: '项目清单', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^1.0.0' }, ai: true }])
     for (const dispose of disposers.reverse()) dispose()
     expect(providers).toEqual([])
   })
@@ -149,6 +149,15 @@ describe('local workbench developer commands', () => {
     const outside = join(path, 'outside.tgz')
     await create({ cwd: path, file: outside, gzip: true }, ['package', 'outside.txt'])
     await expect(checkWorkbench(outside)).rejects.toThrow('包目录之外')
+    const packagedManifest = join(path, 'package/package.json')
+    const compatible = await readFile(packagedManifest, 'utf8')
+    const packaged: unknown = JSON.parse(compatible)
+    expect(packaged).toMatchObject({ dsh: { actveroWorkbenchProtocol: { schemaVersion: 1, hostApi: '^1.0.0' } } })
+    await writeFile(packagedManifest, compatible.replace('^1.0.0', '^2.0.0'))
+    const incompatible = join(path, 'incompatible.tgz')
+    await create({ cwd: path, file: incompatible, gzip: true }, ['package'])
+    await expect(checkWorkbench(incompatible)).rejects.toThrow('未通过客户端导入校验')
+    await writeFile(packagedManifest, compatible)
     await rm(join(path, 'package/lib/client.js'))
     const broken = join(path, 'broken.tgz')
     await create({ cwd: path, file: broken, gzip: true }, ['package'])
@@ -165,6 +174,22 @@ describe('local workbench developer commands', () => {
     expect(await readFile(manifestPath, 'utf8')).toBe(original)
     await writeFile(manifestPath, original.replace('0.2.1-rc.3', '999.0.0'))
     await expect(packWorkbench(directory, path)).rejects.toThrow('当前开发基线')
+  })
+
+  it('rejects unsupported extension APIs at doctor and pack while accepting legacy metadata', async () => {
+    const directory = join(await root(), 'protocol')
+    await createWorkbench(directory)
+    const file = join(directory, 'workbench.json')
+    const metadata = z.record(z.string(), z.unknown()).parse(JSON.parse(await readFile(file, 'utf8')))
+    expect(metadata.protocol).toEqual({ schemaVersion: 1, hostApi: '^1.0.0' })
+    for (const protocol of [null, { schemaVersion: 2, hostApi: '^1' }, { schemaVersion: 1, hostApi: '^2' }]) {
+      await writeFile(file, JSON.stringify({ ...metadata, protocol }))
+      await expect(doctorWorkbench(directory)).rejects.toThrow()
+      await expect(packWorkbench(directory, join(directory, 'dist'))).rejects.toThrow()
+    }
+    delete metadata.protocol
+    await writeFile(file, JSON.stringify(metadata))
+    expect((await doctorWorkbench(directory)).name).toMatch(/^@local\//u)
   })
 
   it('rejects author type errors before packaging and requires both entrypoints', async () => {

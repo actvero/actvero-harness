@@ -92,6 +92,8 @@ The card’s More menu offers disable, enable and uninstall, plus the host-manag
 
 ## Package format
 
+The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.0.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
+
 The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz` with contents under `package/`, at most 8 MiB compressed and 32 MiB unpacked. The npm package name provides stable identity; registration reads the display metadata from `workbench.json` and version from `package.json`.
 
 | File or field | Purpose |
@@ -100,6 +102,8 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `package.json.type` | Must be `module`; Host and Client use ESM |
 | `package.json.icon` | Optional package artwork, for example `./assets/icon.svg`; SVG, PNG, JPEG or WebP, at most 256 KiB |
 | `engines.dsh` | Supported DSH runtime range; the template pins the current development baseline |
+| `workbench.json.protocol` | `schemaVersion: 1` and `hostApi: "^1.0.0"`; both Host and Client registrations read this declaration |
+| `dsh.actveroWorkbenchProtocol` | Generated from that declaration during packaging; Client import preflight and check validate the same host API requirement |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
@@ -191,7 +195,7 @@ import metadata from '../workbench.json'
 export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, ai: true,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol, ai: true,
   }))
 }
 ```
@@ -222,7 +226,7 @@ export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx: Context): void {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }

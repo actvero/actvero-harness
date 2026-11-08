@@ -202,9 +202,10 @@ Source: [`packages/actvero/capability-ui/src/workbench-platform.ts`](../../packa
 Native Remote owner and in-process business-provider registry.
 
 ```ts cordis-catalog
-/** Register business behavior; unregistering leaves documents and selections intact.
+/** Register compatible business behavior; invalid, duplicate, retiring or closed registrations throw before publication.
  * @param provider Package-owned business implementation.
- * @returns Disposer withdrawing the exact implementation and awaiting its conversation capabilities.
+ * @returns Idempotent disposer withdrawing this implementation immediately, cancelling preparation/activation and awaiting
+ * in-flight operations and scopes. Its id remains reserved until release completes; documents and selections stay intact.
  */
 register(provider: WorkbenchProvider): () => Promise<void>
 

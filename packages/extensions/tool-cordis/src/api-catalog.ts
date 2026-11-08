@@ -101,9 +101,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: 'register(provider: WorkbenchProvider): () => Promise<void>',
-        description: 'Register business behavior; unregistering leaves documents and selections intact.',
+        description: 'Register compatible business behavior; invalid, duplicate, retiring or closed registrations throw before publication.',
         parameters: [{ name: 'provider', description: 'Package-owned business implementation.' }],
-        returns: 'Disposer withdrawing the exact implementation and awaiting its conversation capabilities.',
+        returns: 'Idempotent disposer withdrawing this implementation immediately, cancelling preparation/activation and awaiting in-flight operations and scopes. Its id remains reserved until release completes; documents and selections stay intact.',
       },
       {
         signature: '@Remote({ mode: \'stream\' }) async *displayCommands(signal: AbortSignal): AsyncIterable<WorkbenchDisplayCommand>',
@@ -8910,12 +8910,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkbenchPlatformScopeId = Branded<\'ActveroWorkbenchPlatformScopeId\'>;',
   },
   {
+    name: 'WorkbenchProtocol',
+    declaration: 'export interface WorkbenchProtocol {\n    schemaVersion: number;\n    hostApi: string;\n}',
+  },
+  {
     name: 'WorkbenchProvider',
     declaration: 'export type WorkbenchProvider = WorkbenchLegacyProvider | WorkbenchCustomProvider;',
   },
   {
     name: 'WorkbenchProviderBase',
-    declaration: 'export interface WorkbenchProviderBase {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
   },
   {
     name: 'WorkbenchRuntimeContext',
