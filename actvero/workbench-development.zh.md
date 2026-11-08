@@ -1,4 +1,4 @@
-# 本地工作台开发
+# 工作台开发
 
 [English](workbench-development.md) | 中文
 

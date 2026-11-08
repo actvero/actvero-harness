@@ -8,7 +8,7 @@ Resolve relative paths mentioned by this skill against the base directory before
 </skill_resources>
 
 <skill_instructions>
-# 本地工作台开发
+# 工作台开发
 
 面向首次接手 ACTVERO 工作台开发的 Agent。目标是完成用户确认的业务功能，交付经过校验的本地包，并核实目标客户端的安装与加载结果。业务布局、存储和 AI 操作方式由需求决定，模板中的清单不代表用户需求。
 

@@ -1,4 +1,4 @@
-# Local workbench development
+# Workbench development
 
 English | [中文](workbench-development.zh.md)
 
