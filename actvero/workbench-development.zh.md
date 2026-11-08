@@ -92,7 +92,7 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 ## 包格式
 
-工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.1.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.2.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
 
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
@@ -160,7 +160,31 @@ my-workbench/
 
 标题和操作由顶栏组件在渲染时计算，不在正文的 effect 中反向设置宿主标题。正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 `store`；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 `useStore` 和 `actions`。状态按所需实例或视图标识组织；它只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量。
 
-验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。当前接口只扩展业务顶栏；原生输入引用、设置面板和业务对象会话绑定的进一步封装尚未交付，不能用复制内部编号或改私有 DOM 代替。
+验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。选区使用下文的原生引用接口；设置面板和业务对象会话绑定的进一步封装尚未交付。
+
+<a id="input-references"></a>
+
+### 将业务选区放入原生输入框
+
+需要引用图纸、清单或选中元素时，声明 `hostApi: "^1.2.0"`，在用户的“引用选区”操作中调用 `workbench.reference()`。它打开或复用关联的原生对话，插入可删除的引用标签，不发送消息。示例见 AI 模板的 [Checklist.tsx](templates/ai-checklist/src/client/Checklist.tsx)。
+
+```ts
+import type { WorkbenchClientContext, WorkbenchObjectId } from '@actvero/dsh-capability-ui/client/contracts'
+async function referenceSelection(workbench: WorkbenchClientContext) {
+  return workbench.reference({
+    objectId: 'drawing-7' as WorkbenchObjectId,
+    label: '流程图选区',
+    revision: '4',
+    content: '选中元素 A、B；矩形 A 指向 B。',
+  })
+}
+```
+
+`objectId` 在该业务实例内标识对象；`revision` 是作者管理的内容版本；`content` 是可读的固定快照，选中元素编号可包含在其中。调用时复制这些字段，等待期间切换选区不会改变本次引用。作者负责截取必要内容、控制长度并处理 Promise 拒绝；不要在 render 或 effect 中自动调用，也不要将模型凭据放入内容。
+
+引用通过原生编辑器的选区和草稿版本检查插入，保留其他文字、附件和引用；正在提交时可能被拒绝，用户切换导航会取消插入。异步准备可能已创建空会话，但不会把引用转写到后来选择的对话。草稿刷新恢复、删除和发送重试由原生输入框管理；移除后不自动补回。
+
+发送前，平台序列化器将 V1 `<workbench-reference>` JSON 快照写入原生用户消息，包含工作台、实例、对象和版本。复制为纯文本时也携带同一内容。历史引用可点击查看固定快照，业务包停用或卸载后仍可阅读；未知版本和损坏文本不伪装成有效引用，损坏的草稿标签会阻止发送并提示重新选择。引用不自动读取最新业务数据、不重新打开对象，也不授予写入权限；执行修改仍由专家和业务工具负责。当前接口没有自动附带选区或发送钩子。
 
 <a id="storage"></a>
 

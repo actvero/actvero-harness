@@ -3,7 +3,7 @@ import { apply as applyCapabilityHub, inject as capabilityHubDependencies } from
 import { registerWorkbenches } from './workbenches/register.ts'
 import remote from '@actvero/dsh-capability-ui/remote'
 
-export const inject = [...capabilityHubDependencies, 'remote.pluginManager', 'remote.session', 'resources', 'uiWorkspace', 'commandUi', 'sessions']
+export const inject = [...capabilityHubDependencies, 'remote.pluginManager', 'remote.session', 'resources', 'uiWorkspace', 'commandUi', 'sessions', 'inputTriggers', 'conversation', 'uiConversation']
 
 /** Mount Actvero’s capability center and local workbench management.
  * @param ctx Client plugin scope.

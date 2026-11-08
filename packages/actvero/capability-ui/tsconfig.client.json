@@ -13,7 +13,8 @@
     "src/contracts.ts",
     "src/types.ts",
     "src/checklist-data.ts",
-    "src/workbench-protocol.ts"
+    "src/workbench-protocol.ts",
+    "src/workbench-reference.ts"
   ],
   "references": [
     {
@@ -69,6 +70,9 @@
     },
     {
       "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../client/ui-input-trigger/tsconfig.json"
     }
   ]
 }

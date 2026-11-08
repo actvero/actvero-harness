@@ -96,6 +96,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workbench/ai-disabled': Record<string, never>
     /** Display was not confirmed; inspect the current view after unknown or cancelled outcomes. */
     'workbench/display': { status: Exclude<WorkbenchDisplayResult['status'], 'confirmed'> }
+    /** Reference insertion or serialization failed; the draft remains editable for correction. */
+    'workbench/reference': { status: 'unavailable' | 'superseded' | 'busy' | 'invalid' }
   }
 }
 

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Button, Checkbox, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { WorkbenchBodyProps } from '@actvero/dsh-capability-ui/client/contracts'
+import type { WorkbenchBodyProps, WorkbenchObjectId } from '@actvero/dsh-capability-ui/client/contracts'
 import type { WorkbenchModelCatalog } from '@actvero/dsh-capability-ui/types'
 import styles from './checklist.module.css'
 import { checklistDocument } from '../document.ts'
@@ -19,6 +19,8 @@ export function Checklist({ t, description, workbench, useResource }: PropsLocal
   const [catalog, setCatalog] = useState<WorkbenchModelCatalog>()
   const [modelsPending, setModelsPending] = useState(false)
   const [modelsFailed, setModelsFailed] = useState(false)
+  const [referencePending, setReferencePending] = useState(false)
+  const [referenceFailed, setReferenceFailed] = useState(false)
   const value = resource.value
   const state = value ? checklistDocument.parse(JSON.parse(value.json)) : null
   async function submit(action: string, args: object): Promise<void> {
@@ -34,12 +36,24 @@ export function Checklist({ t, description, workbench, useResource }: PropsLocal
     catch (_error) { setModelsFailed(true) }
     finally { setModelsPending(false) }
   }
+  async function reference(): Promise<void> {
+    if (!value || referencePending) return
+    setReferencePending(true); setReferenceFailed(false)
+    try {
+      await workbench.reference({ objectId: 'checklist' as WorkbenchObjectId, label: t('section'),
+        revision: String(value.revision), content: value.json })
+    } catch (_error) { setReferenceFailed(true) }
+    finally { setReferencePending(false) }
+  }
   return <div className={styles.page}>
     <p className={styles.description}>{description}</p>
     <div className={styles.actions}>
       <Button variant="ghost" disabled={modelsPending} onClick={() => { void models() }}>{t(modelsPending ? 'loading' : 'models')}</Button>
+      <Button variant="ghost" disabled={referencePending || !value || resource.status !== 'live'}
+        onClick={() => { void reference() }}>{t('reference')}</Button>
     </div>
     {modelsFailed && <p role="alert">{t('modelsFailed')}</p>}
+    {referenceFailed && <p role="alert">{t('referenceFailed')}</p>}
     {catalog && <p role="status">{t('modelsLoaded')}: {catalog.models.map(model => model.name).join('、') || t('noModels')}</p>}
     {!state ? <p role="status">{t(resource.status === 'failed' ? 'readFailed' : 'loading')}</p> : <section className={styles.checklist}>
       <header><h2>{t('section')}</h2><span className={styles.meta}>{state.items.filter(item => item.completed).length} / {state.items.length}</span></header>

@@ -182,6 +182,8 @@ export interface InputTarget {
 
 /** Per-session input facade owned by the conversation wiring layer. */
 export interface SessionInput extends InputTarget {
+  /** @returns a revision-guarded copy of the editor selection, or the document end when no selection is present. */
+  captureInsertion(): TokenSpan
   /** Replace the whole draft with plain text, removing inline reference chips. */
   setDraft(text: string): void
   /** Append ordered browser-owned attachment ids; busy admission phases refuse. */

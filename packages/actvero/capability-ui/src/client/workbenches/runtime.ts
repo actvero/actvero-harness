@@ -1,10 +1,16 @@
 /** Bind human navigation to native business instances and conversations. */
 import type { Context } from '@deepseek-ai/cordis'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@actvero/dsh-client-account/protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
+import { encodeWorkbenchReference, workbenchReferenceSource, type WorkbenchReferenceInput } from '../../workbench-reference.ts'
+
+declare module '@deepseek-ai/dsh-api-session-controller/client' {
+  interface SessionReferenceSourceMap { actveroWorkbenchReference: true }
+}
 
 const legacyKey = 'actvero.workbenches.project-checklist.v1'
 
@@ -101,17 +107,54 @@ export class WorkbenchClientRuntime {
     return result.value.sessionId
   }
 
+  /** Capture business data before preparing an addressed native composer; never sends a message.
+   * @param instanceId Business instance supplying the reference.
+   * @param sessionId Explicit conversation, otherwise the associated conversation is resolved once.
+   * @param selection Author-owned snapshot of the selected object.
+   * @param reveal Retain the visible composer or reject if navigation was superseded.
+   * @param signal Cancel preparation when the user navigates elsewhere.
+   * @returns Conversation whose draft accepted the reference.
+   */
+  async reference(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null, selection: WorkbenchReferenceInput,
+    reveal: (id: SessionId) => Promise<void>, signal: AbortSignal): Promise<SessionId> {
+    const captured = { ...selection }
+    const target = sessionId ?? (instanceId ? this.conversations.get(instanceId) : undefined)
+    signal.throwIfAborted()
+    if (!instanceId) throw new RemoteError('workbench/reference', 'Workbench has no conversation provider', { status: 'unavailable' })
+    const bound = await this.conversation(instanceId, target)
+    signal.throwIfAborted()
+    const document = await this.ctx.remote.actveroWorkbench.read({ instanceId })
+    if (!document.ok) throw document.error
+    signal.throwIfAborted()
+    const ref = encodeWorkbenchReference({ ...captured, schemaVersion: 1, workbenchId: document.value.id, instanceId })
+    return this.ctx.sessions.using(bound, { source: 'actveroWorkbenchReference', signal }, async (reference) => {
+      await reveal(bound)
+      signal.throwIfAborted()
+      const input = this.ctx.conversation.input.for(reference.binding.ctx)
+      const span = input.captureInsertion()
+      if (!input.insertReference({ source: workbenchReferenceSource, ref, label: captured.label, appearance: 'file', clipboardText: ref }, span)) {
+        throw new RemoteError('workbench/reference', 'Conversation input is busy; insert the reference again after submission completes.', { status: 'busy' })
+      }
+      input.focus()
+      return bound
+    })
+  }
+
   /** Build view callbacks without exposing credentials or service objects.
    * @param instanceId Managed business identity, absent for a UI-only workbench.
    * @param sessionId Conversation whose workbench is being previewed.
    * @param showConversation Render the associated conversation if its view is still active.
+   * @param display Apply host presentation choices for this instance.
+   * @param displayState Read the mounted presentation.
+   * @param reference Insert a fixed snapshot while retaining the addressed composer.
    * @returns Capabilities bound to this instance.
    */
   context(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null,
     showConversation: (id: SessionId) => Promise<void>,
-    display: WorkbenchClientContext['display'], displayState: WorkbenchClientContext['displayState']): WorkbenchClientContext {
+    display: WorkbenchClientContext['display'], displayState: WorkbenchClientContext['displayState'],
+    reference: WorkbenchClientContext['reference']): WorkbenchClientContext {
     return {
-      instanceId, sessionId, display, displayState,
+      instanceId, sessionId, display, displayState, reference,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
       environment: async () => {
         if (!instanceId) return null

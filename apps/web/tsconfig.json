@@ -26,6 +26,7 @@
     "tests/actvero-workbenches.e2e.ts",
     "tests/actvero-workbench-manager.e2e.ts",
     "tests/actvero-workbench-lifecycle.snapshot.ts",
+    "tests/actvero-workbench-reference.snapshot.ts",
     "tests/actvero-workbench-expert.e2e.ts",
     "tests/collapse-timing.e2e.ts",
     "tests/notice-wake-tail.e2e.ts",

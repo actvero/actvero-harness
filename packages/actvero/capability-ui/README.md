@@ -42,6 +42,8 @@ Workbench authors can declare first-use presentation defaults and call `workbenc
 
 The host provides public account context and a controlled model directory. The Host provider must explicitly declare `models:read`; responses contain read-only metadata without credentials or arbitrary URL proxying. `platformTimeoutMs` defaults to 30 seconds. The native `develop-workbench` and separate `workbench-frontend` Skills are bundled. Initialization creates a blank project, DESIGN.md and commands with the same toolchain’s guide and interface snapshots; frontend styling may be native, branded or custom. Compilation uses a built source toolchain outside the client. See the [development guide](../../../actvero/workbench-development.md#environment) for the toolchain, templates, installation and verification.
 
+Extension API `1.2.0` inserts business selections as fixed snapshots into the associated native composer. References support removal, draft restoration and native user-message persistence; history remains readable after business-package uninstall. The API does not submit messages or fetch current business data. See [input references](../../../actvero/workbench-development.md#input-references) for integration and validation.
+
 <details>
 <summary>Workbench runtime</summary>
 

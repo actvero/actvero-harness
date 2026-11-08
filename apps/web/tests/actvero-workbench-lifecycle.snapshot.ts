@@ -54,6 +54,9 @@ it.skipIf(webSnapshotMode() === 'record')('records a failed workbench preparatio
     await agent.whenIdle()
     expect(errors).toEqual(['Workbench dependency offline'])
     expect(agent.session.snapshotEvents().some(event => event.type === 'request/header')).toBe(false)
+    expect(agent.session.snapshotEvents().some(event => event.type === 'system/message')).toBe(false)
+    expect(await readFile(join(directory, 'system-prompt.expected.md'), 'utf8')).toBe('<!-- 准备失败发生在模型请求前，没有系统提示词。 -->\n')
+    expect(await readFile(join(directory, 'tool-schemas.expected.json'), 'utf8')).toBe('[]\n')
     expect(ctx.tools.get('workbench_read', agent)).toBeUndefined()
     expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toEqual(binding.selection)
     offline = false

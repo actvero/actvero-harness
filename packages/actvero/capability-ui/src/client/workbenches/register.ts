@@ -22,6 +22,7 @@ import { workbenchIconUrl } from './catalog.ts'
 import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { en, zh } from './locales.ts'
 import { WorkbenchToolbar } from './Toolbar.tsx'
+import { registerWorkbenchReferences } from './references.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -236,7 +237,20 @@ export function registerWorkbenches(ctx: Context): void {
       if (!result.ok) throw result.error
       if (result.value.status !== 'confirmed') throw new RemoteError('workbench/display', result.value.reason, { status: result.value.status })
       return result.value.state
-    }, snapshot)
+    }, snapshot, (selection) => {
+      const signal = ctx.layout.beginNavigation()
+      return runtime.reference(instanceId, sessionId, selection, async (id) => {
+        signal.throwIfAborted()
+        if (generation !== chatGeneration || ctx.fiber.uid === null) throw new RemoteError('workbench/reference', 'Workbench navigation superseded', { status: 'superseded' })
+        if (ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel) {
+          await showChat(id)
+          signal.throwIfAborted()
+          if (view.chat?.sessionId !== id || view.chatCollapsed) throw new RemoteError('workbench/reference', 'Workbench conversation changed', { status: 'superseded' })
+        } else if (sessionId !== id || !ctx.sessions.retainInfo(id).getSnapshot().retainedBy.mainView) {
+          throw new RemoteError('workbench/reference', 'Workbench conversation is no longer displayed', { status: 'superseded' })
+        }
+      }, signal)
+    })
   }
   const load = async (id: string, target?: WorkbenchInstanceId) => {
     if (view.opened === id && view.instance && !view.preparing && !view.runtimeFailed
@@ -454,6 +468,7 @@ export function registerWorkbenches(ctx: Context): void {
   ctx.effect(() => connectWorkbenchDisplay(ctx, (request, signal) => action.present(request, signal), snapshot))
   ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat(); restoreNavigation() })
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
+  registerWorkbenchReferences(ctx)
   const t = ctx.locale.bind(namespace)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),

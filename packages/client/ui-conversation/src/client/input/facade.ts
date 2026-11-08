@@ -123,7 +123,7 @@ export class SessionInputShell implements SessionInput {
   }
   /** The public provide-channel action face (one stable identity per session). */
   readonly actions: InputActions = {
-    captureInsertion: () => ({ ...this.caretSpan(), draftRev: this.rev }),
+    captureInsertion: () => this.captureInsertion(),
     insertText: (text, span) => {
       if (this.snapshot.phase === 'adjudicating' || this.snapshot.phase === 'submitting' || this.disposed) return false
       if (span.draftRev !== this.rev) return false
@@ -485,6 +485,8 @@ export class SessionInputShell implements SessionInput {
   caretSpan(): { start: number; end: number } {
     return this.draftEditor.caretSpan()
   }
+
+  captureInsertion(): TokenSpan { return { ...this.caretSpan(), draftRev: this.rev } }
 
   /**
    * Hot plain-text reference lexicon source for the decoration scan:

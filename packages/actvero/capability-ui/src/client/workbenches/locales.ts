@@ -1,4 +1,6 @@
 export const zh = {
+  referenceSnapshot: '引用时的内容快照', referenceRevision: '版本',
+  referenceInvalid: '引用内容无法读取，请移除后重新选择。',
   businessNavigation: '工作台导航',
   businessActions: '工作台操作',
   develop: '制作工作台',
@@ -120,6 +122,8 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  referenceSnapshot: 'Content captured when referenced', referenceRevision: 'Revision',
+  referenceInvalid: 'Could not read this reference. Remove it and select the content again.',
   businessNavigation: 'Workbench navigation',
   businessActions: 'Workbench actions',
   develop: 'Create a workbench',

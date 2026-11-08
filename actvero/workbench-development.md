@@ -92,7 +92,7 @@ The card’s More menu offers disable, enable and uninstall, plus the host-manag
 
 ## Package format
 
-The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.1.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
+The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.2.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
 
 The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz` with contents under `package/`, at most 8 MiB compressed and 32 MiB unpacked. The npm package name provides stable identity; registration reads the display metadata from `workbench.json` and version from `package.json`.
 
@@ -160,7 +160,31 @@ Extension API `1.1.0` adds registration options `{ locale: namespace, header: He
 
 Derive title and actions during header rendering, never through body effects that push state into the host. When body and header share navigation or selection, call the author's `createNavigationStore()` once inside apply and pass that native Store handle as `store`. Both components derive `useStore` and `actions` from `PropsStore<ReturnType<typeof createNavigationStore>>`. Organize state by the required instance or view identifiers. The store carries navigation and filters; business data stays in resources or author-owned services. Do not pass a factory that creates separate stores, or put a Store handle in component props or a module-level variable.
 
-Verify navigation from both body and header, matching breadcrumbs, status and content, 390px navigation/action menus, Escape and focus restoration, both themes, workbench switching and disable cleanup. The native AI launcher already exists; do not add another generic Ask AI button. This API covers the business header only. Workbench adapters for input references, settings panels and further business-object conversation binding remain undelivered; copying internal identifiers or changing private DOM does not implement them.
+Verify navigation from both body and header, matching breadcrumbs, status and content, 390px navigation/action menus, Escape and focus restoration, both themes, workbench switching and disable cleanup. The native AI launcher already exists; do not add another generic Ask AI button. Use the native reference API below for selections; settings panels and further business-object conversation binding remain undelivered.
+
+<a id="input-references"></a>
+
+### Insert business selections into the native composer
+
+To reference a drawing, checklist or selected elements, declare `hostApi: "^1.2.0"` and call `workbench.reference()` from the user's reference-selection action. It opens or reuses the associated native conversation and inserts a removable reference chip without sending a message. See [Checklist.tsx](templates/ai-checklist/src/client/Checklist.tsx) in the AI template.
+
+```ts
+import type { WorkbenchClientContext, WorkbenchObjectId } from '@actvero/dsh-capability-ui/client/contracts'
+async function referenceSelection(workbench: WorkbenchClientContext) {
+  return workbench.reference({
+    objectId: 'drawing-7' as WorkbenchObjectId,
+    label: '流程图选区',
+    revision: '4',
+    content: '选中元素 A、B；矩形 A 指向 B。',
+  })
+}
+```
+
+`objectId` identifies an object within the business instance; `revision` is the author-managed content version; `content` is a readable, fixed snapshot that may include selected element ids. These fields are copied when called, so later selection changes cannot alter the reference. Authors select necessary content, limit its length and handle Promise rejection. Do not call from render or effects, or put model credentials in content.
+
+Insertion uses the native editor selection and draft-revision checks, preserving other text, attachments and references. A submitting composer can refuse insertion, and user navigation cancels it. Preparation may already have created an empty conversation, but never redirects the reference to a subsequently selected conversation. Native input manages draft restoration, removal and send retries; removing a chip never automatically adds it back.
+
+Before sending, the platform serializer writes a V1 `<workbench-reference>` JSON snapshot into the native user message with workbench, instance, object and revision identities. Plain-text copy carries the same content. Historical references open their fixed snapshots even after the business package is disabled or uninstalled. Unknown versions and damaged text remain visible as plain text; damaged draft chips block sending and ask for reselection. References neither fetch current business data, reopen objects nor grant write access; experts and business tools still own mutations. Automatic selection attachment and send hooks are not part of this API.
 
 <a id="storage"></a>
 

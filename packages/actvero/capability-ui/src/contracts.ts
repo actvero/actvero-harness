@@ -2,6 +2,8 @@ import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
 import type { HandleOf, LocaleNamespaceMap, PropsLocale, PropsRenderFactories, PropsRuntime, PropsStore, StoreDecl, StoreFactory } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkbenchReferenceInput } from './workbench-reference.ts'
+export type { WorkbenchObjectId, WorkbenchReferenceInput } from './workbench-reference.ts'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog } from './types.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 
@@ -26,6 +28,12 @@ export interface WorkbenchClientContext {
   environment(): Promise<WorkbenchEnvironment | null>
   /** Open or create the associated native conversation. */
   conversation(): Promise<void>
+  /** Insert an immutable business snapshot into the associated native draft without sending it.
+   * @param reference Object identity, author-defined revision and readable content captured by the caller.
+   * @returns Target conversation. Native cancellation rejects with AbortError; local refusal uses workbench/reference with a stable status.
+   * Remote failures retain their original code. No message is sent on failure.
+   */
+  reference(reference: WorkbenchReferenceInput): Promise<SessionId>
   /** Display this workbench through native navigation without sending a message.
    * @param options Presentation choices for this instance and its associated conversation.
    * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.

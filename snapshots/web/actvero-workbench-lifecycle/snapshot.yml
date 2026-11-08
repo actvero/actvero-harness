@@ -5,3 +5,4 @@ composition: web-workbench-lifecycle
 recording: authored
 header:
   class: web-workbench-lifecycle
+  pin: true

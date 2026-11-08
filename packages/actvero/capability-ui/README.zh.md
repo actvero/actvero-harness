@@ -42,6 +42,8 @@ Host 配置 `dataDirectory` 指定工作台文件根目录，Actvero Profile 使
 
 工作台的公开账户信息与受控模型目录通过宿主提供，模型目录要求 Host 显式声明 `models:read`，只读元信息，不返回凭据或开放任意地址代理。Host 的 `platformTimeoutMs` 默认 30 秒。原生「工作台开发」（`develop-workbench`）和独立的「工作台前端规范」（`workbench-frontend`）Skill 随包提供。初始化生成空白项目、DESIGN.md 与开发命令，并复制同次工具链的指南及接口快照；前端可采用原生、品牌或自定义风格。编译使用已构建的源码工具链，不在客户端执行。开发环境、模板、安装与验收见[开发指南](../../../actvero/workbench-development.zh.md#environment)。
 
+扩展 API `1.2.0` 将业务选区作为固定快照插入关联会话的原生输入框。引用可删除、恢复草稿并随用户消息记录；历史内容在业务包卸载后仍可查看。它不自动提交或读取最新业务数据。接入与验收见[输入引用](../../../actvero/workbench-development.zh.md#input-references)。
+
 <details>
 <summary>工作台运行机制</summary>
 

@@ -119,7 +119,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:134',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:142',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -148,7 +148,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:129',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:137',
   },
   {
     key: 'actvero.workbench.body',
@@ -165,7 +165,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Display this workbench through native navigation without sending a message.\n   * @param options Presentation choices for this instance and its associated conversation.\n   * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.\n   */\n  display(options: Omit<WorkbenchDisplayRequest, \'id\' | \'sessionId\'>): Promise<W /* …truncated — full shape in source */',
+      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Insert an immutable business snapshot into the associated native draft without sending it.\n   * @param reference Object identity, author-defined revision and readable content captured by the caller.\n   * @returns Target conversation. Native cancellation rejects with AbortError; local refusal uses workbench/reference with a stable status.\n   * Remote f /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'SessionId',
@@ -176,6 +176,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchEnvironment',
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
+      'WorkbenchReferenceInput',
     ],
     standardProps: [
       'useRemoteAccess: (action: RemoteEndpoint) => boolean',
@@ -198,7 +199,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.body\', () => ctx.slots.register(\n      { name: \'actvero.workbench.body\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:127',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:135',
   },
   {
     key: 'actvero.workbench.chat',
@@ -255,7 +256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Display this workbench through native navigation without sending a message.\n   * @param options Presentation choices for this instance and its associated conversation.\n   * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.\n   */\n  display(options: Omit<WorkbenchDisplayRequest, \'id\' | \'sessionId\'>): Promise<W /* …truncated — full shape in source */',
+      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation. */\n  conversation(): Promise<void>\n  /** Insert an immutable business snapshot into the associated native draft without sending it.\n   * @param reference Object identity, author-defined revision and readable content captured by the caller.\n   * @returns Target conversation. Native cancellation rejects with AbortError; local refusal uses workbench/reference with a stable status.\n   * Remote f /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'SessionId',
@@ -266,6 +267,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchEnvironment',
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
+      'WorkbenchReferenceInput',
     ],
     standardProps: [
       'useRemoteAccess: (action: RemoteEndpoint) => boolean',
@@ -287,7 +289,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.header\', () => ctx.slots.register(\n      { name: \'actvero.workbench.header\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:125',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:133',
   },
   {
     key: 'conversation.approval.detail',
@@ -2315,11 +2317,12 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'useAccess: (action: RemoteEndpoint) => boolean',
       'useTrajectory: UseTrajectory',
     ],
-    keyDomain: 'fixed by the owner\'s key table { [Id in UserTextId]: { node: UserTextNode<Id> } }, already taken: command, file, folder, secret, session, skill, text',
+    keyDomain: 'fixed by the owner\'s key table { [Id in UserTextId]: { node: UserTextNode<Id> } }, already taken: actvero.workbench.reference, command, file, folder, secret, session, skill, text',
     hookContext: '',
     slotInject: '',
     declaredBy: 'factory \'conversation.user.text\' (client-ui-conversation), so it exists while that definition is registered',
     occupants: [
+      '@actvero/dsh-capability-ui Reference key \'actvero.workbench.reference\'',
       'client-ui-conversation PlainUserText key \'text\'',
       'client-ui-conversation SessionReference key \'session\'',
       'client-ui-goal GoalCommandReference key \'command\'',

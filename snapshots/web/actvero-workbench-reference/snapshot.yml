@@ -1,0 +1,8 @@
+version: 1
+scenario: actvero-workbench-reference
+profile: web
+composition: web-workbench-reference
+recording: authored
+header:
+  class: web-workbench-reference
+  pin: true
