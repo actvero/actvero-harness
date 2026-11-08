@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for requirements.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/workbench-trials/collaborative-whiteboard/requirements.md
+/collaborative-whiteboard-requirements:
+  en: 25825bd36adcced7
+  zh: 6bcecf34dfeac112
+/collaborative-whiteboard-requirements/readers-and-outcome:
+  en: f3dcfca3cd3b285e
+  zh: 3805d055d42daa1e
+/collaborative-whiteboard-requirements/visual-reference:
+  en: d516b4b0ec754796
+  zh: 7ea00c7a4ca3403d
+/collaborative-whiteboard-requirements/level-one-my-drawings:
+  en: 4f3718d0e6472d3c
+  zh: 343bee16cdd2519d
+/collaborative-whiteboard-requirements/level-two-native-canvas:
+  en: 5c19538540763a88
+  zh: 776ead5e084132a8
+/collaborative-whiteboard-requirements/ai-collaboration:
+  en: d8a5ca0d38829f8d
+  zh: 723303d0d88b0a5f
+/collaborative-whiteboard-requirements/data-and-reliability:
+  en: 8624b8a0d8ce1dd8
+  zh: 936b4c7f35df2ac3
+/collaborative-whiteboard-requirements/first-release-scope:
+  en: 6cb7a66a8a45c764
+  zh: c66e541141a4d9ae
+/collaborative-whiteboard-requirements/acceptance-cases:
+  en: 37eb767da9e9cc0b
+  zh: 6c79b43fcf1b9e54
+/collaborative-whiteboard-requirements/development-deliverables:
+  en: 8577ff50ec9f996b
+  zh: 6fbc31fa623cb664
+/collaborative-whiteboard-requirements/official-references:
+  en: 3adfa8b58d72b1fd
+  zh: 5ecc0d2a37ed596b

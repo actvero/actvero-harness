@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-08",
+  "inputs": {
+    "purpose": "协作白板需求驱动的独立工作台开发试跑",
+    "sourceCommit": "4080492dfc113d2dcf6c32b09f87d4adfadabd01",
+    "runtimeVersion": "0.2.1-rc.3",
+    "agent": "whiteboard_development_trial",
+    "context": "fresh task without conversation history",
+    "output": ".artifacts/workbench-trials/collaborative-whiteboard",
+    "inputs": {
+      "actvero/workbench-trials/collaborative-whiteboard/requirements.zh.md": "04ad63bbbbabb49b62c4510f16336f730475edab093c8ea4ce01d2a1fee6d857",
+      "actvero/workbench-trials/collaborative-whiteboard/reference.png": "42e64e9519fb16f6ba7e74e3b30cd19a48e4079fba49e571bf7b643e3657b519",
+      "packages/actvero/capability-ui/assets/develop-workbench/SKILL.md": "e55ef25918e0e43f3a1e721def28374395ec47682fce7b9720032c58be7ab8b1",
+      "packages/actvero/capability-ui/assets/workbench-frontend/SKILL.md": "b0444a8df9283a447a788707c9835f9cd0b764bed58666f9262d5e7cd67b3964",
+      "actvero/workbench-development.zh.md": "3b9d308d74f7cafd7cd30033dc3517849dad97734e6d9fa825210b3e12cd1a90"
+    },
+    "constraints": [
+      "isolated local development",
+      "no host source/configuration edits",
+      "no real user profiles",
+      "no paid model calls"
+    ]
+  },
+  "artifact": {
+    "path": ".artifacts/workbench-trials/collaborative-whiteboard/dist/local-collaborative-whiteboard-1.0.4.tgz",
+    "name": "@local/collaborative-whiteboard",
+    "version": "1.0.4",
+    "bytes": 2844099,
+    "sha256": "141033a27414d01e4531465d591195d7d161a305e308908a37f3a2dc9c489405"
+  },
+  "checks": [
+    {
+      "command": "npm run doctor",
+      "exit": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "npm run test",
+      "exit": 0
+    },
+    {
+      "command": "npm run check -- /Users/majianhang/.codex/worktrees/workbench-manager/actvero-harness/.artifacts/workbench-trials/collaborative-whiteboard/dist/local-collaborative-whiteboard-1.0.4.tgz",
+      "exit": 0
+    }
+  ],
+  "parentReview": {
+    "undoOrder": {
+      "before": [
+        "a",
+        "b",
+        "c"
+      ],
+      "after": [
+        "b",
+        "c",
+        "a"
+      ]
+    },
+    "clearWithoutConfirmation": {
+      "accepted": true,
+      "remainingVisibleElements": 0
+    },
+    "reviewedFiles": {
+      ".artifacts/workbench-trials/collaborative-whiteboard/src/store.ts": "30f6e3615eb22e46fb2b3bf9c21e268c273d2ea7a5d9624e6f7f6f9df506aaf5",
+      ".artifacts/workbench-trials/collaborative-whiteboard/src/model.ts": "e64c4c1cf6049ed3d6f52dee5897ab5de785f6cde799cc24574bb876718bbc41"
+    }
+  },
+  "installedFileComparison": {
+    "lib/index.js": {
+      "match": true,
+      "sha256": "082bddc78c70f6a38e0f0d9944613c0f2d9b5230aaca2e450f05c0f39cc29714"
+    },
+    "lib/client.js": {
+      "match": true,
+      "sha256": "1595f0ced790c603e69fbca0c4b63a6a045041aa628076698419cceb5875c73c"
+    },
+    "package.json": {
+      "match": true,
+      "sha256": "17d0c91b8bf95c69234bcba013d9182641964ab84c94eae8bc6f86e6a68b530e"
+    }
+  }
+}
