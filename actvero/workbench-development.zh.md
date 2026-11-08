@@ -8,6 +8,7 @@
 
 ## 目录
 
+- [开发环境与任务入口](#environment)
 - [创建和打包](#create)
 - [导入和验收](#install)
 - [包格式](#format)
@@ -17,7 +18,23 @@
 - [随包专家、Skill、MCP 与 CLI](#expert-bundle)
 - [显示控制与 Agent 入口](#display)
 - [身份与平台模型目录](#platform)
+- [本地自测与故障定位](#verify)
 - [限制](#limits)
+
+<a id="environment"></a>
+
+## 开发环境与任务入口
+
+本指南随原生 `develop-workbench` Skill 分发时，`reference/environment.json` 记录同次构建的 DSH 基线、工作台格式、能力包版本与参考文件来源。`reference/api/` 是接口源码的只读副本，用于核对参数，不是可安装的 SDK。指南链接到未随包分发的资料时，会标明其源码仓库路径。先核对目标客户端实际版本；源码基线或本快照不能证明另一个客户端具备相同能力。
+
+先从当前项目或用户已提供的位置找到 ACTVERO 源码根目录，确认其中存在 `scripts/actvero-workbench.client.ts`、`actvero/upstream.lock.json`、`actvero/templates/` 和根 `package.json` 的 `actvero:workbench` 命令；不要把业务输出目录当工具链根目录。在该根目录检查以下命令，并将版本与根 `package.json` 的 `engines`、`packageManager` 比较。构建依赖未准备好时按仓库说明安装，不创建替代宿主或独立 Agent 引擎。
+
+```sh
+node --version
+pnpm --version
+```
+
+需求已经明确的修改任务直接读取已有源码；新建任务才使用 `create`。只知道名字或目录、尚无业务目标时先确认最小流程。源码目录与安装客户端分别确认：安装到隔离开发 Profile 不等于安装到日常应用。源目录可以在仓库之外，下面的相对输出路径仅为示例；实际操作使用已确认的路径，含空格时引用整个路径。找不到工具链时询问其位置，不能据此声称只凭已安装客户端就能编译。
 
 <a id="create"></a>
 
@@ -40,11 +57,17 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 
 `check` 复用客户端导入预检，并检查格式版本、版本声明、非空入口文件以及重复、越界和链接路径。它不执行工作台代码，不能证明业务功能正常。客户端还会在安装时执行当前运行版本的兼容性检查；开发命令不会跳过这一步。
 
+修改已有工作台时保留包名和已有数据；交付新版本前提高 `package.json.version`，Host 与 Client 继续从该文件读取版本。使用 `pack` 输出的绝对 `path` 安装，不根据显示名称猜测归档名。`pack` 负责转译与打包，不执行完整 TypeScript 类型检查；项目自己的类型检查和业务测试需要分别执行，不能以 `.tgz` 生成成功代替。
+
 <a id="install"></a>
 
 ## 导入和验收
 
 启动 Actvero 开发客户端，打开「工作台 → 我的工作台」，点击「导入工作台」并选择输出包。若结果要求重启，使用「Harness → 重启 Harness」。成功加载后，卡片和左侧工作台切换菜单会出现「项目清单」。内置示例仍可用于参考；独立包的详情显示作者「本地开发」，以便区分。
+
+Agent 先发现当前目标提供的安装工具并读取参数。目标若提供专用本地安装工具，按其实际约定调用。原生 `plugin_manager` 的 `list_bundles` 可核对当前 Profile 清单，`install_bundle` 接受已校验 `.tgz` 的绝对路径，可用于首次安装并沿用原生授权；当前通用工具不接受管理页的已审阅版本替换参数，更新应使用支持替换的专用工具或管理页。不要捏造工具，也不要用卸载重装绕过更新检查。工具和界面均不可操作时交付包并明确待安装。
+
+安装结果的 `application` 为 `applied` 时继续核对加载；`restart-required` 表示已保存但待重启；`failed`、`cancelled`、`overridden` 均不代表已生效，未知结果应重新查询。Agent 运行在目标应用中时不自行关闭、重启或探测进程来管理重启；提示用户等本轮结束后使用顶部「立即重启」或「Harness → 重启 Harness」。用户可直接试用，也可回原对话说「重启好了」继续验收。目标外的隔离开发客户端按已有授权采用正常重启流程。
 
 打开独立包，勾选一项，返回管理页并重新打开，再刷新客户端后重新打开，检查进度仍在。检查预览图、侧栏展开/收起、浅色/深色以及窄窗口。首次打开不创建会话，也不要求指定工作区。安装结果、卡片出现、切换菜单与真实业务界面分别验收。
 
@@ -61,6 +84,7 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 | 文件或字段 | 用途 |
 |---|---|
 | `package.json.name` / `version` | 稳定包名和完整 SemVer 版本；模板注册标识等于包名 |
+| `package.json.type` | 必须为 `module`，Host 与 Client 使用 ESM |
 | `package.json.icon` | 可选的包内图标，例如 `./assets/icon.svg`；支持 SVG、PNG、JPEG、WebP，文件不超过 256 KiB |
 | `engines.dsh` | 所支持的 DSH 运行时版本范围；模板锁定当前开发基线 |
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
@@ -73,6 +97,27 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 | `src/client/index.ts` | 使用 Cordis effect 注册卡片与业务组件，卸载时注销 |
 
 构建产物包含清单、生成的 patch、展示用 `locale`、编译后的 `lib` 以及可选的 `assets` 原始资源。`repository` 可以省略。React 使用宿主共享实例，CSS Modules 与图片使用仓库现有客户端编译器；不要把另一套 React 或宿主插件代码打入业务包。包校验是格式检查，不是代码沙箱。
+
+新建模板的编辑位置如下；`cordis.patch.yml`、`lib/` 和展示用 `locale/` 由打包工具生成，不在安装目录中手改。
+
+```text
+my-workbench/
+├── package.json                    # 稳定身份、版本、依赖、入口、可选 icon
+├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
+├── src/index.ts                    # Host 注册；纯界面模板为空入口
+├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
+├── src/client/Checklist.tsx         # 替换为用户需要的业务界面
+├── src/client/locales.ts           # 业务文案
+├── src/client/checklist.module.css # 业务样式
+├── src/client/assets/              # 可选预览图片，使用 import 引入
+└── assets/                         # 可选原始资源，原样随包复制
+    ├── icon.svg
+    ├── expert.json
+    ├── dependencies.json
+    ├── skills/<key>/SKILL.md
+    ├── mcp.json
+    └── cli.mjs
+```
 
 <a id="business"></a>
 
@@ -117,6 +162,19 @@ export async function apply(ctx) {
 
 基础模板仅注册业务界面。需要原生对话时，在 Host 入口注入 `actveroWorkbenchRuntime`，以 `ctx.effect(() => ctx.actveroWorkbenchRuntime.register(provider))` 注册与客户端相同的工作台标识。自定义存储提供者通过 `ai: true` 开启原生对话，可携带名称、版本与指令组成的本地专家；未设置时不显示 AI 入口，也不自动创建会话。采用 `storage` 适配器时才声明初始 JSON、业务操作函数和给模型的操作说明。旧式顶层 `initial/reduce/actionHelp` 注册继续可用，并保持默认启用 AI。专家使用会话所选模型，无需另配模型。可选准备函数失败会阻止绑定或后续模型请求；它不能把未记录的上下文偷偷加入模型请求。
 
+只使用原生 AI 的 Host 注册可以如下，不要求提供 JSON 存储适配器或专家文件。业务组件通过收到的 `workbench.conversation()` 打开或恢复原生对话；调用不会自动发送业务任务。Client 必须按同一个包名注册组件。可选的首次布局建议在 Client 的描述中设置 `display`，不是 `workbench.json` 的字段；它只影响首次使用，用户已保存的显示选择优先。
+
+```js
+import manifest from '../package.json'
+import metadata from '../workbench.json'
+export const inject = ['actveroWorkbenchRuntime']
+export function apply(ctx) {
+  ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
+    id: manifest.name, name: metadata.name, version: manifest.version, ai: true,
+  }))
+}
+```
+
 组件收到 `workbench` 上下文，包含业务实例、关联会话、运行目录查询、AI 是否启用、原生资源地址、打开对话、执行业务操作和读取公开账户信息的方法。`account()` 未登录时返回空，已登录时只返回用户及组织标识和名称；这些公开字段不是凭据。`models()` 通过下述受控通道读取平台模型元信息。`conversation()` 按需创建或恢复当前关联对话，`action()` 携带最新修订号保存。注册组件时可向 `register(descriptor, component, { locale: namespace })` 传入已注册的本包语言命名空间，由宿主注入类型化 `t` 并响应语言切换。组件通过原生 `useResource` 读取数据，按自身容器宽度适配业务界面。悬浮预览使用 960 × 640 的业务视口等比缩小，禁用内部交互和滚动；编辑时进入工作台。
 
 Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器让多条关联对话共享其 JSON；自定义存储中的项目划分和对话对应关系由作者决定。普通「新会话」不自动继承工作台；工作台内部「新建工作台对话」关联同一实例。恢复已有对话时读取日志中的关联和专家版本；收起浮窗不取消关联，取消使用不删除清单。新建关联对话在文件根目录的 `.sessions/<instanceId>` 创建或复用以工作台命名的工作区，与业务数据目录分开，不要求用户选择文件夹。现有对话的目录保持原样。
@@ -134,27 +192,44 @@ Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器�
 ```js
 import { WorkbenchExpertBundle } from '@actvero/dsh-experts/workbench'
 import { fileURLToPath } from 'node:url'
+import manifest from '../package.json'
+import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx) {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: '@local/my-workbench', name: 'My workbench', version: '1.0.0',
+    id: manifest.name, name: metadata.name, version: manifest.version,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }
 ```
 
-`assets/expert.json` 使用现有[专家清单格式](expert-package.zh.md)，包含 `schemaVersion`、`id`、`name`、`description`、完整版本和 `instructions`，以及 Skill/MCP 的依赖声明。声明中的 `key` 对应 `assets/dependencies.json` 的绑定。Skill 的 `load: "always"` 将正文加入已记录的专家指令，`on_demand` 仅注册原生技能目录，交给原生技能工具按需读取；原生技能调用策略继续生效。
+`assets/expert.json` 使用 [ExpertManifest](../packages/actvero/experts/src/contracts.ts) 字段，工作台直接携带原始资源，不需要先制作或导入单专家 ZIP。以下为带一项必需 Skill 的完整最小示例；版本为三段数字。`key` 对应 `assets/dependencies.json` 的绑定，二者不能各自随意改名。Skill 的 `load: "always"` 将正文加入已记录的专家指令，`on_demand` 仅注册原生技能目录，交给原生技能工具按需读取；原生技能调用策略继续生效。
 
 ```json
 {
   "schemaVersion": 1,
-  "skills": [{ "key": "delivery", "source": "local", "path": "skills/delivery" }],
-  "connectors": [{ "key": "files", "source": "local", "path": "mcp.json" }],
-  "cli": [{ "name": "delivery", "path": "cli.mjs", "runtime": "node", "description": "Manage delivery files; see the skill for arguments." }]
+  "id": "delivery-assistant",
+  "name": "交付助手",
+  "version": "1.0.0",
+  "description": "协助整理当前工作台的交付内容。",
+  "instructions": "先读取当前数据，按用户要求修改；工具成功后再汇报结果。",
+  "skills": [{ "key": "delivery", "label": "交付操作", "required": true, "load": "always" }],
+  "connectors": []
 }
 ```
+
+与上例配对的 `dependencies.json` 如下，并提供 `skills/delivery/SKILL.md`。这是工作台加载器的依赖格式，不能照搬专家 ZIP 的平台依赖引用。
+
+```json
+{
+  "schemaVersion": 1,
+  "skills": [{ "key": "delivery", "source": "local", "path": "skills/delivery" }]
+}
+```
+
+需要 MCP 时，在专家清单的 `connectors` 增加 `{ "key": "files", "label": "业务文件", "required": true }`，同时在依赖文件的 `connectors` 增加 `{ "key": "files", "source": "local", "path": "mcp.json" }` 并实现对应文件；未声明的绑定会被拒绝。需要 CLI 时，在依赖文件的 `cli` 增加 `{ "name": "delivery", "path": "cli.mjs", "runtime": "node", "description": "Manage delivery files; see the skill for arguments." }`，携带脚本并在 Skill 中说明参数和数据位置。不使用的能力不添加空壳依赖。
 
 所有文件路径相对专家目录，不能越界、引用符号链接或使用绝对路径。`skills/delivery/SKILL.md` 按原生 Skill 规则解析。绑定必须对应清单中的声明；必需依赖缺失会阻止 AI 启用。可选声明没有绑定或已安装技能不存在时，专家指令会记录缺失状态；已绑定文件损坏或固定版本变化仍会报错。CLI 文件需要声明 `node`、`python` 或 `executable`；解释器按需从宿主已配置的原生运行环境解析。也可由 Host 作者通过 `runtimes` 提供明确的绝对解释器路径。
 
@@ -200,6 +275,36 @@ const visible = workbench.displayState()
 `scope` 仅用于区分账户与组织的请求代际，不是访问凭据。退出登录、替换平台或切换组织时作废旧请求；不缓存目录，后续调用重新读取当前授权。作者若缓存元信息，应在账户变化时清除，并按新 `scope` 更新，不把工作台业务目录视为自动按账号隔离。请求取消、超时、无权限、响应损坏和目录超限分别拒绝，不返回半份目录。Host 等待时限由 `platformTimeoutMs` 配置，默认 30 秒；远程访问只允许桌面所有者。
 
 AI 模板的「查看可用模型」展示最小接入方式。平台未登录时显示可恢复提示，不要求给专家独立配置模型，也不会把账户信息或模型目录自动发进对话。真实平台权限和付费生成需另行验证。
+
+<a id="verify"></a>
+
+## 本地自测与故障定位
+
+下表用于开发者和执行开发的 Agent 记录可观察结果；仅选择工作台实际使用的能力。每项记录「通过／失败／待验证／不适用」及命令输出、界面截图或实际业务结果。没有模型授权时可以完成本地业务、包和依赖检查，真实模型或外部写入保留待验证，不为验收自动提交收费生成。
+
+| 检查 | 通过依据 |
+|---|---|
+| 包与代码 | 业务相关测试和项目类型检查分别有结果；`pack` 与 `check` 输出实际包路径、版本、大小和摘要；必需资源包含在产物中 |
+| 安装清单 | 在指定客户端/Profile 中核对精确包名、版本和状态；记录 `application`，待重启不能记作已加载 |
+| 左侧入口 | 「工作台 → 我的工作台」存在条目，加载成功后进入左侧切换菜单；名称相同不足以确定是当前包 |
+| 真实界面 | 从切换菜单进入业务组件，图标、文案、预览、首次无会话入口正常；不是只看到管理卡片 |
+| 业务与存储 | 完成一条真实最小流程，重开和刷新后数据仍在；使用实际的数据目录或远程数据源，不仅检查演示数据 |
+| 原生 AI | 按需打开或恢复关联对话；验证实际采用的指令、Skill、工具、MCP 或 CLI 能读写同一份业务数据；其他无关联对话不获得这些能力 |
+| 显示与布局 | 检查主界面、对话与只读预览的适用模式，收起和刷新记忆、侧栏展开/收起、明暗主题及窄容器；真实长度中英文无裁切、单字竖排或整页横向溢出 |
+| 更新与恢复 | 新版本保留数据，已有对话能恢复或明确提示重新选择；依赖加载失败保留原关联并给出可恢复错误 |
+
+`workbench_list` 只列已加载的 Host 提供者，UI-only 工作台应以管理页和真实界面验证。`workbench_open` 的 `confirmed` 证明宿主视图挂载；作者的远程请求和业务数据仍需另验。`unknown` 先用 `workbench_status` 核对，不直接重放安装或业务操作。
+
+| 现象 | 下一步 |
+|---|---|
+| 找不到命令或依赖 | 核对当前目录、源码根 `package.json`、Node/pnpm 和锁定依赖；不要在业务目录执行仓库命令或启动另一套宿主 |
+| 包校验失败 | 按具体诊断检查清单、入口、资源大小和路径，从源码重建；不要直接修改 `.tgz` 或已安装文件 |
+| `incompatible-version` | 对比目标运行时与 `engines.dsh`，判断适配还是需要兼容客户端；不能只改版本号或授予豁免来证明兼容 |
+| 已安装但没有入口或白屏 | 先查安装结果、启用状态及 Host/Client 加载错误，再核对两端包名、注册、依赖注入和控制台错误；仅待重启时提示重启 |
+| AI 无法开启或操作 | 先区分未启用 AI、依赖准备失败、模型不可用与工具未挂载；核对 `ai`、`activate`、资源绑定和解释器。自定义存储不自动获得 JSON 读写工具 |
+| 手动操作与 AI 数据不同 | 核对业务实例、项目选择、实际数据目录或远程作用域及工具读写位置；不要通过复制另一份数据掩盖问题 |
+
+故障修复回到业务源码，安装更新前提高版本。不要改写会话日志、同版本安装资源或清空业务目录解决加载问题。无法操作目标客户端时，交付已校验包、准确导入入口和未验证清单，不能报告已加载。
 
 <a id="limits"></a>
 

@@ -2,6 +2,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { create, extract } from 'tar'
 import { load } from 'js-yaml'
@@ -17,6 +18,34 @@ async function root(): Promise<string> {
 afterEach(async () => { await Promise.all(roots.splice(0).map(path => rm(path, { recursive: true, force: true }))) })
 
 describe('local workbench developer commands', () => {
+  it('builds and registers native AI by following the guide without a JSON adapter or expert', async () => {
+    const path = await root()
+    const source = join(path, 'native AI only')
+    await createWorkbench(source, '@local/native-ai-only')
+    const guide = await readFile(new URL('../actvero/workbench-development.zh.md', import.meta.url), 'utf8')
+    const section = guide.split('<a id="native-ai"></a>')[1]!.split('<a id="expert-bundle"></a>')[0]!
+    const entry = /```js\n([\s\S]*?)\n```/u.exec(section)?.[1]
+    if (!entry) throw new Error('Missing native AI example')
+    await writeFile(join(source, 'src/index.ts'), entry + '\n')
+    const archive = await packWorkbench(source, path)
+    await extract({ cwd: path, file: archive })
+    interface Provider { id: string; name: string; version: string; ai: boolean }
+    const providers: Provider[] = []
+    const disposers: (() => void)[] = []
+    const ctx = {
+      effect(callback: () => () => void) { disposers.push(callback()) },
+      actveroWorkbenchRuntime: { register(provider: Provider) {
+        providers.push(provider)
+        return () => { providers.splice(providers.indexOf(provider), 1) }
+      } },
+    }
+    const plugin: { apply(context: typeof ctx): void } = await import(pathToFileURL(join(path, 'package/lib/index.js')).href)
+    plugin.apply(ctx)
+    expect(providers).toEqual([{ id: '@local/native-ai-only', name: '项目清单', version: '1.0.0', ai: true }])
+    for (const dispose of disposers.reverse()) dispose()
+    expect(providers).toEqual([])
+  })
+
   it('builds the AI template with native data, its expert and declared local skill', async () => {
     const path = await root()
     const source = join(path, 'AI development')

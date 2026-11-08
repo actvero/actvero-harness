@@ -38,7 +38,7 @@ Host configuration requires `dataDirectory` for workbench files; the Actvero Pro
 
 Workbench authors can declare first-use presentation defaults and call `workbench.display()` to select business, native conversation or preview modes; `displayState()` reads the mounted view. The host sidebar control toggles navigation, and leaving restores navigation expansion; AI and previews save visibility and positions separately. The Host channel accepts answering owner Clients only and succeeds after mount acknowledgement; disconnect or timeout remains unknown and is never replayed. See [display control](../../../actvero/workbench-development.md#display) for usage and failures.
 
-The host provides public account context and a controlled model directory. The Host provider must explicitly declare `models:read`; responses contain read-only metadata without credentials or arbitrary URL proxying. `platformTimeoutMs` defaults to 30 seconds. The bundled native `develop-workbench` Skill, manager entry and templates are described in the [development guide](../../../actvero/workbench-development.md#platform).
+The host provides public account context and a controlled model directory. The Host provider must explicitly declare `models:read`; responses contain read-only metadata without credentials or arbitrary URL proxying. `platformTimeoutMs` defaults to 30 seconds. The native `develop-workbench` Skill ships portable references and a version index generated from the current guide and interfaces; it does not compile business code in the client. See the [development guide](../../../actvero/workbench-development.md#environment) for the toolchain, templates, installation and verification.
 
 <details>
 <summary>Workbench runtime</summary>

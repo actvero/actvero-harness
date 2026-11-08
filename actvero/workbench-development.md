@@ -8,6 +8,7 @@ This tutorial is for workbench developers with an Actvero repository development
 
 ## Table of Contents
 
+- [Development environment and task entry](#environment)
 - [Create and package](#create)
 - [Import and verify](#install)
 - [Package format](#format)
@@ -17,7 +18,23 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Bundled experts, Skill, MCP and CLI](#expert-bundle)
 - [Display control and Agent entry points](#display)
 - [Identity and platform model directory](#platform)
+- [Local verification and troubleshooting](#verify)
 - [Limitations](#limits)
+
+<a id="environment"></a>
+
+## Development environment and task entry
+
+When distributed with the native `develop-workbench` Skill, `reference/environment.json` records the same build's DSH baseline, workbench format, capability-package versions and reference sources. `reference/api/` contains read-only interface source copies for checking arguments, not an installable SDK. Links to material absent from the Skill identify its source-checkout path. Check the actual target client's version first; a source baseline or this snapshot does not establish another client's capabilities.
+
+Locate the ACTVERO source root from the current project or a user-provided location. Verify `scripts/actvero-workbench.client.ts`, `actvero/upstream.lock.json`, `actvero/templates/` and the root `package.json` command `actvero:workbench`; the business output directory is not the toolchain root. Run the commands below there and compare versions with the root `package.json` fields `engines` and `packageManager`. Prepare missing dependencies according to repository instructions rather than creating a substitute host or Agent engine.
+
+```sh
+node --version
+pnpm --version
+```
+
+Read existing sources directly for a defined modification; use `create` only for a new workbench. A name or directory without a business goal requires minimum-flow clarification first. Confirm source location and installation client separately: an isolated development Profile is not the everyday application. Sources may live outside the repository; relative output paths below are examples. Use confirmed paths and quote paths containing spaces. Ask for the toolchain location when missing rather than claiming an installed client alone can compile.
 
 <a id="create"></a>
 
@@ -40,11 +57,17 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 
 `check` reuses desktop import preflight and checks the format marker, version declarations, nonempty entry files, and duplicate, escaping, or linked paths. It does not execute workbench code or establish business acceptance. Installation also checks compatibility with the current runtime; the development command does not bypass this check.
 
+For an existing workbench, retain its package name and data. Increase `package.json.version` before delivering an update; Host and Client continue reading the version from that file. Install the absolute `path` reported by `pack` rather than inferring an archive name from the display name. `pack` transpiles and bundles without full TypeScript type checking. Run project-owned type checks and business tests separately; producing a `.tgz` does not replace them.
+
 <a id="install"></a>
 
 ## Import and verify
 
 Start the Actvero development client, open Workbenches → My workbenches, choose Import workbench, and select the output. If the result requires a restart, use Harness → Restart Harness. After loading, Project checklist appears in the catalog and sidebar switcher. The built-in example remains available for reference; the independent package's details show the author 本地开发 to distinguish it.
+
+An Agent first discovers the target's actual installation tools and reads their arguments. Use a dedicated local installer according to its declared interface when available. Native `plugin_manager` can inspect the current Profile through `list_bundles` and perform a first installation using `install_bundle` with the checked `.tgz` absolute path and native authorization. The generic tool does not accept the manager page's reviewed version-replacement arguments; updates use a replacement-capable dedicated tool or that page. Do not invent tools or bypass update checks through removal and reinstallation. Without tool or UI access, deliver the archive and mark installation pending.
+
+For installation `application`, verify loading after `applied`; `restart-required` means saved but awaiting restart. `failed`, `cancelled` and `overridden` are not activation; query unknown outcomes again. An Agent inside the target application must not close, restart or probe processes to manage its restart. Ask the user to finish this turn before using the top Restart now notice or Harness → Restart Harness. The user may try it directly or return with “重启好了” for continued verification. An isolated development client outside the target follows its normal restart procedure within existing authorization.
 
 Open the independent package, check an item, return to the manager and reopen it, then reload the client and reopen it to verify saved progress. Check previews, expanded/collapsed sidebar, light/dark themes, and a narrow window. First use creates no conversation and requires no workspace selection. Verify the installation result, catalog entry, switcher, and actual business view separately.
 
@@ -61,6 +84,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | File or field | Purpose |
 |---|---|
 | `package.json.name` / `version` | Stable package name and complete SemVer version; the template registers under the package name |
+| `package.json.type` | Must be `module`; Host and Client use ESM |
 | `package.json.icon` | Optional package artwork, for example `./assets/icon.svg`; SVG, PNG, JPEG or WebP, at most 256 KiB |
 | `engines.dsh` | Supported DSH runtime range; the template pins the current development baseline |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
@@ -73,6 +97,27 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `src/client/index.ts` | Registers the card and component through a Cordis effect, removing them on disposal |
 
 The artifact contains the manifest, generated patch, display `locale`, compiled `lib`, and optional raw `assets`. `repository` may be omitted. React uses the Host's shared instance; CSS Modules and images use the repository client compiler. Do not bundle a second React or Host plugin implementation into business code. Package validation checks format, not code confinement.
+
+Edit new templates at the following locations. The packager generates `cordis.patch.yml`, `lib/` and display `locale/`; do not edit installed files.
+
+```text
+my-workbench/
+├── package.json                    # 稳定身份、版本、依赖、入口、可选 icon
+├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
+├── src/index.ts                    # Host 注册；纯界面模板为空入口
+├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
+├── src/client/Checklist.tsx         # 替换为用户需要的业务界面
+├── src/client/locales.ts           # 业务文案
+├── src/client/checklist.module.css # 业务样式
+├── src/client/assets/              # 可选预览图片，使用 import 引入
+└── assets/                         # 可选原始资源，原样随包复制
+    ├── icon.svg
+    ├── expert.json
+    ├── dependencies.json
+    ├── skills/<key>/SKILL.md
+    ├── mcp.json
+    └── cli.mjs
+```
 
 <a id="business"></a>
 
@@ -117,6 +162,19 @@ For host-managed JSON, register a `storage: { initial, reduce, actionHelp }` ada
 
 The basic template registers a business UI only. To support native conversations, inject `actveroWorkbenchRuntime` in the Host entry and register a provider with the same identifier as the Client through `ctx.effect(() => ctx.actveroWorkbenchRuntime.register(provider))`. Custom-storage providers enable native conversations with `ai: true` and may declare a local expert containing a name, version and instructions. When omitted, AI controls stay hidden and no conversation is created automatically. Only the optional `storage` adapter requires initial JSON, a reducer and action documentation. Legacy top-level `initial/reduce/actionHelp` registrations remain supported with AI enabled by default. An expert uses the conversation model without separate configuration. An optional preparation function can block binding or a later request on failure; it must not inject unrecorded model context.
 
+A Host registration using only native AI can follow this example, without a JSON storage adapter or expert files. The business component calls its received `workbench.conversation()` to open or restore native chat; this does not send a business task. Register the Client component under the same package name. Optional first-use presentation `display` belongs in the Client descriptor, not `workbench.json`; saved user presentation choices take precedence.
+
+```js
+import manifest from '../package.json'
+import metadata from '../workbench.json'
+export const inject = ['actveroWorkbenchRuntime']
+export function apply(ctx) {
+  ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
+    id: manifest.name, name: metadata.name, version: manifest.version, ai: true,
+  }))
+}
+```
+
 The component receives a `workbench` context with its instance, associated conversation, runtime-directory lookup, AI availability, native resource address, conversation opening, business actions and public account information. `account()` returns null when signed out, otherwise only user and organization identifiers and names; these fields are not credentials. `models()` reads platform metadata through the controlled channel below. `conversation()` creates or restores the current associated conversation on demand, while `action()` writes using the latest revision. Pass an already registered package locale namespace to `register(descriptor, component, { locale: namespace })` for native typed `t` injection and language updates. Components observe native `useResource` data and adapt to their own container width. Floating previews scale a 960 × 640 business viewport, disabling internal interaction and scrolling; enter the workbench to edit.
 
 The Host retains one stable default runtime instance per workbench. The JSON adapter shares its JSON across linked conversations; custom-storage authors own project organization and conversation-to-project associations. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. New linked conversations create or reuse a workspace named after the workbench at `.sessions/<instanceId>` beneath the configured files root, separate from business data and without a folder picker. Existing conversations keep their directory.
@@ -134,27 +192,44 @@ Put raw resources in the source root's `assets/`. `pack` preserves that director
 ```js
 import { WorkbenchExpertBundle } from '@actvero/dsh-experts/workbench'
 import { fileURLToPath } from 'node:url'
+import manifest from '../package.json'
+import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
 export function apply(ctx) {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: '@local/my-workbench', name: 'My workbench', version: '1.0.0',
+    id: manifest.name, name: metadata.name, version: manifest.version,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }
 ```
 
-`assets/expert.json` uses the existing [expert manifest format](expert-package.md): `schemaVersion`, `id`, `name`, `description`, complete version and `instructions`, plus Skill/MCP requirements. Requirement keys match bindings in `assets/dependencies.json`. Skill `load: "always"` adds its body to recorded expert instructions; `on_demand` only registers the native catalog entry for the native skill tool to load. Native skill invocation policies still apply.
+`assets/expert.json` uses [ExpertManifest](../packages/actvero/experts/src/contracts.ts) fields. A workbench carries raw resources directly without first creating or importing a single-expert ZIP. The following complete minimum example declares one required Skill and a three-number version. Its `key` maps to `assets/dependencies.json`; keep both declarations consistent. A Skill with `load: "always"` joins the logged expert instructions; `on_demand` registers only the native catalog entry for native skill tools to read. Native invocation policy still applies.
 
 ```json
 {
   "schemaVersion": 1,
-  "skills": [{ "key": "delivery", "source": "local", "path": "skills/delivery" }],
-  "connectors": [{ "key": "files", "source": "local", "path": "mcp.json" }],
-  "cli": [{ "name": "delivery", "path": "cli.mjs", "runtime": "node", "description": "Manage delivery files; see the skill for arguments." }]
+  "id": "delivery-assistant",
+  "name": "交付助手",
+  "version": "1.0.0",
+  "description": "协助整理当前工作台的交付内容。",
+  "instructions": "先读取当前数据，按用户要求修改；工具成功后再汇报结果。",
+  "skills": [{ "key": "delivery", "label": "交付操作", "required": true, "load": "always" }],
+  "connectors": []
 }
 ```
+
+The following `dependencies.json` pairs with that example and a supplied `skills/delivery/SKILL.md`. This is the workbench loader's dependency format, not the expert ZIP's platform-reference format.
+
+```json
+{
+  "schemaVersion": 1,
+  "skills": [{ "key": "delivery", "source": "local", "path": "skills/delivery" }]
+}
+```
+
+For MCP, add `{ "key": "files", "label": "业务文件", "required": true }` to manifest `connectors`, and `{ "key": "files", "source": "local", "path": "mcp.json" }` to dependency `connectors`, then implement the file; undeclared bindings are rejected. For CLI, add `{ "name": "delivery", "path": "cli.mjs", "runtime": "node", "description": "Manage delivery files; see the skill for arguments." }` to dependency `cli`, include the script, and document arguments and data locations in the Skill. Omit unused capabilities rather than adding empty dependencies.
 
 File paths are relative to the expert directory and cannot escape it, reference symbolic links, or be absolute. `skills/delivery/SKILL.md` uses native Skill parsing. Bindings must match manifest requirements; missing required dependencies prevent AI activation. An optional requirement without a binding or an absent installed skill is recorded in expert instructions; corrupt bound files or changed pinned versions still fail. CLI files declare `node`, `python` or `executable`; interpreters resolve on demand from the host's configured native runtime. Host authors may also provide explicit absolute interpreter paths through `runtimes`.
 
@@ -200,6 +275,36 @@ The Host forwards requests to Electron Main, which uses the current account’s 
 `scope` distinguishes account and organization request generations; it is not a credential. Sign-out, platform replacement and organization switching invalidate old reads. The directory is not cached; subsequent calls read the current authorization. Authors caching metadata must clear it on account changes and replace it using the new `scope`; business directories are not automatically partitioned by account. Cancellation, timeout, denied access, malformed responses and directory limits reject without returning partial results. `platformTimeoutMs` configures the Host wait, defaulting to 30 seconds; remote access requires the desktop owner.
 
 The AI template’s “View available models” demonstrates the minimal integration. Signed-out access shows a recoverable message without requiring a separate expert model or automatically inserting account information or model metadata into conversations. Real platform permissions and paid generation require separate verification.
+
+<a id="verify"></a>
+
+## Local verification and troubleshooting
+
+Developers and executing Agents use this table to record observable outcomes, selecting only capabilities the workbench uses. Mark each item passed, failed, pending verification or not applicable, with command output, screenshots or actual business results. Without model authorization, verify local business, packaging and dependencies while leaving actual model or external writes pending; do not submit paid generation automatically for acceptance.
+
+| Check | Passing evidence |
+|---|---|
+| Package and code | Separate results for relevant business tests and project type checks; actual path, version, size and digest from `pack` and `check`; required resources present in the artifact |
+| Installation inventory | Exact package name, version and state in the intended client/Profile, with `application` recorded; pending restart does not count as loaded |
+| Sidebar entry | The item appears in Workbenches → My workbenches and enters the sidebar switcher after loading; a matching display name alone does not identify this package |
+| Actual view | Open the business component from the switcher; artwork, copy, previews and first-use entry without a conversation work, beyond merely seeing the manager card |
+| Business and storage | Complete one actual minimum flow and retain data after reopening and reload, using the actual directory or remote source rather than demonstration data alone |
+| Native AI | Open or restore associated chat on demand; verify the adopted instructions, Skill, tools, MCP or CLI read and write the same business data, without granting them to unrelated conversations |
+| Display and layout | Applicable business, chat and read-only preview modes; collapsed/reloaded preferences, expanded/collapsed sidebar, light/dark themes and narrow containers; realistic Chinese/English content without clipped controls, single-character columns or page-wide horizontal overflow |
+| Updates and recovery | Data retained after update; existing chat resumes or explicitly requests reselection; preparation failures preserve the prior association and give a recoverable error |
+
+`workbench_list` lists loaded Host providers only; verify UI-only workbenches through the manager and actual view. `workbench_open` returning `confirmed` establishes host-view mounting, not completion of remote requests or business-data acceptance. Query `workbench_status` after `unknown` rather than directly replaying installation or business operations.
+
+| Symptom | Next action |
+|---|---|
+| Missing command or dependency | Check working directory, source-root `package.json`, Node/pnpm and locked dependencies; do not run repository commands from the business directory or start a substitute host |
+| Package validation fails | Follow diagnostics for metadata, entries, resource sizes and paths, then rebuild from source rather than editing `.tgz` or installed files |
+| `incompatible-version` | Compare target runtime and `engines.dsh`, then decide adaptation or a compatible client; changing a version number or granting an exemption does not establish compatibility |
+| Installed but missing entry or blank view | Inspect installation outcome, enabled state and Host/Client errors, then both ids, registrations, injections and console diagnostics; request restart only when required |
+| AI cannot open or operate | Separate disabled AI, preparation failure, unavailable model and missing tools; inspect `ai`, `activate`, resource bindings and interpreters. Custom storage does not automatically receive JSON tools |
+| Manual and AI data differ | Check instance, project selection, actual directory or remote scope, and tool read/write locations; do not mask the discrepancy by copying another dataset |
+
+Fix source and increase the version before installation updates. Do not rewrite Session logs, same-version installed resources or clear business directories to repair loading. Without target-client access, deliver the checked package, exact import entry and unverified items without claiming it loaded.
 
 <a id="limits"></a>
 

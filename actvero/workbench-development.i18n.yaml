@@ -9,17 +9,20 @@
   en: 128d4ccf20e940e4
   zh: 127438cb9f8b6355
 /local-workbench-development/table-of-contents:
-  en: 8b310787cbe11c7b
-  zh: ef9b6d308f57a436
+  en: 72684dc2c745f31e
+  zh: 04c56dea4d4b2ddd
+/local-workbench-development/development-environment-and-task-entry:
+  en: 945ec0df53634357
+  zh: 747e0b00be2bb8f9
 /local-workbench-development/create-and-package:
-  en: 08dbba492d07defb
-  zh: a830d8f95a1ceba5
+  en: 230f8e0ccd9ea81e
+  zh: 2ea45bfbdc98697f
 /local-workbench-development/import-and-verify:
-  en: c8e919f432a57d02
-  zh: 89d9aa1d2545dffe
+  en: 422f9161abb26a05
+  zh: 0bb0159bec7f70de
 /local-workbench-development/package-format:
-  en: 50bc51442cc24ad3
-  zh: 4dd23a5323c3938d
+  en: 837810df813320b6
+  zh: 0d8d2bd8f43829c8
 /local-workbench-development/edit-the-business-view:
   en: 34cc8c1d323a1e81
   zh: 7fe980e8ead192c5
@@ -27,17 +30,20 @@
   en: a99b53f9205c3a1e
   zh: 441b9042cb9501fd
 /local-workbench-development/native-ai-and-shared-data:
-  en: 29fc1ba1cbd0130c
-  zh: 67e5aadfb33b9eab
+  en: 1072065f15cf069f
+  zh: 5c88d4c7923c7547
 /local-workbench-development/bundled-experts-skill-mcp-and-cli:
-  en: 116740737536f936
-  zh: e313302ac17e57ad
+  en: cbee8639420ea997
+  zh: d88403640417b332
 /local-workbench-development/display-control-and-agent-entry-points:
   en: 2f73888269a8a48a
   zh: a2e17fd9c7b37dc6
 /local-workbench-development/identity-and-platform-model-directory:
-  en: 84ed712d72c834cc
-  zh: 6146f84aa9d858b9
+  en: 3fd8ff17dc9e0b84
+  zh: 64704a74acc8574f
+/local-workbench-development/local-verification-and-troubleshooting:
+  en: faec7674b2012325
+  zh: eeecdd61bc28c2d8
 /local-workbench-development/limitations:
   en: 719c7c3d0cb18eae
   zh: 9d717272e0389264

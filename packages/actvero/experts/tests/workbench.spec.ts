@@ -58,6 +58,25 @@ it('caches packaged skills by version, preserves native invocation policy and wi
   expect(await f.ctx.skills.get('delivery', { scope: f.b })).toBeDefined()
 })
 
+it('activates the guide manifest and bindings and refuses a missing declared Skill', async () => {
+  const f = await fixture()
+  const guide = await readFile(new URL('../../../../actvero/workbench-development.zh.md', import.meta.url), 'utf8')
+  const section = guide.split('<a id="expert-bundle"></a>')[1]!.split('<a id="display"></a>')[0]!
+  const examples = [...section.matchAll(/```json\n([\s\S]*?)\n```/gu)].map(match => match[1]!)
+  expect(examples).toHaveLength(2)
+  await writeFile(join(f.bundle, 'expert.json'), examples[0]!)
+  await writeFile(join(f.bundle, 'dependencies.json'), examples[1]!)
+  const helper = new WorkbenchExpertBundle({ directory: f.bundle })
+  const result = await helper.activate(f.scopes[0]!.ctx, f.environment, new AbortController().signal)
+  expect(result.expert?.name).toBe('交付助手')
+  expect(result.expert?.instructions).toContain('Read business files before changing them.')
+  expect(await f.ctx.skills.get('delivery', { scope: f.a })).toBeDefined()
+  expect(await f.ctx.skills.get('delivery', { scope: f.b })).toBeUndefined()
+  await rm(join(f.bundle, 'skills/delivery/SKILL.md'))
+  await expect(new WorkbenchExpertBundle({ directory: f.bundle }).activate(f.scopes[1]!.ctx, { ...f.environment, sessionId: f.b.id }, new AbortController().signal)).rejects.toMatchObject({ code: 'dependency-missing' })
+  expect(await f.ctx.skills.get('delivery', { scope: f.b })).toBeUndefined()
+})
+
 it('loads skills on demand and rejects missing or changed installed dependencies', async () => {
   const f = await fixture()
   f.manifest.skills[0]!.load = 'on_demand'
