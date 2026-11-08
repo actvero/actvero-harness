@@ -182,6 +182,13 @@ export interface InputTarget {
 
 /** Per-session input facade owned by the conversation wiring layer. */
 export interface SessionInput extends InputTarget {
+  /** Update or remove one still-matching chip without replacing surrounding text.
+   * @param expected Occurrence identity and captured source/reference used as a stale-write guard;
+   * null inserts at the caret without replacing selected text.
+   * @param replacement New chip fields, or null to remove it.
+   * @returns False if the chip changed, disappeared, or submission owns the draft.
+   */
+  updateReference(expected: Pick<Occurrence, 'occurrenceId' | 'source' | 'ref'> | null, replacement: ReferenceInsert | null): boolean
   /** @returns a revision-guarded copy of the editor selection, or the document end when no selection is present. */
   captureInsertion(): TokenSpan
   /** Replace the whole draft with plain text, removing inline reference chips. */

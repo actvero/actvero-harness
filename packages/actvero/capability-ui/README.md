@@ -61,6 +61,8 @@ Extension API 1.3 adds native settings pages and associated-conversation command
 
 Extension API 1.4 supports optional business-object associations: providers validate author-defined identifiers through resolveObject, and Clients call conversation({ objectId }) to reuse or create a matching conversation. prepare/activate receive its fixed object; view navigation does not change the target, and failed validation stops model requests and withdraws capabilities. Logs retain the identifier and name without copying business data; authors still own storage and read/write authorization and conflicts. See the [development guide](../../../actvero/workbench-development.md#native-ai) for integration and recovery.
 
+Extension API `1.5.0` adds visible automatic selection chips in associated native drafts, immutable business result cards and validated historical object navigation. Sending freezes reference content; old views cannot redirect it to another conversation. Result summaries and snapshots remain readable after a business package is removed. The AI checklist template demonstrates object conversations, input context and result metadata; see [business results](../../../actvero/workbench-development.md#business-results).
+
 <a id="model-experience"></a>
 
 ## Model Experience

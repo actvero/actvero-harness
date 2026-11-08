@@ -4,6 +4,6 @@
   "category": "office",
   "protocol": {
     "schemaVersion": 1,
-    "hostApi": "^1.2.0"
+    "hostApi": "^1.5.0"
   }
 }

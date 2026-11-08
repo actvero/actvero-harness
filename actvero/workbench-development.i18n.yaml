@@ -27,20 +27,26 @@
   en: 301e50f1f82f533d
   zh: bf6f1386e78c2855
 /workbench-development/edit-the-business-view/native-header-and-shared-view-state:
-  en: 318adb0b163c1fdb
-  zh: d2e955b833277432
+  en: d4bb67c16b58f5ce
+  zh: b5630f3b1b48d9a6
 /workbench-development/edit-the-business-view/native-settings-pages-and-associated-conversation-commands:
   en: bc7b6b75d015ee13
   zh: b960a923353acc52
 /workbench-development/edit-the-business-view/insert-business-selections-into-the-native-composer:
-  en: 9b91889f48b709a0
-  zh: d1c152653d7156fc
+  en: 5877f740b22109a3
+  zh: d474efde34f74b7f
+/workbench-development/edit-the-business-view/automatic-selection-and-submission:
+  en: 62b1b3face9c849c
+  zh: 8e411eae25dde2c5
+/workbench-development/edit-the-business-view/business-results-and-historical-objects:
+  en: 374f572dd4b755ad
+  zh: 9466b5ff54a23e07
 /workbench-development/runtime-directories-and-custom-storage:
   en: a99b53f9205c3a1e
   zh: 441b9042cb9501fd
 /workbench-development/native-ai-and-shared-data:
-  en: edbd655f8af1c4b1
-  zh: 9a132cd82ffbd403
+  en: 981753ca37cef5df
+  zh: 9d4341c6e11ab495
 /workbench-development/native-ai-and-shared-data/associate-conversations-with-business-objects:
   en: 9b8f45800ef26309
   zh: e9b4232b6a3fddf5

@@ -153,6 +153,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Persisted document.',
       },
       {
+        signature: '@Remote async inspectObject(request: WorkbenchObjectTarget, signal: AbortSignal): Promise<{ label: string }>',
+        description: 'Validate a historical object\'s availability without binding a conversation or starting expert dependencies.',
+        parameters: [{ name: 'request', description: 'Existing instance and author-owned object identity.' }, { name: 'signal', description: 'Carrier cancellation; provider removal also cancels the lookup.' }],
+        returns: 'Current object name; missing providers and objects reject without creating data.',
+      },
+      {
         signature: 'platformAccess(request: WorkbenchTarget): string',
         description: 'Require a loaded provider\'s explicit platform declaration.',
         parameters: [{ name: 'request', description: 'Existing workbench instance.' }],
@@ -8912,6 +8918,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkbenchObjectId',
     declaration: 'export type WorkbenchObjectId = Branded<\'ActveroWorkbenchObjectId\'>;',
+  },
+  {
+    name: 'WorkbenchObjectTarget',
+    declaration: 'export interface WorkbenchObjectTarget extends WorkbenchTarget {\n    objectId: WorkbenchObjectId;\n}',
   },
   {
     name: 'WorkbenchPlatformModel',

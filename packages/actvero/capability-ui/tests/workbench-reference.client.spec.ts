@@ -8,8 +8,9 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { DraftSnapshot, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { SessionInputShell } from '../../../client/ui-conversation/src/client/input/facade.ts'
 import { WorkbenchClientRuntime } from '../src/client/workbenches/runtime.ts'
+import { WorkbenchSelections } from '../src/client/workbenches/selection.ts'
 import { createWorkbenchReferenceSource, workbenchReferenceRule } from '../src/client/workbenches/references.tsx'
-import { decodeWorkbenchReference, encodeWorkbenchReference, findWorkbenchReference, workbenchReferenceSource,
+import { decodeWorkbenchReference, encodeWorkbenchReference, findWorkbenchReference, workbenchReferenceSource, workbenchSelectionSource,
   type WorkbenchObjectId, type WorkbenchReferenceSnapshot } from '../src/workbench-reference.ts'
 import type { WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../src/types.ts'
 
@@ -30,6 +31,7 @@ async function fixture() {
   await runtime.ctx.plugin(InputTriggerService).await()
   const triggers = runtime.ctx.inputTriggers
   runtime.ctx.effect(() => triggers.registerSource(createWorkbenchReferenceSource(() => '引用损坏')))
+  runtime.ctx.effect(() => triggers.registerSource(createWorkbenchReferenceSource(() => '引用损坏', workbenchSelectionSource)))
   const sink = vi.fn((_text: string) => Promise.resolve<SubmitOutcome>({ kind: 'success' }))
   const shell = () => new SessionInputShell({ actx: retained.binding.ctx,
     inputTriggers: () => triggers.sessionOf(retained.binding.ctx), defaultSink: sink,
@@ -48,6 +50,67 @@ async function fixture() {
 }
 
 describe('workbench native input references', () => {
+  it('updates only its automatic chip and honors removal until a different selection is made', async () => {
+    const { input } = await fixture()
+    const selections = new WorkbenchSelections()
+    input.setDraft('请比较这些内容 ')
+    expect(selections.update(input, snapshot)).toBe('attached')
+    const first = input.snapshot.occurrences[0]!
+    const explicit = { source: workbenchReferenceSource, ref: 'manual', label: '手动引用', clipboardText: 'manual' }
+    input.insertReference(explicit, input.captureInsertion())
+    expect(selections.update(input, { ...snapshot, revision: '8', content: '第二版' })).toBe('attached')
+    expect(input.snapshot.occurrences[0]!.occurrenceId).toBe(first.occurrenceId)
+    expect(input.snapshot.draft).toContain('请比较这些内容 ')
+    expect(input.snapshot.occurrences[1]!.ref).toBe('manual')
+    expect(input.updateReference(first, null)).toBe(false)
+    expect(input.updateReference(input.snapshot.occurrences[0]!, null)).toBe(true)
+    expect(selections.update(input, { ...snapshot, revision: '8', content: '第二版' })).toBe('dismissed')
+    expect(input.snapshot.occurrences).toHaveLength(1)
+    expect(selections.update(input, { ...snapshot, objectId: 'another' as WorkbenchObjectId })).toBe('attached')
+    expect(selections.update(input, null)).toBe('cleared')
+    expect(input.snapshot.occurrences.map(item => item.ref)).toEqual(['manual'])
+  })
+
+  it('freezes submitted selection and refuses automatic changes during the send so failures restore the original snapshot', async () => {
+    const { input, sink } = await fixture()
+    const selections = new WorkbenchSelections()
+    const flight = Promise.withResolvers<SubmitOutcome>()
+    sink.mockReturnValueOnce(flight.promise)
+    expect(selections.update(input, snapshot)).toBe('attached')
+    input.submit()
+    await vi.waitFor(() => { expect(sink).toHaveBeenCalledOnce() })
+    expect(selections.update(input, snapshot)).toBe('dismissed')
+    expect(selections.update(input, { ...snapshot, revision: '9', content: '之后的选择' })).toBe('busy')
+    expect(decodeWorkbenchReference(sink.mock.calls[0]![0])).toEqual(snapshot)
+    flight.resolve({ kind: 'error', text: '发送失败' })
+    await vi.waitFor(() => { expect(input.snapshot.draft).toContain(snapshot.content.replaceAll('\n', '\\n')) })
+    expect(input.snapshot.draft).not.toContain('之后的选择')
+    expect(input.notices.getSnapshot()).toMatchObject({ level: 'error' })
+  })
+
+  it('keeps automatic context on the captured conversation and ignores outdated selection callbacks', async () => {
+    const { runtime, client, input, bind } = await fixture()
+    const context = (current = () => true) => client.context(instanceId, sessionId, async () => {},
+      async () => { throw new Error('Unused display') }, () => { throw new Error('Unused display state') },
+      async () => { throw new Error('Unused reference') }, current)
+    expect(await context().selection(snapshot)).toBe('inactive')
+    expect(bind).not.toHaveBeenCalled()
+    await runtime.sessions.updateSummary(sessionId, { projectionValues: { actveroWorkbench: {
+      id: snapshot.workbenchId, instanceId, name: '图纸', version: '1', expert: null,
+      object: { id: snapshot.objectId, label: snapshot.label },
+    } } })
+    const stale = vi.fn().mockReturnValueOnce(true).mockReturnValue(false)
+    expect(await context(stale).selection(snapshot)).toBe('inactive')
+    expect(input.snapshot.occurrences).toEqual([])
+    const first = context().selection(snapshot)
+    const latest = context().selection({ ...snapshot, revision: '9', content: '最新选择' })
+    expect(await first).toBe('inactive')
+    expect(await latest).toBe('attached')
+    expect(decodeWorkbenchReference(input.snapshot.occurrences[0]!.ref)?.content).toBe('最新选择')
+    expect(bind).not.toHaveBeenCalled()
+    expect(runtime.ctx.sessions.retainInfo(sessionId).getSnapshot().retainedBy.actveroWorkbenchReference).toBeUndefined()
+  })
+
   it('freezes selection before preparation, preserves existing chips, restores the draft and submits the recorded snapshot', async () => {
     const { runtime, input, shell, client, sink, bind } = await fixture()
     input.setDraft('请比较 ')

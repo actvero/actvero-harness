@@ -36,6 +36,16 @@ Resolve relative paths mentioned by this skill against the base directory before
 6. 只按需读取公开账户信息或已声明的模型目录能力。公开身份不是令牌，模型目录不代表图片或视频生成已经接通；不得把宿主凭据发到自定义地址或要求用户提供登录令牌。
 7. 在生成的项目中运行 \`npm run doctor\`、\`npm run typecheck\`、与业务变化相关的测试、\`npm run build\` 和 \`npm run check\`。doctor 的设计提醒需要人工处理；build/pack 先做类型检查再打包，check 复核归档。使用命令输出的实际路径、字节数和 SHA-256，不手猜文件名。检查通过不证明专家依赖启动、业务正常或安装生效。按指南“本地自测与故障定位”完成相应验证；记录命令、结果和未测项。源码仓库移动或换机器时按项目 README 重新 bind；随项目的 Skill 与接口快照可刷新，业务代码与 DESIGN.md 保留。
 
+## 输入上下文、结果与对象定位
+
+需要自动带入选区或历史对象跳转时声明 API 1.5，读取指南的“自动选区与发送”“业务结果与历史对象”及 \`reference/api/workbench-result.ts\`。先区分三件事：\`conversation({ objectId })\` 固定对话操作对象；\`reference()\` 主动添加不可变引用并打开 AI；\`selection(snapshot | null)\` 只同步已有对话的自动引用，不创建会话。不得用当前画面的选中项隐式替换已绑定的操作对象。
+
+自动选区由业务事件驱动，保留作者捕获的版本和内容。检查 attached、cleared、dismissed、busy、inactive，失败要明确反馈，不能无限重试或在 render 中调用。用户删除同一选区后不补回，发送后不修改已发送内容；保留原生提交、附件、错误和草稿恢复流程，不包装另一个输入框或截获 DOM。
+
+工具返回可持久化的业务结果，用 workbenchResultText 和 workbenchResultMetadata 呈现同一份执行结果；只记录必要摘要和快照。Client 声明 objectNavigation 并读取 workbench.location，Host resolveObject 复核存在性和权限；打开历史对象不改变原对话绑定，不把历史版本写回当前数据。明确处理卸载、对象删除和无权限，保留历史可读内容。
+
+用新生成的 AI 清单或用户自己的非画布项目完成一次实测：doctor → typecheck → build → check → 安装/加载 → 两个业务对象各自讨论 → 可预览和删除的引用 → 原生发送 → 工具结果卡片 → 刷新历史 → 打开对应对象。测试发送中换选区、失败恢复、快速切换和停用；真实模型未调用时将模型验证单独标注，不把模拟适配器结果算作真实模型验收。
+
 ## 安装、加载与更新
 
 只操作用户指定且能够确认身份的客户端/Profile；不把隔离开发客户端的结果算到日常客户端。先发现当前可用工具并读取参数。工具和界面都不可用时保留校验后的 \`.tgz\`，给出“工作台 → 我的工作台 → 导入工作台”的准确入口，说明安装尚未完成。

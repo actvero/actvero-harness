@@ -24084,7 +24084,7 @@
       "sources": [
         "packages/actvero/capability-ui/src/types.ts:10",
         "packages/actvero/capability-ui/src/types.ts:8",
-        "packages/actvero/capability-ui/src/workbench-reference.ts:10",
+        "packages/actvero/capability-ui/src/workbench-reference.ts:12",
         "packages/api/session-controller/src/types.ts:409",
         "packages/attachment/attachment/src/brand.ts:6",
         "packages/compaction/compaction/src/brand.ts:4",
@@ -24425,7 +24425,7 @@
       "digest": "5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:83"
+        "packages/actvero/capability-ui/src/types.ts:85"
       ]
     },
     {
@@ -24544,7 +24544,7 @@
       "digest": "686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:84"
+        "packages/actvero/capability-ui/src/types.ts:86"
       ]
     },
     {

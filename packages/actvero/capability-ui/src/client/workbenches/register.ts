@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchId, WorkbenchDocument, WorkbenchInstanceId } from '../../types.ts'
-import type { WorkbenchClientContext } from '../../contracts.ts'
+import type { WorkbenchClientContext, WorkbenchObjectLocation } from '../../contracts.ts'
 import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
@@ -63,6 +63,7 @@ function readSelection(): string | null {
 
 /** Profile catalog and foreground view state consumed by the registered slots. */
 export interface WorkbenchView extends WorkbenchManagement {
+  location: WorkbenchObjectLocation | null
   entries: readonly ActveroWorkbench[]
   opened: string | null
   remembered: readonly ActveroWorkbench[]
@@ -113,7 +114,7 @@ export function registerWorkbenches(ctx: Context): void {
       ? 'activeConversation' : null
   })
   let view: WorkbenchView = { ...management.initial, entries: [], remembered: [], opened: readSelection(),
-    instance: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
+    instance: null, location: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
@@ -227,7 +228,15 @@ export function registerWorkbenches(ctx: Context): void {
   }
   const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null) => {
     const generation = chatGeneration
-    return runtime.context(instanceId, sessionId, async (id) => {
+    const providerId = sessionId
+      ? ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.id : view.instance?.id
+    const providerEntry = view.entries.find(entry => entry.id === providerId)
+    const isCurrent = () => generation === chatGeneration && ctx.fiber.uid !== null
+      && (providerId === 'builtin:project-checklist' || providerEntry !== undefined && view.entries.includes(providerEntry))
+      && (ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel && view.instance?.instanceId === instanceId
+        || sessionId !== null && ctx.layout.panelInfo.getSnapshot().activePanelId === null
+          && Boolean(ctx.sessions.retainInfo(sessionId).getSnapshot().retainedBy.mainView))
+    return { ...runtime.context(instanceId, sessionId, async (id) => {
       if (generation === chatGeneration && ctx.fiber.uid !== null) await showChat(id)
     }, async (options) => {
       const document = instanceId ? await ctx.remote.actveroWorkbench.read({ instanceId }) : null
@@ -251,14 +260,15 @@ export function registerWorkbenches(ctx: Context): void {
           throw new RemoteError('workbench/reference', 'Workbench conversation is no longer displayed', { status: 'superseded' })
         }
       }, signal)
-    })
+    }, isCurrent), location: view.location?.instanceId === instanceId ? view.location : null }
   }
-  const load = async (id: string, target?: WorkbenchInstanceId) => {
+  const load = async (id: string, target?: WorkbenchInstanceId, signal?: AbortSignal) => {
+    signal?.throwIfAborted()
     if (view.opened === id && view.instance && !view.preparing && !view.runtimeFailed
       && (!target || target === view.instance.instanceId)) return view.instance
     const generation = ++navigation
     releaseChat()
-    update({ opened: id, instance: null, preparing: true, runtimeFailed: false })
+    update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false })
     try {
       const opened = await runtime.open(id)
       const result = target ? await ctx.remote.actveroWorkbench.read({ instanceId: target }) : null
@@ -266,10 +276,11 @@ export function registerWorkbenches(ctx: Context): void {
       const instance = result?.ok ? result.value : opened
       if (instance && instance.id !== id) throw new Error('Workbench instance belongs to another provider')
       if (generation !== navigation || ctx.fiber.uid === null) throw new Error('Workbench navigation superseded')
+      signal?.throwIfAborted()
       update({ instance, preparing: false })
       return instance
     } catch (error) {
-      if (generation === navigation && ctx.fiber.uid !== null) {
+      if (generation === navigation && ctx.fiber.uid !== null && !signal?.aborted) {
         ctx.logger.warn('Unable to open workbench: %s', error)
         update({ preparing: false, runtimeFailed: true })
       }
@@ -277,8 +288,38 @@ export function registerWorkbenches(ctx: Context): void {
     }
   }
   const settings = new Set<string>()
+  const objectNavigation = new Set<string>()
   const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
+    async openObject(target) {
+      const captured = { ...target }
+      const entry = view.entries.find(item => item.id === captured.workbenchId)
+      if (!objectNavigation.has(captured.workbenchId)) throw new RemoteError('workbench/object', 'Workbench object navigation is unavailable', { status: 'unavailable' })
+      displaying.abort()
+      displaying = new AbortController()
+      const signal = AbortSignal.any([ctx.layout.beginNavigation(), displaying.signal])
+      const document = await ctx.remote.actveroWorkbench.read({ instanceId: captured.instanceId })
+      if (!document.ok) throw document.error
+      if (document.value.id !== captured.workbenchId) {
+        throw new RemoteError('workbench/object', 'Object belongs to another workbench', { status: 'mismatch' })
+      }
+      const object = await ctx.remote.actveroWorkbench.inspectObject({
+        instanceId: captured.instanceId, objectId: captured.objectId,
+      }, signal)
+      if (!object.ok) throw object.error
+      signal.throwIfAborted()
+      if (!entry || !view.entries.includes(entry)) throw new RemoteError('workbench/object', 'Workbench was unloaded', { status: 'unavailable' })
+      await load(captured.workbenchId, captured.instanceId, signal)
+      signal.throwIfAborted()
+      if (!view.entries.includes(entry)) throw new RemoteError('workbench/object', 'Workbench was unloaded', { status: 'unavailable' })
+      update({ location: captured })
+      selectPanel(businessPanel)
+      const mounted = AbortSignal.any([ctx.layout.beginNavigation(), displaying.signal])
+      await waitForWorkbenchView(() => {
+        const state = snapshot()
+        return state.instanceId === captured.instanceId && state.mode === 'business' ? state : null
+      }, mounted)
+    },
     openSettings(id) {
       const navigation = ctx.get('settingsNavigation')
       if (!settings.has(id) || !navigation) throw new Error(`Workbench settings unavailable: ${id}`)
@@ -293,6 +334,10 @@ export function registerWorkbenches(ctx: Context): void {
       if (view.entries.some(item => item.id === id)) throw new Error(`Duplicate Actvero workbench: ${id}`)
       const entry = { ...descriptor }
       return ctx.effect(function* () {
+        if (options?.objectNavigation) {
+          objectNavigation.add(id)
+          yield () => { objectNavigation.delete(id) }
+        }
         yield registerWorkbenchCommands(ctx, id, options?.commands ?? [], () => ctx.locale.bind(namespace)('commandUnavailable'))
         yield ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
           name: 'actvero.workbench.body', key: entry.id, locale: options?.locale, store: options?.store,
@@ -487,7 +532,7 @@ export function registerWorkbenches(ctx: Context): void {
   ctx.effect(() => connectWorkbenchDisplay(ctx, (request, signal) => action.present(request, signal), snapshot))
   ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat(); restoreNavigation() })
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
-  registerWorkbenchReferences(ctx)
+  registerWorkbenchReferences(ctx, target => registry.openObject(target))
   const t = ctx.locale.bind(namespace)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),

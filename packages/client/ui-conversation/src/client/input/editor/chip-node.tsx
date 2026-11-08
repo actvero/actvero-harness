@@ -158,6 +158,19 @@ export class ReferenceChipNode extends DecoratorNode<JSX.Element> {
     writable.__invalid = invalid
   }
 
+  /** Replace owner projections while retaining occurrence identity and selection.
+   * @param reference New serialized and displayed reference fields.
+   */
+  setReference(reference: ReferenceInsert): void {
+    const node = this.getWritable()
+    node.__source = reference.source
+    node.__ref = reference.ref
+    node.__label = reference.label
+    node.__appearance = reference.appearance
+    node.__clipboardText = reference.clipboardText
+    node.__invalid = false
+  }
+
   /** Owner-resolution failure bit. */
   isInvalid(): boolean {
     return this.getLatest().__invalid

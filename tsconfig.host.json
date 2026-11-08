@@ -13,6 +13,8 @@
     "apps/web/tests/actvero-workbench-lifecycle.snapshot.ts",
     "apps/web/tests/actvero-workbench-object.snapshot.ts",
     "apps/web/tests/actvero-workbench-reference.snapshot.ts",
+    "apps/web/tests/actvero-workbench-result.snapshot.ts",
+    "apps/web/tests/actvero-workbench-template.e2e.ts",
     "apps/web/tests/actvero-workbench-expert.e2e.ts",
     "apps/web/tests/collapse-timing.e2e.ts",
     "apps/web/tests/notice-wake-tail.e2e.ts",

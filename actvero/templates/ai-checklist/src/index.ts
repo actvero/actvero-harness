@@ -1,6 +1,8 @@
 /** Native business data and a conversation-scoped packaged expert. */
 import type { Context } from '@deepseek-ai/cordis'
-import type { WorkbenchId, WorkbenchCustomProvider } from '@actvero/dsh-capability-ui'
+import { workbenchResultMetadata, workbenchResultText } from '@actvero/dsh-capability-ui'
+import type { WorkbenchId, WorkbenchObjectId, WorkbenchCustomProvider, WorkbenchResult } from '@actvero/dsh-capability-ui'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import { WorkbenchExpertBundle } from '@actvero/dsh-experts/workbench'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
@@ -23,7 +25,37 @@ export function apply(ctx: Context): void {
   const expert = new WorkbenchExpertBundle({ directory: resourcesDirectory })
   const provider: WorkbenchCustomProvider = {
     id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
-    resourcesDirectory, ai: true, activate: expert.activate, platform: ['models:read'],
+    resourcesDirectory, ai: true, platform: ['models:read'],
+    async resolveObject(id, environment, signal) {
+      signal.throwIfAborted()
+      const document = ctx.actveroWorkbenchRuntime.read(environment)
+      if (id === 'checklist') return { label: metadata.name }
+      const item = checklistDocument.parse(JSON.parse(document.json)).items.find(item => item.id === id)
+      if (!item) throw new Error('Task no longer exists')
+      return { label: item.text }
+    },
+    async activate(scope, environment, signal) {
+      const activation = await expert.activate(scope, environment, signal)
+      const result = (raw: string): WorkbenchResult => {
+        const saved = z.object({ revision: z.number(), json: z.string() }).parse(JSON.parse(raw))
+        const json = saved.json
+        const document = checklistDocument.parse(JSON.parse(json))
+        const item = environment.object && document.items.find(item => item.id === environment.object?.id)
+        if (environment.object && environment.object.id !== 'checklist' && !item) throw new Error('Task no longer exists')
+        return { schemaVersion: 1, title: item?.text ?? metadata.name,
+          summary: item ? `${item.completed ? '已完成' : '未完成'}：${item.text}` : `${document.items.filter(item => item.completed).length} / ${document.items.length}`,
+          references: [{ schemaVersion: 1, workbenchId: environment.id, instanceId: environment.instanceId,
+            objectId: environment.object?.id ?? 'checklist' as WorkbenchObjectId, label: item?.text ?? metadata.name,
+            revision: String(saved.revision), content: item ? JSON.stringify(item) : json }] }
+      }
+      scope.tools.register(defineTool({ name: 'checklist_review', description: 'Read the checklist or the conversation-bound task and return a durable summary with an object link.',
+        parameters: {},
+        output: { schema: { type: 'string' }, render: (_args, json: string) => [{ type: 'text', text: workbenchResultText(result(json)) }],
+          presentationMeta: (_args, json: string) => workbenchResultMetadata(result(json)) },
+        execute: async () => JSON.stringify(ctx.actveroWorkbenchRuntime.read(environment)),
+      }))
+      return activation
+    },
     storage: {
       initial: () => JSON.stringify({ items: [{ id: 'scope', text: '确认需求和交付范围', completed: false }] }),
       actionHelp: 'add args={"text":"task"}; complete args={"id":"id from read","completed":true|false}. Read current revision before writing.',

@@ -1,4 +1,5 @@
 export const zh = {
+  allTasks: '全部任务', objectMissing: '此任务已不可用，可返回全部任务。', discuss: '讨论此任务', select: '选为上下文',
   reference: '引用清单', referenceFailed: '未添加引用，请在当前工作台重新选择；正在发送时请稍后重试。',
   task: '输入待办事项', add: '添加任务', loading: '正在读取…', models: '查看可用模型', modelsLoaded: '可用模型', noModels: '暂无可用模型', modelsFailed: '无法读取模型，请确认已登录并具有模型访问权限后重试。',
   section: '交付检查', scope: '确认需求和交付范围', materials: '整理项目资料', review: '检查交付内容',
@@ -6,6 +7,7 @@ export const zh = {
   readFailed: '无法读取已保存的进度，请检查本机存储后重新打开工作台。',
 }
 export const en: Record<keyof typeof zh, string> = {
+  allTasks: 'All tasks', objectMissing: 'This task is unavailable. Return to all tasks.', discuss: 'Discuss task', select: 'Select as context',
   reference: 'Reference checklist', referenceFailed: 'Reference was not added. Select it again in this workbench; if a submission is pending, retry afterwards.',
   task: 'Enter a task', add: 'Add task', loading: 'Loading…', models: 'View available models', modelsLoaded: 'Available models', noModels: 'No models available', modelsFailed: 'Could not read models. Check your sign-in and model access, then retry.',
   section: 'Delivery checklist', scope: 'Confirm requirements and delivery scope', materials: 'Organize project materials', review: 'Review deliverables',

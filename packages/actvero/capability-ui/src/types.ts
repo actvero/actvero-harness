@@ -58,6 +58,8 @@ export interface WorkbenchEnvironment extends WorkbenchTarget {
 }
 /** Resource named by a business read or write. */
 export interface WorkbenchTarget { instanceId: WorkbenchInstanceId }
+/** Read-only lookup of an existing author-owned object within an accessible instance. */
+export interface WorkbenchObjectTarget extends WorkbenchTarget { objectId: WorkbenchObjectId }
 /** Compare-and-set business action; stale writes fail without applying the action. */
 export interface WorkbenchActionRequest extends WorkbenchTarget {
   revision: number
@@ -112,6 +114,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workbench/ai-disabled': Record<string, never>
     /** Display was not confirmed; inspect the current view after unknown or cancelled outcomes. */
     'workbench/display': { status: Exclude<WorkbenchDisplayResult['status'], 'confirmed'> }
+    /** Historical object navigation could not address an installed provider. */
+    'workbench/object': { status: 'unavailable' | 'mismatch' }
     /** Reference insertion or serialization failed; the draft remains editable for correction. */
     'workbench/reference': { status: 'unavailable' | 'superseded' | 'busy' | 'invalid' }
   }

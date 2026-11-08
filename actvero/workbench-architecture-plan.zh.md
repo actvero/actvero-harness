@@ -16,16 +16,16 @@
 
 以下列出基础能力与后续目标；兼容声明和提供者释放的当前行为见[运行时说明](../packages/actvero/capability-ui/README.zh.md)。
 
-| 领域 | 当前基础 | 下一阶段改造 |
+| 领域 | 当前能力 | 实现约束 |
 | --- | --- | --- |
-| 包管理 | 本地包校验，复用 Plugin Manager 安装、启停和移除 | 将包内贡献、依赖和兼容性纳入同一生命周期 |
-| 业务运行 | Host provider、Client 注册、独立目录和可选 JSON 适配器 | 明确工作台、业务对象、视图、会话的作用范围 |
-| AI | 原生对话、会话绑定、专家指令与 Skill/MCP/CLI 加载路径 | 向作者提供统一入口和可恢复的准备状态 |
-| 布局 | 全页工作台、AI 浮窗、工作台预览及显示偏好 | 增加顶栏扩展，保持宿主公共操作一致 |
-| 输入与设置 | DSH 已有原生引用序列化、输入扩展和设置插槽 | 将原生能力接入工作台 SDK，不另造输入框 |
-| 开发交付 | plain/ai 模板，开发与前端 Skill，校验和打包工具 | 增加扩展声明、加载检查和跨会话验收 |
+| 包管理 | 本地包校验，复用 Plugin Manager 安装、启停和移除 | 包内贡献、依赖和兼容性共用启停生命周期 |
+| 业务运行 | Host provider、Client 注册、独立目录和可选 JSON 适配器 | 业务对象由作者存储，对话记录固定关联 |
+| AI | 原生对话、会话绑定、专家指令与 Skill/MCP/CLI 加载路径 | 统一原生 AI 入口，准备失败可重试 |
+| 布局 | 全页工作台、AI 浮窗、工作台预览及显示偏好 | 顶栏支持面包屑、状态和操作；保留公共入口 |
+| 输入与设置 | DSH 已有原生引用序列化、输入扩展和设置插槽 | SDK 支持显式/自动引用、设置及命令 |
+| 开发交付 | plain/ai 模板，开发与前端 Skill，校验和打包工具 | 扩展声明、实际加载和跨会话验收纳入模板与 Skill |
 
-当前关键实现位于 [Host provider](../packages/actvero/capability-ui/src/workbench-provider.ts)、[运行时](../packages/actvero/capability-ui/src/workbench-runtime.ts)、[Client 注册](../packages/actvero/capability-ui/src/client/workbenches/register.ts)和[包管理](../packages/actvero/capability-ui/src/client/workbenches/management.ts)。原生输入能力见[引用接口](../packages/client/ui-conversation/src/client/contract/input.ts)和[引用服务](../packages/client/ui-reference/src/client/index.ts)。下一阶段应复用这些基础，逐步替换工作台专用的临时接线。
+当前关键实现位于 [Host provider](../packages/actvero/capability-ui/src/workbench-provider.ts)、[运行时](../packages/actvero/capability-ui/src/workbench-runtime.ts)、[Client 注册](../packages/actvero/capability-ui/src/client/workbenches/register.ts)和[包管理](../packages/actvero/capability-ui/src/client/workbenches/management.ts)。原生输入能力见[引用接口](../packages/client/ui-conversation/src/client/contract/input.ts)和[引用服务](../packages/client/ui-reference/src/client/index.ts)。工作台扩展复用这些原生服务，公开接法见开发指南。
 
 ## 3. 运行分层
 
@@ -75,7 +75,7 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 
 扩展如需补充发送上下文，应走受控的提交准备阶段，记录补充来源并形成最终消息快照。不得在发送后偷偷改写用户输入或在后台改变本次消息指向的业务对象。
 
-输入引用适配应以原生 `slash/input-insert-reference` 和 `InputTriggerController.serializeReference` 为入口，将引用插入目标会话当前的输入实例，而不是全局当前对话。引用解析与发送必须固定对象标识、修订号及内容快照；用户取消引用后不自动补回。已通过 API 1.2.0 的 `workbench.reference()` 封装显式插入，使用原生输入 facade 的同一插入事务与序列化来源；已覆盖草稿恢复、发送日志、卸载后的历史展示和目标会话隔离。自动附带选区、发送前钩子和重新打开对象仍待后续设计。未启用模型标题生成时，原生兜底标题仍会截取引用序列化文本；后续需提供宿主统一的可读标题投影，不由工作台改写原始消息。
+输入引用适配应以原生 `slash/input-insert-reference` 和 `InputTriggerController.serializeReference` 为入口，将引用插入目标会话当前的输入实例，而不是全局当前对话。引用解析与发送必须固定对象标识、修订号及内容快照；用户取消引用后不自动补回。已通过 API 1.2.0 的 `workbench.reference()` 封装显式插入，使用原生输入 facade 的同一插入事务与序列化来源；已覆盖草稿恢复、发送日志、卸载后的历史展示和目标会话隔离。API 1.5 通过 selection() 在已关联对话中同步可删除的自动引用，通过原生提交事务固定发送内容；历史引用可经存在性与访问检查打开当前对象，不提供任意改写消息的发送钩子。未启用模型标题生成时，原生兜底标题仍会截取引用序列化文本；后续需提供宿主统一的可读标题投影，不由工作台改写原始消息。
 
 ### 设置、命令与消息展示
 
@@ -166,7 +166,7 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 
 阶段二和三共享输入引用设计，协议评审时一并确定；实现可按依赖顺序交付，不以单个组件完成宣称整体架构完成。每阶段覆盖正常流程、停用/卸载、取消、失败和恢复；涉及模型输入的变更补充可重放的会话快照。macOS、Windows、真实账号和离线场景分别记录实测证据与待验证项。
 
-阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。阶段二的顶栏已通过原生 keyed Slot 和工具栏 Factory 接入，支持自定义组件、面包屑与共享视图 Store，AI 模板已移除重复标题和通用 AI 按钮。显式输入引用适配已通过 API 1.2.0 接入，验收入口为[引用事务测试](../packages/actvero/capability-ui/tests/workbench-reference.client.spec.ts)和[引用会话回放](../apps/web/tests/actvero-workbench-reference.snapshot.ts)。API 1.3 已接入原生设置页与关联对话命令：支持打开指定设置页、注册失败回收、停用菜单释放以及选择前的关联复核；验收见[命令作用域测试](../packages/actvero/capability-ui/tests/workbench-commands.client.spec.ts)及上述真实安装测试。通用全局命令仍由宿主提供，工作台贡献的命令限于其关联对话。自定义消息和工具结果的工作台封装、自动选区附带及业务对象绑定尚未完成。
+阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。阶段二的顶栏已通过原生 keyed Slot 和工具栏 Factory 接入，支持自定义组件、面包屑与共享视图 Store，AI 模板已移除重复标题和通用 AI 按钮。显式输入引用适配已通过 API 1.2.0 接入，验收入口为[引用事务测试](../packages/actvero/capability-ui/tests/workbench-reference.client.spec.ts)和[引用会话回放](../apps/web/tests/actvero-workbench-reference.snapshot.ts)。API 1.3 已接入原生设置页与关联对话命令：支持打开指定设置页、注册失败回收、停用菜单释放以及选择前的关联复核；验收见[命令作用域测试](../packages/actvero/capability-ui/tests/workbench-commands.client.spec.ts)及上述真实安装测试。通用全局命令仍由宿主提供，工作台贡献的命令限于其关联对话。API 1.4 已记录对象关联并在绑定、恢复和模型请求前验证目标；API 1.5 已接入自动选区、固定发送快照、持久化业务结果卡片与历史对象导航，见[结果会话回放](../apps/web/tests/actvero-workbench-result.snapshot.ts)。AI 清单模板的[完整开发验收](../apps/web/tests/actvero-workbench-template.e2e.ts)覆盖非画布业务的生成、校验、打包、加载、对象对话隔离及历史跳转；任意自定义消息布局仍使用原生插件接口。
 
 开发入口延续现有 create、doctor、typecheck、build、check、pack 和 bind 工具链，补充宿主兼容、依赖、资源、真实加载和释放检查。开发 Skill 说明入口选择、目录、扩展注册、数据职责、AI 生命周期和验收步骤；前端 Skill 单独提供可选视觉标准，默认复用 DSH 原生语义与组件，允许业务视图个性化。
 

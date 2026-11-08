@@ -33,5 +33,5 @@ export function apply(ctx: Context): void {
   }
   ctx.effect(() => ctx.actveroWorkbenches.register({
     ...metadata, display: { ai: 'hide' }, id: manifest.name, version: manifest.version, previewUrls: [preview, completed],
-  }, Panel, { locale: namespace, header: Header }))
+  }, Panel, { locale: namespace, header: Header, objectNavigation: true }))
 }

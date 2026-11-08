@@ -19,7 +19,7 @@ import { workbenchAIEnabled, workbenchJsonStorage } from './workbench-provider.t
 import { resolveWorkbenchProtocol } from './workbench-protocol.ts'
 import type { WorkbenchActionRequest, WorkbenchBinding, WorkbenchBindRequest, WorkbenchDocument, WorkbenchId,
   WorkbenchDisplayChannelId, WorkbenchDisplayCommand, WorkbenchDisplayRequest, WorkbenchDisplayRequestId, WorkbenchDisplayResult,
-  WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget } from './types.ts'
+  WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget, WorkbenchObjectTarget } from './types.ts'
 import type { workbenchDomain } from './workbench-storage.ts'
 import { workbenchProjection, workbenchIdSchema } from './workbench-projection.ts'
 import type { WorkbenchObjectId } from './workbench-reference.ts'
@@ -346,6 +346,26 @@ export class WorkbenchRuntime extends TypertRemoteService {
     if (!document) throw new RemoteError('workbench/not-found', 'Workbench instance was not found.', {})
     this.loadedProvider(document.id)
     return document
+  }
+
+  /** Validate a historical object's availability without binding a conversation or starting expert dependencies.
+   * @param request Existing instance and author-owned object identity.
+   * @param signal Carrier cancellation; provider removal also cancels the lookup.
+   * @returns Current object name; missing providers and objects reject without creating data.
+   */
+  @Remote
+  async inspectObject(request: WorkbenchObjectTarget, signal: AbortSignal): Promise<{ label: string }> {
+    const document = this.read(request)
+    const provider = this.loadedProvider(document.id)
+    return this.usingProvider(provider, async (lifetime) => {
+      const combined = AbortSignal.any([signal, lifetime])
+      combined.throwIfAborted()
+      if (!provider.resolveObject) throw new RemoteError('workbench/unavailable', 'This workbench does not support business object navigation.', {})
+      const environment = await this.environment(request)
+      const object = await provider.resolveObject(request.objectId, environment, combined)
+      combined.throwIfAborted()
+      return object
+    })
   }
 
   /** Require a loaded provider's explicit platform declaration.

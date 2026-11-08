@@ -27,8 +27,8 @@
   en: 4c97e4f7b98edf98
   zh: 87afcec66f67ed06
 /session-persistence-event-catalog/events/actvero/actvero-workbench-log-only:
-  en: 062e1bd9e9166e2a
-  zh: a4bb39febaf6e9ab
+  en: 769282e242ba8d83
+  zh: b977bb390018587a
 /session-persistence-event-catalog/events/agent:
   en: 9188862058c6986b
   zh: 9188862058c6986b
@@ -1386,8 +1386,8 @@
   en: 47f69d2cc4c2b7d4
   zh: 25b150c34b37cc71
 /session-persistence-event-catalog/resolved-persistence-types/string:
-  en: f3b4bd62cdde4cf1
-  zh: 17529c8bbd5d438f
+  en: ec04120bdabf588f
+  zh: 595944c31cd6f7f3
 /session-persistence-event-catalog/resolved-persistence-types/string~2:
   en: 0089620bf4638263
   zh: 1922bef1713094bb
@@ -1953,11 +1953,11 @@
   en: 10a5a6d0723af3bf
   zh: 9650f3a323d6fd39
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection:
-  en: 95e91b11cbb29190
-  zh: ab0dfefb01ac454c
+  en: 825b4e3a6ff16e06
+  zh: cb46dbdc61714d59
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection~2:
-  en: d3ca603a2c011409
-  zh: 45747da3475d7527
+  en: eb439e0233a2e757
+  zh: c7ae0c88c1da58af
 /session-persistence-event-catalog/resolved-persistence-types/schemaversion-selection~3:
   en: 28a844a6a64ca487
   zh: ac78d114288cd34e

@@ -61,6 +61,8 @@ Host 提供者通过 Cordis effect 注册元信息、可选 JSON 适配器与专
 
 扩展 API 1.4 支持可选的业务对象关联：提供者以 resolveObject 校验作者自定义的标识，Client 以 conversation({ objectId }) 复用或新建匹配的对话。prepare/activate 收到固定的 object；切换视图不改变目标，校验失败停止模型请求并撤销能力。日志保留标识与名称，不复制业务数据；存储、实际读写时的权限与冲突仍由作者负责。接入和恢复规则见[开发指南](../../../actvero/workbench-development.zh.md#native-ai)。
 
+扩展 API `1.5.0` 支持在已关联的原生草稿中同步可见选区标签、保存业务结果卡片，以及验证后打开历史对象。发送固定引用内容，旧视图不能将其改投其他对话；业务包卸载后摘要和快照仍可阅读。AI 清单模板展示对象对话、输入上下文与结果元数据，接法见[业务结果](../../../actvero/workbench-development.zh.md#business-results)。
+
 <a id="model-experience"></a>
 
 ## 模型体验

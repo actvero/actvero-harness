@@ -7,6 +7,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchConversationOptions, WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
 import { encodeWorkbenchReference, workbenchReferenceSource, type WorkbenchReferenceInput } from '../../workbench-reference.ts'
+import { WorkbenchSelections } from './selection.ts'
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap { actveroWorkbenchReference: true }
@@ -19,6 +20,8 @@ export class WorkbenchClientRuntime {
   private readonly pending = new Map<string, Promise<WorkbenchDocument | null>>()
   private readonly conversations = new Map<WorkbenchInstanceId, SessionId>()
   private readonly aiInstances = new Set<WorkbenchInstanceId>()
+  private readonly selections = new WorkbenchSelections()
+  private readonly selectionGenerations = new Map<SessionId, number>()
 
   /**
    * @param ctx Client services.
@@ -155,14 +158,32 @@ export class WorkbenchClientRuntime {
    * @param display Apply host presentation choices for this instance.
    * @param displayState Read the mounted presentation.
    * @param reference Insert a fixed snapshot while retaining the addressed composer.
+   * @param isCurrent Whether the caller's view is still mounted and its provider loaded.
    * @returns Capabilities bound to this instance.
    */
   context(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null,
     showConversation: (id: SessionId) => Promise<void>,
     display: WorkbenchClientContext['display'], displayState: WorkbenchClientContext['displayState'],
-    reference: WorkbenchClientContext['reference']): WorkbenchClientContext {
+    reference: WorkbenchClientContext['reference'], isCurrent: () => boolean = () => true): WorkbenchClientContext {
     return {
-      instanceId, sessionId, display, displayState, reference,
+      instanceId, sessionId, display, displayState, reference, location: null,
+      selection: async (selection) => {
+        const captured = selection ? { ...selection } : null
+        const target = sessionId ?? (instanceId ? this.conversations.get(instanceId) : undefined)
+        if (!instanceId || !target || !isCurrent()) return 'inactive'
+        const generation = (this.selectionGenerations.get(target) ?? 0) + 1
+        this.selectionGenerations.set(target, generation)
+        const binding = this.ctx.sessions.list.getSnapshot().byId[target]?.projectionValues?.actveroWorkbench
+        if (binding?.instanceId !== instanceId) return 'inactive'
+        const objectId = binding.object?.id ?? null
+        return this.ctx.sessions.using(target, { source: 'actveroWorkbenchReference' }, (retained) => {
+          const latest = this.ctx.sessions.list.getSnapshot().byId[target]?.projectionValues?.actveroWorkbench
+          if (!isCurrent() || this.selectionGenerations.get(target) !== generation
+            || latest?.instanceId !== instanceId || (latest.object?.id ?? null) !== objectId) return 'inactive'
+          return this.selections.update(this.ctx.conversation.input.for(retained.binding.ctx),
+            captured ? { ...captured, schemaVersion: 1, workbenchId: binding.id, instanceId } : null)
+        })
+      },
       object: sessionId ? this.ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.object ?? null : null,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
       environment: async () => {

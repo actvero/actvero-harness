@@ -2,14 +2,14 @@
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { LexicalEditor, NodeKey } from 'lexical'
 import {
-  $addUpdateTag, $createParagraphNode, $createTextNode, $getRoot, $getSelection, $isRangeSelection,
+  $addUpdateTag, $createParagraphNode, $createTextNode, $getNodeByKey, $getRoot, $getSelection, $isRangeSelection,
   BLUR_COMMAND, CLEAR_HISTORY_COMMAND, COMMAND_PRIORITY_CRITICAL, createEditor, HISTORY_MERGE_TAG, PASTE_TAG,
   RootNode, SELECTION_CHANGE_COMMAND, SKIP_DOM_SELECTION_TAG,
 } from 'lexical'
 import { registerPlainText } from '@lexical/plain-text'
 import { createEmptyHistoryState, registerHistory } from '@lexical/history'
 import { mergeRegister } from '@lexical/utils'
-import type { DraftReference, ReferenceInsert } from '../../contract/draft-editor.ts'
+import type { DraftReference, Occurrence, ReferenceInsert } from '../../contract/draft-editor.ts'
 import type { CommandClaim } from '../../contract/input.ts'
 import { registerReferenceActivation } from './reference-activation.ts'
 import { ReferenceChipNode, $createReferenceChipNode } from './chip-node.tsx'
@@ -176,6 +176,26 @@ export class DraftEditorRuntime {
     this.occurrenceSeq += 1
     this.occurrenceIds.set(key, this.occurrenceSeq)
     return this.occurrenceSeq
+  }
+
+  /** Edit only the captured occurrence; unrelated text and chips keep their identities.
+   * @param expected Captured occurrence and content guard.
+   * @param replacement New content or null to remove.
+   * @returns Whether the guarded edit applied.
+   */
+  updateReference(expected: Pick<Occurrence, 'occurrenceId' | 'source' | 'ref'>, replacement: ReferenceInsert | null): boolean {
+    const key = [...this.occurrenceIds].find(([, id]) => id === expected.occurrenceId)?.[0]
+    if (!key) return false
+    let applied = false
+    this.applyEdit(() => {
+      const node = $getNodeByKey(key)
+      if (!(node instanceof ReferenceChipNode) || !node.isAttached()
+        || node.getSource() !== expected.source || node.getReference() !== expected.ref) return
+      if (replacement) node.setReference(replacement)
+      else node.remove()
+      applied = true
+    }, SKIP_DOM_SELECTION_TAG)
+    return applied
   }
 
   /**

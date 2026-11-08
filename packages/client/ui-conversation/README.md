@@ -173,6 +173,8 @@ The selector must be a pure function of the owner currency. Its non-null return 
 
 The root-scoped `main.conversation.surface` slot lets a host arrange business content around the native Conversation. Its occupant renders the `conversation.main.frame` Factory with a local `body` Component; that Component receives the authorized `main.conversation` outlet. With no occupant, the Factory renders the ordinary Conversation directly.
 
+`SessionInput.updateReference()` replaces or removes one reference guarded by its occurrence identity and previous source/ref, preserving surrounding draft content. Passing a null expected reference inserts without replacing selected text. Pending submission refuses these automatic changes so they cannot prevent native failure restoration. Extensions use registered reference codecs for submission and never rewrite an admitted message.
+
 <a id="model-experience"></a>
 ## Model Experience
 

@@ -116,6 +116,8 @@ terminal model 使用浏览器安全入口 `@deepseek-ai/dsh-spill-policy/notice
 
 -----
 
+会话作用域的 `tool.call.result` 列表插槽接收已结束的工具记录，并与原工具行共同显示。扩展可直接渲染支持的持久化元数据，无需按工具名称注册视图；元数据缺失或不支持时不呈现附加内容，原始输出仍可检查。结果为错误时不能仅凭元数据显示执行成功；此接口也支持嵌套 PTC 结果。
+
 <a id="model-experience"></a>
 ## 模型体验
 

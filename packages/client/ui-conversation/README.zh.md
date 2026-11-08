@@ -173,6 +173,8 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 
 根级槽位 `main.conversation.surface` 允许宿主在原生 Conversation 周围安排业务内容。注册者通过 `conversation.main.frame` Factory 提供局部 `body` 组件，由框架向该组件提供 `main.conversation` 渲染入口。没有注册者时，Factory 直接渲染普通 Conversation。
 
+`SessionInput.updateReference()` 按引用出现标识及原 source/ref 校验后替换或移除一个引用，保留周围草稿内容；expected 为 null 时插入标签，不替换选中文字。发送等待期间拒绝这种自动更新，避免妨碍原生失败恢复。扩展通过已注册的引用序列化器参与发送，不改写已经接收的消息。
+
 <a id="model-experience"></a>
 ## 模型体验
 

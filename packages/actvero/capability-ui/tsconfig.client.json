@@ -14,7 +14,8 @@
     "src/types.ts",
     "src/checklist-data.ts",
     "src/workbench-protocol.ts",
-    "src/workbench-reference.ts"
+    "src/workbench-reference.ts",
+    "src/workbench-result.ts"
   ],
   "references": [
     {
@@ -76,6 +77,15 @@
     },
     {
       "path": "../../client/ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../../client/ui-tool/tsconfig.json"
+    },
+    {
+      "path": "../../core/tools/tsconfig.json"
+    },
+    {
+      "path": "../../client/store/tsconfig.json"
     }
   ]
 }

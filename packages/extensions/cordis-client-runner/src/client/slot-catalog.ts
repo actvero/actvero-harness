@@ -119,7 +119,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:168',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:185',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -148,7 +148,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:163',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:180',
   },
   {
     key: 'actvero.workbench.body',
@@ -165,7 +165,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  /** Object recorded for this conversation; navigation alone does not change it. */\n  readonly object: WorkbenchObject | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation without sending a message.\n   * @param options Explicit object choice; omitted to preserve the associated conversation, fresh to create another for that object.\n   */\n  conversation(options?: WorkbenchConversationOptions): Promise<void>\n  /** Insert an immutable busin /* …truncated — full shape in source */',
+      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  /** Explicit historical navigation request; authors render this object and may show its current revision. */\n  readonly location: WorkbenchObjectLocation | null\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  /** Object recorded for this conversation; navigation alone does not change it. */\n  readonly object: WorkbenchObject | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation without sending a message.\n   * @param options Explicit object choice; omitted to preserve the associated /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'SessionId',
@@ -178,6 +178,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
       'WorkbenchObject',
+      'WorkbenchObjectLocation',
       'WorkbenchReferenceInput',
     ],
     standardProps: [
@@ -201,7 +202,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.body\', () => ctx.slots.register(\n      { name: \'actvero.workbench.body\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:161',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:178',
   },
   {
     key: 'actvero.workbench.chat',
@@ -258,7 +259,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       },
     ],
     ownerProps: [
-      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  /** Object recorded for this conversation; navigation alone does not change it. */\n  readonly object: WorkbenchObject | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation without sending a message.\n   * @param options Explicit object choice; omitted to preserve the associated conversation, fresh to create another for that object.\n   */\n  conversation(options?: WorkbenchConversationOptions): Promise<void>\n  /** Insert an immutable busin /* …truncated — full shape in source */',
+      '/** Host capabilities for one rendered workbench instance. */\nexport interface WorkbenchClientContext {\n  /** Explicit historical navigation request; authors render this object and may show its current revision. */\n  readonly location: WorkbenchObjectLocation | null\n  instanceId: WorkbenchInstanceId | null\n  sessionId: SessionId | null\n  /** Object recorded for this conversation; navigation alone does not change it. */\n  readonly object: WorkbenchObject | null\n  resourceAddress: string | null\n  /** Read the current signed-in identity, or null when unavailable. */\n  account(): Promise<WorkbenchAccount | null>\n  /** Read the current account\'s model directory after the Host provider declares models:read.\n   * @returns Public model metadata; failures reject with workbench/platform and a stable code.\n   */\n  models(): Promise<WorkbenchModelCatalog>\n  /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */\n  environment(): Promise<WorkbenchEnvironment | null>\n  /** Open or create the associated native conversation without sending a message.\n   * @param options Explicit object choice; omitted to preserve the associated /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'SessionId',
@@ -271,6 +272,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
       'WorkbenchObject',
+      'WorkbenchObjectLocation',
       'WorkbenchReferenceInput',
     ],
     standardProps: [
@@ -293,7 +295,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.header\', () => ctx.slots.register(\n      { name: \'actvero.workbench.header\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:159',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:176',
   },
   {
     key: 'conversation.approval.detail',
@@ -3831,6 +3833,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
       '@actvero/dsh-capability-ui CapabilityToast id \'actvero-capability-toast\'',
+      '@actvero/dsh-capability-ui DraftPreview id \'actvero.workbench.reference-preview\'',
       '@actvero/dsh-experts WorkspacePicker id \'actvero-expert-workspace\'',
       '@actvero/dsh-experts PreparationOverlay id \'actvero-expert-preparation\'',
       'client-ui-chat QuotaNoticeHost id \'chat.quota-notice\'',
@@ -5324,7 +5327,77 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.call.images\', () => ctx.slots.register(\n      { name: \'tool.call.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-tool/src/client/contract/slots.ts:44',
+    source: 'packages/client/ui-tool/src/client/contract/slots.ts:46',
+  },
+  {
+    key: 'tool.call.result',
+    kind: 'list',
+    scope: 'session',
+    summary: 'Additive result presentations selected from persisted metadata, including calls from uninstalled tools.',
+    doc: 'Additive result presentations selected from persisted metadata, including calls from uninstalled tools.',
+    registerOptions: [
+      {
+        name: 'id',
+        requirement: 'required',
+        type: 'string',
+        doc: 'Your cell key. Use an id of your own: a fresh id is added beside the shipped entries, while reusing a shipped id puts you in THAT cell and replaces it. Owners that filter by id address you by it.',
+      },
+      {
+        name: 'order',
+        requirement: 'optional',
+        type: 'number',
+        doc: 'Position among the entries, ascending (default 0).',
+      },
+      {
+        name: 'label',
+        requirement: 'optional',
+        type: 'string | (() => string)',
+        doc: 'Display text where the owner projects one (nav rows, tabs). A thunk is re-read on every projection, so localized text follows the active locale without re-registering.',
+      },
+    ],
+    ownerProps: [
+      '/** Standard owner currency supplied to every atomic Tool view. */\nexport interface ToolCallCommonProps {\n  /** Stable Hook; each invocation owns its open state and subscribes to enclosing-Turn resets. */\n  useDisclosure: UseDisclosure\n  /** Call identity, stable across all stages. */\n  callId: string\n  /** Wire Tool name and keyed dispatch value. */\n  toolName: string\n  /** Session workspace root for relative summaries. */\n  cwd?: string | undefined\n  /** Host account home; POSIX home-rooted summaries display as `~`. */\n  home?: string | undefined\n  /** Open an argument path at its optional requested line. */\n  openFile: (path: string, options?: OpenFileOptions) => void\n  /** Chat-supplied, session-authorized loader for durable images; Tool views do not manage attachment URLs. */\n  loadImage: MessageImageLoader\n  /** Inspect this call in the trajectory view when available. */\n  inspect?: (() => void) | undefined\n}',
+      '/** Common owner callbacks and the data admitted at the current tool stage. */\nexport type ToolCallOwnerProps = ToolCallCommonProps & ToolCallPhaseProps',
+      '/** Stage-specific tool data; only start/result expose the dispatched call material. */\nexport type ToolCallPhaseProps =\n  | { readonly phase: \'preparing\'; readonly block: PreparingToolCall }\n  | { readonly phase: \'start\'; readonly block: StartedToolCall }\n  | { readonly phase: \'result\'; readonly block: ToolResultNode }',
+    ],
+    ownerPropsReferences: [
+      'MessageImageLoader',
+      'OpenFileOptions',
+      'PreparingToolCall',
+      'StartedToolCall',
+      'ToolResultNode',
+      'UseDisclosure',
+    ],
+    standardProps: [
+      'useRemoteAccess: (action: RemoteEndpoint) => boolean',
+      'useResource: UseResource',
+      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
+      'usePanelInfo: UsePanelInfo',
+      'useSessions: UseSessions',
+      'useSessionStatus: UseSessionStatus',
+      'useSessionRetainInfo: UseSessionRetainInfo',
+      'useSessionAccess: (sessionId: SessionId, action: RemoteEndpoint) => boolean',
+      'useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean',
+      'useChat: UseChat',
+      'useConversation: UseConversation',
+      'useInput: SnapshotSelectorHook<InputState>',
+      'inputActions: InputActions',
+      'useSession: SessionSnapshotSelector',
+      'sessionId: SessionId',
+      'useProjection: UseProjection',
+      'useAccess: (action: RemoteEndpoint) => boolean',
+      'useTrajectory: UseTrajectory',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'conversation.chat.node\' (client-ui-tool), so it exists while that entry is mounted',
+    occupants: [
+      '@actvero/dsh-capability-ui Result id \'actvero.workbench.result\'',
+    ],
+    replaceRisk: 'none',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.call.result\', () => ctx.slots.register(\n      { name: \'tool.call.result\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-tool/src/client/contract/slots.ts:17',
   },
   {
     key: 'tool.call.toolview',
@@ -5435,7 +5508,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'tool.call.toolview\', () => ctx.slots.register(\n      { name: \'tool.call.toolview\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-tool/src/client/contract/slots.ts:26',
+    source: 'packages/client/ui-tool/src/client/contract/slots.ts:28',
   },
   {
     key: 'tool.view.cordis',

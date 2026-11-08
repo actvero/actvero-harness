@@ -259,6 +259,13 @@ present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<W
  */
 @Remote read(request: WorkbenchTarget): WorkbenchDocument
 
+/** Validate a historical object's availability without binding a conversation or starting expert dependencies.
+ * @param request Existing instance and author-owned object identity.
+ * @param signal Carrier cancellation; provider removal also cancels the lookup.
+ * @returns Current object name; missing providers and objects reject without creating data.
+ */
+@Remote async inspectObject(request: WorkbenchObjectTarget, signal: AbortSignal): Promise<{ label: string }>
+
 /** Require a loaded provider's explicit platform declaration.
  * @param request Existing workbench instance.
  * @returns Installed provider version; throws before any request when access was not declared.

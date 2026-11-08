@@ -893,6 +893,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   WorkbenchDocument: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchId: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchTarget: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchObjectTarget: 'Actvero workbench object navigation is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchActionRequest: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchBindRequest: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',
   WorkbenchBinding: 'Actvero workbench runtime is owned by actvero/workbench-development.md and packages/actvero/capability-ui/src/types.ts',

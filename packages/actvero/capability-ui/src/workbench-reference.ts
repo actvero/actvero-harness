@@ -5,6 +5,8 @@ import type { WorkbenchId, WorkbenchInstanceId } from './types.ts'
 
 /** Source identity persisted by native draft occurrences. */
 export const workbenchReferenceSource = 'actvero-workbench-reference'
+/** Separately owned automatic chip; manual references are never replaced by selection updates. */
+export const workbenchSelectionSource = 'actvero-workbench-selection'
 
 /** Provider-owned business identity, unique within its workbench instance. */
 export type WorkbenchObjectId = Branded<'ActveroWorkbenchObjectId'>
@@ -26,7 +28,8 @@ export interface WorkbenchReferenceSnapshot extends WorkbenchReferenceInput {
   readonly instanceId: WorkbenchInstanceId
 }
 
-const snapshotSchema = z.object({
+/** Parser shared by native reference envelopes and persisted tool-result metadata. */
+export const workbenchReferenceSchema = z.object({
   schemaVersion: z.literal(1),
   workbenchId: z.string().min(1).transform(value => value as WorkbenchId),
   instanceId: z.string().min(1).transform(value => value as WorkbenchInstanceId),
@@ -53,7 +56,7 @@ export function decodeWorkbenchReference(text: string): WorkbenchReferenceSnapsh
   if (!text.startsWith(start) || !text.endsWith(end)) return undefined
   let json: unknown
   try { json = JSON.parse(text.slice(start.length, -end.length)) } catch (_error) { return undefined }
-  const result = snapshotSchema.safeParse(json)
+  const result = workbenchReferenceSchema.safeParse(json)
   return result.success ? result.data : undefined
 }
 

@@ -488,6 +488,16 @@ export class SessionInputShell implements SessionInput {
 
   captureInsertion(): TokenSpan { return { ...this.caretSpan(), draftRev: this.rev } }
 
+  updateReference(expected: Pick<Occurrence, 'occurrenceId' | 'source' | 'ref'> | null, replacement: ReferenceInsert | null): boolean {
+    if (this.draftInitializationBlocked()) return false
+    if (!expected) {
+      if (!replacement) return false
+      const span = this.captureInsertion()
+      return this.insertReference(replacement, { ...span, start: span.end })
+    }
+    return this.draftEditor.updateReference(expected, replacement)
+  }
+
   /**
    * Hot plain-text reference lexicon source for the decoration scan:
    * delegates to the controller's aggregated store. Stable

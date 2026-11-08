@@ -1,0 +1,17 @@
+.result {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+.references {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}

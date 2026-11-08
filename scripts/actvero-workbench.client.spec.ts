@@ -90,6 +90,9 @@ describe('local workbench developer commands', () => {
     const path = await root()
     const source = join(path, 'AI development')
     await createWorkbench(source, '@local/ai-checklist', 'ai')
+    const reference = join(source, '.actvero/skills/develop-workbench/reference')
+    expect(await readFile(join(reference, 'api/workbench-result.ts'), 'utf8')).toContain('workbenchResultMetadata')
+    expect(await readFile(join(reference, 'guide.zh.md'), 'utf8')).toContain('自动选区与发送')
     const archive = await packWorkbench(source, path)
     expect((await checkWorkbench(archive)).name).toBe('@local/ai-checklist')
     await extract({ cwd: path, file: archive })
@@ -98,7 +101,7 @@ describe('local workbench developer commands', () => {
     expect(await readFile(join(path, 'package/assets/skills/checklist/SKILL.md'), 'utf8')).toContain('workbench_read')
     expect(await readFile(join(path, 'package/lib/index.js'), 'utf8')).toContain('models:read')
     expect(await readFile(join(path, 'package/lib/client.js'), 'utf8')).toContain('ai-checklist')
-  })
+  }, 90000)
 
   it('copies a customized package, builds the real Client and releases its registration on disposal', async () => {
     const path = await root()

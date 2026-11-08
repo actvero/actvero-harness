@@ -13,6 +13,8 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /** Additive result presentations selected from persisted metadata, including calls from uninstalled tools. */
+    'tool.call.result': { kind: 'list'; scope: 'session'; owner: Extract<ToolCallOwnerProps, { phase: 'result' }> }
     /**
      * Keyed Tool call view dispatched by wire Tool name. Any name is allowed,
      * including tools registered by your package. Register with
@@ -152,6 +154,6 @@ export type ToolHostInfoInjected = {
 
 /** Full props of the Tool call-tree renderer registered as a tool-call Chat Node. */
 export type ToolTreeProps = PropsRuntime<'conversation.chat.node', 'tool-call'>
-  & PropsRenderSlots<'tool.call.toolview'>
+  & PropsRenderSlots<'tool.call.toolview' | 'tool.call.result'>
   & PropsLocale<'conversation'>
   & InjectFace<ToolHostInfoInjected>

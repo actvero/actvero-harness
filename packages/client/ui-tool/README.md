@@ -116,6 +116,8 @@ These pages cover the conversation host, the view slots, and the card models.
 
 -----
 
+The session-scoped `tool.call.result` list slot receives settled tool records alongside the original row. Extensions can render supported persisted metadata without registering a tool-name-specific view; missing or unsupported metadata renders nothing, leaving raw output inspectable. Consumers must not infer successful execution from metadata when the result is an error. This path also supports nested PTC results.
+
 <a id="model-experience"></a>
 ## Model Experience
 

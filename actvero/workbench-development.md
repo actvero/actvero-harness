@@ -160,7 +160,7 @@ Extension API `1.1.0` adds registration options `{ locale: namespace, header: He
 
 Derive title and actions during header rendering, never through body effects that push state into the host. When body and header share navigation or selection, call the author's `createNavigationStore()` once inside apply and pass that native Store handle as `store`. Both components derive `useStore` and `actions` from `PropsStore<ReturnType<typeof createNavigationStore>>`. Organize state by the required instance or view identifiers. The store carries navigation and filters; business data stays in resources or author-owned services. Do not pass a factory that creates separate stores, or put a Store handle in component props or a module-level variable.
 
-Verify navigation from both body and header, matching breadcrumbs, status and content, 390px navigation/action menus, Escape and focus restoration, both themes, workbench switching and disable cleanup. The native AI launcher already exists; do not add another generic Ask AI button. Use the native reference API below for selections; further business-object conversation binding remains undelivered.
+Verify navigation from both body and header, matching breadcrumbs, status and content, 390px navigation/action menus, Escape and focus restoration, both themes, workbench switching and disable cleanup. The native AI launcher already exists; do not add another generic Ask AI button. Use [native input references](#input-references) for selections and [business-object bindings](#conversation-objects) to separate conversations by project or document.
 
 <a id="settings-commands"></a>
 
@@ -196,7 +196,29 @@ async function referenceSelection(workbench: WorkbenchClientContext) {
 
 Insertion uses the native editor selection and draft-revision checks, preserving other text, attachments and references. A submitting composer can refuse insertion, and user navigation cancels it. Preparation may already have created an empty conversation, but never redirects the reference to a subsequently selected conversation. Native input manages draft restoration, removal and send retries; removing a chip never automatically adds it back.
 
-Before sending, the platform serializer writes a V1 `<workbench-reference>` JSON snapshot into the native user message with workbench, instance, object and revision identities. Plain-text copy carries the same content. Historical references open their fixed snapshots even after the business package is disabled or uninstalled. Unknown versions and damaged text remain visible as plain text; damaged draft chips block sending and ask for reselection. References neither fetch current business data, reopen objects nor grant write access; experts and business tools still own mutations. Automatic selection attachment and send hooks are not part of this API.
+Before sending, the platform serializer writes a V1 `<workbench-reference>` JSON snapshot into the native user message with workbench, instance, object and revision identities. Plain-text copy carries the same content. Historical references open their fixed snapshots even after the business package is disabled or uninstalled. Unknown versions and damaged text remain visible as plain text; damaged draft chips block sending and ask for reselection. References neither fetch current business data nor grant write access; experts and business tools still own mutations. Opening the current object requires the API 1.5 interfaces below.
+
+<a id="automatic-context"></a>
+
+### Automatic selection and submission
+
+With `hostApi: "^1.5.0"`, authors may call `await workbench.selection(snapshot)` on business selection changes using the same fields as `reference()`; pass `null` when selection clears. It updates one automatic chip in an associated conversation without opening AI, creating a conversation, sending a message or changing its object binding. Have the user open the appropriate conversation before enabling selection synchronization; do not call on every render. Keep using `reference()` for explicit additions and multiple retained selections.
+
+The result `attached` means synchronized, `cleared` means removed, `dismissed` means the user removed or sent this selection, `busy` means submission owns the draft, and `inactive` means no matching conversation or an expired view. Authors handle refusal and rejection; never report `inactive` as success. A removed or sent selection stays dismissed until its content changes or selection is cleared. Updates replace only the automatic chip, preserving text, attachments and manual references; outdated views, bindings and asynchronous callbacks cannot edit the new draft.
+
+Users can preview and remove draft chips, which restore with the draft. Native submission captures a fixed snapshot for the model and log; later selection changes cannot change that message, and automatic updates are refused while submission is pending. Failure uses native draft restoration and notices without overwriting a newer user draft. The framework does not expose a hook for arbitrary rewriting of user messages.
+
+<a id="business-results"></a>
+
+### Business results and historical objects
+
+API 1.5 exports `WorkbenchResult`, `workbenchResultText()` and `workbenchResultMetadata()` from `@actvero/dsh-capability-ui`. Results contain `schemaVersion: 1`, `title`, `summary` and `references`; each reference carries the same fixed snapshot as input references, with no duplicate object revision. A tool execute returns serializable business output; output.render and output.presentationMeta use the two helpers to present the same result. Presentation must not query mutable data or read the current selection. The AI template implements this in `checklist_review`.
+
+Native tool logs persist result metadata, and the platform renders titles, summaries and object chips. Cards and snapshots remain readable after the tool or business package is removed; unknown or damaged versions retain native tool output. Do not make business React components, callbacks or a live URL the only historical record. Arbitrary custom message layouts still use native plugin interfaces and are outside this result format.
+
+To open objects from historical references, register the Client with `objectNavigation: true` and render the object addressed by `workbench.location`; implement Host `resolveObject` to verify existence and current access. The platform validates workbench, instance and object before opening the business page, without creating data, switching experts or changing the original conversation binding. `location.revision` identifies the historical snapshot; navigation opens the current object. Authors may show revision differences but must not overwrite current data with the snapshot. Missing packages, deleted objects, denied access and cancelled navigation leave the saved snapshot readable with an opening failure notice.
+
+Verify continuous selection changes, dismissal, changes during submission, send failure, conversation switching, draft restoration, result replay after refresh, historical navigation, deleted objects and reading after disabling. Exercise the non-canvas AI checklist: create and package/install → add a task → discuss that task → select it as context → call checklist_review → open the task from its result. Ordinary conversations must not inherit the workbench.
 
 <a id="storage"></a>
 
@@ -253,6 +275,8 @@ The component receives a `workbench` context with its instance, associated conve
 The Host retains one stable default runtime instance per workbench. The JSON adapter shares its JSON across linked conversations; custom-storage authors own project organization and can associate conversations with individual objects through the API below. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. New linked conversations create or reuse a workspace named after the workbench at `.sessions/<instanceId>` beneath the configured files root, separate from business data and without a folder picker. Existing conversations keep their directory.
 
 See the runnable [built-in checklist provider](../packages/actvero/capability-ui/src/checklist.ts) and [Client](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx). Verify initially visible AI and conversation previews, independent collapse preferences and reload restoration, title-menu switching between linked conversations and their drafts, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
+
+<a id="conversation-objects"></a>
 
 ### Associate conversations with business objects
 

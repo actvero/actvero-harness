@@ -53,6 +53,7 @@ const ToolCall = memo(function ToolCall({
           entryKey: toolName,
           fallback: <GenericToolCard {...owner} t={t} />,
         })}
+      {owner.phase === 'result' && !autoReviewDenied && renderSlot('tool.call.result', owner)}
       {children}
     </div>
   )

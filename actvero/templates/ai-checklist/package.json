@@ -26,6 +26,7 @@
   },
   "peerDependencies": {
     "@actvero/dsh-capability-ui": "0.1.0",
-    "@actvero/dsh-experts": "0.1.0"
+    "@actvero/dsh-experts": "0.1.0",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.3"
   }
 }

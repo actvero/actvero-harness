@@ -68,6 +68,28 @@ async function harness(root?: string) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('checks historical objects without activating AI and rejects missing or unloaded destinations', async () => {
+    const { runtime } = await harness()
+    const customId = 'test:history' as WorkbenchId
+    const objectId = 'document' as WorkbenchObjectId
+    const activate = vi.fn()
+    let exists = true
+    const remove = runtime.register({ id: customId, name: '历史导航', version: '1.0.0', ai: true, activate,
+      resolveObject: async (target) => {
+        if (!exists || target !== objectId) throw new Error('Object missing')
+        return { label: '当前名称' }
+      },
+    })
+    const document = await runtime.open(customId)
+    const target = { instanceId: document.instanceId, objectId }
+    expect(await runtime.inspectObject(target, new AbortController().signal)).toEqual({ label: '当前名称' })
+    expect(activate).not.toHaveBeenCalled()
+    exists = false
+    await expect(runtime.inspectObject(target, new AbortController().signal)).rejects.toThrow('Object missing')
+    await remove()
+    await expect(runtime.inspectObject(target, new AbortController().signal)).rejects.toMatchObject({ code: 'workbench/unavailable' })
+  })
+
   it('keeps independent object targets in the log and recreates capabilities only on explicit reassociation', async () => {
     const { ctx, runtime, prepare } = await harness()
     const customId = 'test:objects' as WorkbenchId

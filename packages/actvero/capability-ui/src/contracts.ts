@@ -2,13 +2,16 @@ import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
 import type { HandleOf, LocaleNamespaceMap, PropsLocale, PropsRenderFactories, PropsRuntime, PropsStore, StoreDecl, StoreFactory } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchReferenceInput } from './workbench-reference.ts'
+import type { WorkbenchReferenceInput, WorkbenchReferenceSnapshot } from './workbench-reference.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/client'
 export type { WorkbenchObjectId, WorkbenchReferenceInput } from './workbench-reference.ts'
 import type { WorkbenchConversationOptions, WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog, WorkbenchObject } from './types.ts'
 export type { WorkbenchConversationOptions, WorkbenchObject } from './types.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
+
+/** Address carried by history links; revision identifies the saved snapshot, not a request to restore old data. */
+export type WorkbenchObjectLocation = Pick<WorkbenchReferenceSnapshot, 'workbenchId' | 'instanceId' | 'objectId' | 'revision'>
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -18,6 +21,8 @@ export interface WorkbenchAccount {
 
 /** Host capabilities for one rendered workbench instance. */
 export interface WorkbenchClientContext {
+  /** Explicit historical navigation request; authors render this object and may show its current revision. */
+  readonly location: WorkbenchObjectLocation | null
   instanceId: WorkbenchInstanceId | null
   sessionId: SessionId | null
   /** Object recorded for this conversation; navigation alone does not change it. */
@@ -41,6 +46,11 @@ export interface WorkbenchClientContext {
    * Remote failures retain their original code. No message is sent on failure.
    */
   reference(reference: WorkbenchReferenceInput): Promise<SessionId>
+  /** Update the automatic selection chip in an already associated conversation; never opens AI or sends.
+   * @param reference Snapshot captured in the selection event; null removes the managed chip only.
+   * @returns Inactive without a conversation; dismissed after user removal/send until selection changes; busy when admission refuses.
+   */
+  selection(reference: WorkbenchReferenceInput | null): Promise<'attached' | 'cleared' | 'dismissed' | 'busy' | 'inactive'>
   /** Display this workbench through native navigation without sending a message.
    * @param options Presentation choices for this instance and its associated conversation.
    * @returns Mounted view; unconfirmed outcomes reject with workbench/display and a typed status.
@@ -111,6 +121,11 @@ export interface ActveroWorkbench {
 
 /** Client registry of installed workbenches with a ready business view. */
 export interface ActveroWorkbenchRegistry {
+  /** Open a recorded business object without rebinding or submitting the originating conversation.
+   * @param target Fixed provider, instance, object and historical revision.
+   * @returns Resolves after the destination view is mounted; missing providers/objects reject and history remains readable.
+   */
+  openObject(target: WorkbenchObjectLocation): Promise<void>
   /** Open this provider's native settings page without binding or submitting a conversation.
    * @param id Registered workbench identity.
    * @throws When the provider has no settings page or the native settings shell is unavailable.
@@ -127,6 +142,8 @@ export interface ActveroWorkbenchRegistry {
     options?: {
       locale?: N
       store?: H
+      /** The body renders workbench.location when historical navigation requests an object. */
+      objectNavigation?: boolean
       header?: (props: WorkbenchHeaderProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode
       /** One installation-wide settings page. Omitted label uses the workbench name; functions follow locale changes. */
       settings?: {

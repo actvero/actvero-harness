@@ -4,7 +4,7 @@
 .checklist header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .checklist h2 { margin: 0; font-size: 16px; font-weight: 500; }
 .meta { color: var(--dsw-alias-label-secondary); font-size: 12px; }
-.item { display: flex; align-items: start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--dsw-alias-border-l2); overflow-wrap: anywhere; }
+.item { display: flex; flex-wrap: wrap; align-items: start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--dsw-alias-border-l2); overflow-wrap: anywhere; }
 @container (max-width: 400px) { .checklist { padding: 16px; } }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px; }
