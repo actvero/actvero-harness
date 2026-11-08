@@ -47,4 +47,4 @@ This development flow integrates login, quota presentation, platform-backed mode
 
 [Capability integration and acceptance](capabilities.md).
 
-See the [workbench runtime implementation plan](workbench-runtime-plan.md) for planned runtime, optional AI, and developer-tooling work.
+See the [workbench runtime implementation plan](workbench-runtime-plan.md) for existing local capabilities, and the [workbench host extension architecture plan](workbench-architecture-plan.md) for the next stage's plugin bundles, host extensions, and session scopes.

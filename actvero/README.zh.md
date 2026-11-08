@@ -47,4 +47,4 @@ pnpm run actvero:prepare
 
 [能力集成与验收](capabilities.zh.md)。
 
-工作台运行环境、可选 AI 和开发工具链的后续实施见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)。
+已有工作台本地运行能力见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)；下一阶段的插件包、宿主扩展和会话作用范围见[工作台宿主扩展架构规划](workbench-architecture-plan.zh.md)。
