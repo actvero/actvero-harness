@@ -565,7 +565,7 @@
       "kind": "event",
       "event": "actvero/workbench",
       "surface": false,
-      "digest": "bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d",
+      "digest": "7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8",
       "schema": {
         "root": 0,
         "nodes": [
@@ -579,38 +579,45 @@
               },
               {
                 "name": "ignorable",
-                "type": 9,
+                "type": 14,
                 "optional": true
               },
               {
                 "name": "seq",
-                "type": 10,
+                "type": 15,
                 "optional": false
               },
               {
                 "name": "time",
-                "type": 10,
+                "type": 15,
                 "optional": false
               },
               {
                 "name": "type",
-                "type": 11,
+                "type": 16,
                 "optional": false
               }
             ],
             "indices": []
           },
           {
+            "kind": "union",
+            "types": [
+              2,
+              10
+            ]
+          },
+          {
             "kind": "object",
             "properties": [
               {
                 "name": "schemaVersion",
-                "type": 2,
+                "type": 3,
                 "optional": false
               },
               {
                 "name": "selection",
-                "type": 3,
+                "type": 4,
                 "optional": false
               }
             ],
@@ -623,8 +630,8 @@
           {
             "kind": "union",
             "types": [
-              4,
-              8
+              5,
+              9
             ]
           },
           {
@@ -632,32 +639,32 @@
             "properties": [
               {
                 "name": "capabilityDigest",
-                "type": 5,
+                "type": 6,
                 "optional": true
               },
               {
                 "name": "expert",
-                "type": 6,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "id",
-                "type": 5,
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "instanceId",
-                "type": 5,
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "name",
-                "type": 5,
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "version",
-                "type": 5,
+                "type": 6,
                 "optional": false
               }
             ],
@@ -670,8 +677,8 @@
           {
             "kind": "union",
             "types": [
-              7,
-              8
+              8,
+              9
             ]
           },
           {
@@ -679,17 +686,17 @@
             "properties": [
               {
                 "name": "instructions",
-                "type": 5,
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "name",
-                "type": 5,
+                "type": 6,
                 "optional": false
               },
               {
                 "name": "version",
-                "type": 5,
+                "type": 6,
                 "optional": false
               }
             ],
@@ -698,6 +705,83 @@
           {
             "kind": "primitive",
             "type": "null"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "schemaVersion",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "selection",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 2
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "capabilityDigest",
+                "type": 6,
+                "optional": true
+              },
+              {
+                "name": "expert",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "instanceId",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "object",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "id",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
           },
           {
             "kind": "literal",
@@ -23417,10 +23501,10 @@
     {
       "digest": "26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f",
       "names": [
-        "packages/actvero/capability-ui/src/types.ts#WorkbenchSelection"
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchLegacySelection"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:23"
+        "packages/actvero/capability-ui/src/types.ts:24"
       ]
     },
     {
@@ -23457,6 +23541,11 @@
     },
     {
       "digest": "297fbd8067d7815adae02b89790ec6ff5fb7c2cb0d0eb026e1746c24ec857761",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "2a4a2ef9ede86ee9871ff644c39600e5fe4e6bdea4e47bfa3e6534492a9cd9f4",
       "names": [],
       "sources": []
     },
@@ -23966,6 +24055,7 @@
       "names": [
         "packages/actvero/capability-ui/src/types.ts#WorkbenchId",
         "packages/actvero/capability-ui/src/types.ts#WorkbenchInstanceId",
+        "packages/actvero/capability-ui/src/workbench-reference.ts#WorkbenchObjectId",
         "packages/api/session-controller/src/types.ts#SessionRequestId",
         "packages/attachment/attachment/src/brand.ts#AttachmentId",
         "packages/compaction/compaction/src/brand.ts#CompactionId",
@@ -23992,8 +24082,9 @@
         "packages/workflow/workflow/src/types.ts#WorkflowRunId"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:7",
-        "packages/actvero/capability-ui/src/types.ts:9",
+        "packages/actvero/capability-ui/src/types.ts:10",
+        "packages/actvero/capability-ui/src/types.ts:8",
+        "packages/actvero/capability-ui/src/workbench-reference.ts:10",
         "packages/api/session-controller/src/types.ts:409",
         "packages/attachment/attachment/src/brand.ts:6",
         "packages/compaction/compaction/src/brand.ts:4",
@@ -24334,7 +24425,7 @@
       "digest": "5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:70"
+        "packages/actvero/capability-ui/src/types.ts:83"
       ]
     },
     {
@@ -24422,6 +24513,11 @@
       ]
     },
     {
+      "digest": "670cda4a8ab46dfb536f11ce9e7f56f5952cf243b6582d403d49a6929b338dc5",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "672c4aa2a9b736e3d6e5da6346d2e2ed5e3573f2d0baafa18e7407c9f3fee3db",
       "names": [
         "packages/skill/skill/src/index.ts#SkillInvocationSource"
@@ -24443,6 +24539,13 @@
       "digest": "68141cbe3994a5ffcd064c07c75996538437fd9dbf77ce8a2927e89ec577fabe",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9",
+      "names": [],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:84"
+      ]
     },
     {
       "digest": "688e853dc149f0d30b31765c12ec7e3be74169bdf1a4c6463a10b945d50cc1b8",
@@ -24679,6 +24782,11 @@
       "sources": [
         "packages/core/session/src/types.ts:213"
       ]
+    },
+    {
+      "digest": "7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "79a4c87f8bfb4d6d05cd9952b99210d6a7db3b478c4a01d94b4c50602308c056",
@@ -25353,7 +25461,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchExpert"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:21"
+        "packages/actvero/capability-ui/src/types.ts:22"
       ]
     },
     {
@@ -25749,6 +25857,15 @@
       ]
     },
     {
+      "digest": "b89b7e6a06add17e22ecd58793236061559dd17a55d9aab68e1889d53d3583dc",
+      "names": [
+        "packages/actvero/capability-ui/src/types.ts#WorkbenchObject"
+      ],
+      "sources": [
+        "packages/actvero/capability-ui/src/types.ts:34"
+      ]
+    },
+    {
       "digest": "b8fc636a2121df9d8423c242e03c9d23b7ab7c6fdce00e45746932c60b730f97",
       "names": [
         "packages/deliverables/tool-present/src/types.ts#PresentedFile"
@@ -25809,11 +25926,6 @@
     },
     {
       "digest": "bbc5696e3f13c758237b316e3cf08cda0b9fd51ffe672539883457769faa185d",
-      "names": [],
-      "sources": []
-    },
-    {
-      "digest": "bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d",
       "names": [],
       "sources": []
     },

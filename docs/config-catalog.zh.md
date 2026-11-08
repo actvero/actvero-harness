@@ -17,7 +17,7 @@
 ## `@actvero/dsh-capability-ui`
 
 - `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
-- `source`: [`packages/actvero/capability-ui/src/index.ts:21`](../packages/actvero/capability-ui/src/index.ts)
+- `source`: [`packages/actvero/capability-ui/src/index.ts:22`](../packages/actvero/capability-ui/src/index.ts)
 
 ```ts config-catalog
 /** Deployment-owned managed files location. */

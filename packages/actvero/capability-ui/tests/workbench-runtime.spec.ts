@@ -25,6 +25,7 @@ import * as Workbenches from '../src/index.ts'
 import { checklistProvider } from '../src/checklist.ts'
 import { checklistDocument } from '../src/checklist-data.ts'
 import type { WorkbenchId } from '../src/types.ts'
+import type { WorkbenchObjectId } from '../src/workbench-reference.ts'
 
 async function harness(root?: string) {
   const directory = root ?? await mkdtemp(join(tmpdir(), 'actvero-workbench-runtime-'))
@@ -67,6 +68,133 @@ async function harness(root?: string) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('keeps independent object targets in the log and recreates capabilities only on explicit reassociation', async () => {
+    const { ctx, runtime, prepare } = await harness()
+    const customId = 'test:objects' as WorkbenchId
+    const a = 'document-a' as WorkbenchObjectId
+    const b = 'document-b' as WorkbenchObjectId
+    const objects = new Map([[a, '文档 A'], [b, '文档 B']])
+    const activated: (WorkbenchObjectId | null)[] = []
+    const released: (WorkbenchObjectId | null)[] = []
+    const remove = runtime.register({ id: customId, name: '文档', version: '1.0.0', ai: true,
+      resolveObject: async (objectId) => {
+        const label = objects.get(objectId)
+        if (!label) throw new Error('Object unavailable')
+        return { label }
+      },
+      activate: async (scope, environment) => {
+        const target = environment.object?.id ?? null
+        activated.push(target)
+        scope.effect(() => () => { released.push(target) })
+        return { digest: 'documents-v1', expert: { name: '文档专家', version: '1', instructions: 'Use the bound document.' } }
+      },
+    })
+    const document = await runtime.open(customId)
+    const first = await runtime.bind({ ...document, objectId: a })
+    const second = await runtime.bind({ ...document, objectId: b })
+    const agent = ctx.agents.get(first.sessionId)!
+    expect(first.sessionId).not.toBe(second.sessionId)
+    expect(first.selection?.object).toEqual({ id: a, label: '文档 A' })
+    expect(second.selection?.object).toEqual({ id: b, label: '文档 B' })
+    expect(agent.session.snapshotEvents().find(event => event.type === 'actvero/workbench')?.data).toMatchObject({
+      schemaVersion: 2, selection: { object: { id: a, label: '文档 A' } },
+    })
+    objects.set(a, '已改名的 A')
+    await prepare(agent)
+    const reopened = await runtime.bind({ ...document, sessionId: agent.id })
+    expect(reopened.selection?.object).toEqual(first.selection?.object)
+    expect(activated).toEqual([a, b])
+    expect(renderPrompt(await ctx.systemPrompt.assemble({ scope: agent }))).toContain('Bound business object: {"id":"document-a","label":"文档 A"}')
+    await runtime.bind({ ...document, sessionId: agent.id, objectId: b })
+    expect(activated).toEqual([a, b, b])
+    expect(released).toEqual([a])
+    await expect(runtime.bind({ ...document, sessionId: agent.id, objectId: a, expectedObjectId: a }))
+      .rejects.toMatchObject({ code: 'workbench/conflict' })
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.object?.id).toBe(b)
+    await runtime.bind({ ...document, sessionId: agent.id, objectId: null })
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.object).toBeUndefined()
+    expect(activated).toEqual([a, b, b, null])
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'actvero/workbench').at(-1)?.data.schemaVersion).toBe(1)
+    await remove()
+    expect(released).toHaveLength(4)
+    expect(released.filter(target => target === b)).toHaveLength(2)
+    expect(released).toContain(null)
+  })
+
+  it('preserves a failed binding and withdraws capabilities when its object disappears before a model step', async () => {
+    const { ctx, runtime, prepare } = await harness()
+    const customId = 'test:object-missing' as WorkbenchId
+    const objectId = 'document' as WorkbenchObjectId
+    let exists = true
+    let releases = 0
+    let activations = 0
+    runtime.register({ id: customId, name: '对象校验', version: '1.0.0', ai: true,
+      resolveObject: async (target) => {
+        if (!exists || target !== objectId) throw new Error('Object unavailable')
+        return { label: '原文档' }
+      },
+      activate: async (scope) => {
+        activations++
+        scope.effect(() => () => { releases++ })
+        return { digest: 'object-v1', expert: null }
+      },
+    })
+    const document = await runtime.open(customId)
+    const binding = await runtime.bind({ ...document, objectId })
+    const agent = ctx.agents.get(binding.sessionId)!
+    await expect(runtime.bind({ ...document, sessionId: agent.id, objectId: 'missing' as WorkbenchObjectId })).rejects.toThrow('Object unavailable')
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toEqual(binding.selection)
+    expect(releases).toBe(0)
+    exists = false
+    await expect(prepare(agent)).rejects.toThrow('Object unavailable')
+    expect(releases).toBe(1)
+    expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toEqual(binding.selection)
+    exists = true
+    await prepare(agent)
+    expect(activations).toBe(2)
+    expect(runtime.read(document)).toEqual(document)
+    await runtime.detach({ sessionId: agent.id })
+    expect(releases).toBe(2)
+  })
+
+  it('refuses object bindings for providers that do not resolve author-owned objects', async () => {
+    const { runtime, ctx } = await harness()
+    const document = await runtime.open(id)
+    const binding = await runtime.bind(document)
+    await expect(runtime.bind({ ...document, sessionId: binding.sessionId, objectId: 'unsupported' as WorkbenchObjectId }))
+      .rejects.toMatchObject({ code: 'workbench/unavailable' })
+    expect(ctx.sessionProjections.stateOf(ctx.agents.get(binding.sessionId)!.session, 'actveroWorkbench')).toEqual(binding.selection)
+  })
+
+  it('cancels object resolution and waits for it before unregistering the provider', async () => {
+    const { ctx, runtime } = await harness()
+    const started = Promise.withResolvers<AbortSignal>()
+    const proceed = Promise.withResolvers<undefined>()
+    let activated = false
+    const customId = 'test:object-cancel' as WorkbenchId
+    const remove = runtime.register({ id: customId, name: '对象加载', version: '1', ai: true,
+      resolveObject: async (_id, _environment, signal) => {
+        started.resolve(signal)
+        await proceed.promise
+        return { label: '延迟对象' }
+      },
+      activate: async () => { activated = true; return { digest: 'unused', expert: null } },
+    })
+    const document = await runtime.open(customId)
+    const binding = runtime.bind({ ...document, objectId: 'slow' as WorkbenchObjectId })
+    const rejection = expect(binding).rejects.toThrow()
+    const signal = await started.promise
+    let removed = false
+    const removal = Promise.resolve(remove()).then(() => { removed = true })
+    expect(signal.aborted).toBe(true)
+    expect(removed).toBe(false)
+    proceed.resolve(undefined)
+    await rejection
+    await removal
+    expect(activated).toBe(false)
+    expect(ctx.sessionProjections.stateOf(ctx.agents.list()[0]!.session, 'actveroWorkbench')).toBeNull()
+  })
+
   it('rejects incompatible, duplicate and closed registrations before exposing a provider', async () => {
     const { runtime, workbenches } = await harness()
     const customId = 'test:protocol' as WorkbenchId

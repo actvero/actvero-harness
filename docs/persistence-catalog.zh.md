@@ -26,7 +26,7 @@
 | `SessionEventEnvelope` | envelope | `5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc` | [`union (3 variants)`](#persistence-type-sha256-5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc) |
 | `event:actvero/connectors` | event | `da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb` | [`{ type: "actvero/connectors" }`](#persistence-type-sha256-da8b6b23302d47f7794076b9f0570f4993b3182c3dd8e18e80f601d6a09b9ffb) |
 | `event:actvero/expert` | event | `55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5` | [`{ type: "actvero/expert" }`](#persistence-type-sha256-55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5) |
-| `event:actvero/workbench` | event | `bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d` | [`{ type: "actvero/workbench" }`](#persistence-type-sha256-bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d) |
+| `event:actvero/workbench` | event | `7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8` | [`{ type: "actvero/workbench" }`](#persistence-type-sha256-7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8) |
 | `event:agent-preset/selected` | event | `a10c17474eaf2ddab7095a099e0fe3d046fc18e56c3e344fc8894c05ff9ef97b` | [`{ type: "agent-preset/selected" }`](#persistence-type-sha256-a10c17474eaf2ddab7095a099e0fe3d046fc18e56c3e344fc8894c05ff9ef97b) |
 | `event:agent/inbox/spliced` | event | `0755b7d1128319ba2e389619cbbf2c961ad648882b4e91da7f3e9582cc8a2034` | [`{ type: "agent/inbox/spliced" }`](#persistence-type-sha256-0755b7d1128319ba2e389619cbbf2c961ad648882b4e91da7f3e9582cc8a2034) |
 | `event:approval/asked` | event | `3bfeb47b58606f4661904bc723da612782214c463d01e6d61cd6d6193d7374e1` | [`{ type: "approval/asked" }`](#persistence-type-sha256-3bfeb47b58606f4661904bc723da612782214c463d01e6d61cd6d6193d7374e1) |
@@ -199,10 +199,11 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ```ts persistence-catalog
 /** Exact workbench environment for subsequent turns. Null explicitly unlinks it; forks retain the recorded association. */
-'actvero/workbench': { schemaVersion: 1; selection: WorkbenchSelection | null }
+'actvero/workbench': { schemaVersion: 1; selection: WorkbenchLegacySelection | null }
+  | { schemaVersion: 2; selection: WorkbenchSelection & { object: WorkbenchObject } }
 ```
 
-来源：[`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:83`](../packages/actvero/capability-ui/src/types.ts)
 
 ### `agent/*`
 
@@ -5513,7 +5514,7 @@ SHA-256: `454a0fa879e38076bdcdbd87ef561cd67d7e43e58a287cf7dbaa7b6cf7847020`
 
 SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:21`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:22`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5523,15 +5524,15 @@ SHA-256: `a4b4c2c386d53995ee232784d8cb03b16d4e99b4c8daa821af88966d235b2d6c`
 
 <a id="persistence-type-sha256-26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f"></a>
 
-<a id="persistence-type-packagesactverocapability-uisrctypestsworkbenchselection"></a>
+<a id="persistence-type-packagesactverocapability-uisrctypestsworkbenchlegacyselection"></a>
 
-<a id="persistence-type-workbenchselection"></a>
+<a id="persistence-type-workbenchlegacyselection"></a>
 
-### `WorkbenchSelection`
+### `WorkbenchLegacySelection`
 
 SHA-256: `26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:23`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:24`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -5541,6 +5542,23 @@ SHA-256: `26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f`
 | `instanceId` | 必需 | `string` |
 | `name` | 必需 | `string` |
 | `version` | 必需 | `string` |
+
+<a id="persistence-type-sha256-b89b7e6a06add17e22ecd58793236061559dd17a55d9aab68e1889d53d3583dc"></a>
+
+<a id="persistence-type-packagesactverocapability-uisrctypestsworkbenchobject"></a>
+
+<a id="persistence-type-workbenchobject"></a>
+
+### `WorkbenchObject`
+
+SHA-256: `b89b7e6a06add17e22ecd58793236061559dd17a55d9aab68e1889d53d3583dc`
+
+来源：[`packages/actvero/capability-ui/src/types.ts:34`](../packages/actvero/capability-ui/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `id` | 必需 | `string` |
+| `label` | 必需 | `string` |
 
 <a id="persistence-type-sha256-c2deb7c9183735d4e0fffddf5c623f4e34daa1c8e96b111982e957dfcbbcf896"></a>
 
@@ -5654,6 +5672,8 @@ SHA-256: `5d03ba38734809bcbd2a55221bd938b3b3fc34b49bb686c6113e9e4931e3aa78`
 
 <a id="persistence-type-packagesactverocapability-uisrctypestsworkbenchinstanceid"></a>
 
+<a id="persistence-type-packagesactverocapability-uisrcworkbench-referencetsworkbenchobjectid"></a>
+
 <a id="persistence-type-packagesapisession-controllersrctypestssessionrequestid"></a>
 
 <a id="persistence-type-packagesattachmentattachmentsrcbrandtsattachmentid"></a>
@@ -5734,13 +5754,15 @@ SHA-256: `5d03ba38734809bcbd2a55221bd938b3b3fc34b49bb686c6113e9e4931e3aa78`
 
 <a id="persistence-type-workbenchinstanceid"></a>
 
+<a id="persistence-type-workbenchobjectid"></a>
+
 <a id="persistence-type-workflowrunid"></a>
 
 ### `string`
 
 SHA-256: `4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:7`](../packages/actvero/capability-ui/src/types.ts) · [`packages/actvero/capability-ui/src/types.ts:9`](../packages/actvero/capability-ui/src/types.ts) · [`packages/api/session-controller/src/types.ts:409`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:21`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:33`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:9`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/commands/src/brand.ts:31`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:19`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/index.ts:42`](../packages/session/session-title/src/index.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/workflow/workflow/src/types.ts:13`](../packages/workflow/workflow/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:10`](../packages/actvero/capability-ui/src/types.ts) · [`packages/actvero/capability-ui/src/types.ts:8`](../packages/actvero/capability-ui/src/types.ts) · [`packages/actvero/capability-ui/src/workbench-reference.ts:10`](../packages/actvero/capability-ui/src/workbench-reference.ts) · [`packages/api/session-controller/src/types.ts:409`](../packages/api/session-controller/src/types.ts) · [`packages/attachment/attachment/src/brand.ts:6`](../packages/attachment/attachment/src/brand.ts) · [`packages/compaction/compaction/src/brand.ts:4`](../packages/compaction/compaction/src/brand.ts) · [`packages/core/session/src/types.ts:21`](../packages/core/session/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:21`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:33`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/agent-team/src/types.ts:9`](../packages/experimental/agent-team/src/types.ts) · [`packages/experimental/webhook/src/brand.ts:12`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:6`](../packages/experimental/webhook/src/brand.ts) · [`packages/experimental/webhook/src/brand.ts:9`](../packages/experimental/webhook/src/brand.ts) · [`packages/feedback/message-feedback/src/types.ts:14`](../packages/feedback/message-feedback/src/types.ts) · [`packages/goal/goal/src/types.ts:17`](../packages/goal/goal/src/types.ts) · [`packages/interaction/commands/src/brand.ts:31`](../packages/interaction/commands/src/brand.ts) · [`packages/interaction/user-approval/src/types.ts:17`](../packages/interaction/user-approval/src/types.ts) · [`packages/jobs/jobs/src/brand.ts:19`](../packages/jobs/jobs/src/brand.ts) · [`packages/llm/llm-retry/src/brand.ts:4`](../packages/llm/llm-retry/src/brand.ts) · [`packages/llm/llm/src/brand.ts:16`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:31`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:43`](../packages/llm/llm/src/brand.ts) · [`packages/llm/llm/src/brand.ts:67`](../packages/llm/llm/src/brand.ts) · [`packages/schedule/schedule/src/types.ts:14`](../packages/schedule/schedule/src/types.ts) · [`packages/session/session-title/src/index.ts:42`](../packages/session/session-title/src/index.ts) · [`packages/session/session-title/src/types.ts:17`](../packages/session/session-title/src/types.ts) · [`packages/workflow/workflow/src/types.ts:13`](../packages/workflow/workflow/src/types.ts)
 
 `string`
 
@@ -5809,8 +5831,19 @@ SHA-256: `286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7`
 
 以下类型之一：
 
-- [`WorkbenchSelection`](#persistence-type-sha256-26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f)
+- [`WorkbenchLegacySelection`](#persistence-type-sha256-26c91a52ecd3b76058b9b18df47f3a412d823ca4b7c84db8fea41a01663f273f)
 - `null`
+
+<a id="persistence-type-sha256-2a4a2ef9ede86ee9871ff644c39600e5fe4e6bdea4e47bfa3e6534492a9cd9f4"></a>
+
+### `union (2 variants)`
+
+SHA-256: `2a4a2ef9ede86ee9871ff644c39600e5fe4e6bdea4e47bfa3e6534492a9cd9f4`
+
+以下类型之一：
+
+- [`{ schemaVersion, selection }`](#persistence-type-sha256-5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77)
+- [`{ schemaVersion, selection }`](#persistence-type-sha256-686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9)
 
 <a id="persistence-type-sha256-4a17c3d97fb8cf4e125398f8b252a2b43c8be5b1ebe3683e746c5d7b45cd441a"></a>
 
@@ -6048,6 +6081,22 @@ SHA-256: `45f2a07ea94573123b6ae14db787a40062dec3834f36d8be92c523d40ba28448`
 | `id` | 必需 | `string` |
 | `reason` | 可选 | `string` |
 | `toolName` | 必需 | `string` |
+
+<a id="persistence-type-sha256-670cda4a8ab46dfb536f11ce9e7f56f5952cf243b6582d403d49a6929b338dc5"></a>
+
+### `{ capabilityDigest?, expert, id, instanceId, … }`
+
+SHA-256: `670cda4a8ab46dfb536f11ce9e7f56f5952cf243b6582d403d49a6929b338dc5`
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `capabilityDigest` | 可选 | `string` |
+| `expert` | 必需 | [`union (2 variants)`](#persistence-type-sha256-4a17c3d97fb8cf4e125398f8b252a2b43c8be5b1ebe3683e746c5d7b45cd441a) |
+| `id` | 必需 | `string` |
+| `instanceId` | 必需 | `string` |
+| `name` | 必需 | `string` |
+| `object` | 必需 | [`WorkbenchObject`](#persistence-type-sha256-b89b7e6a06add17e22ecd58793236061559dd17a55d9aab68e1889d53d3583dc) |
+| `version` | 必需 | `string` |
 
 <a id="persistence-type-sha256-4f91f187baeabef5c7950c4780d31bbe39f3345dff591a6cf26ac7e135ac1cf4"></a>
 
@@ -8031,12 +8080,25 @@ SHA-256: `9a2a9029f8d7ede05336980d8342737557f487b913bfd28853d0ab5214600ab5`
 
 SHA-256: `5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77`
 
-来源：[`packages/actvero/capability-ui/src/types.ts:70`](../packages/actvero/capability-ui/src/types.ts)
+来源：[`packages/actvero/capability-ui/src/types.ts:83`](../packages/actvero/capability-ui/src/types.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
 | `schemaVersion` | 必需 | `1` |
 | `selection` | 必需 | [`union (2 variants)`](#persistence-type-sha256-286da66fc83036b7fdb29efb6b287af5abcc61c537434a6a02eb8c774579c2c7) |
+
+<a id="persistence-type-sha256-686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9"></a>
+
+### `{ schemaVersion, selection }`
+
+SHA-256: `686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9`
+
+来源：[`packages/actvero/capability-ui/src/types.ts:84`](../packages/actvero/capability-ui/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `schemaVersion` | 必需 | `2` |
+| `selection` | 必需 | [`{ capabilityDigest?, expert, id, instanceId, … }`](#persistence-type-sha256-670cda4a8ab46dfb536f11ce9e7f56f5952cf243b6582d403d49a6929b338dc5) |
 
 <a id="persistence-type-sha256-7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc"></a>
 
@@ -8188,17 +8250,17 @@ SHA-256: `55a0846b3e88363b3c388464f4dd30081650b5aeecdb441d02be16a37a8d57f5`
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"actvero/expert"` |
 
-<a id="persistence-type-sha256-bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d"></a>
+<a id="persistence-type-sha256-7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8"></a>
 
 <a id="persistence-type-eventactveroworkbench"></a>
 
 ### `{ type: "actvero/workbench" }`
 
-SHA-256: `bc28dfefeaa4c54e6d40cd1b75ae0383f8e8dbad89376ccb973f0d1ed147450d`
+SHA-256: `7968631b3590972faca082349a1f6941a4c5217fe70394c7cff89b7d26c8d6f8`
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
-| `data` | 必需 | [`{ schemaVersion, selection }`](#persistence-type-sha256-5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77) |
+| `data` | 必需 | [`union (2 variants)`](#persistence-type-sha256-2a4a2ef9ede86ee9871ff644c39600e5fe4e6bdea4e47bfa3e6534492a9cd9f4) |
 | `ignorable` | 可选 | `true` |
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |

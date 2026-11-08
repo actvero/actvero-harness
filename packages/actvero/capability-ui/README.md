@@ -59,6 +59,8 @@ Host and Client registrations share [compatibility resolution](src/workbench-pro
 
 Extension API 1.3 adds native settings pages and associated-conversation commands through `register` options `settings` and `commands`. `openSettings(id)` addresses the provider page. Commands use native CommandContribution and recheck association before execution; disabling dismisses popups and removes all contributions. Settings persistence remains with native Host configuration or author-owned business storage; see the [developer guide](../../../actvero/workbench-development.md#settings-commands).
 
+Extension API 1.4 supports optional business-object associations: providers validate author-defined identifiers through resolveObject, and Clients call conversation({ objectId }) to reuse or create a matching conversation. prepare/activate receive its fixed object; view navigation does not change the target, and failed validation stops model requests and withdraws capabilities. Logs retain the identifier and name without copying business data; authors still own storage and read/write authorization and conflicts. See the [development guide](../../../actvero/workbench-development.md#native-ai) for integration and recovery.
+
 <a id="model-experience"></a>
 
 ## Model Experience

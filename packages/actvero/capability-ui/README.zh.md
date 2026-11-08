@@ -59,6 +59,8 @@ Host 提供者通过 Cordis effect 注册元信息、可选 JSON 适配器与专
 
 扩展 API 1.3 通过 register 的 settings 和 commands 选项提供原生设置页及关联对话命令；openSettings(id) 打开指定提供者的设置页。命令复用原生 CommandContribution，并在执行前复核关联；停用会关闭菜单并释放全部贡献。设置持久化仍由原生 Host 配置或作者业务存储负责，见[开发指南](../../../actvero/workbench-development.zh.md#settings-commands)。
 
+扩展 API 1.4 支持可选的业务对象关联：提供者以 resolveObject 校验作者自定义的标识，Client 以 conversation({ objectId }) 复用或新建匹配的对话。prepare/activate 收到固定的 object；切换视图不改变目标，校验失败停止模型请求并撤销能力。日志保留标识与名称，不复制业务数据；存储、实际读写时的权限与冲突仍由作者负责。接入和恢复规则见[开发指南](../../../actvero/workbench-development.zh.md#native-ai)。
+
 <a id="model-experience"></a>
 
 ## 模型体验

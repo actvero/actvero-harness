@@ -3,7 +3,7 @@ import { satisfies, validRange } from 'semver'
 import { z } from 'zod'
 
 /** Workbench extension API implemented by this host. */
-export const WORKBENCH_HOST_API_VERSION = '1.3.0'
+export const WORKBENCH_HOST_API_VERSION = '1.4.0'
 
 /** Package requirements checked before registering a workbench implementation. */
 export interface WorkbenchProtocol {

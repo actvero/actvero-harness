@@ -6,6 +6,7 @@ import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/cl
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchId, WorkbenchInstanceId, WorkbenchSelection } from '../src/types.ts'
 import { registerWorkbenchCommands } from '../src/client/workbenches/commands.ts'
+import type { WorkbenchObjectId } from '../src/workbench-reference.ts'
 
 const selection: WorkbenchSelection = { id: '@local/test' as WorkbenchId, instanceId: 'first' as WorkbenchInstanceId,
   name: 'Test', version: '1.0.0', expert: null }
@@ -72,6 +73,18 @@ describe('workbench command scope', () => {
     await ui.options(reopened, new AbortController().signal)
     await ui.onSelect(options[0]!, reopened)
     expect(onSelect).toHaveBeenCalledExactlyOnceWith(options[0], reopened)
+  })
+
+  it('rejects a captured choice after changing objects inside the same instance', async () => {
+    const { runtime, commands, contributions, bind, onSelect } = await fixture()
+    await bind({ ...selection, object: { id: 'one' as WorkbenchObjectId, label: 'One' } })
+    registerWorkbenchCommands(runtime.ctx, selection.id, contributions, () => 'no longer available')
+    const ui = commands.get('test-popup')!.ui
+    if (ui.kind !== 'popupSelect') throw new Error('Expected popup')
+    const options = await ui.options(session, new AbortController().signal)
+    await bind({ ...selection, object: { id: 'two' as WorkbenchObjectId, label: 'Two' } })
+    expect(() => ui.onSelect(options[0]!, session)).toThrow('no longer available')
+    expect(onSelect).not.toHaveBeenCalled()
   })
 
   it('discards late options and captured callbacks after disposal, and allows a fresh registration', async () => {

@@ -35,7 +35,7 @@ async function fixture() {
   await writeFile(join(bundle, 'skills', 'delivery', 'SKILL.md'), '---\nname: delivery\ndescription: Manage delivery data\n---\nRead business files before changing them.\n')
   await writeFile(join(bundle, 'dependencies.json'), JSON.stringify({ schemaVersion: 1, skills: [{ key: 'delivery', source: 'local', path: 'skills/delivery' }] }))
   const environment: WorkbenchRuntimeContext = { id: 'test:bundle' as WorkbenchRuntimeContext['id'], instanceId: 'instance' as WorkbenchRuntimeContext['instanceId'],
-    version: '1.0.0', dataDirectory: data, resourcesDirectory: bundle, storage: 'custom', aiEnabled: true, sessionId: a.id }
+    version: '1.0.0', dataDirectory: data, resourcesDirectory: bundle, storage: 'custom', aiEnabled: true, sessionId: a.id, object: null }
   const prepare = () => ctx.waterfall(scopeTarget(a, a), 'agent/pre-step', { agent: a, messages: [], turn: 1, step: 1, signal: new AbortController().signal }, async () => ({ kind: 'enter' as const, messages: [] }))
   return { root, ctx, a, b, scopes, bundle, data, manifest, save, environment, prepare }
 }

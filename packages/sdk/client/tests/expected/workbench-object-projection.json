@@ -1,0 +1,19 @@
+[
+  {
+    "type": "actvero/workbench",
+    "data": {
+      "schemaVersion": 2,
+      "selection": {
+        "id": "test:object-recording",
+        "instanceId": "{{id:1}}",
+        "name": "文档管理",
+        "version": "1.0.0",
+        "expert": null,
+        "object": {
+          "id": "document-a",
+          "label": "文档 A"
+        }
+      }
+    }
+  }
+]

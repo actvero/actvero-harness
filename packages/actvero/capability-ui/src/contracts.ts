@@ -6,7 +6,8 @@ import type { WorkbenchReferenceInput } from './workbench-reference.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/client'
 export type { WorkbenchObjectId, WorkbenchReferenceInput } from './workbench-reference.ts'
-import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog } from './types.ts'
+import type { WorkbenchConversationOptions, WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog, WorkbenchObject } from './types.ts'
+export type { WorkbenchConversationOptions, WorkbenchObject } from './types.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 
 /** Public account identity; credentials remain with the desktop host. */
@@ -19,6 +20,8 @@ export interface WorkbenchAccount {
 export interface WorkbenchClientContext {
   instanceId: WorkbenchInstanceId | null
   sessionId: SessionId | null
+  /** Object recorded for this conversation; navigation alone does not change it. */
+  readonly object: WorkbenchObject | null
   resourceAddress: string | null
   /** Read the current signed-in identity, or null when unavailable. */
   account(): Promise<WorkbenchAccount | null>
@@ -28,8 +31,10 @@ export interface WorkbenchClientContext {
   models(): Promise<WorkbenchModelCatalog>
   /** Resolve managed runtime paths without starting AI; null for UI-only workbenches. Paths grant no filesystem permissions. */
   environment(): Promise<WorkbenchEnvironment | null>
-  /** Open or create the associated native conversation. */
-  conversation(): Promise<void>
+  /** Open or create the associated native conversation without sending a message.
+   * @param options Explicit object choice; omitted to preserve the associated conversation, fresh to create another for that object.
+   */
+  conversation(options?: WorkbenchConversationOptions): Promise<void>
   /** Insert an immutable business snapshot into the associated native draft without sending it.
    * @param reference Object identity, author-defined revision and readable content captured by the caller.
    * @returns Target conversation. Native cancellation rejects with AbortError; local refusal uses workbench/reference with a stable status.

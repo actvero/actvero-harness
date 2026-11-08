@@ -12,6 +12,7 @@ const sources = {
   'api/client.ts': 'packages/actvero/capability-ui/src/contracts.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',
   'api/workbench-protocol.ts': 'packages/actvero/capability-ui/src/workbench-protocol.ts',
+  'api/workbench-reference.ts': 'packages/actvero/capability-ui/src/workbench-reference.ts',
   'api/types.ts': 'packages/actvero/capability-ui/src/types.ts',
   'api/expert.ts': 'packages/actvero/experts/src/contracts.ts',
 } as const

@@ -2,6 +2,7 @@
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { TypertResource } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkbenchObjectId } from './workbench-reference.ts'
 
 /** Stable package-owned workbench identity. */
 export type WorkbenchId = Branded<'ActveroWorkbenchId'>
@@ -19,16 +20,22 @@ export interface WorkbenchPlatformModel { id: WorkbenchModelId; name: string; de
 export interface WorkbenchModelCatalog { scope: WorkbenchPlatformScopeId; models: WorkbenchPlatformModel[] }
 /** Optional instructions packaged with a workbench; no model configuration is required. */
 export interface WorkbenchExpert { name: string; version: string; instructions: string }
-/** Immutable environment selected for one conversation. */
-export interface WorkbenchSelection {
+/** Whole-instance selection persisted by schemaVersion 1 records. */
+export interface WorkbenchLegacySelection {
   id: WorkbenchId
   instanceId: WorkbenchInstanceId
   name: string
   version: string
   expert: WorkbenchExpert | null
   /** Exact activated dependency generation; absent for providers without scoped capability loading. */
-  capabilityDigest?: string
+  capabilityDigest?: string | undefined
 }
+/** Author-owned object identity and its name captured when binding; no business data is copied. */
+export interface WorkbenchObject { readonly id: WorkbenchObjectId; readonly label: string }
+/** Conversation environment, optionally fixed to one author-owned object. */
+export interface WorkbenchSelection extends WorkbenchLegacySelection { readonly object?: WorkbenchObject | undefined }
+/** Explicit object choice for opening AI; null requests an instance-wide conversation. */
+export interface WorkbenchConversationOptions { objectId: WorkbenchObjectId | null; fresh?: boolean }
 /** Stable instance metadata. Custom storage starts at json "null", revision zero; existing JSON remains available for migration. */
 export interface WorkbenchDocument {
   id: WorkbenchId
@@ -58,7 +65,13 @@ export interface WorkbenchActionRequest extends WorkbenchTarget {
   args: string
 }
 /** Attach to a conversation, or create a conversation when sessionId is absent. */
-export interface WorkbenchBindRequest extends WorkbenchTarget { sessionId?: SessionId }
+export interface WorkbenchBindRequest extends WorkbenchTarget {
+  sessionId?: SessionId
+  /** Omission preserves an existing same-instance association; null explicitly selects the whole instance. */
+  objectId?: WorkbenchObjectId | null
+  /** When reusing a conversation, reject if its current instance or object no longer matches; null expects instance-wide. */
+  expectedObjectId?: WorkbenchObjectId | null
+}
 /** Conversation association returned after a durable selection event. */
 export interface WorkbenchBinding { sessionId: SessionId; selection: WorkbenchSelection | null }
 /** Runtime provider summary. UI-only workbenches do not appear in this list. */
@@ -67,7 +80,8 @@ export interface WorkbenchRuntimeEntry { id: WorkbenchId; name: string; version:
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /** Exact workbench environment for subsequent turns. Null explicitly unlinks it; forks retain the recorded association. */
-    'actvero/workbench': { schemaVersion: 1; selection: WorkbenchSelection | null }
+    'actvero/workbench': { schemaVersion: 1; selection: WorkbenchLegacySelection | null }
+      | { schemaVersion: 2; selection: WorkbenchSelection & { object: WorkbenchObject } }
   }
 }
 declare module '@deepseek-ai/dsh-session-projection/types' {

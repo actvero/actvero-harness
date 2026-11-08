@@ -442,7 +442,8 @@ export function registerWorkbenches(ctx: Context): void {
       update({ chatPreparing: true })
       try {
         if (fresh) {
-          const result = await ctx.remote.actveroWorkbench.bind({ instanceId: view.instance.instanceId })
+          const objectId = context(view.instance.instanceId, linkedSession).object?.id ?? null
+          const result = await ctx.remote.actveroWorkbench.bind({ instanceId: view.instance.instanceId, objectId })
           if (!result.ok) throw result.error
           await ctx.sessions.refresh()
           if (generation === chatGeneration && ctx.fiber.uid !== null) await showChat(result.value.sessionId)

@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbench-architecture-plan.md
 /workbench-host-extension-architecture-plan:
-  en: 2477b388fd2d7b51
-  zh: 40cd7af68bffe66d
+  en: ba8524197cac8259
+  zh: c4d561695b69b399
 /workbench-host-extension-architecture-plan/1-product-model-and-responsibilities:
   en: f0640e07f8037d49
   zh: c3cce14480d4d8b5

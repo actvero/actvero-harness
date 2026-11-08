@@ -8831,7 +8831,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchBindRequest',
-    declaration: 'export interface WorkbenchBindRequest extends WorkbenchTarget {\n    sessionId?: SessionId;\n}',
+    declaration: 'export interface WorkbenchBindRequest extends WorkbenchTarget {\n    sessionId?: SessionId;\n    objectId?: WorkbenchObjectId | null;\n    expectedObjectId?: WorkbenchObjectId | null;\n}',
   },
   {
     name: 'WorkbenchCustomProvider',
@@ -8890,6 +8890,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchLegacyProvider extends WorkbenchProviderBase, WorkbenchJsonStorage {\n}',
   },
   {
+    name: 'WorkbenchLegacySelection',
+    declaration: 'export interface WorkbenchLegacySelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n    capabilityDigest?: string | undefined;\n}',
+  },
+  {
     name: 'WorkbenchModelCatalog',
     declaration: 'export interface WorkbenchModelCatalog {\n    scope: WorkbenchPlatformScopeId;\n    models: WorkbenchPlatformModel[];\n}',
   },
@@ -8900,6 +8904,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkbenchModelOperation',
     declaration: 'export interface WorkbenchModelOperation {\n    kind: string;\n    inputModalities: string[];\n    outputModalities: string[];\n}',
+  },
+  {
+    name: 'WorkbenchObject',
+    declaration: 'export interface WorkbenchObject {\n    readonly id: WorkbenchObjectId;\n    readonly label: string;\n}',
+  },
+  {
+    name: 'WorkbenchObjectId',
+    declaration: 'export type WorkbenchObjectId = Branded<\'ActveroWorkbenchObjectId\'>;',
   },
   {
     name: 'WorkbenchPlatformModel',
@@ -8919,11 +8931,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchProviderBase',
-    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{\n        label: string;\n    }>;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
   },
   {
     name: 'WorkbenchRuntimeContext',
-    declaration: 'export interface WorkbenchRuntimeContext extends WorkbenchEnvironment {\n    sessionId: SessionId;\n}',
+    declaration: 'export interface WorkbenchRuntimeContext extends WorkbenchEnvironment {\n    sessionId: SessionId;\n    readonly object: WorkbenchObject | null;\n}',
   },
   {
     name: 'WorkbenchRuntimeEntry',
@@ -8931,7 +8943,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchSelection',
-    declaration: 'export interface WorkbenchSelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n    capabilityDigest?: string;\n}',
+    declaration: 'export interface WorkbenchSelection extends WorkbenchLegacySelection {\n    readonly object?: WorkbenchObject | undefined;\n}',
   },
   {
     name: 'WorkbenchTarget',

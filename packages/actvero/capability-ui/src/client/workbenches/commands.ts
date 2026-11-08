@@ -4,6 +4,7 @@ import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/cl
 import type { ClientSessionContext } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { WorkbenchInstanceId } from '../../types.ts'
+import type { WorkbenchObjectId } from '../../workbench-reference.ts'
 
 /** Register native commands with current association checks and popup lifetime ownership.
  * @param ctx Registry lifetime and native services.
@@ -19,16 +20,18 @@ export function registerWorkbenchCommands(
     let active = true
     yield () => { active = false }
     for (const command of commands) {
-      const selected = new WeakMap<ClientSessionContext, WorkbenchInstanceId>()
+      const selected = new WeakMap<ClientSessionContext, { instanceId: WorkbenchInstanceId; objectId: WorkbenchObjectId | null }>()
       const instance = (session: ClientSessionContext) => {
         const state = ctx.sessions.list.getSnapshot()
         const binding = state.phase === 'ready' ? state.byId[session.sessionId]?.projectionValues?.actveroWorkbench : undefined
-        return active && binding?.id === id ? binding.instanceId : undefined
+        return active && binding?.id === id ? { instanceId: binding.instanceId, objectId: binding.object?.id ?? null } : undefined
       }
       const available = (session: ClientSessionContext) => instance(session) !== undefined && command.available(session)
       const requireInstance = (session: ClientSessionContext) => {
         const current = instance(session)
-        if (current === undefined || !command.available(session) || (selected.has(session) && selected.get(session) !== current)) {
+        const previous = selected.get(session)
+        if (current === undefined || !command.available(session) || (previous &&
+          (previous.instanceId !== current.instanceId || previous.objectId !== current.objectId))) {
           throw new RemoteError('workbench/command', unavailable(), { status: 'unavailable' })
         }
         return current

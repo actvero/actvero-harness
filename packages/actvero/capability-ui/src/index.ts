@@ -12,6 +12,7 @@ import { WorkbenchPlatformAccess } from './workbench-platform.ts'
 
 export type * from './types.ts'
 export type * from './workbench-provider.ts'
+export type { WorkbenchObjectId } from './workbench-reference.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 export { WorkbenchPlatformAccess } from './workbench-platform.ts'
 export { WorkbenchRuntime } from './workbench-runtime.ts'

@@ -1,12 +1,15 @@
 /** Host extension points for independently developed workbenches. */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Context } from '@deepseek-ai/cordis'
-import type { WorkbenchEnvironment, WorkbenchExpert, WorkbenchId } from './types.ts'
+import type { WorkbenchEnvironment, WorkbenchExpert, WorkbenchId, WorkbenchObject } from './types.ts'
+import type { WorkbenchObjectId } from './workbench-reference.ts'
 import type { WorkbenchProtocol } from './workbench-protocol.ts'
 
 /** Per-conversation context; business data stays separate from model-visible instructions. */
 export interface WorkbenchRuntimeContext extends WorkbenchEnvironment {
   sessionId: SessionId
+  /** Fixed conversation target; null for instance-wide conversations. */
+  readonly object: WorkbenchObject | null
 }
 /** Optional host-managed JSON storage; authors may instead own files, databases or remote storage. */
 export interface WorkbenchJsonStorage {
@@ -31,6 +34,13 @@ export interface WorkbenchProviderBase {
   /** Fixed platform reads requested by this package; omission denies platform access. */
   platform?: readonly 'models:read'[]
   expert?: WorkbenchExpert
+  /** Resolve an existing author-owned object before binding and every model step; never create a replacement.
+   * @param id Stable object identity in this instance.
+   * @param environment Managed instance paths, without ambient UI selection.
+   * @param signal Cancellation; reject missing or inaccessible objects and stop owned work before settling.
+   * @returns Current display name; only explicit binding records a new name.
+   */
+  resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{ label: string }>
   /** Prepare before binding and each model step. Observe cancellation and settle only after owned work stops;
    * failure prevents the model request and releases this conversation's capabilities. Persistent registrations belong in activate.
    */

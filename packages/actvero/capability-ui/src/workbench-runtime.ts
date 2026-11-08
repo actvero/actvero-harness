@@ -22,6 +22,7 @@ import type { WorkbenchActionRequest, WorkbenchBinding, WorkbenchBindRequest, Wo
   WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchSelection, WorkbenchTarget } from './types.ts'
 import type { workbenchDomain } from './workbench-storage.ts'
 import { workbenchProjection, workbenchIdSchema } from './workbench-projection.ts'
+import type { WorkbenchObjectId } from './workbench-reference.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { actveroWorkbenchRuntime: WorkbenchRuntime }
@@ -34,6 +35,7 @@ interface ActiveCapabilities {
   activation: WorkbenchActivation | null
   ready: boolean
   mounting: Promise<WorkbenchActivation | null> | undefined
+  objectId: WorkbenchObjectId | null
 }
 
 interface RegisteredWorkbench {
@@ -80,7 +82,7 @@ export class WorkbenchRuntime extends TypertRemoteService {
         const provider = this.provider(selection)
         await this.usingProvider(provider, async (lifetime) => {
           const combined = AbortSignal.any([signal, lifetime])
-          const context = { ...await this.environment(selection), sessionId: agent.id }
+          const context = { ...await this.environment(selection), sessionId: agent.id, object: selection.object ?? null }
           const activation = await this.prepare(agent, provider, context, combined)
           if (activation?.digest !== selection.capabilityDigest
             || (activation && JSON.stringify(activation.expert) !== JSON.stringify(selection.expert))) {
@@ -102,6 +104,7 @@ export class WorkbenchRuntime extends TypertRemoteService {
         sections: [...assembly.sections, { name: 'actvero-workbench', text: '{{actvero_workbench}}' }],
         variables: { ...assembly.variables, actvero_workbench:
           `Workbench: ${selection.name} (${selection.version})\n${selection.expert?.instructions ?? ''}\n`
+          + (selection.object ? `Bound business object: ${JSON.stringify(selection.object)}\n\nUse the bound object for business operations; viewing another object does not change this target.\n` : '')
           + (storage ? `Use workbench_read to inspect current business data, then workbench_action to change it. Never claim a change before its tool succeeds.\n${storage.actionHelp}` : '') },
       }
     })
@@ -380,11 +383,13 @@ export class WorkbenchRuntime extends TypertRemoteService {
    */
   @Remote
   async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding> {
+    const requestedObject = request.objectId
+    const expectedObject = request.expectedObjectId
     const document = this.read(request)
     const provider = this.loadedProvider(document.id)
     if (!workbenchAIEnabled(provider)) throw new RemoteError('workbench/ai-disabled', 'Native AI is disabled for this workbench.', {})
     return this.usingProvider(provider, async (lifetime) => {
-      const selection: WorkbenchSelection = { id: provider.id, instanceId: document.instanceId,
+      let selection: WorkbenchSelection = { id: provider.id, instanceId: document.instanceId,
         name: provider.name, version: provider.version, expert: provider.expert ? { ...provider.expert } : null }
       let sessionId = request.sessionId
       if (!sessionId) {
@@ -398,19 +403,36 @@ export class WorkbenchRuntime extends TypertRemoteService {
       lifetime.throwIfAborted()
       const agent = resolved.agent
       const selected = this.selection(agent)
+      if (expectedObject !== undefined
+        && (selected?.instanceId !== document.instanceId || (selected.object?.id ?? null) !== expectedObject)) {
+        throw new RemoteError('workbench/conflict', 'Conversation target changed. Open the intended object again.', {})
+      }
+      const objectId = requestedObject === undefined
+        ? (selected?.instanceId === document.instanceId ? selected.object?.id ?? null : null) : requestedObject
       const active = this.scopes.get(agent)
       if (selected?.instanceId === selection.instanceId && selected.id === selection.id && selected.version === selection.version
+        && (selected.object?.id ?? null) === objectId && requestedObject === undefined
         && (active?.provider === provider && active.ready && !active.abort.signal.aborted)) {
         return { sessionId: agent.id, selection: selected }
       }
       return agent.runMaintenance(async (signal) => {
         this.assertLoaded(provider)
         const combined = AbortSignal.any([signal, lifetime])
-        const context: WorkbenchRuntimeContext = { ...await this.environment(selection), sessionId: agent.id }
+        const environment = await this.environment(selection)
+        if (objectId !== null) {
+          if (!provider.resolveObject) throw new RemoteError('workbench/unavailable', 'This workbench does not support business object bindings.', {})
+          const object = await provider.resolveObject(objectId, environment, combined)
+          combined.throwIfAborted()
+          selection = { ...selection, object: { id: objectId, label: object.label } }
+        }
+        const context: WorkbenchRuntimeContext = { ...environment, sessionId: agent.id, object: selection.object ?? null }
         const activation = await this.prepare(agent, provider, context, combined)
         combined.throwIfAborted()
         if (activation) { selection.expert = activation.expert; selection.capabilityDigest = activation.digest }
-        try { agent.session.append('actvero/workbench', { schemaVersion: 1, selection }) }
+        try {
+          if (selection.object) agent.session.append('actvero/workbench', { schemaVersion: 2, selection: { ...selection, object: selection.object } })
+          else agent.session.append('actvero/workbench', { schemaVersion: 1, selection })
+        }
         catch (error) { await this.clearScope(agent); throw error }
         return { sessionId: agent.id, selection }
       })
@@ -495,13 +517,14 @@ export class WorkbenchRuntime extends TypertRemoteService {
     agent: Agent, provider: WorkbenchProvider, context: WorkbenchRuntimeContext, signal: AbortSignal,
   ): Promise<WorkbenchActivation | null> {
     let active = this.scopes.get(agent)
-    if (active?.provider !== provider || active.abort.signal.aborted) {
+    if (active?.provider !== provider || active.abort.signal.aborted || active.objectId !== (context.object?.id ?? null)) {
       await this.clearScope(agent)
       signal.throwIfAborted()
       this.assertLoaded(provider)
       const scope = createScope(agent.ctx, agent)
       const created: ActiveCapabilities = {
         scope, provider, abort: new AbortController(), activation: null, ready: false, mounting: undefined,
+        objectId: context.object?.id ?? null,
       }
       active = created
       this.scopes.set(agent, created)
@@ -519,6 +542,11 @@ export class WorkbenchRuntime extends TypertRemoteService {
       await predecessor
       combined.throwIfAborted()
       this.assertLoaded(provider)
+      if (context.object) {
+        if (!provider.resolveObject) throw new RemoteError('workbench/unavailable', 'The selected business object is unavailable.', {})
+        await provider.resolveObject(context.object.id, context, combined)
+        combined.throwIfAborted()
+      }
       await provider.prepare?.(context, combined)
       combined.throwIfAborted()
       this.assertLoaded(provider)

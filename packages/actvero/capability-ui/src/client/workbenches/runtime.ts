@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@actvero/dsh-client-account/protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchClientContext } from '../../contracts.ts'
-import type { WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
+import type { WorkbenchConversationOptions, WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
 import { encodeWorkbenchReference, workbenchReferenceSource, type WorkbenchReferenceInput } from '../../workbench-reference.ts'
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
@@ -87,20 +87,28 @@ export class WorkbenchClientRuntime {
   /** Reuse an associated conversation or create one without selecting a UI panel.
    * @param instanceId Business instance.
    * @param sessionId Existing associated conversation; omission prefers this Client's last one.
+   * @param options Explicit object choice; only matching conversations may be reused.
    * @returns Native conversation identity after its binding is ready.
    */
-  async conversation(instanceId: WorkbenchInstanceId, sessionId?: SessionId): Promise<SessionId> {
+  async conversation(instanceId: WorkbenchInstanceId, sessionId?: SessionId, options?: WorkbenchConversationOptions): Promise<SessionId> {
+    const choice = options ? { ...options } : undefined
     let target = sessionId ?? this.conversations.get(instanceId)
-    if (!target) {
+    if (choice?.fresh) return this.bind(instanceId, undefined, choice)
+    if (choice || !target) {
       await this.ctx.sessions.refresh()
       const sessions = this.ctx.sessions.list.getSnapshot()
-      target = sessions.ids.find(id => sessions.byId[id]?.projectionValues?.actveroWorkbench?.instanceId === instanceId)
+      const matches = (id: SessionId) => {
+        const binding = sessions.byId[id]?.projectionValues?.actveroWorkbench
+        return binding?.instanceId === instanceId && (!choice || (binding.object?.id ?? null) === choice.objectId)
+      }
+      if (!target || !matches(target)) target = sessions.ids.find(matches)
     }
-    return this.bind(instanceId, target)
+    return this.bind(instanceId, target, choice)
   }
 
-  private async bind(instanceId: WorkbenchInstanceId, sessionId?: SessionId): Promise<SessionId> {
-    const result = await this.ctx.remote.actveroWorkbench.bind({ instanceId, ...(sessionId ? { sessionId } : {}) })
+  private async bind(instanceId: WorkbenchInstanceId, sessionId?: SessionId, options?: WorkbenchConversationOptions): Promise<SessionId> {
+    const result = await this.ctx.remote.actveroWorkbench.bind({ instanceId, ...(sessionId ? { sessionId } : {}),
+      ...(options ? { objectId: options.objectId, ...(sessionId ? { expectedObjectId: options.objectId } : {}) } : {}) })
     if (!result.ok) throw result.error
     this.conversations.set(instanceId, result.value.sessionId)
     await this.ctx.sessions.refresh()
@@ -155,6 +163,7 @@ export class WorkbenchClientRuntime {
     reference: WorkbenchClientContext['reference']): WorkbenchClientContext {
     return {
       instanceId, sessionId, display, displayState, reference,
+      object: sessionId ? this.ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.object ?? null : null,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
       environment: async () => {
         if (!instanceId) return null
@@ -174,10 +183,10 @@ export class WorkbenchClientRuntime {
         if (!result.ok) throw result.error
         return result.value
       },
-      conversation: async () => {
+      conversation: async (options) => {
         if (!instanceId) throw new Error('Workbench has no conversation provider')
         const target = sessionId ?? this.conversations.get(instanceId)
-        const bound = await this.conversation(instanceId, target)
+        const bound = await this.conversation(instanceId, target, options)
         await showConversation(bound)
       },
       action: async (revision, action, args) => {
