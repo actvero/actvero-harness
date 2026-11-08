@@ -32,7 +32,7 @@
   .previewActions { opacity: 0; pointer-events: none; }
   .workbenchFloat:hover .previewActions, .workbenchFloat:focus-within .previewActions { opacity: 1; pointer-events: auto; }
 }
-.chatFloat { top: max(64px, var(--dsh-frame-overlay-top, 0px)); right: 24px; --actvero-floating-width: min(400px, calc(100vw - 32px)); --actvero-floating-height: min(700px, calc(100dvh - 88px)); height: var(--actvero-floating-height); width: var(--actvero-floating-width); }
+.chatFloat { right: 16px; bottom: 16px; --actvero-floating-width: min(400px, calc(100vw - 32px)); --actvero-floating-height: min(700px, calc(100dvh - max(64px, var(--dsh-frame-overlay-top, 0px)) - 16px)); height: var(--actvero-floating-height); width: var(--actvero-floating-width); }
 .chatFloat[hidden] { display: none; }
 /* The compact native model trigger keeps all composer actions reachable in the floating window. */
 .chatBody { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; --dsh-composer-model-text-display: none; --dsh-composer-model-icon-display: block; }
@@ -47,7 +47,7 @@
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 @media (max-width: 600px) {
   .workbenchFloat, .chatFloat { right: 16px; }
-  .chatFloat { --actvero-floating-height: calc(100dvh - 88px); }
+  .chatFloat { --actvero-floating-height: calc(100dvh - max(64px, var(--dsh-frame-overlay-top, 0px)) - 16px); }
   .aiLauncher { right: 16px; bottom: 16px; }
   .toolbar { padding-inline: 12px; }
 }
