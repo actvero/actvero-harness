@@ -48,7 +48,7 @@ export interface ActveroWorkbench {
   readonly description: string
   readonly version: string
   readonly category?: string
-  /** Public image URL supplied by the workbench; no authentication tokens. */
+  /** Legacy public artwork URL; an installed package's icon takes precedence. No authentication tokens. */
   readonly iconUrl?: string
   /** Representative screenshots or outputs; the card displays the first three. */
   readonly previewUrls?: readonly string[]

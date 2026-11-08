@@ -61,6 +61,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | File or field | Purpose |
 |---|---|
 | `package.json.name` / `version` | Stable package name and complete SemVer version; the template registers under the package name |
+| `package.json.icon` | Optional package artwork, for example `./assets/icon.svg`; SVG, PNG, JPEG or WebP, at most 256 KiB |
 | `engines.dsh` | Supported DSH runtime range; the template pins the current development baseline |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
@@ -79,7 +80,7 @@ The artifact contains the manifest, generated patch, display `locale`, compiled 
 
 Edit card copy in `workbench.json`. Categories use the expert ecosystem's identifiers: `office`, `engineering`, `design`, `content`, `data`, `education`, `lifestyle`, `general`, and `uncategorized`. My workbenches omits category filtering, but packages may carry a category.
 
-Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and maintain bilingual copy in `locales.ts`. Declare preview imports and an optional `iconUrl` in the Client entry; the Host supplies a fallback icon. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
+Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and maintain bilingual copy in `locales.ts`. Declare preview imports in the Client entry. Put artwork in the package-root `assets/` directory and declare it once in `package.json`, for example `"icon": "./assets/icon.svg"`. The Host reuses it in cards, details, the switcher, the business title, the conversation picker, the composer badge and the floating-workbench control. Missing or failed artwork uses the native fallback. A Client `iconUrl` remains supported when package artwork is absent. Management and AI-assistant entries retain Host icons. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
 
 The example isolates browser local storage by package name and restores progress after reload. A failed read reports an error and disables changes instead of overwriting unreadable data. This storage belongs to the current client configuration; it provides no project, account, or organization isolation and no backup. Production business data requires its own storage design.
 

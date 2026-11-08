@@ -7,7 +7,6 @@ import {
   ImageLightbox,
   ActionMenu,
   Tooltip,
-  IconChecklistOutlineMedium,
   IconChevronLeftOutlineMedium,
   IconChevronRightOutlineMedium,
   IconCloseOutlineMedium,
@@ -18,7 +17,7 @@ import type { ActveroWorkbench } from '../../contracts.ts'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
-import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
 import styles from './workbenches.module.css'
@@ -37,13 +36,8 @@ function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
 }
 
-function Mark({ entry, builtIn }: { entry: ActveroWorkbench; builtIn: boolean }) {
-  const [failed, setFailed] = useState<string>()
-  return <span className={styles.mark}>
-    {entry.iconUrl && failed !== entry.iconUrl
-      ? <img src={entry.iconUrl} alt="" onError={() => { setFailed(entry.iconUrl) }} />
-      : builtIn ? <IconChecklistOutlineMedium size={22} /> : <WorkbenchIcon size={22} />}
-  </span>
+function Mark({ entry }: { entry: ActveroWorkbench }) {
+  return <span className={styles.mark}><WorkbenchArtwork id={entry.id} url={entry.iconUrl} size={22} /></span>
 }
 
 function PreviewImage({ url, t }: Locale & { url: string }) {
@@ -148,7 +142,7 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
     <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
-        <Mark entry={entry} builtIn={builtIn} />
+        <Mark entry={entry} />
         <h3 className={styles.name} title={entry.name}>{entry.name}</h3>
       </div>
       <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} details={() => { showDetails(0) }} />
@@ -213,7 +207,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
-            <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><h3>{t('about')}</h3></div>
+            <div className={styles.detailIdentity}><Mark entry={entry} /><h3>{t('about')}</h3></div>
             <p className={styles.detailDescription}>{entry.description}</p>
             {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <dl className={styles.facts}>

@@ -61,6 +61,7 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 | 文件或字段 | 用途 |
 |---|---|
 | `package.json.name` / `version` | 稳定包名和完整 SemVer 版本；模板注册标识等于包名 |
+| `package.json.icon` | 可选的包内图标，例如 `./assets/icon.svg`；支持 SVG、PNG、JPEG、WebP，文件不超过 256 KiB |
 | `engines.dsh` | 所支持的 DSH 运行时版本范围；模板锁定当前开发基线 |
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
@@ -79,7 +80,7 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 
 在 `workbench.json` 修改卡片文案；分类使用专家生态的统一标识：`office`、`engineering`、`design`、`content`、`data`、`education`、`lifestyle`、`general`、`uncategorized`。「我的工作台」不展示分类筛选，但包仍可携带分类。
 
-在 `src/client/Checklist.tsx` 和相邻 CSS Module 修改业务视图，在 `locales.ts` 维护中英文案。在客户端入口声明预览图和可选 `iconUrl`；缺少图标时宿主显示默认图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
+在 `src/client/Checklist.tsx` 和相邻 CSS Module 修改业务视图，在 `locales.ts` 维护中英文案。在客户端入口声明预览图。图标放入包根目录的 `assets/`，在 `package.json` 声明一次，例如 `"icon": "./assets/icon.svg"`；宿主会在卡片、详情、切换菜单、业务标题、对话选择器、输入框标签和悬浮工作台按钮中复用它。图标缺失或加载失败时显示默认图标。未声明包图标时兼容客户端的 `iconUrl`。管理入口与 AI 助手保留宿主图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
 
 示例按包名隔离浏览器本地存储，刷新后恢复清单；读取失败会显示错误并禁用修改，避免覆盖无法读取的数据。这里的存储属于当前客户端配置，不提供多项目、账户或组织隔离，也不提供备份。正式业务的数据管理需要独立设计。
 

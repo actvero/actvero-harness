@@ -1,9 +1,10 @@
 /** Workbench management and quick switching share one sidebar row. */
 import { useState } from 'react'
-import { IconChecklistOutlineMedium, IconChevronDownOutlineMedium, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutlineMedium, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsHooks, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchAction, WorkbenchView } from './register.ts'
-import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { workbenchIconUrl } from './catalog.ts'
 import styles from './navigation.module.css'
 
 /** Reactive catalog and current selection shared by navigation and business views. */
@@ -12,12 +13,6 @@ export type WorkbenchViewHooks = PropsHooks<{ view: {
   subscribe: (listener: () => void) => () => void
 } }>
 
-function EntryIcon({ id, url }: { id: string; url?: string }) {
-  const [failed, setFailed] = useState<string>()
-  if (url && failed !== url) return <img className={styles.icon} src={url} alt="" onError={() => { setFailed(url) }} />
-  return id === 'builtin:project-checklist' ? <IconChecklistOutlineMedium size={18} /> : <WorkbenchIcon size={18} />
-}
-
 /**
  * Render independent management and switch controls, including the collapsed rail.
  * @param props Sidebar state, workbench catalog, localized copy and navigation actions.
@@ -25,7 +20,8 @@ function EntryIcon({ id, url }: { id: string; url?: string }) {
  */
 export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, action }:
   PropsRuntime<'sidebar.panellist.row'> & PropsLocale<'actvero.workbenches'> & WorkbenchViewHooks & { action: WorkbenchAction }) {
-  const { entries, opened } = useView(value => value)
+  const view = useView(value => value)
+  const { entries, opened } = view
   const inBusiness = usePanelInfo(info => info.activePanelId === 'actvero-workbench-business')
   const [menuOpen, setMenuOpen] = useState(false)
   const catalog = [{ id: 'builtin:project-checklist', name: t('sampleName'), iconUrl: undefined }, ...entries]
@@ -50,7 +46,7 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
     className={styles.anchor} listClassName={styles.switchMenu} selectedId={selected?.id} anchor={row}
     items={[{ type: 'label', id: 'heading', text: t('mine') }, ...catalog.map(entry => ({
       id: entry.id, label: <span className={styles.entryName} title={entry.name}>{entry.name}</span>,
-      icon: <EntryIcon id={entry.id} url={entry.iconUrl} />,
+      icon: <WorkbenchArtwork id={entry.id} url={workbenchIconUrl(view, entry.id)} size={18} />,
     }))]}
     onSelect={(id) => { setMenuOpen(false); action.open(id) }} />
 }

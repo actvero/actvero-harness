@@ -13,6 +13,17 @@ export interface WorkbenchItem extends ActveroWorkbench {
   runningVersion?: string
 }
 
+/** Resolve the package artwork shared by every workbench view.
+ * @param view Installed metadata and current or retained Client descriptors.
+ * @param id Stable workbench package identity.
+ * @returns Public package icon, legacy Client artwork, or undefined for the native fallback.
+ */
+export function workbenchIconUrl(view: Pick<WorkbenchView, 'entries' | 'remembered' | 'bundles'>, id: string): string | undefined {
+  return view.bundles.find(bundle => bundle.name === id && bundle.installed)?.meta?.icon
+    ?? view.entries.find(entry => entry.id === id)?.iconUrl
+    ?? view.remembered.find(entry => entry.id === id)?.iconUrl
+}
+
 /** Build cards from the installed catalog without hiding disabled or failed bundles.
  * @param view Installed inventory and live panel registrations.
  * @param resolveText Current locale's package text resolver.
@@ -32,9 +43,10 @@ export function workbenchCatalog(view: Pick<WorkbenchView, 'entries' | 'remember
       version: bundle.version ?? '',
       ...(bundle.meta?.icon ? { iconUrl: bundle.meta.icon } : {}),
     }
+    const iconUrl = workbenchIconUrl(view, bundle.name)
     const restart = bundle.restartRequired || view.restart.includes(bundle.name)
       || (live && (!bundle.enabled || live.version !== bundle.version))
-    return { ...entry, version: bundle.version ?? entry.version, bundle,
+    return { ...entry, ...(iconUrl ? { iconUrl } : {}), version: bundle.version ?? entry.version, bundle,
       ...(live ? { runningVersion: live.version } : {}),
       state: restart ? 'restartState' : bundle.error ? 'failedState' : !bundle.enabled ? 'disabledState' : live ? 'ready' : 'unloadedState',
     }

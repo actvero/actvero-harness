@@ -9,7 +9,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@actvero/dsh-client-account/client'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
-import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { workbenchIconUrl } from './catalog.ts'
 import { FloatingPreview } from './FloatingPreview.tsx'
 import styles from './runtime.module.css'
 
@@ -41,6 +42,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
   & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
   const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const sessions = useSessions(value => value)
   const [menuOpen, setMenuOpen] = useState(false)
   const linked = sessions.ids.map(id => sessions.byId[id]).filter(summary =>
@@ -60,6 +62,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
+      {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
       <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
@@ -118,18 +121,17 @@ export interface ConversationWorkbenchActions {
   open(id: string, instanceId: WorkbenchInstanceId, sessionId: SessionId): void
   context(instanceId: WorkbenchInstanceId, sessionId: SessionId): WorkbenchClientContext
   failed(): void
-  icon(id: string): string | undefined
   preview(instanceId: WorkbenchInstanceId, visible: boolean): void
 }
 
 /** Selected workbench badge follows the composer expert badge's compact and removal behavior. */
-export function WorkbenchBadge({ t, useProjection, sessionId, action }: PropsRuntime<'conversation.input.left'> & Locale
+export function WorkbenchBadge({ t, useProjection, useView, sessionId, action }: PropsRuntime<'conversation.input.left'> & Locale & WorkbenchViewHooks
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
   const [pending, setPending] = useState(false)
+  const icon = useView(value => selection ? workbenchIconUrl(value, selection.id) : undefined)
   if (!selection) return null
-  const icon = action.icon(selection.id)
-  const mark = icon ? <img src={icon} alt="" /> : <WorkbenchIcon />
+  const mark = <WorkbenchArtwork id={selection.id} url={icon} />
   return <span className={styles.badge} data-workbench-badge="">
     <Tooltip label={t('detachWorkbench')} disabled={pending}><button type="button" className={styles.badgeRemove}
       disabled={pending} aria-label={t('detachWorkbench')}
@@ -151,13 +153,15 @@ export function WorkbenchUtilities({ t, useProjection, useView, sessionId, actio
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
   const floating = useView(value => !selection || value.visibility[`preview:${sessionId}:${selection.instanceId}`] !== false)
+  const icon = useView(value => selection ? workbenchIconUrl(value, selection.id) : undefined)
   const trigger = useRef<HTMLButtonElement>(null)
   if (!selection) return null
   const collapse = () => { action.preview(selection.instanceId, false); trigger.current?.focus() }
   return <div className={styles.utilities} data-workbench-conversation={selection.id}
     data-workbench-instance={selection.instanceId} data-workbench-session={sessionId}>
     <Tooltip label={t('floatWorkbench')} side="bottom"><Button ref={trigger} size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
-      onClick={() => { action.preview(selection.instanceId, !floating) }}><WorkbenchIcon /></Button></Tooltip>
+      onClick={() => { action.preview(selection.instanceId, !floating) }}>
+      <WorkbenchArtwork id={selection.id} url={icon} /></Button></Tooltip>
     <Tooltip label={t('fullWorkbench')} side="bottom">
       <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
         onClick={() => { action.open(selection.id, selection.instanceId, sessionId) }}>

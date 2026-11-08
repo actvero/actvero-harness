@@ -17,6 +17,8 @@ import { WorkbenchClientRuntime } from './runtime.ts'
 import { workbenchResource } from './resource.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { Navigation } from './Navigation.tsx'
+import { workbenchIconUrl } from './catalog.ts'
+import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { en, zh } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -442,10 +444,11 @@ export function registerWorkbenches(ctx: Context): void {
     },
     context: (instanceId, selectedSession) => context(instanceId, selectedSession),
     preview(instanceId, visible) { rememberVisibility(`preview:${sessionId}:${instanceId}`, visible) },
-    failed, icon: id => view.entries.find(entry => entry.id === id)?.iconUrl,
+    failed,
   })
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({ name: 'conversation.input.left',
-    id: 'actvero-selected-workbench', locale: namespace, order: 30, inject: sessionId => ({ action: conversationAction(sessionId) }),
+    id: 'actvero-selected-workbench', locale: namespace, order: 30,
+    inject: sessionId => ({ action: conversationAction(sessionId), hooks: { view: source } }),
   }, WorkbenchBadge))
   ctx.slots.inject('conversation.session.header.resident-utilities', () => ctx.slots.register({ name: 'conversation.session.header.resident-utilities',
     id: 'actvero-workbench-views', locale: namespace, order: -10, inject: sessionId => ({ action: conversationAction(sessionId), hooks: { view: source } }),
@@ -458,7 +461,10 @@ export function registerWorkbenches(ctx: Context): void {
         signal.throwIfAborted()
         if (!result.ok) throw result.error
         return result.value.filter(item => item.aiEnabled && (item.id === 'builtin:project-checklist' || view.entries.some(entry => entry.id === item.id)))
-          .map(item => ({ id: item.id, label: item.name, icon: WorkbenchIcon }))
+          .map(item => ({ id: item.id, label: item.name,
+            icon: item.id === 'builtin:project-checklist' ? IconChecklistOutlineMedium : WorkbenchIcon,
+            avatar: { src: workbenchIconUrl(view, item.id), fallback: item.name.slice(0, 1) },
+          }))
       },
       onSelect: async (option, session) => { await runtime.select(option.id, session.sessionId) },
     },

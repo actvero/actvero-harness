@@ -40,6 +40,5 @@
 .currentName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .switchMenu { width: 0; max-width: calc(100vw - 24px); }
 .entryName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.icon { display: block; width: 18px; height: 18px; border-radius: var(--dsw-radius-sm); object-fit: contain; }
 .row[data-wide="false"] { width: 36px; height: 36px; margin: 0; }
 .row[data-wide="false"] .manage { justify-content: center; padding: 0; }

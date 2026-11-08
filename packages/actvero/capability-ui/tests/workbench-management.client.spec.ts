@@ -2,7 +2,7 @@
 import { expect, it, vi } from 'vitest'
 import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { createWorkbenchManagement, type WorkbenchManagement } from '../src/client/workbenches/management.ts'
-import { workbenchCatalog } from '../src/client/workbenches/catalog.ts'
+import { workbenchCatalog, workbenchIconUrl } from '../src/client/workbenches/catalog.ts'
 
 const bundle: BundleInfo = {
   name: '@local/checklist', version: '1.0.0', description: 'Checklist', official: false,
@@ -74,4 +74,15 @@ it('keeps disabled releases in the catalog and separates installed and running v
     .toMatchObject([{ state: 'restartState' }])
   expect(workbenchCatalog({ ...view, bundles: [{ ...bundle, error: { code: 'not-bundle' } }] }, resolveText))
     .toMatchObject([{ state: 'failedState' }])
+})
+
+it('keeps the package icon authoritative across loading and legacy Client descriptors', () => {
+  const entry = { id: bundle.name, name: 'Checklist', description: 'Saved tasks', version: '1.0.0', iconUrl: 'legacy-client-icon' }
+  const installed = { ...bundle, meta: { icon: 'package-icon' } }
+  const view = { entries: [entry], remembered: [], bundles: [installed], restart: [] }
+  expect(workbenchIconUrl(view, bundle.name)).toBe('package-icon')
+  expect(workbenchCatalog(view, () => 'Checklist')[0]?.iconUrl).toBe('package-icon')
+  expect(workbenchIconUrl({ ...view, entries: [] }, bundle.name)).toBe('package-icon')
+  expect(workbenchIconUrl({ ...view, bundles: [] }, bundle.name)).toBe('legacy-client-icon')
+  expect(workbenchIconUrl({ entries: [], bundles: [], remembered: [entry] }, bundle.name)).toBe('legacy-client-icon')
 })

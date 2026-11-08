@@ -57,7 +57,7 @@
 .badge button:disabled { color:var(--dsw-alias-label-dimmed); cursor:default; }
 .badge:has(.badgeTrigger:not(:disabled)):hover,.badge:has(button:focus-visible) { background:var(--dsw-alias-interactive-bg-hover-solid); color:var(--dsw-alias-label-primary); }
 .mark,.compactMark { display:grid; place-items:center; flex:none; width:20px; height:20px; overflow:hidden; border-radius:var(--dsw-radius-xs); background:var(--dsw-specific-selector); font-size:11px; line-height:1; }
-.mark img,.compactMark img { width:100%; height:100%; object-fit:cover; }
+.mark img,.compactMark img { width:100%; height:100%; object-fit:contain; }
 .compactMark { display:var(--dsh-composer-leading-icon-display,none); margin-inline-start:4px; }
 .badgeName { display:var(--dsh-composer-leading-detail-display,block); min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .badgeRemove { display:var(--dsh-composer-leading-detail-display,grid); place-items:center; flex:none; width:28px; padding:0; }
