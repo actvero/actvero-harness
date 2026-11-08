@@ -57,6 +57,8 @@ Web 与桌面端的通用设置底部显示当前发布版本，使用构建注�
 
 -----
 
+外壳提供由 ui-settings 声明的 `ctx.settingsNavigation`，用于打开指定的已注册设置页。外壳重载后旧导航引用失效；当前页面移除时使用现有的首个设置页回退行为。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 

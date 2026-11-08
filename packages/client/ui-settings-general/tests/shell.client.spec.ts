@@ -49,6 +49,21 @@ const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
 ]
 
 describe('ui-settings-general shell', () => {
+  it('opens registered sections and invalidates retained navigation after shell reload or unload', async ({ start }) => {
+    const c = await start()
+    const previous = c.ctx.settingsNavigation
+    expect(() => { previous.open('general') }).not.toThrow()
+    expect(() => { previous.open('missing-section') }).toThrow('unavailable')
+    await c.reload(SIDEBAR)
+    await c.flush()
+    expect(() => { previous.open('general') }).toThrow('unavailable')
+    expect(c.ctx.settingsNavigation).not.toBe(previous)
+    expect(() => { c.ctx.settingsNavigation.open('general') }).not.toThrow()
+    await c.unload(SELF)
+    await c.flush()
+    expect(c.ctx.get('settingsNavigation')).toBeUndefined()
+  }, COLD_BOOT_TIMEOUT_MS)
+
   it('shares one carrier subscription between both update locations and releases it on unload', async ({ start }) => {
     const initial = Promise.withResolvers<DesktopUpdatePresentation>()
     let publish: ((state: DesktopUpdatePresentation) => void) | undefined

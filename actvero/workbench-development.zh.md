@@ -92,7 +92,7 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 ## 包格式
 
-工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.2.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.3.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
 
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
@@ -160,7 +160,19 @@ my-workbench/
 
 标题和操作由顶栏组件在渲染时计算，不在正文的 effect 中反向设置宿主标题。正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 `store`；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 `useStore` 和 `actions`。状态按所需实例或视图标识组织；它只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量。
 
-验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。选区使用下文的原生引用接口；设置面板和业务对象会话绑定的进一步封装尚未交付。
+验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。选区使用下文的原生引用接口；业务对象会话绑定的进一步封装尚未交付。
+
+<a id="settings-commands"></a>
+
+### 原生设置页与关联对话命令
+
+使用这组扩展时声明 `hostApi: "^1.3.0"`。Client 的注册选项增加 `settings: { component: Preferences, label: () => t('preferences') }` 和 `commands: [...]`。`Preferences` 接收 `WorkbenchSettingsProps` 以及注册选项指定的 `PropsLocale`、`PropsStore`；`close()` 关闭宿主设置，不改变当前对话。省略 label 时使用工作台名称。设置页跟随工作台安装启用，在原生设置导航中显示；无需先打开业务界面。停用或卸载时，面板、导航项和命令一起释放。
+
+业务操作在 apply 层通过 `ctx.actveroWorkbenches.openSettings(manifest.name)` 打开自己的设置页，再将回调通过原生 Store action 等标准绑定传给组件；组件不持有 ctx。没有注册面板或原生设置外壳未加载时调用抛错，由操作入口显示本地化失败信息。设置组件只负责编辑与反馈：安装级偏好使用 Host Config 的 Volatile 字段及原生 ConfigForms 持久化；具体图纸、项目和业务对象的设置仍用作者的数据目录或服务。不要用前端 Store 或 localStorage 代替 Host 配置。配置读取、保存、冲突和重启恢复见源码仓库的[设置卡片指南](../docs/cookbook/adding-a-settings-card.zh.md)。
+
+commands 中的每一项复用原生 `CommandContribution`，包含全局唯一的 `name`、本地化 `label()`、可选 `description()` 和图标、`available(session)` 与 `ui`。简单 UI 操作用 `{ kind: 'action', run(session) { ... } }`；选择菜单用 `{ kind: 'popupSelect', options(session, signal), onSelect(option, session), searchLabels() }`。框架额外限制为明确关联该工作台的对话；普通对话不会因最近使用过工作台而获得这些命令。名称冲突拒绝注册并回收此前贡献，不覆盖其他插件。命令本身不调用模型；有意发送请求必须走原生提交接口并获得相应用户授权。
+
+菜单加载后切换工作台或数据实例，旧选项不能继续执行；停用会关闭菜单、取消未完成的选项加载并使已捕获回调失效。回调始终使用传入的 sessionId，不读取全局“当前对话”；作者负责固定业务对象和修订号、处理自身操作失败，并在异步 options 中响应 signal。已经开始的业务写入不因 UI 卸载而自动回滚，作者服务负责事务与取消。验收包含普通对话隔离、关联对话命令、菜单中途取消关联、设置页定位、窄窗口、深浅主题及停用后重新加载。
 
 <a id="input-references"></a>
 

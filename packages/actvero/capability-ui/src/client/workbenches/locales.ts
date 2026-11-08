@@ -1,4 +1,5 @@
 export const zh = {
+  commandUnavailable: '此命令已不可用，请在关联工作台的对话中重新打开。',
   referenceSnapshot: '引用时的内容快照', referenceRevision: '版本',
   referenceInvalid: '引用内容无法读取，请移除后重新选择。',
   businessNavigation: '工作台导航',
@@ -122,6 +123,7 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  commandUnavailable: 'This command is unavailable. Reopen it in a conversation associated with the workbench.',
   referenceSnapshot: 'Content captured when referenced', referenceRevision: 'Revision',
   referenceInvalid: 'Could not read this reference. Remove it and select the content again.',
   businessNavigation: 'Workbench navigation',

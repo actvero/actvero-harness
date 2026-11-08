@@ -49,6 +49,8 @@ A committed write folds its answer into the shared mirror. Refused writes refres
 
 -----
 
+The shell also provides `ctx.settingsNavigation.open(sectionId)` for opening a registered page without changing conversations. The service exists only while the shell is registered; unknown sections and retained handles from a disposed shell throw. Feature actions own localized failure feedback.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

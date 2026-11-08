@@ -21,14 +21,17 @@
   en: ef1bf1e17eb39c39
   zh: 1bebc16c03f60cc5
 /workbench-development/package-format:
-  en: 99b91db7d65e4d51
-  zh: 217facdd9c3fbbfb
+  en: 6ea6aec886d0f4d6
+  zh: 4d4c80b4b3981bab
 /workbench-development/edit-the-business-view:
   en: 301e50f1f82f533d
   zh: bf6f1386e78c2855
 /workbench-development/edit-the-business-view/native-header-and-shared-view-state:
-  en: 6ef7e0fbc6c45c7e
-  zh: 1df7e661935c8101
+  en: 318adb0b163c1fdb
+  zh: d2e955b833277432
+/workbench-development/edit-the-business-view/native-settings-pages-and-associated-conversation-commands:
+  en: bc7b6b75d015ee13
+  zh: b960a923353acc52
 /workbench-development/edit-the-business-view/insert-business-selections-into-the-native-composer:
   en: 9b91889f48b709a0
   zh: d1c152653d7156fc

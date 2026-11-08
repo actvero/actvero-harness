@@ -57,6 +57,8 @@ Host 提供者通过 Cordis effect 注册元信息、可选 JSON 适配器与专
 
 包的 Host 和 Client 注册在产生贡献前共用[兼容解析](src/workbench-protocol.ts)，开发模板和归档预检沿用同一要求；声明方式见[包格式](../../../actvero/workbench-development.zh.md#format)。注销立即撤下可用状态、取消准备与激活，并等待已开始的调用及会话作用域释放；完成前保留工作台标识，重复注销等待同一结果。准备失败会停止模型请求并释放该会话的工具，关联日志和业务数据保持不变。提供者必须响应 AbortSignal、等待自己启动的任务结束，且不能在回调中等待自己的注销；宿主无法强制终止不合作的同进程代码。Cordis 负责贡献释放并记录清理异常，不能据此保证外部副作用已回滚。
 
+扩展 API 1.3 通过 register 的 settings 和 commands 选项提供原生设置页及关联对话命令；openSettings(id) 打开指定提供者的设置页。命令复用原生 CommandContribution，并在执行前复核关联；停用会关闭菜单并释放全部贡献。设置持久化仍由原生 Host 配置或作者业务存储负责，见[开发指南](../../../actvero/workbench-development.zh.md#settings-commands)。
+
 <a id="model-experience"></a>
 
 ## 模型体验

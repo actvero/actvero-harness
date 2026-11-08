@@ -80,6 +80,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     actveroWorkbench: TypertResource<WorkbenchInstanceId>
   }
   interface RemoteErrorDetailsMap {
+    /** A captured Client command no longer belongs to the conversation's active workbench instance. */
+    'workbench/command': { status: 'unavailable' }
     /** The linked provider is unavailable or no longer matches its selected version. */
     'workbench/unavailable': Record<string, never>
     /** The business instance does not exist. */

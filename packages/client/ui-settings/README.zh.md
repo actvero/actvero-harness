@@ -49,6 +49,8 @@ kind: "package-reference"
 
 -----
 
+外壳还提供 `ctx.settingsNavigation.open(sectionId)`，直接打开已注册页面而不切换对话。服务只在外壳注册期间存在；未知页面及已释放外壳的旧引用会抛错。功能入口负责本地化失败反馈。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 

@@ -57,6 +57,8 @@ The client service `ctx.capabilityHub` opens an expert, skill or connector manag
 
 Host and Client registrations share [compatibility resolution](src/workbench-protocol.ts) before contributing effects; templates and archive preflight use the same requirements, documented in [package format](../../../actvero/workbench-development.md#format). Unregistration immediately withdraws availability, cancels preparation and activation, and waits for started calls and conversation scopes to settle; the identity remains reserved until completion, and repeated disposal awaits the same result. Preparation failure stops the model request and releases that conversation’s tools without changing its binding log or business data. Providers must observe AbortSignal, await their own tasks, and never await their own unregistration inside a callback; the host cannot forcibly stop uncooperative in-process code. Cordis releases contributions and logs cleanup exceptions; this does not guarantee rollback of external effects.
 
+Extension API 1.3 adds native settings pages and associated-conversation commands through `register` options `settings` and `commands`. `openSettings(id)` addresses the provider page. Commands use native CommandContribution and recheck association before execution; disabling dismisses popups and removes all contributions. Settings persistence remains with native Host configuration or author-owned business storage; see the [developer guide](../../../actvero/workbench-development.md#settings-commands).
+
 <a id="model-experience"></a>
 
 ## Model Experience

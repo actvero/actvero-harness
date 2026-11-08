@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // Type-only: the ctx.remote merge and the carrier's `connection/reset`
 // lifecycle event, all through the assembly package.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+export type { SettingsNavigation } from './navigation.ts'
 // Type-only pair supplying `$on` and its key face without dragging a build
 // artifact into the Host graph (rationale beside the same pair in
 // config-form.ts).

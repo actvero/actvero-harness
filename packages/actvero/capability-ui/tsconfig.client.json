@@ -73,6 +73,9 @@
     },
     {
       "path": "../../client/ui-input-trigger/tsconfig.json"
+    },
+    {
+      "path": "../../client/ui-settings/tsconfig.client.json"
     }
   ]
 }

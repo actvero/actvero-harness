@@ -23,6 +23,7 @@ import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitive
 import { en, zh } from './locales.ts'
 import { WorkbenchToolbar } from './Toolbar.tsx'
 import { registerWorkbenchReferences } from './references.tsx'
+import { registerWorkbenchCommands } from './commands.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -275,7 +276,14 @@ export function registerWorkbenches(ctx: Context): void {
       throw error
     }
   }
+  const settings = new Set<string>()
+  const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
+    openSettings(id) {
+      const navigation = ctx.get('settingsNavigation')
+      if (!settings.has(id) || !navigation) throw new Error(`Workbench settings unavailable: ${id}`)
+      navigation.open(settingsId(id))
+    },
     register(descriptor, component, options) {
       resolveWorkbenchProtocol(descriptor.protocol)
       const { id, name, description, version } = descriptor
@@ -285,6 +293,7 @@ export function registerWorkbenches(ctx: Context): void {
       if (view.entries.some(item => item.id === id)) throw new Error(`Duplicate Actvero workbench: ${id}`)
       const entry = { ...descriptor }
       return ctx.effect(function* () {
+        yield registerWorkbenchCommands(ctx, id, options?.commands ?? [], () => ctx.locale.bind(namespace)('commandUnavailable'))
         yield ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
           name: 'actvero.workbench.body', key: entry.id, locale: options?.locale, store: options?.store,
         }, component))
@@ -293,6 +302,15 @@ export function registerWorkbenches(ctx: Context): void {
           yield ctx.slots.inject('actvero.workbench.header', () => ctx.slots.register({
             name: 'actvero.workbench.header', key: entry.id, locale: options.locale, store: options.store,
           }, header))
+        }
+        if (options?.settings) {
+          const page = options.settings
+          yield ctx.slots.inject('settings.section', () => ctx.slots.register({
+            name: 'settings.section', id: settingsId(id), label: page.label ?? (() => name),
+            locale: options.locale, store: options.store,
+          }, page.component))
+          settings.add(id)
+          yield () => { settings.delete(id) }
         }
         yield () => { update({ entries: view.entries.filter(item => item !== entry) }) }
         update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })

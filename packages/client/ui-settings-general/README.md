@@ -57,6 +57,8 @@ The onboarding ledger projects in ascending order and mounts exactly one step at
 
 -----
 
+The shell owns `ctx.settingsNavigation`, declared by ui-settings, for addressed navigation to registered settings sections. Shell reload invalidates retained navigation handles; section removal uses the existing first-section fallback.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

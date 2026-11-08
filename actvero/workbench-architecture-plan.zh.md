@@ -166,7 +166,7 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 
 阶段二和三共享输入引用设计，协议评审时一并确定；实现可按依赖顺序交付，不以单个组件完成宣称整体架构完成。每阶段覆盖正常流程、停用/卸载、取消、失败和恢复；涉及模型输入的变更补充可重放的会话快照。macOS、Windows、真实账号和离线场景分别记录实测证据与待验证项。
 
-阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。阶段二的顶栏已通过原生 keyed Slot 和工具栏 Factory 接入，支持自定义组件、面包屑与共享视图 Store，AI 模板已移除重复标题和通用 AI 按钮。显式输入引用适配已通过 API 1.2.0 接入，验收入口为[引用事务测试](../packages/actvero/capability-ui/tests/workbench-reference.client.spec.ts)和[引用会话回放](../apps/web/tests/actvero-workbench-reference.snapshot.ts)。设置和通用命令仍待实现。
+阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。阶段二的顶栏已通过原生 keyed Slot 和工具栏 Factory 接入，支持自定义组件、面包屑与共享视图 Store，AI 模板已移除重复标题和通用 AI 按钮。显式输入引用适配已通过 API 1.2.0 接入，验收入口为[引用事务测试](../packages/actvero/capability-ui/tests/workbench-reference.client.spec.ts)和[引用会话回放](../apps/web/tests/actvero-workbench-reference.snapshot.ts)。API 1.3 已接入原生设置页与关联对话命令：支持打开指定设置页、注册失败回收、停用菜单释放以及选择前的关联复核；验收见[命令作用域测试](../packages/actvero/capability-ui/tests/workbench-commands.client.spec.ts)及上述真实安装测试。通用全局命令仍由宿主提供，工作台贡献的命令限于其关联对话。自定义消息和工具结果的工作台封装、自动选区附带及业务对象绑定尚未完成。
 
 开发入口延续现有 create、doctor、typecheck、build、check、pack 和 bind 工具链，补充宿主兼容、依赖、资源、真实加载和释放检查。开发 Skill 说明入口选择、目录、扩展注册、数据职责、AI 生命周期和验收步骤；前端 Skill 单独提供可选视觉标准，默认复用 DSH 原生语义与组件，允许业务视图个性化。
 

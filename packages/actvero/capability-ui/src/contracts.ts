@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import type { HandleOf, LocaleNamespaceMap, PropsLocale, PropsRenderFactories, PropsRuntime, PropsStore, StoreDecl, StoreFactory } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchReferenceInput } from './workbench-reference.ts'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/client'
 export type { WorkbenchObjectId, WorkbenchReferenceInput } from './workbench-reference.ts'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchDocument, WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchModelCatalog } from './types.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
@@ -53,6 +55,9 @@ export type WorkbenchBodyProps = PropsRuntime<'actvero.workbench.body'>
 /** Full-page header props; never mounted inside a floating preview. */
 export type WorkbenchHeaderProps = PropsRuntime<'actvero.workbench.header'> & PropsRenderFactories
 
+/** Native settings page props. Installation-wide settings use the provider's Host configuration; object data stays in its storage. */
+export type WorkbenchSettingsProps = PropsRuntime<'settings.section'>
+
 /** One ancestor or current business location; the last item is the current page. */
 export interface WorkbenchBreadcrumb {
   /** Unique among this header's breadcrumbs. */
@@ -101,15 +106,31 @@ export interface ActveroWorkbench {
 
 /** Client registry of installed workbenches with a ready business view. */
 export interface ActveroWorkbenchRegistry {
+  /** Open this provider's native settings page without binding or submitting a conversation.
+   * @param id Registered workbench identity.
+   * @throws When the provider has no settings page or the native settings shell is unavailable.
+   */
+  openSettings(id: string): void
   /** Register a business panel for the lifetime of its provider.
    * @param descriptor Card metadata and stable identity.
    * @param component Native business component rendered when the user opens the card.
-   * @param options Native locale, shared view-state store and optional full-page header. Store state holds navigation, not business data.
-   * @returns Idempotent disposer that removes the card, header and business panel; await any returned task before re-registering.
+   * @param options Native locale, shared view-state store, header, settings and commands. Store state holds navigation, not business data.
+   * @returns Idempotent disposer removing contributions and open command menus; await it before re-registering.
    */
   register<N extends keyof LocaleNamespaceMap | undefined = undefined, H extends Exclude<StoreDecl, StoreFactory> | undefined = undefined>(
     descriptor: ActveroWorkbench, component: (props: WorkbenchBodyProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode,
-    options?: { locale?: N; store?: H; header?: (props: WorkbenchHeaderProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode },
+    options?: {
+      locale?: N
+      store?: H
+      header?: (props: WorkbenchHeaderProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode
+      /** One installation-wide settings page. Omitted label uses the workbench name; functions follow locale changes. */
+      settings?: {
+        label?: () => string
+        component: (props: WorkbenchSettingsProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode
+      }
+      /** Native slash commands with globally unique names; only associated conversations can discover or invoke them. */
+      commands?: readonly CommandContribution[]
+    },
   ): () => void | Promise<void>
 }
 
