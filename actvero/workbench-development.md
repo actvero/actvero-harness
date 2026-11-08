@@ -4,7 +4,7 @@ English | [中文](workbench-development.zh.md)
 
 ## Summary
 
-This tutorial is for workbench developers with an Actvero repository development environment: start from the project checklist template, edit its business view, and build a local archive for the desktop client. No GitHub account, repository URL, or publishing service is required. The template uses this checkout's compiler; run the commands below from the repository root.
+This guide is for workbench developers and Agents taking over a project: create a local directory, implement the business and visual design, validate and package it, then install and verify it in the target client. No GitHub account, repository URL or publishing service is required. Initialization uses a built ACTVERO source toolchain; subsequent development commands run inside the generated project.
 
 ## Table of Contents
 
@@ -42,34 +42,47 @@ Read existing sources directly for a defined modification; use `create` only for
 
 You can also choose “Create a workbench” in the manager, copy the instructions and describe your goal in a new conversation. The native `develop-workbench` skill ships with a guide generated from this document at build time; it neither chooses the business purpose nor sends a task automatically. The commands currently require a source checkout and installed dependencies; the desktop does not include a standalone compiler.
 
-Prepare repository dependencies using the [client development guide](workbenches.md). Creation requires a destination that does not exist, preserving existing files. The second argument is the stable package name; retain it across versions of the same workbench.
+Prepare repository dependencies using the [client development guide](workbenches.md), then run `pnpm run build:artifacts` at the repository root to build the current interface declarations. Creation accepts only a destination that does not exist. The optional second argument is the stable package name; when omitted, creation derives and saves a local name from the initial path. Retain that name when moving the directory.
 
 ```sh
-pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist
-pnpm run actvero:workbench pack .artifacts/my-checklist .artifacts/workbenches
-pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0.tgz
+pnpm run actvero:workbench create .artifacts/my-workbench @local/my-workbench
+cd .artifacts/my-workbench
+npm run doctor
+npm run typecheck
+npm run build
+npm run check
+```
+
+Explicitly select a checklist example from the repository root when needed:
+
+```sh
+pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist --template plain
 pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
 ```
 
-`create` defaults to the plain checklist; add `--template ai` for “AI 项目清单”, with native data, AI and a local expert Skill. Both templates work locally without sign-in; the AI template initially offers an AI entry without creating a conversation. Build dependencies come from the source development environment.
+`create` defaults to a compilable blank view without business behavior or AI. `plain` provides a browser-storage checklist; `ai` provides “AI 项目清单” with native data, AI and a local expert Skill. Local example features work without sign-in; examples do not establish user requirements.
 
-`create` copies the editable checklist; `pack` compiles Host and Client, generates the bundle patch, and reports the validated `.tgz`, byte count, and SHA-256. Packaging does not modify business sources, install, or publish. A same-named output replaces the previous artifact; a failed build preserves it. Omitting the output directory uses the project's `dist`.
+The generated directory includes README.md, AGENTS.md, DESIGN.md, commands, type configuration and two Skills. Confirm the minimum business flow first, then record its entry point, storage, AI, pages and acceptance criteria in DESIGN.md. The separate workbench frontend Skill supports native, branded and custom styles, preferring shared components and themes. Record reasons for customization. Project instructions let another Agent locate the development resources.
+
+`doctor` checks declarations, entries and the runtime baseline, reminding authors about unfinished design decisions. `typecheck` checks author code against declarations built by the current toolchain. `build` and `pack` both typecheck, compile Host and Client, generate the bundle patch and report a validated `dist/*.tgz`, byte count and SHA-256. Builds do not modify business sources, install or publish; failure retains the previous artifact. `check` uses the unique archive in dist; with multiple versions, run `npm run check -- /absolute/path/package.tgz`. Authors add tests appropriate to their business behavior.
+
+Commands use the source checkout recorded in `.actvero/toolchain.json`; this is not a standalone SDK. That file and generated tsconfig.json stay uncommitted. After moving the project or changing machines, run `node scripts/workbench.mjs bind /absolute/path/actvero-harness` inside the project. Rebinding refreshes compiler settings, both Skills and interface references, preserving business code, README.md, AGENTS.md and DESIGN.md. Agents explicitly read .actvero/skills; automatic discovery by other Agent products is not assumed.
 
 `check` reuses desktop import preflight and checks the format marker, version declarations, nonempty entry files, and duplicate, escaping, or linked paths. It does not execute workbench code or establish business acceptance. Installation also checks compatibility with the current runtime; the development command does not bypass this check.
 
-For an existing workbench, retain its package name and data. Increase `package.json.version` before delivering an update; Host and Client continue reading the version from that file. Install the absolute `path` reported by `pack` rather than inferring an archive name from the display name. `pack` transpiles and bundles without full TypeScript type checking. Run project-owned type checks and business tests separately; producing a `.tgz` does not replace them.
+Existing projects can use `pnpm run actvero:workbench doctor <directory>`, `typecheck <directory>`, `pack <directory> [output]` and `check <archive.tgz>` at the repository root. Projects without type configuration use the current baseline configuration. Updates retain the package name and data and increase `package.json.version`; Host and Client read it from that file. Install the reported absolute `path`. Structural, type and archive checks do not establish business behavior, expert dependency activation or successful installation.
 
 <a id="install"></a>
 
 ## Import and verify
 
-Start the Actvero development client, open Workbenches → My workbenches, choose Import workbench, and select the output. If the result requires a restart, use Harness → Restart Harness. After loading, Project checklist appears in the catalog and sidebar switcher. The built-in example remains available for reference; the independent package's details show the author 本地开发 to distinguish it.
+Start the target Actvero client, open Workbenches → My workbenches, choose Import workbench and select the output. If the result requires a restart, use Harness → Restart Harness. After loading, the catalog and sidebar switcher display the name from workbench.json; the default blank template displays 空白工作台.
 
 An Agent first discovers the target's actual installation tools and reads their arguments. Use a dedicated local installer according to its declared interface when available. Native `plugin_manager` can inspect the current Profile through `list_bundles` and perform a first installation using `install_bundle` with the checked `.tgz` absolute path and native authorization. The generic tool does not accept the manager page's reviewed version-replacement arguments; updates use a replacement-capable dedicated tool or that page. Do not invent tools or bypass update checks through removal and reinstallation. Without tool or UI access, deliver the archive and mark installation pending.
 
 For installation `application`, verify loading after `applied`; `restart-required` means saved but awaiting restart. `failed`, `cancelled` and `overridden` are not activation; query unknown outcomes again. An Agent inside the target application must not close, restart or probe processes to manage its restart. Ask the user to finish this turn before using the top Restart now notice or Harness → Restart Harness. The user may try it directly or return with “重启好了” for continued verification. An isolated development client outside the target follows its normal restart procedure within existing authorization.
 
-Open the independent package, check an item, return to the manager and reopen it, then reload the client and reopen it to verify saved progress. Check previews, expanded/collapsed sidebar, light/dark themes, and a narrow window. First use creates no conversation and requires no workspace selection. Verify the installation result, catalog entry, switcher, and actual business view separately.
+Open the workbench and exercise its actual business flow. For persistent data, reopen it from the manager and after a client reload; a checklist example can verify a checked item. Check previews, expanded/collapsed sidebar, light/dark themes and a narrow window. The default blank template creates no conversation and requires no workspace selection. Verify the installation result, catalog entry, switcher and actual business view separately.
 
 To update, retain the package name, increase `package.json.version`, and rebuild. Select the archive through the card's More → Update version action or import it directly; confirmation shows the installed and incoming versions. Repeated versions, downgrades, mismatched names, and incompatible runtimes are refused. A replacement requiring restart shows Restart required; after restarting Harness, check the card’s Open action, version and business content. Independently stored data is retained; business schema migrations belong to the workbench.
 
@@ -104,11 +117,15 @@ Edit new templates at the following locations. The packager generates `cordis.pa
 my-workbench/
 ├── package.json                    # 稳定身份、版本、依赖、入口、可选 icon
 ├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
+├── README.md / AGENTS.md            # 开发命令与 Agent 入口
+├── DESIGN.md                       # 已确认业务、视觉方案与验收记录
+├── scripts/workbench.mjs           # 调用绑定的源码工具链
+├── tsconfig.json                   # 生成的本机类型配置，不提交
+├── .actvero/toolchain.json         # 本机绑定，不提交
+├── .actvero/skills/                # 工作台开发、工作台前端规范与接口快照
 ├── src/index.ts                    # Host 注册；纯界面模板为空入口
 ├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
-├── src/client/Checklist.tsx         # 替换为用户需要的业务界面
-├── src/client/locales.ts           # 业务文案
-├── src/client/checklist.module.css # 业务样式
+├── src/client/                     # 自行组织业务组件、文案与样式
 ├── src/client/assets/              # 可选预览图片，使用 import 引入
 └── assets/                         # 可选原始资源，原样随包复制
     ├── icon.svg
@@ -125,7 +142,7 @@ my-workbench/
 
 Edit card copy in `workbench.json`. Categories use the expert ecosystem's identifiers: `office`, `engineering`, `design`, `content`, `data`, `education`, `lifestyle`, `general`, and `uncategorized`. My workbenches omits category filtering, but packages may carry a category.
 
-Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and maintain bilingual copy in `locales.ts`. Declare preview imports in the Client entry. Put artwork in the package-root `assets/` directory and declare it once in `package.json`, for example `"icon": "./assets/icon.svg"`. The Host reuses it in cards, details, the switcher, the business title, the conversation picker, the composer badge and the floating-workbench control. Missing or failed artwork uses the native fallback. A Client `iconUrl` remains supported when package artwork is absent. Management and AI-assistant entries retain Host icons. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
+Organize business components and CSS Modules under `src/client/` and keep bilingual copy in locale dictionaries; checklist examples use Checklist.tsx and locales.ts. Declare preview imports in the Client entry. Put artwork in the package-root `assets/` directory and declare it once in `package.json`, for example `"icon": "./assets/icon.svg"`. The Host reuses it in cards, details, the switcher, the business title, the conversation picker, the composer badge and the floating-workbench control. Missing or failed artwork uses the native fallback. A Client `iconUrl` remains supported when package artwork is absent. Management and AI-assistant entries retain Host icons. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
 
 The example isolates browser local storage by package name and restores progress after reload. A failed read reports an error and disables changes instead of overwriting unreadable data. This storage belongs to the current client configuration; it provides no project, account, or organization isolation and no backup. Production business data requires its own storage design.
 
@@ -135,11 +152,13 @@ The example isolates browser local storage by package name and restores progress
 
 Register a Host provider to obtain a stable directory for local business storage. This entry does not enable AI or require JSON initialization and action methods; the Client still registers its business component under the same identifier.
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 export const inject = ['actveroWorkbenchRuntime']
-export async function apply(ctx) {
+export async function apply(ctx: Context) {
   const runtime = ctx.actveroWorkbenchRuntime
-  const id = '@local/my-workbench'
+  const id = '@local/my-workbench' as WorkbenchId
   ctx.effect(() => runtime.register({
     id, name: 'My workbench', version: '1.0.0',
     resourcesDirectory: import.meta.dirname,
@@ -164,13 +183,15 @@ The basic template registers a business UI only. To support native conversations
 
 A Host registration using only native AI can follow this example, without a JSON storage adapter or expert files. The business component calls its received `workbench.conversation()` to open or restore native chat; this does not send a business task. Register the Client component under the same package name. Optional first-use presentation `display` belongs in the Client descriptor, not `workbench.json`; saved user presentation choices take precedence.
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import manifest from '../package.json'
 import metadata from '../workbench.json'
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx) {
+export function apply(ctx: Context): void {
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name, name: metadata.name, version: manifest.version, ai: true,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, ai: true,
   }))
 }
 ```
@@ -189,17 +210,19 @@ This section is for authors configuring workbench AI behavior. The host provides
 
 Put raw resources in the source root's `assets/`. `pack` preserves that directory under the existing package size and path checks; raw files under `src/` are not copied automatically. The Host entry below assumes compilation to `lib/index.js`; the Client continues to register its business component under the same identity.
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import { WorkbenchExpertBundle } from '@actvero/dsh-experts/workbench'
 import { fileURLToPath } from 'node:url'
 import manifest from '../package.json'
 import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx) {
+export function apply(ctx: Context): void {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name, name: metadata.name, version: manifest.version,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }

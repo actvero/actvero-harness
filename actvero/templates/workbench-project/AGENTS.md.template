@@ -1,0 +1,9 @@
+# 工作台开发入口
+
+本文面向在此目录开发工作台的 Agent。任务是按已确认需求实现业务、验证本地包，并区分安装成功与业务验收。
+
+先读 README.md，完整读取 .actvero/skills/develop-workbench/SKILL.md 及其要求的指南和 environment.json，再读 DESIGN.md。开发规则属于“工作台开发”；视觉建议单独放在 .actvero/skills/workbench-frontend/SKILL.md，采用原生或品牌风格时读取，需要自定义时保留宿主兼容要求。
+
+先检查未提交更改，保留用户内容。模板名称和示例不是业务需求；缺少目标时先问一个必要问题，不自行编造业务。已有需求不重复询问。实现界面前更新 DESIGN.md 中的核心流程、视觉选择与验收项，允许短文档及明确的自定义理由，不把填表当作开工条件。
+
+依赖、接口和安装方法以随工具链生成的指南与目标客户端实际能力为准。不修改运行时版本绕过兼容检查，不向前端或模型暴露登录凭据。业务代码更新时同步 README.md；视觉决定变化时同步 DESIGN.md。执行 npm run doctor、npm run typecheck、npm run build 和 npm run check；再按指南验证真实加载和业务，不用构建通过代替界面验收。

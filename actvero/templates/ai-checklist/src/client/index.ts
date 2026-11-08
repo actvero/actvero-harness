@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { WorkbenchBodyProps } from '@actvero/dsh-capability-ui/client/contracts'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-resources/client'
 import { createElement } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import manifest from '../../package.json'

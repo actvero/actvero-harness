@@ -1,0 +1,27 @@
+# 工作台项目
+
+面向本地工作台开发者与接手此目录的 Agent。此目录可以编译和打包，但仍需按已确认需求实现业务；空白模板不包含业务数据或 AI，示例模板仅用于参考。
+
+## 开发步骤
+
+1. 读取 AGENTS.md 和 .actvero/skills/develop-workbench/SKILL.md，确认目标、最小流程及安装客户端。使用随项目的 reference/environment.json 核对运行时版本。
+2. 更新 DESIGN.md。原生风格是默认建议，可采用品牌或自定义风格；视觉规范独立于开发规范。
+3. 修改 workbench.json 中的业务信息、src/client 中的界面，以及需要时的 src/index.ts Host 服务。package.json 包名是稳定身份，更新时保留并提高版本。
+4. 执行下列命令。无需在此目录重新安装 DSH 或创建 GitHub 仓库。
+
+```sh
+npm run doctor
+npm run typecheck
+npm run build
+npm run check
+```
+
+doctor 检查入口、包声明与基线，并提示设计待确认项；typecheck 检查类型；build 与 pack 均先做类型检查，再生成经过校验的 dist/*.tgz；check 复核 dist 中唯一的包，有多个包时使用 `npm run check -- /绝对路径/包.tgz`。业务相关测试由作者按需添加。工具不会自动安装或启动客户端。
+
+## 工具链与安装
+
+当前使用已安装依赖并执行过 pnpm run build:artifacts 的 ACTVERO 源码工具链，尚非独立 SDK。.actvero/toolchain.json 记录本机源码根目录，tsconfig.json 引用该目录，二者不提交。仓库移动或换机器后使用 `node scripts/workbench.mjs bind /绝对路径/actvero-harness` 重新绑定，再执行 doctor。此命令更新本机编译配置，不修改业务代码。
+
+包检查通过后，用目标客户端实际提供的本地安装工具，或“工作台 → 我的工作台 → 导入工作台”安装命令输出的包。只有实际安装、加载并验证业务界面后才算交付；重启要求、版本替换、数据保留和故障定位见随项目的开发 Skill。
+
+.actvero/skills 是供 Agent 明确读取的项目资料，不假设所有 Agent 产品会自动发现它。reference 为当前工具链生成的接口快照；重新绑定会刷新快照和 Skill，DESIGN.md 与业务源码保持不变。保留个人开发约定在 AGENTS.md 中。

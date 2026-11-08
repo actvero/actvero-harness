@@ -4,7 +4,7 @@
 
 ## 概述
 
-本文面向已配置 Actvero 仓库开发环境的工作台开发者：从项目清单模板开始，修改业务界面，构建一个可导入桌面客户端的本地安装包。无需 GitHub 账号、仓库地址或发布服务。模板使用当前仓库的编译器；这里的命令在仓库根目录运行。
+本文面向工作台开发者与接手项目的 Agent：创建本地开发目录，按业务与视觉方案开发，校验并打包，再到目标客户端安装和验收。无需 GitHub 账号、仓库地址或发布服务。初始化使用已构建的 ACTVERO 源码工具链，之后在生成的项目目录运行开发命令。
 
 ## 目录
 
@@ -42,34 +42,47 @@ pnpm --version
 
 也可在管理页点击「制作工作台」，复制说明并在新对话补充业务目标。原生 `develop-workbench` Skill 随客户端提供，引用构建时从本文生成的指南；它不会自动决定业务内容或发送任务。当前开发命令需要源码仓库和已安装依赖，客户端尚未附带独立编译器。
 
-先按[客户端开发说明](workbenches.zh.md)准备仓库依赖。创建命令只接受尚不存在的目标目录，保护已有文件。第二个参数是稳定包名，同一个工作台后续版本保持包名不变。
+先按[客户端开发说明](workbenches.zh.md)准备仓库依赖，并在仓库根目录执行 `pnpm run build:artifacts` 生成当前接口的类型产物。创建命令只接受尚不存在的目标目录，保护已有文件。可选的第二个参数是稳定包名；省略时根据初始路径生成并保存本地包名，移动目录后仍保留该名称。
 
 ```sh
-pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist
-pnpm run actvero:workbench pack .artifacts/my-checklist .artifacts/workbenches
-pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0.tgz
+pnpm run actvero:workbench create .artifacts/my-workbench @local/my-workbench
+cd .artifacts/my-workbench
+npm run doctor
+npm run typecheck
+npm run build
+npm run check
+```
+
+需要清单示例时，在仓库根目录显式选择：
+
+```sh
+pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist --template plain
 pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
 ```
 
-`create` 默认复制普通清单；追加 `--template ai` 生成带原生数据、AI 和本地专家 Skill 的「AI 项目清单」。两套模板均不需要登录即可使用本地功能，AI 模板首次打开保留 AI 入口而不创建对话。`pack` 所需的依赖由源码开发环境提供。
+`create` 默认生成可编译的空白界面，不预设业务或启用 AI。`plain` 是浏览器存储清单，`ai` 是带原生数据、AI 和本地专家 Skill 的「AI 项目清单」。示例均可免登录使用本地功能；模板不代表用户的业务需求。
 
-`create` 复制可编辑的项目清单；`pack` 编译 Host 和 Client、生成 bundle patch，并输出经过校验的 `.tgz`、字节数与 SHA-256。打包不修改业务源码，不执行安装或发布。输出文件同名时替换先前的构建产物；构建失败保留原产物。输出目录省略时使用项目的 `dist`。
+生成目录含 README.md、AGENTS.md、DESIGN.md、构建脚本、类型配置与两份 Skill。先确认最小业务流程，在 DESIGN.md 记录首次入口、存储、AI、页面与验收点。独立的「工作台前端规范」支持原生、品牌或自定义风格，公共组件与主题优先复用；个性化选择记录原因即可。项目说明让后续 Agent 能找到资料，无需重新猜测开发方式。
+
+`doctor` 检查声明、入口和运行时基线，提醒未完成的设计项；`typecheck` 用当前工具链构建的声明检查作者代码。`build` 与 `pack` 均先检查类型，再编译 Host 和 Client、生成 bundle patch，输出经过校验的 `dist/*.tgz`、字节数与 SHA-256。构建不修改业务源码、不安装或发布；失败保留原产物。`check` 默认复核 dist 中唯一的包；多个版本时运行 `npm run check -- /绝对路径/包.tgz`。业务测试由作者按需求添加。
+
+这些命令依赖 `.actvero/toolchain.json` 中绑定的源码目录，尚非独立 SDK。此文件与生成的 tsconfig.json 不提交；项目移动或换机器后，在项目内执行 `node scripts/workbench.mjs bind /绝对路径/actvero-harness`。重新绑定刷新编译配置、两份 Skill 与接口快照，保留业务代码、README.md、AGENTS.md 和 DESIGN.md。.actvero/skills 供 Agent 明确读取，不假设其他 Agent 产品会自动发现。
 
 `check` 复用客户端导入预检，并检查格式版本、版本声明、非空入口文件以及重复、越界和链接路径。它不执行工作台代码，不能证明业务功能正常。客户端还会在安装时执行当前运行版本的兼容性检查；开发命令不会跳过这一步。
 
-修改已有工作台时保留包名和已有数据；交付新版本前提高 `package.json.version`，Host 与 Client 继续从该文件读取版本。使用 `pack` 输出的绝对 `path` 安装，不根据显示名称猜测归档名。`pack` 负责转译与打包，不执行完整 TypeScript 类型检查；项目自己的类型检查和业务测试需要分别执行，不能以 `.tgz` 生成成功代替。
+已有源码也可在仓库根目录使用 `pnpm run actvero:workbench doctor <目录>`、`typecheck <目录>`、`pack <目录> [输出目录]` 和 `check <包.tgz>`；缺少项目配置时使用当前基线的类型配置。更新时保留包名和数据，提高 `package.json.version`；Host 与 Client 从该文件读取版本。安装使用命令输出的绝对 `path`。结构、类型与归档检查不证明业务、专家依赖或安装已通过验收。
 
 <a id="install"></a>
 
 ## 导入和验收
 
-启动 Actvero 开发客户端，打开「工作台 → 我的工作台」，点击「导入工作台」并选择输出包。若结果要求重启，使用「Harness → 重启 Harness」。成功加载后，卡片和左侧工作台切换菜单会出现「项目清单」。内置示例仍可用于参考；独立包的详情显示作者「本地开发」，以便区分。
+启动目标 Actvero 客户端，打开「工作台 → 我的工作台」，点击「导入工作台」并选择输出包。若结果要求重启，使用「Harness → 重启 Harness」。成功加载后，卡片和左侧切换菜单显示 workbench.json 中的名称；默认空白模板显示「空白工作台」。
 
 Agent 先发现当前目标提供的安装工具并读取参数。目标若提供专用本地安装工具，按其实际约定调用。原生 `plugin_manager` 的 `list_bundles` 可核对当前 Profile 清单，`install_bundle` 接受已校验 `.tgz` 的绝对路径，可用于首次安装并沿用原生授权；当前通用工具不接受管理页的已审阅版本替换参数，更新应使用支持替换的专用工具或管理页。不要捏造工具，也不要用卸载重装绕过更新检查。工具和界面均不可操作时交付包并明确待安装。
 
 安装结果的 `application` 为 `applied` 时继续核对加载；`restart-required` 表示已保存但待重启；`failed`、`cancelled`、`overridden` 均不代表已生效，未知结果应重新查询。Agent 运行在目标应用中时不自行关闭、重启或探测进程来管理重启；提示用户等本轮结束后使用顶部「立即重启」或「Harness → 重启 Harness」。用户可直接试用，也可回原对话说「重启好了」继续验收。目标外的隔离开发客户端按已有授权采用正常重启流程。
 
-打开独立包，勾选一项，返回管理页并重新打开，再刷新客户端后重新打开，检查进度仍在。检查预览图、侧栏展开/收起、浅色/深色以及窄窗口。首次打开不创建会话，也不要求指定工作区。安装结果、卡片出现、切换菜单与真实业务界面分别验收。
+打开工作台执行真实业务流程；有持久化时返回管理页、重新打开并刷新，检查数据保留。清单示例可勾选一项验证。检查预览图、侧栏展开/收起、浅色/深色以及窄窗口。默认空白模板首次打开不创建会话，不要求指定工作区。安装结果、卡片、切换菜单与真实业务界面分别验收。
 
 更新时保持包名不变，提高 `package.json.version`，重新打包。在卡片的「更多 → 更新版本」选择新包，或直接导入同名包；确认弹窗显示旧版本与新版本。同版本重复导入、降级、包名不符和运行时不兼容会被拒绝。替换结果要求重启时显示「待重启」；重启 Harness 后检查卡片的打开入口、版本与业务内容。已有独立存储数据不清除；业务数据结构变化由工作台自行迁移。
 
@@ -104,11 +117,15 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 my-workbench/
 ├── package.json                    # 稳定身份、版本、依赖、入口、可选 icon
 ├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
+├── README.md / AGENTS.md            # 开发命令与 Agent 入口
+├── DESIGN.md                       # 已确认业务、视觉方案与验收记录
+├── scripts/workbench.mjs           # 调用绑定的源码工具链
+├── tsconfig.json                   # 生成的本机类型配置，不提交
+├── .actvero/toolchain.json         # 本机绑定，不提交
+├── .actvero/skills/                # 工作台开发、工作台前端规范与接口快照
 ├── src/index.ts                    # Host 注册；纯界面模板为空入口
 ├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
-├── src/client/Checklist.tsx         # 替换为用户需要的业务界面
-├── src/client/locales.ts           # 业务文案
-├── src/client/checklist.module.css # 业务样式
+├── src/client/                     # 自行组织业务组件、文案与样式
 ├── src/client/assets/              # 可选预览图片，使用 import 引入
 └── assets/                         # 可选原始资源，原样随包复制
     ├── icon.svg
@@ -125,7 +142,7 @@ my-workbench/
 
 在 `workbench.json` 修改卡片文案；分类使用专家生态的统一标识：`office`、`engineering`、`design`、`content`、`data`、`education`、`lifestyle`、`general`、`uncategorized`。「我的工作台」不展示分类筛选，但包仍可携带分类。
 
-在 `src/client/Checklist.tsx` 和相邻 CSS Module 修改业务视图，在 `locales.ts` 维护中英文案。在客户端入口声明预览图。图标放入包根目录的 `assets/`，在 `package.json` 声明一次，例如 `"icon": "./assets/icon.svg"`；宿主会在卡片、详情、切换菜单、业务标题、对话选择器、输入框标签和悬浮工作台按钮中复用它。图标缺失或加载失败时显示默认图标。未声明包图标时兼容客户端的 `iconUrl`。管理入口与 AI 助手保留宿主图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
+在 `src/client/` 组织业务组件与 CSS Module，并用语言字典维护中英文案；清单示例的入口为 Checklist.tsx 和 locales.ts。在客户端入口声明预览图。图标放入包根目录的 `assets/`，在 `package.json` 声明一次，例如 `"icon": "./assets/icon.svg"`；宿主会在卡片、详情、切换菜单、业务标题、对话选择器、输入框标签和悬浮工作台按钮中复用它。图标缺失或加载失败时显示默认图标。未声明包图标时兼容客户端的 `iconUrl`。管理入口与 AI 助手保留宿主图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
 
 示例按包名隔离浏览器本地存储，刷新后恢复清单；读取失败会显示错误并禁用修改，避免覆盖无法读取的数据。这里的存储属于当前客户端配置，不提供多项目、账户或组织隔离，也不提供备份。正式业务的数据管理需要独立设计。
 
@@ -135,11 +152,13 @@ my-workbench/
 
 需要本机业务存储时，在 Host 入口注册工作台，获取稳定目录。下面的入口不启用 AI，也不需要实现 JSON 初始化或动作接口；客户端仍按相同标识注册业务组件。
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 export const inject = ['actveroWorkbenchRuntime']
-export async function apply(ctx) {
+export async function apply(ctx: Context) {
   const runtime = ctx.actveroWorkbenchRuntime
-  const id = '@local/my-workbench'
+  const id = '@local/my-workbench' as WorkbenchId
   ctx.effect(() => runtime.register({
     id, name: 'My workbench', version: '1.0.0',
     resourcesDirectory: import.meta.dirname,
@@ -164,13 +183,15 @@ export async function apply(ctx) {
 
 只使用原生 AI 的 Host 注册可以如下，不要求提供 JSON 存储适配器或专家文件。业务组件通过收到的 `workbench.conversation()` 打开或恢复原生对话；调用不会自动发送业务任务。Client 必须按同一个包名注册组件。可选的首次布局建议在 Client 的描述中设置 `display`，不是 `workbench.json` 的字段；它只影响首次使用，用户已保存的显示选择优先。
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import manifest from '../package.json'
 import metadata from '../workbench.json'
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx) {
+export function apply(ctx: Context): void {
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name, name: metadata.name, version: manifest.version, ai: true,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, ai: true,
   }))
 }
 ```
@@ -189,17 +210,19 @@ Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器�
 
 将原始资源放在源码根目录的 `assets/`。`pack` 保留该目录并沿用安装包大小与路径校验；`src/` 中的原始文件不会自动复制。下面的 Host 入口适用于编译输出位于 `lib/index.js` 的包，客户端继续按相同标识注册业务组件。
 
-```js
+```ts
+import type { Context } from '@deepseek-ai/cordis'
+import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import { WorkbenchExpertBundle } from '@actvero/dsh-experts/workbench'
 import { fileURLToPath } from 'node:url'
 import manifest from '../package.json'
 import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx) {
+export function apply(ctx: Context): void {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-    id: manifest.name, name: metadata.name, version: manifest.version,
+    id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version,
     resourcesDirectory: resources, ai: true, activate: bundle.activate,
   }))
 }

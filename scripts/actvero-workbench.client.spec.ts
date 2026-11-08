@@ -1,13 +1,20 @@
 /** Package generation, compatibility refusal and executable Client registration. */
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { runInNewContext } from 'node:vm'
 import { create, extract } from 'tar'
 import { load } from 'js-yaml'
 import { afterEach, describe, expect, it } from 'vitest'
-import { checkWorkbench, createWorkbench, packWorkbench } from './actvero-workbench.client.ts'
+import { z } from 'zod'
+import { checkWorkbench, createWorkbench, doctorWorkbench, packWorkbench } from './actvero-workbench.client.ts'
+import { bindWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
+
+const repository = fileURLToPath(new URL('../', import.meta.url))
+const execute = promisify(execFile)
 
 const roots: string[] = []
 async function root(): Promise<string> {
@@ -18,13 +25,46 @@ async function root(): Promise<string> {
 afterEach(async () => { await Promise.all(roots.splice(0).map(path => rm(path, { recursive: true, force: true }))) })
 
 describe('local workbench developer commands', () => {
+  it('runs a blank project outside the checkout and rebinds after relocation without changing author files', async () => {
+    const directory = await root()
+    const original = join(directory, '空白 project')
+    await createWorkbench(original)
+    const identity = z.object({ name: z.string() })
+    const report = z.object({ name: z.string(), warnings: z.array(z.string()) })
+    const manifest = identity.parse(JSON.parse(await readFile(join(original, 'package.json'), 'utf8')))
+    expect(manifest.name).toMatch(/^@local\/project-[a-f0-9]{8}$/u)
+    expect((await doctorWorkbench(original)).warnings).toHaveLength(1)
+    const design = '目标：整理客户资料。\n视觉：原生。\n'
+    await writeFile(join(original, 'DESIGN.md'), design)
+    const moved = join(directory, 'moved project')
+    await rename(original, moved)
+    await bindWorkbenchProject(moved, repository)
+    expect(await readFile(join(moved, 'DESIGN.md'), 'utf8')).toBe(design)
+    expect(identity.parse(JSON.parse(await readFile(join(moved, 'package.json'), 'utf8'))).name).toBe(manifest.name)
+    const launcher = join(moved, 'scripts/workbench.mjs')
+    const run = (...args: string[]) => execute(process.execPath, [launcher, ...args], { cwd: moved })
+    expect(report.parse(JSON.parse((await run('doctor')).stdout)).warnings).toEqual([])
+    await expect(run('check')).rejects.toMatchObject({ code: 1 })
+    await run('typecheck')
+    await run('pack')
+    const checked = identity.parse(JSON.parse((await run('check')).stdout))
+    expect(checked.name).toBe(manifest.name)
+    await writeFile(join(moved, 'dist/another.tgz'), 'ambiguous archive')
+    await expect(run('check')).rejects.toThrow('恰好一个')
+    await rm(join(moved, '.actvero/toolchain.json'))
+    await expect(run('doctor')).rejects.toThrow('bind')
+    await run('bind', repository)
+    expect(await readFile(join(moved, 'DESIGN.md'), 'utf8')).toBe(design)
+    expect(report.parse(JSON.parse((await run('doctor')).stdout)).name).toBe(manifest.name)
+  }, 90000)
+
   it('builds and registers native AI by following the guide without a JSON adapter or expert', async () => {
     const path = await root()
     const source = join(path, 'native AI only')
-    await createWorkbench(source, '@local/native-ai-only')
+    await createWorkbench(source, '@local/native-ai-only', 'plain')
     const guide = await readFile(new URL('../actvero/workbench-development.zh.md', import.meta.url), 'utf8')
     const section = guide.split('<a id="native-ai"></a>')[1]!.split('<a id="expert-bundle"></a>')[0]!
-    const entry = /```js\n([\s\S]*?)\n```/u.exec(section)?.[1]
+    const entry = /```ts\n([\s\S]*?)\n```/u.exec(section)?.[1]
     if (!entry) throw new Error('Missing native AI example')
     await writeFile(join(source, 'src/index.ts'), entry + '\n')
     const archive = await packWorkbench(source, path)
@@ -39,7 +79,7 @@ describe('local workbench developer commands', () => {
         return () => { providers.splice(providers.indexOf(provider), 1) }
       } },
     }
-    const plugin: { apply(context: typeof ctx): void } = await import(pathToFileURL(join(path, 'package/lib/index.js')).href)
+    const plugin = await import(pathToFileURL(join(path, 'package/lib/index.js')).href) as { apply(context: typeof ctx): void }
     plugin.apply(ctx)
     expect(providers).toEqual([{ id: '@local/native-ai-only', name: '项目清单', version: '1.0.0', ai: true }])
     for (const dispose of disposers.reverse()) dispose()
@@ -49,7 +89,7 @@ describe('local workbench developer commands', () => {
   it('builds the AI template with native data, its expert and declared local skill', async () => {
     const path = await root()
     const source = join(path, 'AI development')
-    await createWorkbench(source, undefined, 'ai')
+    await createWorkbench(source, '@local/ai-checklist', 'ai')
     const archive = await packWorkbench(source, path)
     expect((await checkWorkbench(archive)).name).toBe('@local/ai-checklist')
     await extract({ cwd: path, file: archive })
@@ -63,7 +103,7 @@ describe('local workbench developer commands', () => {
   it('copies a customized package, builds the real Client and releases its registration on disposal', async () => {
     const path = await root()
     const source = join(path, 'development with spaces')
-    await createWorkbench(source, '@local/delivery-checklist')
+    await createWorkbench(source, '@local/delivery-checklist', 'plain')
     await mkdir(join(source, 'assets', 'expert'), { recursive: true })
     await writeFile(join(source, 'assets', 'expert', 'expert.json'), '{"instructions":"本地资源"}')
     const archive = await packWorkbench(source, path)
@@ -99,8 +139,8 @@ describe('local workbench developer commands', () => {
     expect(entries[0]!.previewUrls.every(url => url.startsWith('data:image/png;base64,'))).toBe(true)
     for (const dispose of disposers.reverse()) dispose()
     expect(entries).toEqual([])
-    await writeFile(join(source, 'src/index.ts'), "import 'actvero-definitely-uninstalled-testdependency'; export function apply() {}\n")
-    await expect(packWorkbench(source, path)).rejects.toThrow('依赖未解析')
+    await writeFile(join(source, 'src/index.ts'), "import missing from 'actvero-definitely-uninstalled-testdependency'; export function apply() { return missing }\n")
+    await expect(packWorkbench(source, path)).rejects.toThrow('Cannot find module')
     expect((await checkWorkbench(archive)).sha256).toBe(checked.sha256)
     const duplicate = join(path, 'duplicate.tgz')
     await create({ cwd: path, file: duplicate, gzip: true }, ['package', 'package/lib/index.js'])
@@ -125,6 +165,16 @@ describe('local workbench developer commands', () => {
     expect(await readFile(manifestPath, 'utf8')).toBe(original)
     await writeFile(manifestPath, original.replace('0.2.1-rc.3', '999.0.0'))
     await expect(packWorkbench(directory, path)).rejects.toThrow('当前开发基线')
+  })
+
+  it('rejects author type errors before packaging and requires both entrypoints', async () => {
+    const directory = join(await root(), 'invalid source')
+    await createWorkbench(directory)
+    await writeFile(join(directory, 'src/index.ts'), 'export const value: number = "wrong"\n')
+    await expect(typecheckWorkbench(directory, repository)).rejects.toThrow('not assignable')
+    await expect(packWorkbench(directory, join(directory, 'dist'))).rejects.toThrow('not assignable')
+    await rm(join(directory, 'src/index.ts'))
+    await expect(typecheckWorkbench(directory, repository)).rejects.toThrow('not found')
   })
 
   it('rejects an unrelated file before installation', async () => {

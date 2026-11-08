@@ -11,9 +11,10 @@ import semver from 'semver'
 import { z } from 'zod'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
+import { bindWorkbenchProject, initializeWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
-const templates = { plain: 'project-checklist', ai: 'ai-checklist' } as const
+const templates = { blank: 'blank-workbench', plain: 'project-checklist', ai: 'ai-checklist' } as const
 const packageName = z.string().max(214).regex(/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u)
 const manifestSchema = z.object({
   name: packageName,
@@ -41,12 +42,13 @@ async function json(path: string): Promise<unknown> {
 /** Copy an editable workbench template without replacing an existing directory.
  * @param destination New development directory.
  * @param name Stable npm package identity; display text is edited in workbench.json.
- * @param kind Plain business UI or native AI with a bundled expert.
+ * @param kind Empty workbench, checklist example, or checklist with a bundled expert.
  */
-export async function createWorkbench(destination: string, name?: string, kind: keyof typeof templates = 'plain'): Promise<void> {
+export async function createWorkbench(destination: string, name?: string, kind: keyof typeof templates = 'blank'): Promise<void> {
   const template = join(repository, 'actvero/templates', templates[kind])
-  const resolvedName = packageName.parse(name ?? (kind === 'ai' ? '@local/ai-checklist' : '@local/project-checklist'))
   const directory = resolve(destination)
+  const slug = basename(directory).toLowerCase().replace(/[^a-z0-9-]+/gu, '-').replace(/^-+|-+$/gu, '').slice(0, 80) || 'workbench'
+  const resolvedName = packageName.parse(name ?? `@local/${slug}-${createHash('sha256').update(directory).digest('hex').slice(0, 8)}`)
   await mkdir(dirname(directory), { recursive: true })
   await mkdir(directory)
   for (const entry of await readdir(template)) {
@@ -54,6 +56,27 @@ export async function createWorkbench(destination: string, name?: string, kind: 
   }
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
   await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, name: resolvedName }, null, 2) + '\n')
+  await initializeWorkbenchProject(directory, repository, kind)
+}
+
+/** Check source metadata and compiler requirements without installing a workbench.
+ * @param directory Development directory.
+ * @returns Checked package identity, baseline and human-readable design reminders.
+ */
+export async function doctorWorkbench(directory: string): Promise<{ name: string; baseline: string; warnings: string[] }> {
+  const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
+  metadataSchema.parse(await json(join(directory, 'workbench.json')))
+  const baseline = z.object({ version: z.string() }).parse(await json(join(repository, 'actvero/upstream.lock.json')))
+  if (!semver.satisfies(baseline.version, manifest.engines.dsh, { includePrerelease: true })) {
+    throw new Error(`工作台要求 DSH ${manifest.engines.dsh}，当前开发基线为 ${baseline.version}。`)
+  }
+  for (const file of ['src/index.ts', 'src/client/index.ts']) await stat(join(directory, file))
+  const warnings: string[] = []
+  const entries = await readdir(directory)
+  if (!entries.includes('DESIGN.md')) warnings.push('缺少 DESIGN.md；开发前请记录业务范围与视觉方案。')
+  else if ((await readFile(join(directory, 'DESIGN.md'), 'utf8')).includes('待确认')) warnings.push('DESIGN.md 仍有待确认项；通过结构检查不代表需求或视觉验收通过。')
+  if (!entries.includes('tsconfig.json')) warnings.push('缺少 tsconfig.json；typecheck 会使用当前源码基线检查。')
+  return { name: manifest.name, baseline: baseline.version, warnings }
 }
 
 /** Validate a built archive with the same preflight the desktop import uses.
@@ -96,10 +119,8 @@ export async function packWorkbench(directory: string, output: string): Promise<
   output = resolve(output)
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
   const metadata = metadataSchema.parse(await json(join(directory, 'workbench.json')))
-  const baseline = z.object({ version: z.string() }).parse(await json(join(repository, 'actvero/upstream.lock.json')))
-  if (!semver.satisfies(baseline.version, manifest.engines.dsh, { includePrerelease: true })) {
-    throw new Error(`工作台要求 DSH ${manifest.engines.dsh}，当前开发基线为 ${baseline.version}。`)
-  }
+  await doctorWorkbench(directory)
+  await typecheckWorkbench(directory, repository)
   const temporary = await mkdtemp(join(tmpdir(), 'actvero-workbench-pack-'))
   try {
     const folder = join(temporary, 'package')
@@ -112,10 +133,10 @@ export async function packWorkbench(directory: string, output: string): Promise<
           const configured = typeof config.inputOptions === 'function'
             ? await config.inputOptions(options, format, context) ?? options : { ...options, ...config.inputOptions }
           return { ...configured, resolve: { ...configured.resolve, modules: ['node_modules', join(repository, 'node_modules')] },
-            onwarn(warning, report) {
-              if (warning.code === 'UNRESOLVED_IMPORT') throw new Error(`工作台依赖未解析，请安装构建依赖后重试：${warning.message}`)
-              if (configured.onwarn) configured.onwarn(warning, report)
-              else report(warning)
+            onLog(level, log, report) {
+              if (log.code === 'UNRESOLVED_IMPORT') throw new Error(`工作台依赖未解析，请安装构建依赖后重试：${log.message}`)
+              if (configured.onLog) configured.onLog(level, log, report)
+              else report(level, log)
             },
           }
         } })
@@ -124,7 +145,10 @@ export async function packWorkbench(directory: string, output: string): Promise<
     if ((await readdir(directory)).includes('assets')) await cp(join(directory, 'assets'), join(folder, 'assets'), { recursive: true })
     await mkdir(join(folder, 'locale'))
     await writeFile(join(folder, 'locale/en.json'), JSON.stringify({ meta: { title: metadata.name, description: metadata.description } }) + '\n')
-    await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, description: metadata.description,
+    const packaged = { ...manifest }
+    delete packaged.scripts
+    delete packaged.devDependencies
+    await writeFile(join(folder, 'package.json'), JSON.stringify({ ...packaged, description: metadata.description,
       exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
       files: ['lib', 'locale', 'assets', 'cordis.patch.yml'],
     }, null, 2) + '\n')
@@ -151,9 +175,9 @@ export async function packWorkbench(directory: string, output: string): Promise<
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' } } })
   const [command, path, argument] = positionals
-  if (!path || positionals.length > 3) throw new Error('用法：workbench create <新目录> [包名] [--template plain|ai] | pack <项目目录> [输出目录] | check <归档.tgz>')
+  if (!path || positionals.length > 3) throw new Error('用法：workbench create <新目录> [包名] [--template blank|plain|ai] | bind <项目目录> | doctor <项目目录> | typecheck <项目目录> | pack <项目目录> [输出目录] | check <归档.tgz>')
   if (command === 'create') {
-    const kind = z.enum(['plain', 'ai']).parse(values.template ?? 'plain')
+    const kind = z.enum(['blank', 'plain', 'ai']).parse(values.template ?? 'blank')
     await createWorkbench(path, argument, kind)
     console.log(`已创建工作台开发目录：${resolve(path)}`)
   } else if (values.template !== undefined) {
@@ -163,8 +187,17 @@ async function main(): Promise<void> {
     console.log(JSON.stringify({ path: archive, ...await checkWorkbench(archive) }, null, 2))
   } else if (command === 'check' && argument === undefined) {
     console.log(JSON.stringify(await checkWorkbench(path), null, 2))
+  } else if (command === 'doctor' && argument === undefined) {
+    console.log(JSON.stringify(await doctorWorkbench(path), null, 2))
+  } else if (command === 'typecheck' && argument === undefined) {
+    await typecheckWorkbench(resolve(path), repository)
+    console.log('工作台 TypeScript 检查通过。')
+  } else if (command === 'bind' && argument === undefined) {
+    await doctorWorkbench(path)
+    await bindWorkbenchProject(resolve(path), repository)
+    console.log('已更新本地工具链绑定、类型配置和开发规范；业务代码与 DESIGN.md 保持不变。')
   } else {
-    throw new Error('未知命令，请使用 create、pack 或 check。')
+    throw new Error('未知命令，请使用 create、bind、doctor、typecheck、pack 或 check。')
   }
 }
 

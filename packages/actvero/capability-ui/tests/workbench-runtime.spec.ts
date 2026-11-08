@@ -76,8 +76,14 @@ describe('workbench runtime', () => {
     expect(skill?.resourceBase?.kind).toBe('directory')
     if (skill?.resourceBase?.kind !== 'directory') throw new Error('Missing packaged developer resources')
     expect(ctx.skills.renderContent(skill).replaceAll(skill.resourceBase.path, '<developer-skill>')).toMatchSnapshot()
+    const frontend = await ctx.skills.get('workbench-frontend')
+    expect(frontend?.source).toBe('bundled')
+    expect(frontend?.resourceBase?.kind).toBe('directory')
+    if (frontend?.resourceBase?.kind !== 'directory') throw new Error('Missing packaged frontend guidance')
+    expect(ctx.skills.renderContent(frontend).replaceAll(frontend.resourceBase.path, '<frontend-skill>')).toMatchSnapshot()
     await workbenches.dispose()
     expect(await ctx.skills.get('develop-workbench')).toBeUndefined()
+    expect(await ctx.skills.get('workbench-frontend')).toBeUndefined()
   })
 
   it('denies undeclared platform access and withdraws access with its loaded provider', async () => {
