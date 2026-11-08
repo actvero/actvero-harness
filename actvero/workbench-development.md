@@ -92,7 +92,7 @@ The card’s More menu offers disable, enable and uninstall, plus the host-manag
 
 ## Package format
 
-The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.0.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
+The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.1.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
 
 The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz` with contents under `package/`, at most 8 MiB compressed and 32 MiB unpacked. The npm package name provides stable identity; registration reads the display metadata from `workbench.json` and version from `package.json`.
 
@@ -102,7 +102,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `package.json.type` | Must be `module`; Host and Client use ESM |
 | `package.json.icon` | Optional package artwork, for example `./assets/icon.svg`; SVG, PNG, JPEG or WebP, at most 256 KiB |
 | `engines.dsh` | Supported DSH runtime range; the template pins the current development baseline |
-| `workbench.json.protocol` | `schemaVersion: 1` and `hostApi: "^1.0.0"`; both Host and Client registrations read this declaration |
+| `workbench.json.protocol` | `schemaVersion: 1` and the required API range; use `hostApi: "^1.1.0"` for header extensions; both Host and Client registrations read this declaration |
 | `dsh.actveroWorkbenchProtocol` | Generated from that declaration during packaging; Client import preflight and check validate the same host API requirement |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
@@ -149,6 +149,18 @@ Edit card copy in `workbench.json`. Categories use the expert ecosystem's identi
 Organize business components and CSS Modules under `src/client/` and keep bilingual copy in locale dictionaries; checklist examples use Checklist.tsx and locales.ts. Declare preview imports in the Client entry. Put artwork in the package-root `assets/` directory and declare it once in `package.json`, for example `"icon": "./assets/icon.svg"`. The Host reuses it in cards, details, the switcher, the business title, the conversation picker, the composer badge and the floating-workbench control. Missing or failed artwork uses the native fallback. A Client `iconUrl` remains supported when package artwork is absent. Management and AI-assistant entries retain Host icons. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
 
 The example isolates browser local storage by package name and restores progress after reload. A failed read reports an error and disables changes instead of overwriting unreadable data. This storage belongs to the current client configuration; it provides no project, account, or organization isolation and no backup. Production business data requires its own storage design.
+
+<a id="header"></a>
+
+### Native header and shared view state
+
+Extension API `1.1.0` adds registration options `{ locale: namespace, header: Header, store: navigationStore }`. Both `header` and `store` are optional. Without a header, the host shows the workbench name. A custom header replaces only the business region after the host return button; return, sidebar and window controls remain host-owned. The registration disposer removes the card, body and header together. Previews render only the body, without another header.
+
+`Header` uses `WorkbenchHeaderProps`, receiving `title`, the same `workbench` as the body, and native resource hooks. Use `renderFactorySlot('actvero.workbench.toolbar', { title, breadcrumbs, status, actions })` for standard layout. Breadcrumbs have unique `id`, localized `label` and ancestor `onSelect`; the last item is the current page. Status is `{ text, tone?: 'normal' | 'error' }`. Actions have unique `id`, localized `label`, `disabled` and `onSelect`. The host supplies native buttons, compact menus and keyboard behavior; action callbacks own failure reporting. Complex headers can use native components directly without covering public host controls. The AI template's [Header.tsx](templates/ai-checklist/src/client/Header.tsx) observes saved progress through the same business resource.
+
+Derive title and actions during header rendering, never through body effects that push state into the host. When body and header share navigation or selection, call the author's `createNavigationStore()` once inside apply and pass that native Store handle as `store`. Both components derive `useStore` and `actions` from `PropsStore<ReturnType<typeof createNavigationStore>>`. Organize state by the required instance or view identifiers. The store carries navigation and filters; business data stays in resources or author-owned services. Do not pass a factory that creates separate stores, or put a Store handle in component props or a module-level variable.
+
+Verify navigation from both body and header, matching breadcrumbs, status and content, 390px navigation/action menus, Escape and focus restoration, both themes, workbench switching and disable cleanup. The native AI launcher already exists; do not add another generic Ask AI button. This API covers the business header only. Workbench adapters for input references, settings panels and further business-object conversation binding remain undelivered; copying internal identifiers or changing private DOM does not implement them.
 
 <a id="storage"></a>
 

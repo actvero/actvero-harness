@@ -1,0 +1,24 @@
+.toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; width: 100%; min-width: 0; color: var(--dsw-alias-label-primary); }
+.navigation { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+.trail, .crumb { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.trail { flex: 1; flex-wrap: wrap; }
+.ancestor, .title { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; }
+.ancestor, .separator { color: var(--dsw-alias-label-secondary); }
+.crumb > button { white-space: normal; height: auto; min-height: 28px; overflow-wrap: anywhere; }
+.status { flex: none; max-width: 100%; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+.status[role='alert'] { color: var(--dsw-alias-state-error-primary); }
+.actions, .buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.actions { max-width: 100%; }
+.buttons > button { white-space: normal; height: auto; min-height: 28px; overflow-wrap: anywhere; }
+.navigationMenu, .actionsMenu { flex: none; }
+.navigationTrigger { width: 100%; min-width: 0; justify-content: flex-start; }
+.navigationTrigger > span { display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navigationTrigger > svg { flex: none; }
+.menu { max-width: min(360px, calc(100vw - 32px)); }
+.menu [role='menuitem'] { white-space: normal; overflow-wrap: anywhere; }
+@container (max-width: 640px) {
+  .navigation[data-has-path] .trail, .buttons { display: none; }
+  .navigationMenu { flex: 1; min-width: 0; }
+  .navigationTrigger > span { display: block; }
+  .status { order: 3; flex-basis: 100%; }
+}

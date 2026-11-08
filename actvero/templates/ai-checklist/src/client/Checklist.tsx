@@ -11,7 +11,7 @@ import { checklistDocument } from '../document.ts'
  * @param props Native resource hooks, workbench operations and localized copy.
  * @returns Business checklist.
  */
-export function Checklist({ t, name, description, workbench, useResource }: PropsLocale<'actvero.template.ai-checklist'> & Pick<WorkbenchBodyProps, 'workbench' | 'useResource'> & { name: string; description: string }) {
+export function Checklist({ t, description, workbench, useResource }: PropsLocale<'actvero.template.ai-checklist'> & Pick<WorkbenchBodyProps, 'workbench' | 'useResource'> & { description: string }) {
   const resource = useResource<'actvero-workbench'>(workbench.resourceAddress ?? '')
   const [text, setText] = useState('')
   const [pending, setPending] = useState(false)
@@ -35,9 +35,8 @@ export function Checklist({ t, name, description, workbench, useResource }: Prop
     finally { setModelsPending(false) }
   }
   return <div className={styles.page}>
-    <h1>{name}</h1><p className={styles.description}>{description}</p>
+    <p className={styles.description}>{description}</p>
     <div className={styles.actions}>
-      <Button variant="outline" onClick={() => { void workbench.conversation().catch(() => { setError(true) }) }}>{t('askAI')}</Button>
       <Button variant="ghost" disabled={modelsPending} onClick={() => { void models() }}>{t(modelsPending ? 'loading' : 'models')}</Button>
     </div>
     {modelsFailed && <p role="alert">{t('modelsFailed')}</p>}

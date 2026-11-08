@@ -21,11 +21,14 @@
   en: ef1bf1e17eb39c39
   zh: 1bebc16c03f60cc5
 /workbench-development/package-format:
-  en: 01c8c7cb2e6e4682
-  zh: b1fca748deb97deb
+  en: ec5ef6272305ce8b
+  zh: f2f96175fa9c452a
 /workbench-development/edit-the-business-view:
-  en: 1631018fdbf65914
-  zh: 088073facc14d276
+  en: 301e50f1f82f533d
+  zh: bf6f1386e78c2855
+/workbench-development/edit-the-business-view/native-header-and-shared-view-state:
+  en: cabe1db2412fe776
+  zh: cbd4bd61f59da42c
 /workbench-development/runtime-directories-and-custom-storage:
   en: a99b53f9205c3a1e
   zh: 441b9042cb9501fd

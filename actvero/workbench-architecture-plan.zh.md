@@ -2,7 +2,7 @@
 
 [English](workbench-architecture-plan.md) | 中文
 
-本文面向工作台框架、SDK、开发工具和专家集成的研发人员，用于确定架构、拆分交付和验收；工作台作者可据此了解计划开放的能力。阶段一已实现兼容声明和现有提供者的异步释放管理；阶段二至六仍待实施，本文中的宿主扩展接口并非全部可用。当前开发、打包和安装以[工作台开发指南](workbench-development.zh.md)为准；已有本地运行能力见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)。
+本文面向工作台框架、SDK、开发工具和专家集成的研发人员，用于确定架构、拆分交付和验收；工作台作者可据此了解计划开放的能力。阶段一已实现兼容声明和现有提供者的异步释放管理；阶段二已交付顶栏、面包屑与共享视图状态，其余宿主扩展和阶段三至六仍待实施，本文中的宿主扩展接口并非全部可用。当前开发、打包和安装以[工作台开发指南](workbench-development.zh.md)为准；已有本地运行能力见[工作台运行生态实施规划](workbench-runtime-plan.zh.md)。
 
 ## 1. 产品形态与职责
 
@@ -74,6 +74,8 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 引用绑定工作台、业务对象和版本信息。作者提供可序列化的引用说明、必要内容快照以及可选的重新打开行为；宿主负责草稿、附件、发送和日志。自动附带当前选区应由工作台明确启用并在输入框可见，用户移除后不能因重新渲染立即加回来。引用只是上下文，不自动授予文件、模型或业务写入权限。
 
 扩展如需补充发送上下文，应走受控的提交准备阶段，记录补充来源并形成最终消息快照。不得在发送后偷偷改写用户输入或在后台改变本次消息指向的业务对象。
+
+输入引用适配应以原生 `slash/input-insert-reference` 和 `InputTriggerController.serializeReference` 为入口，将引用插入目标会话当前的输入实例，而不是全局当前对话。引用解析与发送必须固定对象标识、修订号及内容快照；用户取消引用后不自动补回。当前仅完成接口勘察，尚未提供工作台侧包装 API，后续需要同时验证草稿恢复、发送日志、卸载后的历史展示和多输入实例隔离。
 
 ### 设置、命令与消息展示
 
@@ -164,7 +166,7 @@ SDK 适配 DSH 的原生引用来源、序列化、历史展示和打开引用�
 
 阶段二和三共享输入引用设计，协议评审时一并确定；实现可按依赖顺序交付，不以单个组件完成宣称整体架构完成。每阶段覆盖正常流程、停用/卸载、取消、失败和恢复；涉及模型输入的变更补充可重放的会话快照。macOS、Windows、真实账号和离线场景分别记录实测证据与待验证项。
 
-阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。下一阶段从顶栏扩展开始，同时设计原生输入引用，不改写业务数据格式。
+阶段一的验收入口为[生命周期与兼容回归](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts)、[开发命令测试](../scripts/actvero-workbench.client.spec.ts)、[真实安装与重启测试](../apps/web/tests/actvero-workbench-manager.e2e.ts)和[准备失败的原生会话回放](../apps/web/tests/actvero-workbench-lifecycle.snapshot.ts)。模板、开发 Skill 和包预检共用同一兼容声明；现有省略声明的工作台仍按原始扩展 API 运行。阶段二的顶栏已通过原生 keyed Slot 和工具栏 Factory 接入，支持自定义组件、面包屑与共享视图 Store，AI 模板已移除重复标题和通用 AI 按钮。设置、通用命令以及原生输入引用适配仍待实现。
 
 开发入口延续现有 create、doctor、typecheck、build、check、pack 和 bind 工具链，补充宿主兼容、依赖、资源、真实加载和释放检查。开发 Skill 说明入口选择、目录、扩展注册、数据职责、AI 生命周期和验收步骤；前端 Skill 单独提供可选视觉标准，默认复用 DSH 原生语义与组件，允许业务视图个性化。
 

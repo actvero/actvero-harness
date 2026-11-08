@@ -112,6 +112,27 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       writeFileSync(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${fixtureName}\n      name: ${fixtureName}\n`)
       writeFileSync(join(folder, 'client.js'), `window.__ModuleLoader__.load({ id: '${fixtureName}', factory(require) {
         const { createElement: h, useEffect, useState } = require('react');
+        const { defineStore } = require('@deepseek-ai/dsh-client-store');
+        function createNavigation() {
+          return defineStore({ init: () => ({ report: false }), actions: {
+            showReport(state, report) { state.report = report; }
+          } });
+        }
+        function Header({ title, renderFactorySlot, useStore, actions }) {
+          const report = useStore(state => state.report);
+          return renderFactorySlot('actvero.workbench.toolbar', { title,
+            breadcrumbs: [{ id: 'overview', label: '复盘总览', onSelect: () => actions.showReport(false) },
+              ...(report ? [{ id: 'report', label: '渠道投放成效与后续行动报告 / Campaign results and next steps' }] : [])],
+            status: { text: report ? '报告已保存' : '总览已保存' },
+            actions: [{ id: 'report', label: '查看报告', onSelect: () => actions.showReport(true) },
+              { id: 'download', label: '下载原始数据', disabled: true, onSelect() { throw new Error('Disabled action ran'); } }]
+          });
+        }
+        function WorkspacePanel(props) {
+          const report = props.useStore(state => state.report);
+          return h('section', null, h('p', { 'data-report-view': report }, report ? '报告详情' : '复盘内容'),
+            h('button', { onClick: () => props.actions.showReport(!report) }, '切换业务页面'), h(Panel, props));
+        }
         function Panel({ workbench }) {
           const [storage, setStorage] = useState('');
           const [crash, setCrash] = useState(false);
@@ -131,7 +152,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           if (!refused) throw new Error('Client admitted an incompatible workbench');
           ctx.effect(() => ctx.actveroWorkbenches.register({
             id: '${fixtureName}', name: '${title}', protocol: { schemaVersion: 1, hostApi: '^1' }, description: '整理活动结果与待跟进事项，汇总 Campaign Review 的渠道数据、反馈和负责人。', version: '1.0.0', category: 'content', iconUrl: 'data:image/png;base64,invalid', previewUrls: ${JSON.stringify(Array.from({ length: 5 }, () => 'data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')))}
-          }, Panel));
+          }, WorkspacePanel, { header: Header, store: createNavigation() }));
           ctx.effect(() => ctx.actveroWorkbenches.register({
             id: '${fixtureName}-single', name: '单图工作台', description: '单张图片的预览', version: '1.0.0',
             previewUrls: ${JSON.stringify(['data:image/png;base64,' + readFileSync(join(repository, 'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')])}
@@ -619,6 +640,67 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await fixtureCard.getByRole('button', { name: '打开', exact: true }).click()
         await page.getByText('已打开活动复盘业务页').waitFor()
         await page.locator('[data-workbench-storage="custom"]').waitFor()
+        const toolbar = page.locator('[data-workbench-header]')
+        await toolbar.getByRole('button', { name: '查看报告', exact: true }).click()
+        await page.locator('[data-report-view="true"]').waitFor()
+        await toolbar.getByText('报告已保存', { exact: true }).waitFor()
+        await toolbar.getByRole('button', { name: '复盘总览', exact: true }).click()
+        await page.locator('[data-report-view="false"]').waitFor()
+        await page.getByRole('button', { name: '切换业务页面', exact: true }).click()
+        await toolbar.getByText('报告已保存', { exact: true }).waitFor()
+        expect(await toolbar.ariaSnapshot()).toMatchInlineSnapshot(`
+          "- navigation "工作台导航":
+            - text: 活动复盘工作台 · Campaign Review Workspace
+            - button "复盘总览"
+            - heading "渠道投放成效与后续行动报告 / Campaign results and next steps" [level=1]
+            - button "工作台导航"
+          - status: 报告已保存
+          - button "查看报告"
+          - button "下载原始数据" [disabled]
+          - button "工作台操作""
+        `)
+        await page.getByRole('button', { name: '收起侧边栏', exact: true }).click()
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          for (const width of [1440, 390]) {
+            await page.setViewportSize({ width, height: 1000 })
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+            const frame = await toolbar.boundingBox()
+            expect(frame!.x).toBeGreaterThanOrEqual(0)
+            expect(frame!.x + frame!.width).toBeLessThanOrEqual(width)
+            await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-toolbar-${colorScheme}-${width}.png`) })
+            if (width === 390) {
+              const navigation = toolbar.getByRole('button', { name: '工作台导航', exact: true })
+              await navigation.click()
+              await page.getByRole('menuitem', { name: /渠道投放成效/ }).waitFor()
+              const bounds = await page.getByRole('menu').boundingBox()
+              expect(bounds!.x).toBeGreaterThanOrEqual(0)
+              expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width)
+              await page.keyboard.press('Escape')
+              expect(await navigation.evaluate(element => element === document.activeElement)).toBe(true)
+              const overflow = toolbar.getByRole('button', { name: '工作台操作', exact: true })
+              await overflow.click()
+              expect(await page.getByRole('menuitem', { name: '下载原始数据', exact: true }).isDisabled()).toBe(true)
+              await page.keyboard.press('Escape')
+              await page.mouse.move(0, 0)
+              await overflow.hover()
+              await page.getByRole('tooltip', { name: '工作台操作' }).waitFor()
+              await overflow.click()
+              await page.getByRole('button', { name: '切换业务页面', exact: true }).click()
+              await page.getByRole('menu').waitFor({ state: 'hidden' })
+              await page.getByRole('button', { name: '切换业务页面', exact: true }).click()
+              await navigation.click()
+              await page.getByRole('menuitem', { name: '复盘总览', exact: true }).click()
+              await page.locator('[data-report-view="false"]').waitFor()
+              await overflow.click()
+              await page.getByRole('menuitem', { name: '查看报告', exact: true }).click()
+              await page.locator('[data-report-view="true"]').waitFor()
+            }
+          }
+        }
+        await page.setViewportSize({ width: 1440, height: 1000 })
+        await page.emulateMedia({ colorScheme: 'light' })
+        await page.getByRole('button', { name: '打开侧边栏', exact: true }).click()
         expect(await page.getByRole('button', { name: '使用 AI', exact: true }).count()).toBe(0)
         const initialEnvironment = JSON.parse(readFileSync(environmentReport, 'utf8')) as { dataDirectory: string; storage: string; text: string; sessionsCreated: number }
         expect({ storage: initialEnvironment.storage, text: initialEnvironment.text, sessionsCreated: initialEnvironment.sessionsCreated }).toMatchInlineSnapshot(`
@@ -917,7 +999,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await aiCard.getByRole('button', { name: '打开', exact: true }).click()
         expect(await aiBusiness.getByRole('checkbox', { name: '确认需求和交付范围', exact: true }).isChecked()).toBe(true)
         expect(await page.getByText('工作台操作未完成。请确认会话未在运行、工作台已加载，然后重试。', { exact: true }).count()).toBe(0)
-        await aiBusiness.getByRole('button', { name: '请 AI 协助', exact: true }).click()
+        await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/workbench-ai-header.png') })
+        await expect.poll(() => aiBusiness.locator('[data-workbench-header]').innerText()).toContain('交付检查 1 / 2')
+        expect(await aiBusiness.getByRole('button', { name: '请 AI 协助', exact: true }).count()).toBe(0)
+        await aiBusiness.getByRole('button', { name: '使用 AI', exact: true }).click()
         await aiBusiness.locator('[data-workbench-ai]').waitFor()
         await page.screenshot({ animations: 'disabled', path: join(repository, '.artifacts/workbench-ai-template.png') })
         await aiBusiness.locator('[data-workbench-ai]').getByRole('button', { name: '全屏对话', exact: true }).click()
@@ -935,7 +1020,16 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         }
         await page.emulateMedia({ colorScheme: 'light' })
         await openManager()
+        expect(await page.locator('[data-workbench-header]').count()).toBe(0)
+        await aiCard.hover()
+        await aiCard.getByRole('button', { name: '更多操作 · AI 项目清单', exact: true }).click()
+        await page.getByRole('menuitem', { name: '停用', exact: true }).click()
+        await page.getByRole('dialog', { name: '停用工作台', exact: true }).getByRole('button', { name: '停用', exact: true }).click()
+        await aiCard.getByText('已停用', { exact: true }).waitFor()
         expect(await display('?mode=business&ai=hide')).toMatchObject({ status: 'confirmed' })
+        expect(await page.locator('[data-workbench-header]').getByText('交付检查 1 / 2', { exact: true }).count()).toBe(0)
+        await page.locator('[data-workbench-header]').getByRole('button', { name: '查看报告', exact: true }).click()
+        await page.locator('[data-report-view="true"]').waitFor()
         await page.getByRole('button', { name: '模拟工作台界面错误', exact: true }).click()
         await expect.poll(async () => (await display()).status).toBe('failed')
         expect(errors.filter(error => /ReferenceError|TypeError|SyntaxError/u.test(error))).toEqual([])

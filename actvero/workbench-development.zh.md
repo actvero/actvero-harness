@@ -92,7 +92,7 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 ## 包格式
 
-工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.0.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.1.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
 
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
@@ -102,7 +102,7 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 | `package.json.type` | 必须为 `module`，Host 与 Client 使用 ESM |
 | `package.json.icon` | 可选的包内图标，例如 `./assets/icon.svg`；支持 SVG、PNG、JPEG、WebP，文件不超过 256 KiB |
 | `engines.dsh` | 所支持的 DSH 运行时版本范围；模板锁定当前开发基线 |
-| `workbench.json.protocol` | `schemaVersion: 1` 与 `hostApi: "^1.0.0"`；Host 和 Client 注册均读取这份声明 |
+| `workbench.json.protocol` | `schemaVersion: 1` 与所需 API 范围；使用顶栏接口时为 `hostApi: "^1.1.0"`；Host 和 Client 注册均读取这份声明 |
 | `dsh.actveroWorkbenchProtocol` | 打包时从上述声明生成，客户端导入预检和 check 校验同一宿主 API 要求 |
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
@@ -149,6 +149,18 @@ my-workbench/
 在 `src/client/` 组织业务组件与 CSS Module，并用语言字典维护中英文案；清单示例的入口为 Checklist.tsx 和 locales.ts。在客户端入口声明预览图。图标放入包根目录的 `assets/`，在 `package.json` 声明一次，例如 `"icon": "./assets/icon.svg"`；宿主会在卡片、详情、切换菜单、业务标题、对话选择器、输入框标签和悬浮工作台按钮中复用它。图标缺失或加载失败时显示默认图标。未声明包图标时兼容客户端的 `iconUrl`。管理入口与 AI 助手保留宿主图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
 
 示例按包名隔离浏览器本地存储，刷新后恢复清单；读取失败会显示错误并禁用修改，避免覆盖无法读取的数据。这里的存储属于当前客户端配置，不提供多项目、账户或组织隔离，也不提供备份。正式业务的数据管理需要独立设计。
+
+<a id="header"></a>
+
+### 原生顶栏与共享视图状态
+
+从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略：未提供顶栏时显示工作台名称；有顶栏时只替换宿主返回按钮之后的业务区域，返回、侧栏与窗口控制继续由宿主管理。注册的释放函数同时移除卡片、正文和顶栏；预览只渲染正文，不显示第二条顶栏。
+
+`Header` 使用 `WorkbenchHeaderProps`，获得 `title`、与正文相同的 `workbench` 和原生资源读取接口。标准排版调用 `renderFactorySlot('actvero.workbench.toolbar', { title, breadcrumbs, status, actions })`：面包屑用唯一 `id`、本地化 `label` 和祖先的 `onSelect`，最后一项表示当前页面；状态用 `{ text, tone?: 'normal' | 'error' }`；操作用唯一 `id`、本地化 `label`、`disabled` 和 `onSelect`。宿主渲染原生按钮、窄容器菜单和键盘交互，操作回调负责报告自身失败。复杂控件可直接在 Header 中使用原生组件，不覆盖宿主公共控制。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示了从同一业务资源读取保存进度。
+
+标题和操作由顶栏组件在渲染时计算，不在正文的 effect 中反向设置宿主标题。正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 `store`；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 `useStore` 和 `actions`。状态按所需实例或视图标识组织；它只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量。
+
+验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。当前接口只扩展业务顶栏；原生输入引用、设置面板和业务对象会话绑定的进一步封装尚未交付，不能用复制内部编号或改私有 DOM 代替。
 
 <a id="storage"></a>
 

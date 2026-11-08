@@ -21,6 +21,7 @@ import { Navigation } from './Navigation.tsx'
 import { workbenchIconUrl } from './catalog.ts'
 import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { en, zh } from './locales.ts'
+import { WorkbenchToolbar } from './Toolbar.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -269,14 +270,19 @@ export function registerWorkbenches(ctx: Context): void {
       }
       if (view.entries.some(item => item.id === id)) throw new Error(`Duplicate Actvero workbench: ${id}`)
       const entry = { ...descriptor }
-      const stop = ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
-        name: 'actvero.workbench.body', key: entry.id, locale: options?.locale,
-      }, component))
-      update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })
-      return () => {
-        stop()
-        update({ entries: view.entries.filter(item => item !== entry) })
-      }
+      return ctx.effect(function* () {
+        yield ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
+          name: 'actvero.workbench.body', key: entry.id, locale: options?.locale, store: options?.store,
+        }, component))
+        if (options?.header) {
+          const header = options.header
+          yield ctx.slots.inject('actvero.workbench.header', () => ctx.slots.register({
+            name: 'actvero.workbench.header', key: entry.id, locale: options.locale, store: options.store,
+          }, header))
+        }
+        yield () => { update({ entries: view.entries.filter(item => item !== entry) }) }
+        update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })
+      })
     },
   }
 
@@ -462,9 +468,11 @@ export function registerWorkbenches(ctx: Context): void {
     name: 'actvero.workbench.content', scope: 'root', locale: namespace,
     children: { 'actvero.workbench.body': { kind: 'keyed', scope: 'root' } },
   }, BusinessContent))
+  ctx.effect(() => ctx.slots.registerFactory({ name: 'actvero.workbench.toolbar', scope: 'root', locale: namespace }, WorkbenchToolbar))
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main', key: businessPanel, locale: namespace, inject,
-    children: { 'actvero.workbench.chat': { kind: 'single', scope: 'session' } },
+    children: { 'actvero.workbench.chat': { kind: 'single', scope: 'session' },
+      'actvero.workbench.header': { kind: 'keyed', scope: 'root' } },
   }, OpenWorkbench))
   ctx.slots.inject('actvero.workbench.chat', () => ctx.slots.register({ name: 'actvero.workbench.chat' }, WorkbenchChat))
   ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({

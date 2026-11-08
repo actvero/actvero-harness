@@ -40,7 +40,7 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 /** Full business page with an optional floating native conversation. */
 export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
-  & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
+  & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
   const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const sessions = useSessions(value => value)
@@ -62,8 +62,15 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
-      {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
-      <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
+      <div className={styles.businessHeader}>
+        {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
+        <div className={styles.headerExtension} data-workbench-header="">
+          {opened && !preparing && !runtimeFailed
+            ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
+              entryKey: opened, fallback: renderFactorySlot('actvero.workbench.toolbar', { title: name }),
+            }) : renderFactorySlot('actvero.workbench.toolbar', { title: name })}
+        </div>
+      </div>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>

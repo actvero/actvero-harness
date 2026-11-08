@@ -1,4 +1,6 @@
 export const zh = {
+  businessNavigation: '工作台导航',
+  businessActions: '工作台操作',
   develop: '制作工作台',
   developHelp: '复制下方说明，在新对话中告诉 AI 想做什么。开发助手会使用工作台开发技能，先和你确认最小功能，再开始制作。',
   developPrerequisites: '本地开发需要 ACTVERO 源码开发环境。完成后导入工作台包；无需 GitHub 账号。',
@@ -118,6 +120,8 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  businessNavigation: 'Workbench navigation',
+  businessActions: 'Workbench actions',
   develop: 'Create a workbench',
   developHelp: 'Copy the instructions below and describe your idea in a new conversation. The development assistant uses the workbench skill to confirm the minimum features before building.',
   developPrerequisites: 'Local development requires an ACTVERO source development environment. Import the completed package; no GitHub account is needed.',

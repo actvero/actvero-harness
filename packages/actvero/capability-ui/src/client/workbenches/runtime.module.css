@@ -1,8 +1,9 @@
 .page { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; overflow: hidden; }
-/* The 50px row shares the conversation title's 25px centre. The shell supplies
+/* The minimum 50px row shares the conversation title's 25px centre. The shell supplies
    the traffic-light/leading-control clearance when the macOS sidebar is hidden. */
-.pageHeader { box-sizing: border-box; display: flex; align-items: center; gap: 12px; flex: none; height: 50px; padding: 10px 20px; padding-inline-start: max(20px, var(--dsh-frame-leading-clearance, 0px)); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
-.pageTitle { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 500; }
+.pageHeader { box-sizing: border-box; display: flex; align-items: center; gap: 12px; flex: none; min-height: 50px; padding: 10px 20px; padding-inline-start: max(20px, var(--dsh-frame-leading-clearance, 0px)); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.businessHeader { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.headerExtension { flex: 1; min-width: 0; container-type: inline-size; }
 .separator { flex: none; height: 16px; border-left: 0.5px solid var(--dsw-alias-border-l3); }
 .toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 48px; box-sizing: border-box; padding: 10px 16px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
 .titleMenu { flex: 1; min-width: 0; }
