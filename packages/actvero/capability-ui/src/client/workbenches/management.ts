@@ -5,8 +5,8 @@ import semver from 'semver'
 import { readWorkbenchPackage } from './archive.ts'
 
 /** Localized outcome with optional installer diagnostics. */
-export type WorkbenchNotice = 'invalidPackage' | 'desktopOnly' | 'importFailed' | 'incompatible' | 'applied' | 'restart'
-  | 'currentVersion' | 'olderVersion' | 'wrongPackage' | 'changedElsewhere' | 'enabled' | 'disabled' | 'removed'
+export type WorkbenchNotice = 'invalidPackage' | 'desktopOnly' | 'importFailed' | 'incompatible' | 'restart'
+  | 'currentVersion' | 'olderVersion' | 'wrongPackage' | 'changedElsewhere'
   | 'operationFailed' | 'overridden' | 'cancelled' | 'unknownOutcome' | 'stopFirst'
 
 /** Reviewed replacement, held only until the person confirms or cancels. */
@@ -66,10 +66,10 @@ export function createWorkbenchManagement(
     })().finally(() => { loading = undefined })
     return loading
   }
-  const outcome = (result: ChangeResult, success: WorkbenchNotice) => {
-    let notice: WorkbenchNotice
+  const outcome = (result: ChangeResult) => {
+    let notice: WorkbenchNotice | null
     switch (result.application) {
-      case 'applied': notice = success; break
+      case 'applied': notice = null; break
       case 'restart-required': notice = 'restart'; update({ restart: [...new Set([...state.restart, result.target])] }); break
       case 'overridden': notice = 'overridden'; break
       case 'cancelled': notice = 'cancelled'; break
@@ -79,14 +79,14 @@ export function createWorkbenchManagement(
             : result.error?.code === 'stop-profile' || result.error?.code === 'bundle-in-use' ? 'stopFirst' : 'operationFailed'
         break
     }
-    update({ notice, diagnostic: result.error?.diagnostic ?? result.packageResult?.kind ?? '' })
+    update({ notice, diagnostic: notice === null ? '' : result.error?.diagnostic ?? result.packageResult?.kind ?? '' })
   }
-  const run = async (target: string, operation: () => ReturnType<typeof remote.installBundle>, success: WorkbenchNotice) => {
+  const run = async (target: string, operation: () => ReturnType<typeof remote.installBundle>) => {
     if (state.busy || state.inventoryFailed || disposed) return
     update({ busy: target, notice: null, diagnostic: '' })
     try {
       const result = await operation()
-      if (result.ok) outcome(result.value, success)
+      if (result.ok) outcome(result.value)
       else update({ notice: 'unknownOutcome' })
     } catch (error) {
       console.warn('Workbench operation outcome unavailable', error)
@@ -107,7 +107,7 @@ export function createWorkbenchManagement(
       update({ pendingUpdate: null })
       await run(pending.name, () => remote.installBundle(pending.path, {
         enabled: pending.enabled, registry: null, replace: { name: pending.name, version: pending.from, nextVersion: pending.to },
-      }), 'applied')
+      }))
     },
     async importFile(file: File, expectedName?: string) {
       if (state.busy || disposed) return
@@ -131,7 +131,7 @@ export function createWorkbenchManagement(
         else {
           // Transfer the inspection's write guard directly to the installer.
           update({ busy: null })
-          await run(summary.name, () => remote.installBundle(path, { enabled: true, registry: null }), 'applied')
+          await run(summary.name, () => remote.installBundle(path, { enabled: true, registry: null }))
         }
       } catch (error) {
         console.warn('Unable to inspect workbench archive', error)
@@ -139,10 +139,10 @@ export function createWorkbenchManagement(
       } finally { update({ busy: null }) }
     },
     async setEnabled(name: string, enabled: boolean) {
-      await run(name, () => remote.setBundleEnabled(name, enabled), enabled ? 'enabled' : 'disabled')
+      await run(name, () => remote.setBundleEnabled(name, enabled))
     },
     async remove(name: string) {
-      await run(name, () => remote.removeBundle(name), 'removed')
+      await run(name, () => remote.removeBundle(name))
     },
   }
 }

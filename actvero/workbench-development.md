@@ -171,7 +171,7 @@ Verify manual operations, direct business tools, Skill/CLI and MCP against the s
 
 ## Display control and Agent entry points
 
-Workbench authors may register optional client metadata `display: { sidebar: 'focus', ai: 'hide' }` as first-use layout defaults. `focus` collapses left navigation without entering operating-system fullscreen; omission preserves navigation. `ai: 'hide'` retains the AI entry without proactively creating a conversation; omission restores an associated conversation when AI is enabled. Users toggle navigation with the header's Focus view control and collapse floating windows from their upper-right controls; visibility preferences are saved separately and take precedence on subsequent opens. Leaving the business main view restores the preceding navigation expansion, while widths and narrow-window behavior follow the host layout rules.
+Workbench authors may register optional client metadata `display: { sidebar: 'focus', ai: 'hide' }` as first-use layout defaults. `focus` collapses left navigation without entering operating-system fullscreen; omission preserves navigation. `ai: 'hide'` retains the AI entry without proactively creating a conversation; omission restores an associated conversation when AI is enabled. Users toggle navigation with the host's top-left sidebar control and collapse floating windows from their upper-right controls; visibility preferences are saved separately and take precedence on subsequent opens. Leaving the business main view restores the preceding navigation expansion, while widths and narrow-window behavior follow the host layout rules.
 
 Business components may also control presentation. These calls wait for the Client to mount the host view; they send no message and execute no expert tool.
 

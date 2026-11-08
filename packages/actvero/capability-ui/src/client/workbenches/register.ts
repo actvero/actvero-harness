@@ -85,7 +85,6 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
   collapseChat(): void
   releaseChat(): void
   focusChat(): void
-  toggleFocus(): void
   present(request: WorkbenchDisplayRequest, signal: AbortSignal): Promise<WorkbenchDisplayState>
 }
 
@@ -296,12 +295,6 @@ export function registerWorkbenches(ctx: Context): void {
       releaseChat()
       selectPanel(null)
     },
-    toggleFocus() {
-      if (!view.opened) return
-      const focus = ctx.layout.sidebarExpanded.getSnapshot()
-      rememberVisibility(`focus:${view.opened}`, focus)
-      setFocus(focus)
-    },
     async present(request, callerSignal) {
       displaying.abort()
       displaying = new AbortController()
@@ -410,7 +403,7 @@ export function registerWorkbenches(ctx: Context): void {
     return () => { management.dispose(); for (const dispose of disposers) dispose() }
   })
 
-  const inject = () => ({ hooks: { view: source, sidebarExpanded: ctx.layout.sidebarExpanded }, action,
+  const inject = () => ({ hooks: { view: source }, action,
     resolveText: (text: Parameters<typeof ctx.locale.resolveText>[0]) => ctx.locale.resolveText(text),
   })
   ctx.effect(() => ctx.reflect.provide('actveroWorkbenches', registry))

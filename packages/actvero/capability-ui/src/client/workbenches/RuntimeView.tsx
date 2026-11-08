@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Menu, Tooltip, IconCloseOutlineRegular, IconFullscreenOutlineRegular, IconNewChatOutlineRegular,
   IconChevronDownOutlineRegular, IconSparkleRegular, IconLoadingOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsHooks } from '@deepseek-ai/dsh-client-ui-slots'
+import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchInstanceId } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -37,11 +37,10 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 }
 
 /** Full business page with an optional floating native conversation. */
-export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action, useSidebarExpanded }:
+export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
-  & PropsRenderSlots<'actvero.workbench.chat'> & PropsHooks<{ sidebarExpanded: { getSnapshot(): boolean; subscribe(listener: () => void): () => void } }> & { action: WorkbenchAction }) {
+  & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
   const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
-  const sidebarExpanded = useSidebarExpanded(value => value)
   const sessions = useSessions(value => value)
   const [menuOpen, setMenuOpen] = useState(false)
   const linked = sessions.ids.map(id => sessions.byId[id]).filter(summary =>
@@ -62,8 +61,6 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
       <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
-      <Button size="sm" className={styles.focusButton} aria-pressed={!sidebarExpanded}
-        onClick={() => { action.toggleFocus() }}>{t(sidebarExpanded ? 'focusWorkbench' : 'showNavigation')}</Button>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>

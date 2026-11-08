@@ -37,7 +37,7 @@ it('retains the last inventory and blocks mutations until a failed read recovers
 })
 
 it.each([
-  ['applied', 'enabled'], ['restart-required', 'restart'], ['overridden', 'overridden'],
+  ['applied', null], ['restart-required', 'restart'], ['overridden', 'overridden'],
   ['cancelled', 'cancelled'], ['failed', 'operationFailed'],
 ] as const)('reports %s independently of persistent selection', async (application, notice) => {
   const { actions, remote, latest } = fixture()
