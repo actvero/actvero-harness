@@ -69,6 +69,7 @@ export interface WorkbenchView extends WorkbenchManagement {
   chatCollapsed: boolean
   chatPreparing: boolean
   visibility: Readonly<Partial<Record<string, boolean>>>
+  canOpenDirectory: boolean
 }
 
 /** Human-triggered navigation and local installation. */
@@ -77,6 +78,11 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
   back(): void
   context(instanceId: WorkbenchInstanceId | null): WorkbenchClientContext
   supportsAI(instanceId: WorkbenchInstanceId | null): boolean
+  /** Open the provider's host-managed data directory using the native file manager.
+   * @param id Loaded workbench identity.
+   * @returns Resolves after native opening or a visible failure report.
+   */
+  openDataDirectory(id: string): Promise<void>
   conversation(fresh: boolean): Promise<void>
   /** Switch the floating view to an existing conversation of the current business instance.
    * @param sessionId Associated conversation to display.
@@ -94,10 +100,17 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
  * @param ctx Client plugin scope.
  */
 export function registerWorkbenches(ctx: Context): void {
-  const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) })
+  const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) }, async (id) => {
+    try { await ctx.sessions.refresh() }
+    catch (error) { ctx.logger.warn('Unable to inspect linked conversation activity: %s', error); return 'sessionStateUnavailable' }
+    const sessions = ctx.sessions.list.getSnapshot()
+    if (sessions.phase !== 'ready') return 'sessionStateUnavailable'
+    return sessions.ids.some(key => sessions.byId[key]?.running && sessions.byId[key]?.projectionValues?.actveroWorkbench?.id === id)
+      ? 'activeConversation' : null
+  })
   let view: WorkbenchView = { ...management.initial, entries: [], remembered: [], opened: readSelection(),
     instance: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
-    chatPreparing: false, visibility: readVisibility() }
+    chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
     view = { ...view, ...patch }
@@ -158,6 +171,13 @@ export function registerWorkbenches(ctx: Context): void {
     if (panel !== businessPanel) restoreNavigation()
   }))
   const runtime = new WorkbenchClientRuntime(ctx)
+  ctx.effect(() => {
+    let active = true
+    void ctx.remote.session.canOpenWorkspacePath().then((result) => {
+      if (active) update({ canOpenDirectory: result.ok && result.value })
+    }).catch((error: unknown) => { ctx.logger.warn('Unable to inspect native file opening: %s', error) })
+    return () => { active = false }
+  })
   const failed = () => { ctx.capabilityHub.notify(ctx.locale.bind(namespace)('runtimeFailed')) }
   const rememberVisibility = (key: string, visible: boolean) => {
     const visibility = { ...view.visibility, [key]: visible }
@@ -285,6 +305,19 @@ export function registerWorkbenches(ctx: Context): void {
     },
     context: instanceId => context(instanceId, linkedSession),
     supportsAI: instanceId => runtime.supportsAI(instanceId),
+    async openDataDirectory(id) {
+      try {
+        const instance = await runtime.open(id)
+        if (!instance) throw new Error('Workbench has no managed data directory')
+        const environment = await ctx.remote.actveroWorkbench.environment({ instanceId: instance.instanceId })
+        if (!environment.ok) throw environment.error
+        const opened = await ctx.remote.session.openWorkspacePath({ path: environment.value.dataDirectory })
+        if (!opened.ok) throw opened.error
+      } catch (error) {
+        ctx.logger.warn('Unable to open workbench data directory: %s', error)
+        ctx.capabilityHub.notify(ctx.locale.bind(namespace)('openDirectoryFailed'))
+      }
+    },
     restoreChat() {
       if (runtime.supportsAI(view.instance?.instanceId ?? null) && view.instance && (view.visibility[`chat:${view.instance.instanceId}`] ?? view.entries.find(item => item.id === view.opened)?.display?.ai !== 'hide')) void action.conversation(false)
     },

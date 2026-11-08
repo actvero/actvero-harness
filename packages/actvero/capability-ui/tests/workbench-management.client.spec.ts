@@ -19,9 +19,10 @@ function fixture() {
     removeBundle: vi.fn<Remote['removeBundle']>(),
   }
   const publish = vi.fn<(state: WorkbenchManagement) => void>()
-  const actions = createWorkbenchManagement(remote, publish)
+  const beforeChange = vi.fn<Parameters<typeof createWorkbenchManagement>[2]>().mockResolvedValue(null)
+  const actions = createWorkbenchManagement(remote, publish, beforeChange)
   const latest = () => publish.mock.calls.at(-1)?.[0] ?? actions.initial
-  return { actions, remote, publish, latest }
+  return { actions, remote, publish, latest, beforeChange }
 }
 
 it('retains the last inventory and blocks mutations until a failed read recovers', async () => {
@@ -38,7 +39,7 @@ it('retains the last inventory and blocks mutations until a failed read recovers
 
 it.each([
   ['applied', null], ['restart-required', 'restart'], ['overridden', 'overridden'],
-  ['cancelled', 'cancelled'], ['failed', 'operationFailed'],
+  ['cancelled', null], ['failed', 'operationFailed'],
 ] as const)('reports %s independently of persistent selection', async (application, notice) => {
   const { actions, remote, latest } = fixture()
   remote.setBundleEnabled.mockResolvedValue({ ok: true, value: { application, changed: true, stage: 'enable', target: bundle.name } })
@@ -50,8 +51,10 @@ it.each([
 it('serializes user operations and suppresses updates after disposal', async () => {
   const { actions, remote, publish } = fixture()
   const pending = Promise.withResolvers<{ ok: true; value: ChangeResult }>()
-  remote.setBundleEnabled.mockReturnValue(pending.promise)
+  const entered = Promise.withResolvers<undefined>()
+  remote.setBundleEnabled.mockImplementation(() => { entered.resolve(undefined); return pending.promise })
   const first = actions.setEnabled(bundle.name, false)
+  await entered.promise
   await actions.remove(bundle.name)
   expect(remote.removeBundle).not.toHaveBeenCalled()
   actions.dispose()
@@ -60,6 +63,32 @@ it('serializes user operations and suppresses updates after disposal', async () 
   await first
   expect(publish.mock.calls).toHaveLength(calls)
   expect(remote.listBundles).not.toHaveBeenCalled()
+})
+
+it.each(['activeConversation', 'sessionStateUnavailable'] as const)('retains installations when activity inspection reports %s', async (notice) => {
+  const { actions, remote, latest, beforeChange } = fixture()
+  beforeChange.mockResolvedValue(notice)
+  await actions.setEnabled(bundle.name, false)
+  await actions.remove(bundle.name)
+  expect(remote.setBundleEnabled).not.toHaveBeenCalled()
+  expect(remote.removeBundle).not.toHaveBeenCalled()
+  expect(latest()).toMatchObject({ bundles: [bundle], busy: null, notice })
+  beforeChange.mockResolvedValue(null)
+  remote.removeBundle.mockResolvedValue({ ok: true, value: { application: 'applied', changed: true, stage: 'remove', target: bundle.name } })
+  await actions.remove(bundle.name)
+  expect(remote.removeBundle).toHaveBeenCalledOnce()
+  expect(latest().notice).toBeNull()
+})
+
+it('does not begin a package change after disposal during activity inspection', async () => {
+  const { actions, remote, beforeChange } = fixture()
+  const checked = Promise.withResolvers<null>()
+  beforeChange.mockReturnValue(checked.promise)
+  const removal = actions.remove(bundle.name)
+  actions.dispose()
+  checked.resolve(null)
+  await removal
+  expect(remote.removeBundle).not.toHaveBeenCalled()
 })
 
 it('keeps disabled releases in the catalog and separates installed and running versions', () => {

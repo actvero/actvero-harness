@@ -100,14 +100,15 @@ function CardPreviews({ entry, showDetails, t }: Locale & { entry: ActveroWorkbe
   </div>
 }
 
-type ManageAction = 'update' | 'enable' | 'disable' | 'remove'
+type ManageAction = 'update' | 'enable' | 'disable' | 'remove' | 'directory'
 
-function ManagementActions({ entry, t, open, manage, blocked, details }: Locale & {
+function ManagementActions({ entry, t, open, manage, blocked, details, canOpenDirectory }: Locale & {
   entry: WorkbenchItem
   open: () => void
   manage: (action: ManageAction) => void
   blocked: boolean
   details?: () => void
+  canOpenDirectory: boolean
 }) {
   const bundle = entry.bundle
   const waiting = entry.state === 'restartState'
@@ -117,46 +118,51 @@ function ManagementActions({ entry, t, open, manage, blocked, details }: Locale 
     {(bundle || details) && <ActionMenu className={styles.more} label={`${t('more')} · ${entry.name}`} items={[
       ...(details ? [{ id: 'details', label: t('details') }] : []),
       ...(bundle ? [
-        { id: 'update', label: t('update'), disabled: locked || !bundle.removable },
+        ...(bundle.removable ? [{ id: 'update', label: t('update'), disabled: locked }] : []),
+        ...(canOpenDirectory && entry.runningVersion ? [{ id: 'directory', label: t('openDirectory'), disabled: blocked }] : []),
         { id: bundle.enabled ? 'disable' : 'enable', label: t(bundle.enabled ? 'disable' : 'enable'), disabled: locked },
-        { id: 'remove', label: t('remove'), disabled: locked || !bundle.removable, danger: true },
+        ...(bundle.removable ? [{ type: 'separator' as const, id: 'remove-separator' },
+          { id: 'remove', label: t('remove'), disabled: locked, danger: true }] : []),
       ] : []),
     ]} onSelect={(id) => {
       if (id === 'details') details?.()
-      else if (id === 'update' || id === 'enable' || id === 'disable' || id === 'remove') manage(id)
+      else if (id === 'update' || id === 'enable' || id === 'disable' || id === 'remove' || id === 'directory') manage(id)
     }} />}
     <Button className={styles.openButton} variant="primary" disabled={primary === 'open' ? blocked : locked}
       onClick={() => { if (primary === 'open') open(); else manage('enable') }}>{t(primary)}</Button>
   </div>
 }
 
-function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale & {
+function Card({ entry, builtIn, open, showDetails, t, manage, blocked, canOpenDirectory }: Locale & {
   entry: WorkbenchItem
   manage: (action: ManageAction) => void
   blocked: boolean
   builtIn: boolean
   open: () => void
   showDetails: (previewIndex: number) => void
+  canOpenDirectory: boolean
 }) {
-  return <article className={styles.card}>
+  const metadata = `${t('versionPrefix')}${entry.version} · ${t(builtIn ? 'builtIn' : 'local')}${entry.author ? ` · ${entry.author}` : ''}`
+  return <article className={styles.card} data-workbench-state={entry.state}>
     <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
         <Mark entry={entry} />
         <h3 className={styles.name} title={entry.name}>{entry.name}</h3>
       </div>
-      <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} details={() => { showDetails(0) }} />
+      <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked}
+        canOpenDirectory={canOpenDirectory} details={() => { showDetails(0) }} />
     </header>
     <p className={styles.description}>{entry.description}</p>
     <CardPreviews entry={entry} showDetails={showDetails} t={t} />
     <footer className={styles.cardFoot}>
-      <span className={styles.metadata}>{t(builtIn ? 'builtIn' : 'local')} · {t('versionPrefix')}{entry.version}</span>
-      {!builtIn && <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>}
+      <span className={styles.metadata} title={metadata}>{metadata}</span>
+      {entry.state !== 'ready' && <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>}
     </footer>
   </article>
 }
 
-function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blocked }: Locale & {
+function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blocked, canOpenDirectory }: Locale & {
   entry: WorkbenchItem
   manage: (action: ManageAction) => void
   blocked: boolean
@@ -164,6 +170,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
   initialPreview: number
   onClose: () => void
   open: () => void
+  canOpenDirectory: boolean
 }) {
   const previews = entry.previewUrls ?? []
   const [selected, setSelected] = useState(initialPreview)
@@ -181,7 +188,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
     <Modal open headless title={entry.name} onClose={onClose} className={styles.detail}>
       <div className={styles.detailContent}>
         <header className={styles.detailHeader}>
-          <h2>{entry.name}</h2>
+          <div className={styles.detailName}><Mark entry={entry} /><h2>{entry.name}</h2></div>
           <Button variant="ghost" onClick={onClose} aria-label={t('close')}><IconCloseOutlineMedium size={18} /></Button>
         </header>
         <div className={styles.detailLayout}>
@@ -207,18 +214,22 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
-            <div className={styles.detailIdentity}><Mark entry={entry} /><h3>{t('about')}</h3></div>
-            <p className={styles.detailDescription}>{entry.description}</p>
-            {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
-            <dl className={styles.facts}>
-              <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : 'local')}</dd></div>
-              <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
-              {!builtIn && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
-              {entry.runningVersion && entry.runningVersion !== entry.version && <div><dt>{t('runningVersion')}</dt><dd>{entry.runningVersion}</dd></div>}
-              {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
-            </dl>
+            <div className={styles.detailMetadata}>
+              <span aria-label={`${t('version')} ${entry.version}`}>{t('versionPrefix')}{entry.version}</span>
+              <span>{t(builtIn ? 'builtIn' : 'local')}</span>
+              {entry.author && <span>{entry.author}</span>}
+            </div>
+            <div className={styles.descriptionScroll} role="region" aria-label={t('description')} tabIndex={0}>
+              <p className={styles.detailDescription}>{entry.description}</p>
+              {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
+            </div>
+            {entry.state !== 'ready' && <div className={styles.detailState} role="status">
+              <span>{t(entry.state)}</span>
+              {entry.runningVersion && entry.runningVersion !== entry.version
+                && <span>{t('runningVersion')} {entry.runningVersion}</span>}
+            </div>}
             <div className={styles.detailActions}>
-              <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} />
+              <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} canOpenDirectory={canOpenDirectory} />
             </div>
           </section>
         </div>
@@ -241,6 +252,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
   const [removeTarget, setRemoveTarget] = useState<WorkbenchItem>()
+  const [disableTarget, setDisableTarget] = useState<WorkbenchItem>()
   const blocked = !!view.busy || view.inventoryFailed
   const needle = query.trim().toLocaleLowerCase()
   const builtIn: WorkbenchItem = {
@@ -256,6 +268,8 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const manage = (entry: WorkbenchItem, operation: ManageAction) => {
     if (operation === 'update') { updateTarget.current = entry.id; fileInput.current?.click() }
     else if (operation === 'remove') setRemoveTarget(entry)
+    else if (operation === 'disable') setDisableTarget(entry)
+    else if (operation === 'directory') void action.openDataDirectory(entry.id)
     else void action.setEnabled(entry.id, operation === 'enable')
   }
   async function copyInstructions(): Promise<void> {
@@ -297,6 +311,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       </div> : entries.length > 0 ? <div className={catalogStyles.grid}>
         {entries.map(entry => (
           <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} blocked={blocked}
+            canOpenDirectory={view.canOpenDirectory}
             manage={(operation) => { manage(entry, operation) }}
             showDetails={(previewIndex) => { setDetailSelection({ id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
         ))}
@@ -307,7 +322,8 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       </div>}
     </div>
     {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === builtIn.id}
-      initialPreview={detailSelection.previewIndex} t={t} blocked={blocked} manage={(operation) => { manage(detail, operation) }}
+      initialPreview={detailSelection.previewIndex} t={t} blocked={blocked} canOpenDirectory={view.canOpenDirectory}
+      manage={(operation) => { manage(detail, operation) }}
       onClose={() => { setDetailSelection(undefined) }}
       open={() => { setDetailSelection(undefined); action.open(detail.id) }} />}
     <Modal open={developerOpen} onClose={() => { setDeveloperOpen(false) }} title={t('develop')} closeLabel={t('close')}>
@@ -321,6 +337,15 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       resourceName={`${catalog.find(entry => entry.id === view.pendingUpdate?.name)?.name ?? view.pendingUpdate?.name ?? ''} · ${view.pendingUpdate?.from ?? ''} → ${view.pendingUpdate?.to ?? ''}`}
       description={t('updateHelp')} cancelLabel={t('cancel')} confirmLabel={t('confirmUpdate')} pending={!!view.busy}
       onCancel={action.cancelUpdate} onConfirm={() => { void action.confirmUpdate() }} />
+    <ConfirmDialog open={!!disableTarget} title={t('disableTitle')} closeLabel={t('close')}
+      resourceName={disableTarget?.name ?? ''} description={t('disableHelp')} cancelLabel={t('cancel')}
+      confirmLabel={t('disable')} pending={!!view.busy} onCancel={() => { setDisableTarget(undefined) }}
+      onConfirm={() => {
+        if (!disableTarget) return
+        const name = disableTarget.id
+        setDisableTarget(undefined)
+        void action.setEnabled(name, false)
+      }} />
     <ConfirmDialog open={!!removeTarget} title={t('removeTitle')} closeLabel={t('close')}
       resourceName={removeTarget?.name ?? ''} description={t('removeHelp')} cancelLabel={t('cancel')}
       confirmLabel={t('remove')} pending={!!view.busy} onCancel={() => { setRemoveTarget(undefined) }}

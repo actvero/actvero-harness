@@ -7,7 +7,7 @@ import { readWorkbenchPackage } from './archive.ts'
 /** Localized outcome with optional installer diagnostics. */
 export type WorkbenchNotice = 'invalidPackage' | 'desktopOnly' | 'importFailed' | 'incompatible' | 'restart'
   | 'currentVersion' | 'olderVersion' | 'wrongPackage' | 'changedElsewhere'
-  | 'operationFailed' | 'overridden' | 'cancelled' | 'unknownOutcome' | 'stopFirst'
+  | 'operationFailed' | 'overridden' | 'unknownOutcome' | 'stopFirst' | 'activeConversation' | 'sessionStateUnavailable'
 
 /** Reviewed replacement, held only until the person confirms or cancels. */
 export interface WorkbenchUpdate {
@@ -33,11 +33,13 @@ export interface WorkbenchManagement {
 /** Create profile operations; failed reads retain the last list but disable writes until refreshed.
  * @param remote Host package manager facade.
  * @param publish Update the registered view state.
+ * @param beforeChange Refresh linked conversation activity and reject changes while its state is running or unavailable.
  * @returns Actions and disposal for the owning client registration.
  */
 export function createWorkbenchManagement(
   remote: Pick<Context['remote']['pluginManager'], 'listBundles' | 'installBundle' | 'setBundleEnabled' | 'removeBundle'>,
   publish: (state: WorkbenchManagement) => void,
+  beforeChange: (name: string) => Promise<'activeConversation' | 'sessionStateUnavailable' | null>,
 ) {
   let state: WorkbenchManagement = {
     bundles: [], refreshing: false, inventoryFailed: false, busy: null, notice: null, diagnostic: '', pendingUpdate: null, restart: [],
@@ -72,7 +74,7 @@ export function createWorkbenchManagement(
       case 'applied': notice = null; break
       case 'restart-required': notice = 'restart'; update({ restart: [...new Set([...state.restart, result.target])] }); break
       case 'overridden': notice = 'overridden'; break
-      case 'cancelled': notice = 'cancelled'; break
+      case 'cancelled': notice = null; break
       case 'failed':
         notice = result.error?.code === 'incompatible-version' ? 'incompatible'
           : result.error?.code === 'stale-approval' ? 'changedElsewhere'
@@ -85,6 +87,9 @@ export function createWorkbenchManagement(
     if (state.busy || state.inventoryFailed || disposed) return
     update({ busy: target, notice: null, diagnostic: '' })
     try {
+      const blocked = await beforeChange(target)
+      if (disposed) return
+      if (blocked) { update({ notice: blocked }); return }
       const result = await operation()
       if (result.ok) outcome(result.value)
       else update({ notice: 'unknownOutcome' })
