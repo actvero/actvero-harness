@@ -9,10 +9,11 @@
 
 ```mermaid
 flowchart LR
+  pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
+  svc_actveroWorkbenchPlatform["ctx.actveroWorkbenchPlatform<br/>Actvero workbench platform metadata"]
   pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
   svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
   pkg__actvero_dsh_experts["@actvero/dsh-experts"]
-  pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
   svc_cotTranslation["ctx.cotTranslation<br/>Reasoning translation Remote"]
@@ -301,6 +302,7 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchPlatform
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchRuntime
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
@@ -621,6 +623,7 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.actveroWorkbenchPlatform` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 通过 Electron Main 读取工作台声明的模型元数据，不暴露凭据或提供任意地址的鉴权代理。 |
 | `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | 解析配置的解释器与包目录；Host 消费方与模型工具共用成功的准备结果，并等待释放。 |
 | `ctx.actveroWorkbenchRuntime` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 管理运行目录、可选 JSON 适配器数据、会话关联及能力作用域的生命周期。 |
 | `ctx.cotTranslation` | `service` | [`experimental-client-ui-cot-translation`](../packages/experimental/client-ui-cot-translation) | - | - | - | 为展开的思考内容提供有界的 Session 翻译请求，不改变模型可见历史。 |
