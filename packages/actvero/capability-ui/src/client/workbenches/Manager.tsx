@@ -21,11 +21,6 @@ import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
 import styles from './workbenches.module.css'
-import checklistPreview from './assets/project-checklist.png'
-import checklistProgressPreview from './assets/project-checklist-progress.png'
-import checklistReviewPreview from './assets/project-checklist-review.png'
-import checklistCompletedPreview from './assets/project-checklist-completed.png'
-import checklistDarkPreview from './assets/project-checklist-dark.png'
 
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
@@ -255,12 +250,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const [disableTarget, setDisableTarget] = useState<WorkbenchItem>()
   const blocked = !!view.busy || view.inventoryFailed
   const needle = query.trim().toLocaleLowerCase()
-  const builtIn: WorkbenchItem = {
-    state: 'ready',
-    id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
-    previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
-  }
-  const catalog = [builtIn, ...workbenchCatalog(view, resolveText)]
+  const catalog = workbenchCatalog(view, resolveText)
   const detail = catalog.find(entry => entry.id === detailSelection?.id)
   const entries = catalog.filter(entry => [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))]
     .some(value => value.toLocaleLowerCase().includes(needle)))
@@ -310,18 +300,19 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         <Button variant="outline" onClick={() => { setSource('local') }}>{t('viewMine')}</Button>
       </div> : entries.length > 0 ? <div className={catalogStyles.grid}>
         {entries.map(entry => (
-          <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} blocked={blocked}
+          <Card key={entry.id} entry={entry} builtIn={entry.id === 'builtin:project-checklist'} t={t} blocked={blocked}
             canOpenDirectory={view.canOpenDirectory}
             manage={(operation) => { manage(entry, operation) }}
             showDetails={(previewIndex) => { setDetailSelection({ id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
         ))}
       </div> : <div className={styles.empty}>
         <WorkbenchIcon size={27} />
-        <p>{t('empty')}</p>
-        <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>
+        <p>{t(needle ? 'empty' : 'noWorkbenches')}</p>
+        {needle ? <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>
+          : <p>{t('noWorkbenchesHelp')}</p>}
       </div>}
     </div>
-    {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === builtIn.id}
+    {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === 'builtin:project-checklist'}
       initialPreview={detailSelection.previewIndex} t={t} blocked={blocked} canOpenDirectory={view.canOpenDirectory}
       manage={(operation) => { manage(detail, operation) }}
       onClose={() => { setDetailSelection(undefined) }}

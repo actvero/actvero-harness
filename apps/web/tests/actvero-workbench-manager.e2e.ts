@@ -51,6 +51,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       cpSync(process.execPath, join(nodeBin, 'node'))
       await new DesktopProjectManager(paths, { dsh: project }).applyRelease()
       writeFileSync(join(paths.profile, 'cordis.patch.yml'), [
+        '- id: actvero-capability-ui', '  config:', '    exampleWorkbench: true',
+        `    dataDirectory: ${JSON.stringify(join(home, 'actvero-workbench-data'))}`,
         '- id: webserver', '  config:', '    host: 127.0.0.1', '    port: 0',
         '- id: web-runtime', '  config:', '    printUrl: false', '    openBrowser: false',
         '- id: ui-settings-general', '  config:', "    welcomeNoticeVersion: '2026-09-28.1'", '',
@@ -242,7 +244,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         expect(await page.getByRole('button', { name: '返回工作台列表' }).count()).toBe(1)
         expect(await page.getByRole('dialog').count()).toBe(0)
         const chat = page.getByRole('complementary', { name: '工作台对话', exact: true })
-        await chat.getByRole('button', { name: /^切换对话 · / }).waitFor()
+        try { await chat.getByRole('button', { name: /^切换对话 · / }).waitFor() }
+        catch (error) { console.error('Workbench conversation unavailable', { errors, body: await page.locator('body').innerText() }); throw error }
         await chat.getByRole('button', { name: '收起', exact: true }).click()
         await openManager()
         expect(await switcher.textContent()).toBe('项目清单')

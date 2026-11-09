@@ -33,7 +33,7 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
   const [dragging, setDragging] = useState<string | null>(null)
   const drag = useRef<{ id: string; pointer: number; y: number; moved: boolean } | null>(null)
   const list = useRef<HTMLDivElement>(null)
-  const catalog = orderWorkbenches([{ id: 'builtin:project-checklist', name: t('sampleName'), iconUrl: undefined }, ...entries], order)
+  const catalog = orderWorkbenches(entries, order)
   const move = (id: string, target: string, edge: 'before' | 'after') => {
     const next = moveWorkbench(order, catalog.map(entry => entry.id), id, target, edge)
     if (next === order) return
@@ -79,6 +79,7 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
       <div ref={list} onKeyDownCapture={(event) => {
         if (event.key === 'Escape' && drag.current) { event.preventDefault(); event.stopPropagation(); cancelDrag() }
       }}>
+        {catalog.length === 0 && <div className={styles.sortHint}>{t('noWorkbenches')}</div>}
         {catalog.map((entry, index) => <div key={entry.id} className={styles.entry} data-workbench-entry={entry.id}
           data-dragging={dragging === entry.id} data-drop={drop?.id === entry.id && drop.id !== dragging ? drop.edge : undefined}
           onKeyDown={(event) => {

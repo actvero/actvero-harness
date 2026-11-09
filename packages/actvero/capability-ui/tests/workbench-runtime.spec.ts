@@ -1,5 +1,6 @@
 /** Native scopes, durable business state and concurrent workbench actions. */
 import { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import Skills from '@deepseek-ai/dsh-skill'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -27,7 +28,7 @@ import { checklistDocument } from '../src/checklist-data.ts'
 import type { WorkbenchId } from '../src/types.ts'
 import type { WorkbenchObjectId } from '../src/workbench-reference.ts'
 
-async function harness(root?: string) {
+async function harness(root?: string, exampleWorkbench = true) {
   const directory = root ?? await mkdtemp(join(tmpdir(), 'actvero-workbench-runtime-'))
   const ctx = new Context()
   onTestFinished(async () => { await ctx.fiber.dispose(); if (!root) await rm(directory, { recursive: true, force: true }) })
@@ -56,7 +57,7 @@ async function harness(root?: string) {
   }
   ctx.reflect.provide('sessionController', sessionController)
   const workbenches = await ctx.plugin(Workbenches, {
-    dataDirectory: join(directory, 'files'), displayTimeoutMs: 30000, platformTimeoutMs: 30000,
+    exampleWorkbench, dataDirectory: join(directory, 'files'), displayTimeoutMs: 30000, platformTimeoutMs: 30000,
   })
   const runtime = ctx.actveroWorkbenchRuntime
   const prepare = (agent: Agent) => ctx.waterfall(scopeTarget(agent, agent), 'agent/pre-step', {
@@ -68,6 +69,13 @@ async function harness(root?: string) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it('starts without example providers when the profile does not opt in', async () => {
+    expect(z.resolve({ dataDirectory: '/workbench-files' }, Workbenches.Config, {})[0]).toMatchObject({ exampleWorkbench: false })
+    const { runtime } = await harness(undefined, false)
+    expect(runtime.list()).toEqual([])
+    await expect(runtime.open(id)).rejects.toMatchObject({ code: 'workbench/unavailable' })
+  })
+
   it('checks historical objects without activating AI and rejects missing or unloaded destinations', async () => {
     const { runtime } = await harness()
     const customId = 'test:history' as WorkbenchId

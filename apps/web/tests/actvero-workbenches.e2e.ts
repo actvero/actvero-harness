@@ -74,7 +74,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       mkdirSync(join(paths.profile, 'node_modules'), { recursive: true })
       symlinkSync(fixture, join(paths.profile, 'node_modules', fixtureName), 'dir')
       writeFileSync(join(paths.profile, 'cordis.patch.yml'),
-        "- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n- id: web-runtime\n  config:\n    printUrl: false\n    openBrowser: false\n- id: ui-settings-general\n  config:\n    welcomeNoticeVersion: '2026-09-28.1'\n" +
+        "- id: actvero-workbenches\n  disabled: false\n- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n- id: web-runtime\n  config:\n    printUrl: false\n    openBrowser: false\n- id: ui-settings-general\n  config:\n    welcomeNoticeVersion: '2026-09-28.1'\n" +
         readFileSync(join(repository, 'apps/web/tests/pin-browse-picker.overlay.yml'), 'utf8'))
       host = new DesktopHostProcess(process.execPath, project, paths.profile, undefined, process.env,
         undefined, undefined, undefined, undefined, (message) => {

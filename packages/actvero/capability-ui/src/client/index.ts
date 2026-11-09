@@ -11,7 +11,7 @@ export const inject = [...capabilityHubDependencies, 'remote.pluginManager', 're
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
   applyCapabilityHub(ctx)
   const unmount = await ctx.remote.$mount(remote)
-  const ui = ctx.inject(['remote.actveroWorkbench', 'remote.actveroWorkbenchPlatform'], (child) => { registerWorkbenches(child) })
+  const ui = ctx.inject(['remote.actveroWorkbench', 'remote.actveroWorkbenchPlatform'], child => registerWorkbenches(child))
   try { await ui } catch (error) { await ui.dispose(); await unmount(); throw error }
   return async () => { await ui.dispose(); await unmount() }
 }

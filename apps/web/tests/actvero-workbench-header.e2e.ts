@@ -1,4 +1,4 @@
-/** Workbench authors own the complete header; omitted headers retain a minimal identity. */
+/** Empty workbench defaults and author-owned headers in the shipped Web composition. */
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -88,6 +88,50 @@ it('gives a custom header the whole business region and restores the default on 
     const page = browser?.contexts()[0]?.pages()[0]
     if (page) console.error({ errors, body: await page.locator('body').innerText() })
     throw error
+  } finally {
+    try { await browser?.close() } finally {
+      try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+    }
+  }
+})
+
+it('keeps a clean catalog empty even after restoring a retired sample selection', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'workbench-empty-'))
+  let scaffold: Awaited<ReturnType<typeof launchWebScaffold>> | undefined
+  let browser: Browser | undefined
+  try {
+    const overlay = join(root, 'test.patch.yml')
+    await writeFile(overlay, '- id: actvero-capability-ui\n  disabled: false\n')
+    scaffold = await launchWebScaffold({ extraOverlayPath: overlay })
+    expect(scaffold.ctx.actveroWorkbenchRuntime.list()).toEqual([])
+    browser = await chromium.launch()
+    const page = await newEnglishPage(browser)
+    const log = watchConsole(page)
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    const checkEmpty = async () => {
+      await page.getByRole('button', { name: 'Workbenches', exact: true }).click()
+      await page.getByRole('tab', { name: 'My workbenches', exact: true }).click()
+      await page.getByText('No workbenches yet', { exact: true }).waitFor()
+      expect(await page.getByText('No workbenches yet', { exact: true }).locator('..').innerText()).toMatchInlineSnapshot(`
+        "No workbenches yet
+
+        Import a workbench package or choose Develop workbench to create your own."
+      `)
+      expect(await page.getByText('Project checklist', { exact: true }).count()).toBe(0)
+      expect(await page.getByText('DSH Workbenches', { exact: true }).count()).toBe(0)
+      expect(await page.getByRole('button', { name: 'Clear search', exact: true }).count()).toBe(0)
+      await page.getByRole('button', { name: 'Switch workbench · Choose workbench', exact: true }).click()
+      const menu = page.getByRole('menu')
+      await menu.getByText('No workbenches yet', { exact: true }).waitFor()
+      expect(await menu.getByRole('menuitem').count()).toBe(0)
+      await page.keyboard.press('Escape')
+    }
+    await checkEmpty()
+    await page.evaluate(() => { localStorage.setItem('actvero.workbenches.selected.v1', 'builtin:project-checklist') })
+    await page.reload({ waitUntil: 'load' })
+    await checkEmpty()
+    expect(log.pageErrors).toEqual([])
   } finally {
     try { await browser?.close() } finally {
       try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }

@@ -157,7 +157,7 @@
 
     - id: actvero-workbenches
       name: 'dsh-desktop-workbenches'
-      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+      disabled: true
       config:
         root: !!js dshHomePath('actvero-workbenches')
 

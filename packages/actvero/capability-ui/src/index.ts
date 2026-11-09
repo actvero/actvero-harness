@@ -23,18 +23,21 @@ export { WorkbenchRuntime } from './workbench-runtime.ts'
 export const inject = ['agents', 'sessionController', 'sessionProjections', 'tools', 'systemPrompt', 'storageDomain', 'typert', 'remoteAccess', 'workspaceRegistry']
 /** Deployment-owned managed files location. */
 export interface Config extends WorkbenchRuntimeConfig {
+  /** Opt in to the local checklist used for development and acceptance. */
+  exampleWorkbench: boolean
   /** Maximum wait for a Main-owned platform read. */
   platformTimeoutMs: number
 }
 export const Config: z<Config> = z.object({
   dataDirectory: z.string().required(),
+  exampleWorkbench: z.boolean().default(false),
   displayTimeoutMs: z.number().step(1).min(1).max(600000).default(30000),
   platformTimeoutMs: z.number().step(1).min(1).max(600000).default(30000),
 })
 /** Open authoritative data before advertising runtime availability.
  * @param ctx Host plugin scope.
  * @param config Managed files location supplied by the product profile.
- * @returns Completion when the runtime and built-in provider are ready.
+ * @returns Completion when the runtime and any explicitly enabled example are ready.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   ctx.inject(['skills'], (child) => {
@@ -54,6 +57,6 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     yield () => domain.close()
     const runtime = new WorkbenchRuntime(ctx, domain, config)
     new WorkbenchPlatformAccess(ctx, runtime, config.platformTimeoutMs)
-    yield runtime.register(checklistProvider)
+    if (config.exampleWorkbench) yield runtime.register(checklistProvider)
   })
 }

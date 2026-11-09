@@ -20,6 +20,8 @@ Each package entry labels its data with three identifiers: `inject` lists the se
 ```ts config-catalog
 /** Deployment-owned managed files location. */
 export interface Config extends WorkbenchRuntimeConfig {
+  /** Opt in to the local checklist used for development and acceptance. */
+  exampleWorkbench: boolean
   /** Maximum wait for a Main-owned platform read. */
   platformTimeoutMs: number
 }

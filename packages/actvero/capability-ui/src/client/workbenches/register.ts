@@ -11,6 +11,11 @@ import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
 import { Example } from './Example.tsx'
+import checklistPreview from './assets/project-checklist.png'
+import checklistProgressPreview from './assets/project-checklist-progress.png'
+import checklistReviewPreview from './assets/project-checklist-review.png'
+import checklistCompletedPreview from './assets/project-checklist-completed.png'
+import checklistDarkPreview from './assets/project-checklist-dark.png'
 import { Manager } from './Manager.tsx'
 import { OpenWorkbench, BusinessContent, WorkbenchChat, WorkbenchBadge, WorkbenchUtilities, type ConversationWorkbenchActions } from './RuntimeView.tsx'
 import { connectWorkbenchDisplay, waitForWorkbenchView } from './presentation.ts'
@@ -103,8 +108,17 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
 
 /** Register the Actvero workbench catalog, navigation and native business seat.
  * @param ctx Client plugin scope.
+ * @returns Completion when the host catalog and client registrations are ready.
  */
-export function registerWorkbenches(ctx: Context): void {
+export async function registerWorkbenches(ctx: Context): Promise<void> {
+  const providers = await ctx.remote.actveroWorkbench.list()
+  if (!providers.ok) throw providers.error
+  ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
+  const t = ctx.locale.bind(namespace)
+  const examples: ActveroWorkbench[] = providers.value.some(entry => entry.id === 'builtin:project-checklist') ? [{
+    id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
+    previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
+  }] : []
   const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) }, async (id) => {
     try { await ctx.sessions.refresh() }
     catch (error) { ctx.logger.warn('Unable to inspect linked conversation activity: %s', error); return 'sessionStateUnavailable' }
@@ -113,7 +127,7 @@ export function registerWorkbenches(ctx: Context): void {
     return sessions.ids.some(key => sessions.byId[key]?.running && sessions.byId[key]?.projectionValues?.actveroWorkbench?.id === id)
       ? 'activeConversation' : null
   })
-  let view: WorkbenchView = { ...management.initial, entries: [], remembered: [], opened: readSelection(),
+  let view: WorkbenchView = { ...management.initial, entries: examples, remembered: [], opened: readSelection(),
     instance: null, location: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false }
   const listeners = new Set<() => void>()
@@ -232,7 +246,7 @@ export function registerWorkbenches(ctx: Context): void {
       ? ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.id : view.instance?.id
     const providerEntry = view.entries.find(entry => entry.id === providerId)
     const isCurrent = () => generation === chatGeneration && ctx.fiber.uid !== null
-      && (providerId === 'builtin:project-checklist' || providerEntry !== undefined && view.entries.includes(providerEntry))
+      && (providerEntry !== undefined && view.entries.includes(providerEntry))
       && (ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel && view.instance?.instanceId === instanceId
         || sessionId !== null && ctx.layout.panelInfo.getSnapshot().activePanelId === null
           && Boolean(ctx.sessions.retainInfo(sessionId).getSnapshot().retainedBy.mainView))
@@ -366,7 +380,7 @@ export function registerWorkbenches(ctx: Context): void {
   const { initial: _initial, dispose: _dispose, ...operations } = management
   const action: WorkbenchAction = {
     open(id) {
-      if (id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === id)) return
+      if (!view.entries.some(entry => entry.id === id)) return
       linkedSession = null
       displaying.abort()
       const opening = load(id)
@@ -420,7 +434,7 @@ export function registerWorkbenches(ctx: Context): void {
       displaying = new AbortController()
       const signal = AbortSignal.any([callerSignal, displaying.signal])
       signal.throwIfAborted()
-      if (request.id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === request.id)) throw new Error('Workbench client is not loaded')
+      if (!view.entries.some(entry => entry.id === request.id)) throw new Error('Workbench client is not loaded')
       if (view.opened !== request.id) linkedSession = null
       const instance = await load(request.id)
       signal.throwIfAborted()
@@ -531,9 +545,7 @@ export function registerWorkbenches(ctx: Context): void {
   ctx.effect(() => ctx.resources.register(workbenchResource(ctx.remote.actveroWorkbench)))
   ctx.effect(() => connectWorkbenchDisplay(ctx, (request, signal) => action.present(request, signal), snapshot))
   ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat(); restoreNavigation() })
-  ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
   registerWorkbenchReferences(ctx, target => registry.openObject(target))
-  const t = ctx.locale.bind(namespace)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))
@@ -554,7 +566,7 @@ export function registerWorkbenches(ctx: Context): void {
       'actvero.workbench.header': { kind: 'keyed', scope: 'root' } },
   }, OpenWorkbench))
   ctx.slots.inject('actvero.workbench.chat', () => ctx.slots.register({ name: 'actvero.workbench.chat' }, WorkbenchChat))
-  ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
+  if (examples.length) ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
     name: 'actvero.workbench.body', key: 'builtin:project-checklist', locale: namespace,
   }, Example))
   const conversationAction = (sessionId: SessionId): ConversationWorkbenchActions => ({
@@ -582,7 +594,7 @@ export function registerWorkbenches(ctx: Context): void {
         const result = await ctx.remote.actveroWorkbench.list()
         signal.throwIfAborted()
         if (!result.ok) throw result.error
-        return result.value.filter(item => item.aiEnabled && (item.id === 'builtin:project-checklist' || view.entries.some(entry => entry.id === item.id)))
+        return result.value.filter(item => item.aiEnabled && view.entries.some(entry => entry.id === item.id))
           .map(item => ({ id: item.id, label: item.name,
             icon: item.id === 'builtin:project-checklist' ? IconChecklistOutlineMedium : WorkbenchIcon,
             avatar: { src: workbenchIconUrl(view, item.id), fallback: item.name.slice(0, 1) },
