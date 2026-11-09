@@ -55,6 +55,10 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   const collapse = () => { setMenuOpen(false); action.collapseChat(); requestAnimationFrame(() => { launcher.current?.focus() }) }
   useEffect(() => () => { action.releaseChat() }, [action])
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entries.find(item => item.id === opened)?.name ?? t('title')
+  const defaultHeader = <div className={styles.defaultHeader} data-workbench-default-header="">
+    {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
+    <h1>{name}</h1>
+  </div>
   return <section className={styles.page} aria-label={name}
     data-workbench-main={!preparing && !runtimeFailed ? opened : undefined} data-workbench-instance={instance?.instanceId}
     data-workbench-session={chat?.sessionId}>
@@ -62,14 +66,11 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
-      <div className={styles.businessHeader}>
-        {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
-        <div className={styles.headerExtension} data-workbench-header="">
-          {opened && !preparing && !runtimeFailed
-            ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
-              entryKey: opened, fallback: renderFactorySlot('actvero.workbench.toolbar', { title: name }),
-            }) : renderFactorySlot('actvero.workbench.toolbar', { title: name })}
-        </div>
+      <div className={styles.headerExtension} data-workbench-header="">
+        {opened && !preparing && !runtimeFailed
+          ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
+            entryKey: opened, fallback: defaultHeader,
+          }) : defaultHeader}
       </div>
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}

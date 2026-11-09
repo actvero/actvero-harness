@@ -152,15 +152,15 @@ my-workbench/
 
 <a id="header"></a>
 
-### 原生顶栏与共享视图状态
+### 自定义顶栏与共享视图状态
 
-从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略：未提供顶栏时显示工作台名称；有顶栏时只替换宿主返回按钮之后的业务区域，返回、侧栏与窗口控制继续由宿主管理。注册的释放函数同时移除卡片、正文和顶栏；预览只渲染正文，不显示第二条顶栏。
+从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略。宿主只保留返回工作台列表、分隔线、侧栏及窗口控制；分隔线右侧由 Header 完整渲染，不额外插入图标、工作台名称、面包屑、下拉菜单或操作。未提供 Header 时显示最小的工作台图标与名称。预览只渲染正文，不挂载顶栏；注册释放时同时移除卡片、正文和顶栏。
 
-`Header` 使用 `WorkbenchHeaderProps`，获得 `title`、与正文相同的 `workbench` 和原生资源读取接口。标准排版调用 `renderFactorySlot('actvero.workbench.toolbar', { title, breadcrumbs, status, actions })`：面包屑用唯一 `id`、本地化 `label` 和祖先的 `onSelect`，最后一项表示当前页面；状态用 `{ text, tone?: 'normal' | 'error' }`；操作用唯一 `id`、本地化 `label`、`disabled` 和 `onSelect`。宿主渲染原生按钮、窄容器菜单和键盘交互，操作回调负责报告自身失败。复杂控件可直接在 Header 中使用原生组件，不覆盖宿主公共控制。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示了从同一业务资源读取保存进度。
+Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
 
-标题和操作由顶栏组件在渲染时计算，不在正文的 effect 中反向设置宿主标题。正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 `store`；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 `useStore` 和 `actions`。状态按所需实例或视图标识组织；它只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量。
+正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 store；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 useStore 和 actions。状态按所需实例或视图标识组织，只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量；正文不通过 effect 向宿主反向写标题。
 
-验收时从正文和顶栏分别切换页面，确认面包屑、状态与内容一致；再检查 390px 窄窗口的导航/操作菜单、Escape 与焦点返回、深浅主题、切换工作台及停用后的释放。统一 AI 浮窗入口已存在，不再添加通用“使用 AI”按钮。选区使用下文的[原生引用接口](#input-references)；需要按项目或文档区分对话时，使用[业务对象关联](#conversation-objects)。
+验收自定义顶栏时，确认宿主没有额外插入业务标识或导航；从正文和顶栏分别操作，检查内容与状态一致。至少检查 390px 窄窗口、明暗主题、菜单的 Escape 与焦点返回、切换工作台及停用释放。统一 AI 浮窗入口已存在，具体业务动作按需要组合，不重复通用 AI 按钮。选区使用[原生引用接口](#input-references)，按项目或文档区分对话使用[业务对象关联](#conversation-objects)。
 
 <a id="settings-commands"></a>
 

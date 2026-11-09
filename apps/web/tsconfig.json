@@ -25,6 +25,7 @@
     "tests/actvero-capabilities.e2e.ts",
     "tests/actvero-workbenches.e2e.ts",
     "tests/actvero-workbench-manager.e2e.ts",
+    "tests/actvero-workbench-header.e2e.ts",
     "tests/actvero-workbench-lifecycle.snapshot.ts",
     "tests/actvero-workbench-object.snapshot.ts",
     "tests/actvero-workbench-reference.snapshot.ts",

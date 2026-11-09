@@ -67,7 +67,9 @@ export interface WorkbenchClientContext {
 /** Native view props; useResource observes authoritative business data. */
 export type WorkbenchBodyProps = PropsRuntime<'actvero.workbench.body'>
 
-/** Full-page header props; never mounted inside a floating preview. */
+/** Author-rendered region after the host return control and divider, without an injected icon, title or navigation layout.
+ * Never mounted in a floating preview.
+ */
 export type WorkbenchHeaderProps = PropsRuntime<'actvero.workbench.header'> & PropsRenderFactories
 
 /** Native settings page props. Installation-wide settings use the provider's Host configuration; object data stays in its storage. */
@@ -92,7 +94,7 @@ export interface WorkbenchToolbarAction {
   readonly onSelect: () => void
 }
 
-/** Standard header presentation; custom headers may render their own native components. */
+/** Optional legacy toolbar helper; custom headers own their layout and need not use this representation. */
 export interface WorkbenchToolbarProps {
   readonly title: string
   readonly breadcrumbs?: readonly WorkbenchBreadcrumb[]
@@ -144,6 +146,9 @@ export interface ActveroWorkbenchRegistry {
       store?: H
       /** The body renders workbench.location when historical navigation requests an object. */
       objectNavigation?: boolean
+      /** Render the entire business header. Authors own its identity, controls, responsive layout and navigation.
+       * Omission uses the host's minimal name and icon.
+       */
       header?: (props: WorkbenchHeaderProps & PropsLocale<N> & PropsStore<HandleOf<H>>) => ReactNode
       /** One installation-wide settings page. Omitted label uses the workbench name; functions follow locale changes. */
       settings?: {
@@ -185,7 +190,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'actvero.capability.content':{ kind:'keyed';scope:'root';entryKey:CapabilityTab;owner:{ notify(text:string,tone?:'success'):void;setBackNavigation?:(navigation:CapabilityBackNavigation|undefined)=>void } }
   }
   interface SlotFactoryMap {
-    /** Native title, business breadcrumbs, status and overflow actions for workbench headers. */
+    /** Legacy opt-in toolbar helper; the header slot itself accepts author-owned components. */
     'actvero.workbench.toolbar': { scope: 'root'; props: WorkbenchToolbarProps; locale: 'actvero.workbenches' }
   }
 }

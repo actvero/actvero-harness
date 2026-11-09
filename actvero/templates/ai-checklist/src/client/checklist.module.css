@@ -1,4 +1,7 @@
 .page { padding: 28px 32px; container-type: inline-size; color: var(--dsw-alias-label-primary); }
+.header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; min-width: 0; color: var(--dsw-alias-label-primary); }
+.header h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 20px; font-weight: 500; }
+.header > span { color: var(--dsw-alias-label-secondary); font-size: 13px; overflow-wrap: anywhere; }
 .description { margin: 12px 0 28px; color: var(--dsw-alias-label-secondary); line-height: 1.6; overflow-wrap: anywhere; }
 .checklist { width: min(100%, 560px); box-sizing: border-box; padding: 20px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; }
 .checklist header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

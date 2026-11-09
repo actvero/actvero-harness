@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbench-architecture-plan.md
 /workbench-host-extension-architecture-plan:
-  en: ba8524197cac8259
-  zh: c4d561695b69b399
+  en: 8a1babcb8923f1cd
+  zh: 8f778e39a30dd81e
 /workbench-host-extension-architecture-plan/1-product-model-and-responsibilities:
   en: f0640e07f8037d49
   zh: c3cce14480d4d8b5
 /workbench-host-extension-architecture-plan/2-current-baseline-and-main-gaps:
-  en: 1fc6d865000547e8
-  zh: 2db755c572205c79
+  en: 48bdb642f5e91b0c
+  zh: d1a72b73c1d92f93
 /workbench-host-extension-architecture-plan/3-runtime-layers:
   en: 2416acaf6cb8a1e7
   zh: 93eb8a2484ac2efc
@@ -21,8 +21,8 @@
   en: 3361dd4f67f07beb
   zh: 1edf4edc9cd6114e
 /workbench-host-extension-architecture-plan/5-host-extension-capabilities/header-and-business-view:
-  en: 7f0b9c3520faf092
-  zh: 1fb10c2ce6e9bca1
+  en: 1f0b6f785322170d
+  zh: 2066ed2ecd2628eb
 /workbench-host-extension-architecture-plan/5-host-extension-capabilities/native-composer-and-context-references:
   en: a3268263ff9760da
   zh: da64c3f78de97b88
@@ -48,8 +48,8 @@
   en: f82ecaa34e2c1087
   zh: 36e14ae3f85d19dc
 /workbench-host-extension-architecture-plan/11-delivery-stages-and-acceptance:
-  en: 32b7c748534c2a29
-  zh: d88b687f9995debb
+  en: 575745ff8640aa9e
+  zh: aaa7a51036624ced
 /workbench-host-extension-architecture-plan/12-scope-of-this-stage:
   en: 1483bf479f812dae
   zh: bb2fcbcd15fbbb58
