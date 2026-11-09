@@ -354,6 +354,13 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await launcherTooltip.waitFor()
         const tooltipRect = (await launcherTooltip.boundingBox())!
         expect(tooltipRect.y + tooltipRect.height).toBeLessThan(launcherRect.y)
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          await launcher.hover()
+          await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/actvero-workbench-ai-launcher-${colorScheme}.png`),
+            clip: { x: launcherRect.x - 80, y: launcherRect.y - 80, width: launcherRect.width + 100, height: launcherRect.height + 100 } })
+        }
+        await page.emulateMedia({ colorScheme: 'light' })
         await launcher.click()
         await chat.getByRole('button', { name: '项目清单', exact: true }).waitFor()
         await expect.poll(() => chat.getByRole('button', { name: '添加文件或调用指令', exact: true }).isEnabled()).toBe(true)
