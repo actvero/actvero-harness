@@ -10,7 +10,6 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.row[data-active="true"], .row[data-open="true"] { background: var(--dsw-alias-interactive-bg-hover); }
 @media (hover: hover) {
   .row:hover { background: var(--dsw-alias-interactive-bg-hover); }
 }
@@ -28,17 +27,39 @@
   line-height: 22px;
   cursor: pointer;
 }
-.manage { flex: 1; text-align: left; }
+.manage { flex: none; text-align: left; }
 .manage > span { white-space: nowrap; }
 .manage svg, .switchButton svg { flex: none; }
 .manage:focus-visible, .switchButton:focus-visible {
   outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   outline-offset: -2px;
 }
-.switchButton { max-width: 58%; gap: 6px; font-size: 13px; color: var(--dsw-alias-label-secondary); }
+.switchButton { flex: 1; justify-content: flex-end; font-size: 13px; color: var(--dsw-alias-label-secondary); }
 .row[data-active="true"] .switchButton { color: var(--dsw-alias-label-primary); }
-.currentName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.currentName { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .switchMenu { width: 0; max-width: calc(100vw - 24px); }
-.entryName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.entry { position: relative; min-width: 0; border-radius: var(--dsw-radius-md); }
+.entry > div:first-child > button { padding-right: 36px; }
+.entryLabel { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.entryLabel .currentName { flex: 1; }
+.entryLabel > svg { flex: none; }
+.entry[data-dragging="true"] { opacity: 0.5; }
+.entry[data-drop]::after {
+  content: ""; position: absolute; inset-inline: 8px; height: 2px;
+  background: var(--dsw-alias-state-business-primary); pointer-events: none;
+}
+.entry[data-drop="before"]::after { top: 0; }
+.entry[data-drop="after"]::after { bottom: 0; }
+.grip {
+  position: absolute; inset-block: 0; right: 4px; width: 28px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--dsw-alias-label-secondary); cursor: grab; touch-action: none; user-select: none;
+}
+.grip:active { cursor: grabbing; }
+.grip svg { position: absolute; transform: translateX(-3px) rotate(90deg); pointer-events: none; }
+.grip svg + svg { transform: translateX(3px) rotate(90deg); }
+.sortHint { padding: 6px 8px; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .row[data-wide="false"] { width: 36px; height: 36px; margin: 0; }
-.row[data-wide="false"] .manage { justify-content: center; padding: 0; }
+.row[data-wide="false"] .manage { flex: 1; justify-content: center; padding: 0; }
