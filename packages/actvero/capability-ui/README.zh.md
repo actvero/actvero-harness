@@ -39,7 +39,7 @@ Host 配置 `dataDirectory` 指定工作台文件根目录，Actvero Profile 使
 <details>
 <summary>工作台运行机制</summary>
 
-Host 提供者通过 Cordis effect 注册初始化、业务操作与可选专家指令。操作携带读取时的修订号；并发修改会被拒绝，要求重读。客户端通过原生 Resource 订阅保存结果，完整页和悬浮页使用同一组件。原生 Session Projection 恢复关联；会话作用域内注册工具，原生请求记录保留提示词及工具调用。公开接口见[Host 提供者](src/workbench-provider.ts)和[客户端上下文](src/contracts.ts)。
+Host 提供者通过 Cordis effect 注册初始化、业务操作与可选专家指令。操作携带读取时的修订号；并发修改会被拒绝，要求重读。客户端通过原生 Resource 订阅保存结果，完整页和悬浮页使用同一组件。业务组件可将 React Portal 渲染到 `WorkbenchBodyProps.headerTarget`，把搜索或操作放入当前视图的原生标题栏；挂载前该值为 `null`，控件状态及卸载由业务组件负责，完整页和悬浮页各自持有挂载点。标题栏空间不足时换行。原生 Session Projection 恢复关联；会话作用域内注册工具，原生请求记录保留提示词及工具调用。公开接口见[Host 提供者](src/workbench-provider.ts)和[客户端上下文](src/contracts.ts)。
 
 </details>
 

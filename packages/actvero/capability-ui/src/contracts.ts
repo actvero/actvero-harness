@@ -67,7 +67,16 @@ declare module '@deepseek-ai/cordis' { interface Context { capabilityHub:Capabil
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Provider business view shared by the full page and floating preview. */
-    'actvero.workbench.body': { kind: 'keyed'; scope: 'root'; entryKey: string; owner: { workbench: WorkbenchClientContext } }
+    'actvero.workbench.body': {
+      kind: 'keyed'
+      scope: 'root'
+      entryKey: string
+      owner: {
+        workbench: WorkbenchClientContext
+        /** This view's native header portal destination; null until mounted. Providers own portal content and cleanup. */
+        headerTarget: HTMLElement | null
+      }
+    }
     /** Connector-page brand mark; receives the pixel size and replaces the link icon fallback when occupied. */
     'actvero.connector.brand.mark':{ kind:'single';scope:'root';owner:{ size:number } }
     /**

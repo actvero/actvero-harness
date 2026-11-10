@@ -39,7 +39,7 @@ Host configuration requires `dataDirectory` for workbench files; the Actvero Pro
 <details>
 <summary>Workbench runtime</summary>
 
-Host providers register initialization, business actions and optional expert instructions through Cordis effects. Actions carry the observed revision; concurrent edits are rejected and require a fresh read. Clients subscribe to saved results through native Resources, and full and floating views share the component. Native Session Projection restores associations; tools are registered in the conversation scope, and native request records retain prompts and tool calls. See the [Host provider](src/workbench-provider.ts) and [Client context](src/contracts.ts) definitions.
+Host providers register initialization, business actions and optional expert instructions through Cordis effects. Actions carry the observed revision; concurrent edits are rejected and require a fresh read. Clients subscribe to saved results through native Resources, and full and floating views share the component. Business components can render a React Portal into `WorkbenchBodyProps.headerTarget` to place search or actions in the current view's native title bar; the value is `null` before mounting, the business component owns control state and cleanup, and full and floating views have separate destinations. The title bar wraps when space is limited. Native Session Projection restores associations; tools are registered in the conversation scope, and native request records retain prompts and tool calls. See the [Host provider](src/workbench-provider.ts) and [Client context](src/contracts.ts) definitions.
 
 </details>
 

@@ -17,7 +17,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotFactoryMap {
     /** One business panel, independent of the conversation display mode. */
     'actvero.workbench.content': { scope: 'root'
-      props: { id: string; workbench: WorkbenchClientContext }
+      props: { id: string; workbench: WorkbenchClientContext; headerTarget: HTMLElement | null }
       locale: 'actvero.workbenches'
       children: { 'actvero.workbench.body': { kind: 'keyed'; scope: 'root' } } }
   }
@@ -28,8 +28,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Render the same provider component at either presentation size. */
-export function BusinessContent({ id, workbench, renderSlot, t }: FactoryComponentPropsOf<'actvero.workbench.content'>) {
-  return <div className={styles.content}>{renderSlot('actvero.workbench.body', { workbench }, {
+export function BusinessContent({ id, workbench, headerTarget, renderSlot, t }: FactoryComponentPropsOf<'actvero.workbench.content'>) {
+  return <div className={styles.content}>{renderSlot('actvero.workbench.body', { workbench, headerTarget }, {
     entryKey: id, fallback: <p role="status">{t('unavailable')}</p>,
   })}</div>
 }
@@ -39,6 +39,7 @@ export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, Sessi
   Locale & WorkbenchViewHooks & PropsRenderFactories & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
   const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, entries } = useView(value => value)
   const [conversationPending, setConversationPending] = useState(false)
+  const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const launcher = useRef<HTMLButtonElement>(null)
   const conversation = (fresh: boolean) => {
     if (conversationPending) return
@@ -54,11 +55,14 @@ export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, Sessi
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
       <span className={styles.separator} aria-hidden="true" />
       <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
+      <div ref={setHeaderTarget} className={styles.pageHeaderTools} />
     </header>
     {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
       : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
-        : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
+        : opened && renderFactorySlot('actvero.workbench.content', {
+          id: opened, workbench: action.context(instance?.instanceId ?? null), headerTarget,
+        })}
     {instance && <Tooltip label={t('askAI')} side="left"><button ref={launcher} type="button" className={styles.aiLauncher}
       hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={conversationPending}
       onClick={() => { if (chat && !chatCollapsed) collapse(); else conversation(false) }}>
@@ -123,6 +127,7 @@ export function WorkbenchUtilities({ t, useProjection, sessionId, action, render
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
   const [floating, setFloating] = useState(false)
+  const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   if (!selection) return null
   return <div className={styles.utilities}>
     <Tooltip label={t('floatWorkbench')}><Button size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
@@ -135,6 +140,7 @@ export function WorkbenchUtilities({ t, useProjection, sessionId, action, render
       if (event.key === 'Escape') { event.stopPropagation(); setFloating(false) }
     }}>
       <header className={styles.toolbar}><WorkbenchIcon /><span className={styles.title}>{selection.name}</span>
+        <div ref={setHeaderTarget} className={styles.previewHeaderTools} />
         <div className={styles.actions}>
           <Tooltip label={t('fullWorkbench')}>
             <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
@@ -144,7 +150,9 @@ export function WorkbenchUtilities({ t, useProjection, sessionId, action, render
             onClick={() => { setFloating(false) }}><IconCloseOutlineRegular /></Button></Tooltip>
         </div>
       </header>
-      {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.instanceId, sessionId) })}
+      {renderFactorySlot('actvero.workbench.content', {
+        id: selection.id, workbench: action.context(selection.instanceId, sessionId), headerTarget,
+      })}
     </aside>}
   </div>
 }
