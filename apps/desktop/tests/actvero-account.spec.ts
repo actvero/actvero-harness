@@ -605,13 +605,21 @@ describe('desktop resource authorization recovery', () => {
     const reply = api.reply
     api.reply = async (path, body) => {
       if (path === '/desktop/resource-tokens') return configToken
-      if (path === '/desktop/workbenches') return { items: [{ ...pin, package_name: '@local/checklist',
-        display_name: 'Checklist', description: 'Tasks', category: 'office', version: '1.0.0', dsh_requirement: '*', size: bytes.length }] }
+      if (path === '/desktop/workbenches') {
+        const metadata = { ...pin, package_name: '@local/checklist', display_name: 'Checklist', description: 'Tasks',
+          category: 'office', version: '1.0.0', dsh_requirement: '*', size: bytes.length }
+        return { items: [
+          { ...metadata, icon_data_url: 'data:image/webp;base64,UklGRg==' },
+          { ...metadata, icon_data_url: 'https://platform.example.test/avatar.webp' },
+        ] }
+      }
       if (path === '/desktop/workbenches/check-updates') return { status: 'current', adopted_usable: true }
       return reply(path, body)
     }
     const download = vi.spyOn(api, 'workbenchPackage').mockResolvedValue(bytes)
-    const { scope, items: [release] } = await controller.workbenchCatalog()
+    const { scope, items: [release, invalidIcon] } = await controller.workbenchCatalog()
+    expect(release?.iconUrl).toBe('data:image/webp;base64,UklGRg==')
+    expect(invalidIcon?.iconUrl).toBeUndefined()
     const source = { ...release!, scope }
     await expect(controller.workbenchCheck(source)).resolves.toEqual({ status: 'current', adoptedUsable: true })
     await expect(controller.workbenchCheck({ ...source, scope: '0'.repeat(32) })).resolves.toEqual({ status: 'unavailable', adoptedUsable: false })

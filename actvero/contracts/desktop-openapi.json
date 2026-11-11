@@ -489,6 +489,17 @@
             "title": "Dsh Requirement",
             "type": "string"
           },
+          "icon_data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Data Url"
+          },
           "package_name": {
             "title": "Package Name",
             "type": "string"

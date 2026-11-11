@@ -14,6 +14,7 @@ import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/clie
 const repository = fileURLToPath(new URL('../', import.meta.url))
 const template = join(repository, 'actvero/templates/project-checklist')
 const packageName = z.string().max(214).regex(/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u)
+const maxIconBytes = 64 * 1024
 const manifestSchema = z.object({
   name: packageName,
   version: z.string().refine(value => semver.valid(value) === value, '版本必须是完整的 SemVer'),
@@ -22,6 +23,7 @@ const manifestSchema = z.object({
   exports: z.object({ '.': z.literal('./lib/index.js'), './client': z.literal('./lib/client.js') }),
   dsh: z.object({
     actveroWorkbench: z.literal(1),
+    actveroWorkbenchIcon: z.string().max(200).regex(/^\.\/assets\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:png|jpe?g|webp)$/u).optional(),
     bundle: z.object({ patch: z.literal('./cordis.patch.yml') }),
     client: z.object({ platform: z.literal('web'), inject: z.array(z.string()).refine(value => value.includes('@actvero/dsh-capability-ui')) }).loose(),
   }).loose(),
@@ -63,7 +65,7 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
   const bytes = await readFile(archive)
   const summary = await readWorkbenchPackage(new File([new Uint8Array(bytes)], basename(archive)))
   if (!summary) throw new Error('工作台包未通过客户端导入校验，请检查 .tgz 与 package.json。')
-  const files = new Set<string>()
+  const files = new Map<string, number>()
   const paths = new Set<string>()
   const manifestChunks: Buffer[] = []
   const invalidPaths: string[] = []
@@ -72,13 +74,18 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
     if (!path.startsWith('package/') || path.includes('\\') || path.split('/').includes('..')
       || !['File', 'Directory'].includes(entry.type) || paths.has(path)) invalidPaths.push(path)
     paths.add(path)
-    if (entry.type === 'File' && entry.size > 0) files.add(path)
+    if (entry.type === 'File' && entry.size > 0) files.set(path, entry.size)
     if (path === 'package/package.json') entry.on('data', (chunk: Buffer) => { manifestChunks.push(chunk) })
   } })
   if (invalidPaths.length) throw new Error('工作台包包含重复路径、链接或包目录之外的文件。')
   const manifest = manifestSchema.parse(JSON.parse(Buffer.concat(manifestChunks).toString('utf8')))
   for (const file of [manifest.exports['.'], manifest.exports['./client'], manifest.dsh.bundle.patch]) {
     if (!files.has(`package/${file.slice(2)}`)) throw new Error(`工作台包缺少入口文件：${file}`)
+  }
+  const icon = manifest.dsh.actveroWorkbenchIcon
+  if (icon) {
+    const iconSize = files.get(`package/${icon.slice(2)}`)
+    if (!iconSize || iconSize > maxIconBytes) throw new Error('工作台头像必须是包内不超过 64 KiB 的图片文件。')
   }
   return { name: summary.name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
 }
@@ -109,9 +116,14 @@ export async function packWorkbench(directory: string, output: string): Promise<
     for (const file of ['index.js', 'client.js']) await stat(join(lib, file))
     await mkdir(join(folder, 'locale'))
     await writeFile(join(folder, 'locale/en.json'), JSON.stringify({ meta: { title: metadata.name, description: metadata.description } }) + '\n')
+    const icon = manifest.dsh.actveroWorkbenchIcon
+    if (icon) {
+      await mkdir(join(folder, 'assets'))
+      await cp(join(directory, icon), join(folder, icon))
+    }
     await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, description: metadata.description,
       exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
-      files: ['lib', 'locale', 'cordis.patch.yml'],
+      files: ['lib', 'locale', 'cordis.patch.yml', ...(icon ? [icon.slice(2)] : [])],
     }, null, 2) + '\n')
     await writeFile(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${JSON.stringify(manifest.name)}\n      name: ${JSON.stringify(manifest.name)}\n`)
     const archiveName = `${manifest.name.replace(/^@/u, '').replaceAll('/', '-')}-${manifest.version}.tgz`

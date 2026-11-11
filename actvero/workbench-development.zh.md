@@ -57,6 +57,7 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
 | `dsh.actveroWorkbenchConfig` | 可选的运行配置字段，供组织管理员填写 |
+| `dsh.actveroWorkbenchIcon` | 可选的目录头像路径，如 `./assets/icon.webp`。使用不超过 64 KiB、512 × 512 像素的静态 PNG、JPEG 或 WebP 图片 |
 | `exports["."]` / `exports["./client"]` | 本工具输出的 `./lib/index.js` 和 `./lib/client.js` |
 | `exports["./locale/*.json"]` | 打包生成名称与介绍元数据，工作台未加载时仍可展示 |
 | `workbench.json` | 源码中的名称、介绍、分类、作者和标签；编译时纳入客户端 |

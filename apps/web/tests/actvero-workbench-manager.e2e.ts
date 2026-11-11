@@ -152,6 +152,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const newerArchive = join(root, 'local-project-checklist-1.1.0.tgz')
           const scope = page.getByRole('checkbox', { name: '确认需求和交付范围' })
           const scopeKey = 'a'.repeat(32)
+          const iconUrl = 'data:image/png;base64,' + readFileSync(join(repository,
+            'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')
           const workbenchId = 'a0000000-0000-4000-8000-000000000001'
           function platformRelease(path: string, releaseVersion: string, versionId: string): { release: PublishedWorkbench; path: string } {
             const bytes = readFileSync(path)
@@ -160,7 +162,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             writeFileSync(pinned, bytes)
             return { path: pinned, release: { workbenchId, versionId, sha256, size: bytes.length,
               name: '平台发布的项目清单', description: '团队共享的项目清单', packageName: '@local/project-checklist',
-              version: releaseVersion, category: 'office', dshRequirement: '*' } }
+              version: releaseVersion, category: 'office', dshRequirement: '*', iconUrl } }
           }
           const first = platformRelease(checklistArchive, '1.0.0', 'a0000000-0000-4000-8000-000000000002')
           const latest = platformRelease(newerArchive, '1.1.0', 'a0000000-0000-4000-8000-000000000003')
@@ -201,8 +203,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const showPlatform = () => page.getByRole('tab', { name: '平台工作台', exact: true }).click()
           await showPlatform()
           const platformCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '平台发布的项目清单' }) })
+          await expect.poll(() => platformCard.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth))
+            .toBeGreaterThan(0)
+          expect(downloads).toBe(0)
           await platformCard.getByRole('button', { name: '使用', exact: true }).click()
-          await expect.poll(() => downloads).toBe(1)
           const installed = page.locator('article').filter({ has: page.getByRole('heading', { name: '项目清单', exact: true }) })
             .filter({ has: page.locator('footer').filter({ hasText: '平台工作台' }) })
           const restartNotice = page.getByText(/变更已保存，重启 Harness 后生效。/)
@@ -212,6 +216,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await installed.getByRole('button', { name: '打开', exact: true }).click()
           }
           await scope.waitFor()
+          expect(downloads).toBe(1)
           await openManager()
           await showPlatform()
           await platformCard.getByRole('button', { name: '打开', exact: true }).click()

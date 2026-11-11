@@ -39,11 +39,11 @@ function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
 }
 
-function Mark({ entry, builtIn }: { entry: ActveroWorkbench; builtIn: boolean }) {
+function Mark({ url, builtIn = false }: { url?: string; builtIn?: boolean }) {
   const [failed, setFailed] = useState<string>()
   return <span className={styles.mark}>
-    {entry.iconUrl && failed !== entry.iconUrl
-      ? <img src={entry.iconUrl} alt="" onError={() => { setFailed(entry.iconUrl) }} />
+    {url && failed !== url
+      ? <img src={url} alt="" onError={() => { setFailed(url) }} />
       : builtIn ? <IconChecklistOutlineMedium size={22} /> : <WorkbenchIcon size={22} />}
   </span>
 }
@@ -151,7 +151,7 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
     <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
-        <Mark entry={entry} builtIn={builtIn} />
+        <Mark url={entry.iconUrl} builtIn={builtIn} />
         <h3 className={styles.name} title={entry.name}>{entry.name}</h3>
       </div>
       <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} details={() => { showDetails(0) }} />
@@ -216,7 +216,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
-            <div className={styles.detailIdentity}><Mark entry={entry} builtIn={builtIn} /><h3>{t('about')}</h3></div>
+            <div className={styles.detailIdentity}><Mark url={entry.iconUrl} builtIn={builtIn} /><h3>{t('about')}</h3></div>
             <p className={styles.detailDescription}>{entry.description}</p>
             {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <dl className={styles.facts}>
@@ -250,7 +250,7 @@ function PlatformCard({ release, operation, installedVersion, busy, blocked, t, 
   return <article className={styles.card}>
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
-        <span className={styles.mark}><WorkbenchIcon size={22} /></span>
+        <Mark url={release.iconUrl} />
         <h3 className={styles.name} title={release.name}>{release.name}</h3>
       </div>
       <div className={styles.cardActions}>

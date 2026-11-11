@@ -1,5 +1,5 @@
 /** Package generation, compatibility refusal and executable Client registration. */
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runInNewContext } from 'node:vm'
@@ -21,11 +21,21 @@ describe('local workbench developer commands', () => {
     const path = await root()
     const source = join(path, 'development with spaces')
     await createWorkbench(source, '@local/delivery-checklist')
+    const icon = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aEtQAAAAASUVORK5CYII=', 'base64')
+    const manifestPath = join(source, 'package.json')
+    const manifest = await readFile(manifestPath, 'utf8')
+    await writeFile(manifestPath, manifest.replace(
+      '"actveroWorkbench": 1,',
+      '"actveroWorkbench": 1,\n    "actveroWorkbenchIcon": "./assets/icon.png",',
+    ))
+    await mkdir(join(source, 'assets'))
+    await writeFile(join(source, 'assets/icon.png'), icon)
     const archive = await packWorkbench(source, path)
     const checked = await checkWorkbench(archive)
     expect(checked.name).toBe('@local/delivery-checklist')
     expect(checked.sha256).toMatch(/^[a-f0-9]{64}$/u)
     await extract({ cwd: path, file: archive })
+    expect(await readFile(join(path, 'package/assets/icon.png'))).toEqual(icon)
     const patch = load(await readFile(join(path, 'package/cordis.patch.yml'), 'utf8'))
     expect(patch).toEqual([{ insert: [{ id: '@local/delivery-checklist', name: '@local/delivery-checklist' }] }])
     interface Descriptor { id: string; name: string; version: string; previewUrls: string[] }
@@ -60,6 +70,11 @@ describe('local workbench developer commands', () => {
     const outside = join(path, 'outside.tgz')
     await create({ cwd: path, file: outside, gzip: true }, ['package', 'outside.txt'])
     await expect(checkWorkbench(outside)).rejects.toThrow('包目录之外')
+    await rm(join(path, 'package/assets/icon.png'))
+    const missingIcon = join(path, 'missing-icon.tgz')
+    await create({ cwd: path, file: missingIcon, gzip: true }, ['package'])
+    await expect(checkWorkbench(missingIcon)).rejects.toThrow('工作台头像')
+    await writeFile(join(path, 'package/assets/icon.png'), icon)
     await rm(join(path, 'package/lib/client.js'))
     const broken = join(path, 'broken.tgz')
     await create({ cwd: path, file: broken, gzip: true }, ['package'])

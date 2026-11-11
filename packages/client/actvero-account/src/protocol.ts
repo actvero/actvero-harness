@@ -50,6 +50,8 @@ export interface PublishedWorkbench extends WorkbenchReleasePin {
   packageName: string
   name: string
   description: string
+  /** Inline raster artwork supplied by the authorized release catalog. */
+  iconUrl?: string
   category: string
   version: string
   dshRequirement: string
