@@ -23,7 +23,6 @@
   // cannot see both sides of the cordis Context merges).
   "exclude": [
     "tests/actvero-capabilities.e2e.ts",
-    "tests/actvero-workbenches.e2e.ts",
     "tests/actvero-workbench-manager.e2e.ts",
     "tests/collapse-timing.e2e.ts",
     "tests/notice-wake-tail.e2e.ts",

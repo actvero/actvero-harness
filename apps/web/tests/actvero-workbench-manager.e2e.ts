@@ -247,6 +247,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         }
         await page.goto(browserUrl(ready.url))
         const switcher = page.getByRole('button', { name: /^切换工作台 · / })
+        await switcher.waitFor()
+        expect(await page.getByText('DSH 工作台', { exact: true }).count()).toBe(0)
         await switcher.click()
         expect(await page.getByRole('menuitem').allTextContents()).toEqual(['项目清单'])
         expect(await page.getByRole('tab', { name: '我的工作台', exact: true }).count()).toBe(0)

@@ -111,4 +111,4 @@ For example, declare `{"key":"CERTIFICATE_API_URL","label":"Certificate service 
 
 The development tool creates, builds, and validates local `.tgz` archives in this repository. See the [client workbench reference](workbenches.md) for organization publishing and installation. Workbenches own authentication for their business requests. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
 
-Packages target Actvero's workbench registration service. Legacy DSH workbenches use another service; changing a marker alone does not establish compatibility. The DSH reference is retained as an [offline snapshot](third-party/dsh-desktop-workbenches/development-guide.zh.md), version 2026-10-27; it is not the current online specification and does not replace these Actvero package rules.
+Actvero workbench packages register through `ctx.actveroWorkbenches`. For a package that uses `ctx.desktopWorkbenches`, follow the [workbench migration guide](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.md).

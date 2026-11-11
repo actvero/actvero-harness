@@ -10,9 +10,9 @@ See [local workbench development](workbench-development.md) to generate an indep
 
 ## Launch and navigation
 
-Install locked dependencies, then run `pnpm run actvero:dev`; use `pnpm run actvero:start` with current artifacts. These commands use isolated development data. Expand the sidebar and select DSH Workbenches to open the compatibility catalog; the adjacent name switches between ordinary sessions and loaded compatibility workbenches. Installed shows local packages and their observed runtime status.
+Install locked dependencies, then run `pnpm run actvero:dev`. Use `pnpm run actvero:start` with current artifacts. Both commands use isolated development data.
 
-Workbenches opens Actvero’s My workbenches page. Search, open the built-in Project checklist, or import an Actvero workbench package from this device. Category filters appear only in the platform catalog and do not filter My workbenches. Imported cards show the installed version and runtime status and remain visible while disabled. If installation requires a restart, choose Harness → Restart Harness. DSH Workbenches opens the compatibility catalog and its workbenches.
+Workbenches opens Actvero’s My workbenches page. Search, open the built-in Project checklist, or import an Actvero workbench package from this device. Category filters appear only in the platform catalog and do not filter My workbenches. Imported cards show the installed version and runtime status and remain visible while disabled. If installation requires a restart, choose Harness → Restart Harness.
 
 Click the Workbenches title on the sidebar to open management; click the adjacent name to switch directly between loaded entries in My workbenches. The menu includes the built-in Project checklist, marks the current selection, and truncates long names with their full text available on hover. Returning to management or reloading preserves the last selection without forcing startup navigation to the business page. Unloaded or unregistered providers do not appear in the menu.
 
@@ -26,18 +26,12 @@ Actvero local packages use npm-packed `.tgz` files. The manifest declares `dsh.a
 
 ## Host and business packages
 
-The host uses DataElement's MIT-licensed DSH Desktop source; see the [source record](third-party/dsh-desktop-workbenches/UPSTREAM.md). It retains the market, favorites, switching, installation status and native Conversation composition. DSH Workbenches reads the public DSH catalog. Platform workbenches reads the signed-in organization’s authorized catalog.
-
-A business workbench is an independent DSH bundle. Its client registers through `ctx.desktopWorkbenches.register(descriptor, Component)` and owns the disposer through a Cordis effect. Local packages may omit repository metadata; package names establish stable local identity. The [bundled upstream guides](third-party/dsh-desktop-workbenches/) are source snapshots, not a claim about the latest online specification.
-
 Standard layouts combine a business panel and the native Conversation. Full-page business layouts own their first-use entry and place the host's Conversation node when AI help is requested. Native slots and a Factory preserve the existing Conversation implementation. Sidebar projections filter display only; the original Session and Workspace Controllers remain complete.
 
 ## Installation and compatibility
 
-The current Profile's Plugin Manager owns package installation. Verify its application outcome, runtime status, switcher entry and actual business UI separately. Actvero workbenches support confirmed same-name updates, enablement, disablement, and removal; see [local development](workbench-development.md#install) for operations and data retention. The legacy DSH market adapter still refuses replacement and directs the user to uninstall through plugin management first. It never removes packages automatically. The normal Harness compatibility checks still reject incompatible packages.
-
-npm market archives are downloaded and checked against the catalog's SHA-512 digest, package name and version before local installation. Native approval and compatibility checks remain active.
+The current Profile's Plugin Manager owns package installation and checks package compatibility. Verify the installation result, runtime status, switcher entry and business UI. See [local development](workbench-development.md#install) for same-name updates, enabling, disabling, removal and data retention.
 
 ## Verification
 
-`apps/web/tests/actvero-workbenches.e2e.ts` composes the real Desktop Host with a temporary local provider to exercise Installed, switching, first-use behavior, native Conversation, reload, light/dark themes and narrow layouts. The fixture is not a shipped business workbench. Workspace navigation tests cover ownership, blank reuse and reversible filters. Use the normal `build:artifacts` and subsequent `build:check` commands. Browser checks do not establish signed-installer or live-account/model acceptance.
+`apps/web/tests/actvero-workbench-manager.e2e.ts` uses the Desktop Host and temporary workbench packages to check local and organization workbench installation, updates, switching and opening a workbench. Use `build:artifacts` followed by `build:check`. Browser checks do not establish signed-installer or live-account/model acceptance.

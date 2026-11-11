@@ -111,4 +111,4 @@ Host 的每个工作台目前只有一个默认业务实例，多条关联对话
 
 开发工具在仓库内创建、构建和校验本地 `.tgz`。组织发布和成员安装见[客户端工作台说明](workbenches.zh.md)。业务请求的鉴权由工作台自行实现。专家、MCP 和 Skill 文件放入目录不会自动加载；内置专家指令和业务操作由 Host 提供者显式声明。
 
-安装包适用于 Actvero 自有工作台注册接口。旧 DSH 工作台使用不同的注册服务，不能仅修改标识就宣称兼容。DSH 参考文档保留在[离线快照](third-party/dsh-desktop-workbenches/development-guide.zh.md)，版本为 2026-10-27；它不是当前在线规范，也不替代本文的 Actvero 包约定。
+Actvero 工作台包通过 `ctx.actveroWorkbenches` 注册。已使用 `ctx.desktopWorkbenches` 的业务包请按[工作台迁移指南](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.zh.md)更新。

@@ -155,12 +155,6 @@
       config:
         dataDirectory: !!js dshHomePath('actvero-workbench-data')
 
-    - id: actvero-workbenches
-      name: 'dsh-desktop-workbenches'
-      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
-      config:
-        root: !!js dshHomePath('actvero-workbenches')
-
     - id: actvero-skills
       name: '@actvero/dsh-skills'
       disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"

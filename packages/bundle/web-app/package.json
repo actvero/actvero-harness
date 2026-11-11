@@ -43,7 +43,6 @@
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
-  "bundledDependencies": ["dsh-desktop-workbenches"],
   "dsh": {
     "bundle": {
       "patch": [
@@ -197,7 +196,6 @@
     "@actvero/dsh-connectors": "workspace:*",
     "@actvero/dsh-experts": "workspace:*",
     "@actvero/dsh-model-gateway": "workspace:*",
-    "dsh-desktop-workbenches": "file:../../../actvero/third-party/dsh-desktop-workbenches",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-sandbox": "workspace:*"
   },
