@@ -1,4 +1,5 @@
 /** Local workbench import and business navigation through the shipped Desktop Host. */
+import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -6,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
 import { create } from 'tar'
+import type { PublishedWorkbench, WorkbenchArchiveSource } from '@actvero/dsh-client-account/protocol'
 import { describe, expect, it, vi } from 'vitest'
 import { DesktopHostProcess } from '../../desktop/src/host-process.ts'
 import { DesktopProjectManager } from '../../desktop/src/project-manager.ts'
@@ -24,7 +26,7 @@ function version(path: string): string {
 }
 
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('Actvero workbench manager', () => {
-  it('opens and persists the checklist, imports a bundle and reopens its business page after restarting the Host', async () => {
+  it.each(['local workbench management', 'platform workbench distribution'])('%s', async (scenario) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-workbench-manager-')))
     let host: DesktopHostProcess | undefined
     let proxy: PrefixProxy | undefined
@@ -134,6 +136,115 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.getByRole('button', { name: '工作台', exact: true }).click()
           await page.getByRole('tab', { name: '我的工作台', exact: true }).waitFor()
         }
+        const restart = async () => {
+          await page.goto('about:blank')
+          await host?.stop()
+          const next = await startHost()
+          await page.goto(browserUrl(next.url))
+          await openManager()
+        }
+        if (scenario === 'platform workbench distribution') {
+          const packagePath = join(development, 'package.json')
+          const packageJson = JSON.parse(readFileSync(packagePath, 'utf8')) as { version: string }
+          packageJson.version = '1.1.0'
+          writeFileSync(packagePath, JSON.stringify(packageJson))
+          execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'pack', development, root], { cwd: repository })
+          const newerArchive = join(root, 'local-project-checklist-1.1.0.tgz')
+          const scope = page.getByRole('checkbox', { name: '确认需求和交付范围' })
+          const scopeKey = 'a'.repeat(32)
+          const workbenchId = 'a0000000-0000-4000-8000-000000000001'
+          function platformRelease(path: string, releaseVersion: string, versionId: string): { release: PublishedWorkbench; path: string } {
+            const bytes = readFileSync(path)
+            const sha256 = createHash('sha256').update(bytes).digest('hex')
+            const pinned = join(root, `actvero-wb-${scopeKey}-${workbenchId}-${versionId}-${sha256}.tgz`)
+            writeFileSync(pinned, bytes)
+            return { path: pinned, release: { workbenchId, versionId, sha256, size: bytes.length,
+              name: '平台发布的项目清单', description: '团队共享的项目清单', packageName: '@local/project-checklist',
+              version: releaseVersion, category: 'office', dshRequirement: '*' } }
+          }
+          const first = platformRelease(checklistArchive, '1.0.0', 'a0000000-0000-4000-8000-000000000002')
+          const latest = platformRelease(newerArchive, '1.1.0', 'a0000000-0000-4000-8000-000000000003')
+          let current: typeof first | undefined = first
+          let downloads = 0
+          await page.exposeFunction('workbenchFixtureCatalog', () => ({ scope: scopeKey, items: current ? [current.release] : [] }))
+          await page.exposeFunction('workbenchFixtureDownload', (pin: WorkbenchArchiveSource) => {
+            if (!current || pin.sha256 !== current.release.sha256 || pin.scope !== scopeKey) throw new Error('release unavailable')
+            downloads++
+            return current.path
+          })
+          await page.exposeFunction('workbenchFixtureCheck', (pin: WorkbenchArchiveSource) => {
+            const usable = !!current && pin.scope === scopeKey && [first, latest].some(entry => entry.release.sha256 === pin.sha256)
+            return { status: !usable ? 'unavailable' : current?.release.sha256 === pin.sha256 ? 'current' : 'update_available',
+              adoptedUsable: usable }
+          })
+          await page.addInitScript(() => {
+            const fixture = globalThis as typeof globalThis & {
+              workbenchFixtureCatalog: NonNullable<Window['actveroAccount']>['workbenchCatalog']
+              workbenchFixtureDownload: NonNullable<Window['actveroAccount']>['workbenchDownload']
+              workbenchFixtureCheck: NonNullable<Window['actveroAccount']>['workbenchCheck']
+            }
+            Object.defineProperty(window, 'actveroAccount', { value: {
+              snapshot: async () => ({
+                phase: 'ready', baseUrl: 'https://platform.example.test', brand: { name: 'Actvero' },
+                user: { id: 'test-member', name: 'Member' }, organizations: [],
+                organization: { tenantId: 'test-org', memberId: 'test-member', name: 'Organization', status: 'active', needsLogin: false },
+                quota: { phase: 'idle', windows: [] },
+              }),
+              subscribe: () => () => {},
+              workbenchCatalog: fixture.workbenchFixtureCatalog,
+              workbenchDownload: fixture.workbenchFixtureDownload,
+              workbenchCheck: fixture.workbenchFixtureCheck,
+            } })
+          })
+          await page.goto(browserUrl(ready.url))
+          await openManager()
+          const showPlatform = () => page.getByRole('tab', { name: '平台工作台', exact: true }).click()
+          await showPlatform()
+          const platformCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '平台发布的项目清单' }) })
+          await platformCard.getByRole('button', { name: '使用', exact: true }).click()
+          await expect.poll(() => downloads).toBe(1)
+          const installed = page.locator('article').filter({ has: page.getByRole('heading', { name: '项目清单', exact: true }) })
+            .filter({ has: page.locator('footer').filter({ hasText: '平台工作台' }) })
+          const restartNotice = page.getByText(/变更已保存，重启 Harness 后生效。/)
+          await expect.poll(async () => await scope.isVisible() || await restartNotice.isVisible(), { timeout: 40_000 }).toBe(true)
+          if (await restartNotice.isVisible()) {
+            await restart()
+            await installed.getByRole('button', { name: '打开', exact: true }).click()
+          }
+          await scope.waitFor()
+          await openManager()
+          await showPlatform()
+          await platformCard.getByRole('button', { name: '打开', exact: true }).click()
+          await scope.waitFor()
+          expect(downloads).toBe(1)
+          current = latest
+          await openManager()
+          await showPlatform()
+          await platformCard.getByRole('button', { name: '更新并打开', exact: true }).waitFor()
+          await platformCard.hover()
+          await platformCard.getByRole('button', { name: '更多操作 · 平台发布的项目清单' }).click()
+          await page.getByRole('menuitem', { name: '打开已安装版本', exact: true }).click()
+          await scope.waitFor()
+          expect(downloads).toBe(1)
+          await openManager()
+          await showPlatform()
+          await platformCard.getByRole('button', { name: '更新并打开', exact: true }).click()
+          await restartNotice.waitFor({ timeout: 40_000 })
+          expect(downloads).toBe(2)
+          await restart()
+          await installed.getByText(/v1.1.0/).waitFor()
+          await installed.getByRole('button', { name: '打开', exact: true }).click()
+          await scope.waitFor()
+          current = undefined
+          await openManager()
+          await installed.getByRole('button', { name: '打开', exact: true }).click()
+          await page.getByRole('alert').filter({ hasText: '当前组织无法使用这个工作台。请检查账号或联系管理员。' }).waitFor()
+          expect(await scope.isVisible()).toBe(false)
+          expect(downloads).toBe(2)
+
+          expect(errors.filter(error => /ReferenceError|TypeError|SyntaxError/u.test(error))).toEqual([])
+          return
+        }
         await page.goto(browserUrl(ready.url))
         const switcher = page.getByRole('button', { name: /^切换工作台 · / })
         await switcher.click()
@@ -173,10 +284,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         expect(await page.getByRole('navigation', { name: '工作台分类' }).count()).toBe(0)
         await mine.focus()
         await page.keyboard.press('ArrowRight')
-        await page.getByText('平台工作台即将开放', { exact: true }).waitFor()
+        await page.getByText('请在桌面端登录组织账号后查看平台工作台。', { exact: true }).waitFor()
         expect(await page.getByRole('tab', { name: '平台工作台', exact: true }).getAttribute('aria-selected')).toBe('true')
         await page.getByRole('navigation', { name: '工作台分类' }).getByRole('button', { name: '数据分析', exact: true }).click()
-        await page.getByRole('button', { name: '查看我的工作台', exact: true }).click()
+        await mine.click()
         expect(await mine.getAttribute('aria-selected')).toBe('true')
         expect(await page.getByRole('navigation', { name: '工作台分类' }).count()).toBe(0)
         await example.getByRole('button', { name: '查看详情 · 项目清单', exact: true }).click({ position: { x: 8, y: 8 } })
@@ -332,13 +443,6 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         const installStatus = page.getByText(/工作台已安装。|变更已保存，重启 Harness 后生效。/)
         await installStatus.waitFor({ timeout: 40_000 })
         const needsRestart = (await installStatus.innerText()).includes('重启')
-        const restart = async () => {
-          await page.goto('about:blank')
-          await host?.stop()
-          const next = await startHost()
-          await page.goto(browserUrl(next.url))
-          await openManager()
-        }
         if (needsRestart) await restart()
         try {
           await fixtureCard.waitFor()

@@ -13,11 +13,13 @@ import {
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { workbenchArchiveSource, type PublishedWorkbench } from '@actvero/dsh-client-account/protocol'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ActveroWorkbench } from '../../contracts.ts'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
+import { publishedWorkbenchAction, type PublishedWorkbenchAction } from './platform.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
@@ -119,11 +121,12 @@ function ManagementActions({ entry, t, open, manage, blocked, details }: Locale 
   const waiting = entry.state === 'restartState'
   const primary = bundle && !entry.runningVersion ? (bundle.enabled ? 'load' : 'enable') : 'open'
   const locked = blocked || waiting || !!bundle?.readOnlyReason
+  const managed = !!workbenchArchiveSource(bundle?.source)
   return <div className={styles.cardActions}>
     {(bundle || details) && <ActionMenu className={styles.more} label={`${t('more')} · ${entry.name}`} items={[
       ...(details ? [{ id: 'details', label: t('details') }] : []),
       ...(bundle ? [
-        { id: 'update', label: t('update'), disabled: locked || !bundle.removable },
+        ...(managed ? [] : [{ id: 'update', label: t('update'), disabled: locked || !bundle.removable }]),
         { id: bundle.enabled ? 'disable' : 'enable', label: t(bundle.enabled ? 'disable' : 'enable'), disabled: locked },
         { id: 'remove', label: t('remove'), disabled: locked || !bundle.removable, danger: true },
       ] : []),
@@ -156,7 +159,7 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
     <p className={styles.description}>{entry.description}</p>
     <CardPreviews entry={entry} showDetails={showDetails} t={t} />
     <footer className={styles.cardFoot}>
-      <span className={styles.metadata}>{t(builtIn ? 'builtIn' : 'local')} · {t('versionPrefix')}{entry.version}</span>
+      <span className={styles.metadata}>{t(builtIn ? 'builtIn' : workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')} · {t('versionPrefix')}{entry.version}</span>
       {!builtIn && <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>}
     </footer>
   </article>
@@ -217,7 +220,7 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
             <p className={styles.detailDescription}>{entry.description}</p>
             {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <dl className={styles.facts}>
-              <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : 'local')}</dd></div>
+              <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')}</dd></div>
               <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
               {!builtIn && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
               {entry.runningVersion && entry.runningVersion !== entry.version && <div><dt>{t('runningVersion')}</dt><dd>{entry.runningVersion}</dd></div>}
@@ -235,6 +238,36 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
   </>
 }
 
+function PlatformCard({ release, operation, installedVersion, busy, blocked, t, activate, openInstalled }: Locale & {
+  release: PublishedWorkbench
+  operation: PublishedWorkbenchAction
+  installedVersion?: string
+  busy: boolean
+  blocked: boolean
+  activate: () => void
+  openInstalled: () => void
+}) {
+  return <article className={styles.card}>
+    <header className={styles.cardHeader}>
+      <div className={styles.identity}>
+        <span className={styles.mark}><WorkbenchIcon size={22} /></span>
+        <h3 className={styles.name} title={release.name}>{release.name}</h3>
+      </div>
+      <div className={styles.cardActions}>
+        {operation === 'updateAndOpen' && <ActionMenu className={styles.more} label={`${t('more')} · ${release.name}`}
+          items={[{ id: 'open-installed', label: t('openInstalled'), disabled: blocked }]} onSelect={openInstalled} />}
+        <Button className={styles.openButton} variant="primary" disabled={blocked || operation === 'restartState' || operation === 'platformConflict'}
+          onClick={activate}>{t(busy ? 'busy' : operation === 'platformConflict' ? 'versionConflict' : operation)}</Button>
+      </div>
+    </header>
+    <p className={styles.description}>{release.description}</p>
+    <footer className={styles.cardFoot}>
+      <span className={styles.metadata}>{t('versionPrefix')}{release.version}</span>
+      {operation === 'updateAndOpen' && <span className={styles.status}>{t('installedVersion')} {installedVersion}</span>}
+    </footer>
+  </article>
+}
+
 /** Search, import and open workbenches registered in the current profile. */
 export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks & { action: WorkbenchAction; resolveText: ResolveText }) {
   const view = useView(value => value)
@@ -245,6 +278,9 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
   const [removeTarget, setRemoveTarget] = useState<WorkbenchItem>()
+  useEffect(() => {
+    if (source === 'platform') void action.refreshPlatform()
+  }, [source, action])
   const blocked = !!view.busy || view.inventoryFailed
   const needle = query.trim().toLocaleLowerCase()
   const builtIn: WorkbenchItem = {
@@ -253,6 +289,10 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
   }
   const catalog = [builtIn, ...workbenchCatalog(view, resolveText)]
+  const platform = view.platform.catalog
+  const published = platform?.items.filter(entry => (category === 'all' || categoryOf(entry.category) === category)
+    && [entry.name, entry.description, entry.packageName, t(categoryOf(entry.category))]
+      .some(value => value.toLocaleLowerCase().includes(needle))) ?? []
   const detail = catalog.find(entry => entry.id === detailSelection?.id)
   const entries = catalog.filter(entry => [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))]
     .some(value => value.toLocaleLowerCase().includes(needle)))
@@ -269,9 +309,10 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     <div className={`${catalogStyles.toolbar} ${styles.toolbar}`}>
       <Input className={catalogStyles.search} icon={<IconSearchOutlineMedium />}
         aria-label={t('search')} placeholder={t('search')} value={query} onChange={(event) => { setQuery(event.currentTarget.value) }} />
-      <Button variant="outline" disabled={blocked} onClick={() => { updateTarget.current = undefined; fileInput.current?.click() }}>
+      {source === 'local' ? <Button variant="outline" disabled={blocked} onClick={() => { updateTarget.current = undefined; fileInput.current?.click() }}>
         {t(view.busy ? 'busy' : 'import')}
-      </Button>
+      </Button> : view.platform.phase !== 'login' && <Button variant="outline" disabled={view.platform.phase === 'loading' || blocked}
+        onClick={() => { void action.refreshPlatform() }}>{t('refresh')}</Button>}
       <input ref={fileInput} type="file" accept=".tgz" hidden onChange={(event) => {
         const file = event.currentTarget.files?.[0]
         event.currentTarget.value = ''
@@ -288,12 +329,24 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         <Button variant="ghost" disabled={view.refreshing} onClick={() => { void action.refresh() }}>{t('refresh')}</Button></div>}
       {view.notice && <div className={styles.notice} role="status"><span>{t(view.notice)}</span>
         {view.diagnostic && <details><summary>{t('diagnostic')}</summary><pre>{view.diagnostic}</pre></details>}</div>}
-      {source === 'platform' ? <div className={styles.platformEmpty}>
+      {source === 'platform' ? (published.length > 0 && platform ? <div className={catalogStyles.grid}>
+        {published.map((release) => {
+          const bundle = view.bundles.find(item => item.name === release.packageName && item.installed)
+          const operation = publishedWorkbenchAction(release, platform.scope, bundle)
+          const item = catalog.find(entry => entry.id === release.packageName)
+          return <PlatformCard key={release.workbenchId} release={release} t={t} operation={item?.state === 'restartState' ? 'restartState' : operation}
+            installedVersion={bundle?.version} busy={view.busy === release.packageName}
+            blocked={blocked || view.refreshing || view.platform.phase !== 'ready'}
+            activate={() => { void action.usePublished(release) }}
+            openInstalled={() => { action.open(release.packageName) }} />
+        })}
+      </div> : <div className={styles.platformEmpty}>
         <span className={styles.platformMark}><WorkbenchIcon size={30} /></span>
-        <h2>{t('platformComing')}</h2>
-        <p>{t('platformDescription')}</p>
-        <Button variant="outline" onClick={() => { setSource('local') }}>{t('viewMine')}</Button>
-      </div> : entries.length > 0 ? <div className={catalogStyles.grid}>
+        <p role={view.platform.phase === 'failed' ? 'alert' : 'status'}>{t(
+          view.platform.phase === 'loading' ? 'platformLoading' : view.platform.phase === 'failed' ? 'platformCatalogFailed'
+            : view.platform.phase === 'login' ? 'platformLogin' : query.trim() || category !== 'all' ? 'empty' : 'platformEmpty',
+        )}</p>
+      </div>) : entries.length > 0 ? <div className={catalogStyles.grid}>
         {entries.map(entry => (
           <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} blocked={blocked}
             manage={(operation) => { manage(entry, operation) }}

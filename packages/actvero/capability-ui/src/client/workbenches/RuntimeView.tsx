@@ -37,7 +37,7 @@ export function BusinessContent({ id, workbench, renderSlot, t }: FactoryCompone
 /** Full business page with an optional floating native conversation. */
 export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & PropsRenderFactories & PropsRenderSlots<'actvero.workbench.chat'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, entries } = useView(value => value)
+  const { opened, instance, preparing, runtimeFailed, accessError, chat, chatCollapsed, entries } = useView(value => value)
   const [conversationPending, setConversationPending] = useState(false)
   const launcher = useRef<HTMLButtonElement>(null)
   const conversation = (fresh: boolean) => {
@@ -55,7 +55,7 @@ export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, Sessi
       <span className={styles.separator} aria-hidden="true" />
       <Tooltip label={name}><h1 className={styles.pageTitle}>{name}</h1></Tooltip>
     </header>
-    {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
+    {runtimeFailed || accessError ? <div className={styles.notice} role="alert">{t(accessError ?? 'runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
       : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
         : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
@@ -94,7 +94,8 @@ export function WorkbenchChat({ useSession, renderFactorySlot }: PropsRuntime<'a
 export interface ConversationWorkbenchActions {
   detach(): Promise<void>
   open(id: string, instanceId: WorkbenchInstanceId, sessionId: SessionId): void
-  context(instanceId: WorkbenchInstanceId, sessionId: SessionId): WorkbenchClientContext
+  context(id: string, instanceId: WorkbenchInstanceId, sessionId: SessionId): WorkbenchClientContext
+  authorize(id: string): Promise<boolean>
   failed(): void
   icon(id: string): string | undefined
 }
@@ -118,33 +119,43 @@ export function WorkbenchBadge({ t, useProjection, sessionId, action }: PropsRun
 }
 
 /** Conversation utilities appear only while this thread has a workbench association. */
-export function WorkbenchUtilities({ t, useProjection, sessionId, action, renderFactorySlot }:
+export function WorkbenchUtilities({ t, useProjection, sessionId, action, renderFactorySlot, useView }:
   PropsRuntime<'conversation.session.header.resident-utilities'> & Locale & PropsRenderFactories
-  & { action: ConversationWorkbenchActions }) {
+  & WorkbenchViewHooks & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
-  const [floating, setFloating] = useState(false)
+  const epoch = useView(value => value.accessEpoch)
+  const [opened, setOpened] = useState<{ id: string; epoch: number }>()
+  const [checking, setChecking] = useState(false)
+  const floating = opened?.id === selection?.id && opened?.epoch === epoch
+  const close = () => { setOpened(undefined) }
   if (!selection) return null
   return <div className={styles.utilities}>
     <Tooltip label={t('floatWorkbench')}><Button size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
-      onClick={() => { setFloating(value => !value) }}><WorkbenchIcon /></Button></Tooltip>
+      disabled={checking} onClick={() => {
+        if (floating) { close(); return }
+        setChecking(true)
+        void action.authorize(selection.id).then((allowed) => {
+          if (allowed) setOpened({ id: selection.id, epoch })
+        }).finally(() => { setChecking(false) })
+      }}><WorkbenchIcon /></Button></Tooltip>
     <Tooltip label={t('fullWorkbench')}>
       <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
-        onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
+        onClick={() => { close(); action.open(selection.id, selection.instanceId, sessionId) }}>
         <IconFullscreenOutlineRegular /></Button></Tooltip>
     {floating && <aside className={styles.workbenchFloat} aria-label={t('floatWorkbench')} onKeyDown={(event) => {
-      if (event.key === 'Escape') { event.stopPropagation(); setFloating(false) }
+      if (event.key === 'Escape') { event.stopPropagation(); close() }
     }}>
       <header className={styles.toolbar}><WorkbenchIcon /><span className={styles.title}>{selection.name}</span>
         <div className={styles.actions}>
           <Tooltip label={t('fullWorkbench')}>
             <Button size="sm" className={styles.iconButton} aria-label={t('fullWorkbench')}
-              onClick={() => { setFloating(false); action.open(selection.id, selection.instanceId, sessionId) }}>
+              onClick={() => { close(); action.open(selection.id, selection.instanceId, sessionId) }}>
               <IconFullscreenOutlineRegular /></Button></Tooltip>
           <Tooltip label={t('collapse')}><Button size="sm" className={styles.iconButton} aria-label={t('collapse')}
-            onClick={() => { setFloating(false) }}><IconCloseOutlineRegular /></Button></Tooltip>
+            onClick={() => { close() }}><IconCloseOutlineRegular /></Button></Tooltip>
         </div>
       </header>
-      {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.instanceId, sessionId) })}
+      {renderFactorySlot('actvero.workbench.content', { id: selection.id, workbench: action.context(selection.id, selection.instanceId, sessionId) })}
     </aside>}
   </div>
 }

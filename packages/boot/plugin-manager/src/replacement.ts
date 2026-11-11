@@ -1,7 +1,7 @@
 /** Local archive replacement preparation without executing package code. */
 import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, mkdtemp, readFile, readlink, realpath, rm, stat, symlink } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { promisify } from 'node:util'
 import { gunzip } from 'node:zlib'
 import { Parser } from 'tar'
@@ -34,7 +34,11 @@ export async function prepareReplacement(
   if (bytes.length > 8 * 1024 * 1024) throw new ManagementFailure('invalid-spec')
   const directory = join(profile, '.plugin-manager', 'archives')
   await mkdir(directory, { recursive: true, mode: 0o700 })
-  const cached = join(directory, `${createHash('sha256').update(bytes).digest('hex')}.tgz`)
+  const digest = createHash('sha256').update(bytes).digest('hex')
+  const filename = basename(spec)
+  // Keep a portable release label when the filename is already pinned to these bytes.
+  const cached = join(directory, /^[a-z0-9-]{1,220}\.tgz$/u.test(filename) && filename.endsWith(`-${digest}.tgz`)
+    ? filename : `${digest}.tgz`)
   await writeFileAtomic(cached, bytes, { mode: 0o600 })
   const chunks: Buffer[] = []
   const paths = new Set<string>()
@@ -65,7 +69,7 @@ export async function prepareReplacement(
   const manifest = value as { name?: unknown; version?: unknown }
   if (manifest.name !== expected.name || typeof manifest.version !== 'string'
     || manifest.version !== expected.nextVersion
-    || semver.valid(manifest.version) !== manifest.version || !semver.valid(expected.version)
+    || !semver.valid(manifest.version) || !semver.valid(expected.version)
     || !semver.gt(manifest.version, expected.version)) throw new ManagementFailure('invalid-spec')
   const link = join(profile, 'node_modules', expected.name)
   const linked = (await lstat(link)).isSymbolicLink()

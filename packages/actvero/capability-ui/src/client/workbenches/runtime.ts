@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@actvero/dsh-client-account/protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchClientContext } from '../../contracts.ts'
+import type { ActveroWorkbench, WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
 
 const legacyKey = 'actvero.workbenches.project-checklist.v1'
@@ -80,10 +80,12 @@ export class WorkbenchClientRuntime {
    * @param instanceId Managed business identity, absent for a UI-only workbench.
    * @param sessionId Conversation whose workbench is being previewed.
    * @param showConversation Render the associated conversation if its view is still active.
+   * @param descriptor Registered package and version, with its organization scope for platform installs.
    * @returns Capabilities bound to this instance.
    */
   context(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null,
-    showConversation: (id: SessionId) => Promise<void>): WorkbenchClientContext {
+    showConversation: (id: SessionId) => Promise<void>,
+    descriptor?: Pick<ActveroWorkbench, 'id' | 'version'> & { scope?: string }): WorkbenchClientContext {
     return {
       instanceId, sessionId,
       resourceAddress: instanceId ? `dsh-resource://actvero-workbench/${instanceId}` : null,
@@ -92,6 +94,13 @@ export class WorkbenchClientRuntime {
         if (account?.phase !== 'ready' || !account.user) return null
         return { user: { id: account.user.id, name: account.user.name }, organization: account.organization
           ? { tenantId: account.organization.tenantId, name: account.organization.name } : null }
+      },
+      config: async () => {
+        const bridge = window.actveroAccount
+        if (!descriptor || !bridge?.workbenchConfig) throw new Error('workbench_config_unavailable')
+        return bridge.workbenchConfig({ packageName: descriptor.id, version: descriptor.version,
+          ...(descriptor.scope ? { scope: descriptor.scope } : {}),
+        })
       },
       conversation: async () => {
         if (!instanceId) throw new Error('Workbench has no conversation provider')

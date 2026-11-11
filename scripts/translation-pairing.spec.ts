@@ -403,6 +403,7 @@ describe('translation scope discovery', () => {
     'packages/example/BRAND_GUIDELINES.md',
     'other/tutorial.md',
     'actvero/product.json',
+    'actvero/third-party/dsh-desktop-workbenches/development-guide.zh.md',
     'actvero/lib/generated.md',
     'actvero/node_modules/dependency/README.md',
     'website/reference.md',

@@ -3,6 +3,8 @@ import { expect, it, vi } from 'vitest'
 import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { createWorkbenchManagement, type WorkbenchManagement } from '../src/client/workbenches/management.ts'
 import { workbenchCatalog } from '../src/client/workbenches/catalog.ts'
+import { publishedWorkbenchAction } from '../src/client/workbenches/platform.ts'
+
 
 const bundle: BundleInfo = {
   name: '@local/checklist', version: '1.0.0', description: 'Checklist', official: false,
@@ -74,4 +76,37 @@ it('keeps disabled releases in the catalog and separates installed and running v
     .toMatchObject([{ state: 'restartState' }])
   expect(workbenchCatalog({ ...view, bundles: [{ ...bundle, error: { code: 'not-bundle' } }] }, resolveText))
     .toMatchObject([{ state: 'failedState' }])
+})
+
+it('downloads a newer release only after a platform action and keeps its guarded replacement', async () => {
+  const { actions, remote, latest } = fixture()
+  const scope = 'a'.repeat(32)
+  const workbenchId = 'a0000000-0000-4000-8000-000000000001'
+  const oldId = 'a0000000-0000-4000-8000-000000000002'
+  const source = `file:/archive/actvero-wb-${scope}-${workbenchId}-${oldId}-${'b'.repeat(64)}.tgz`
+  const installed = { ...bundle, source }
+  const release = {
+    scope, workbenchId, versionId: 'a0000000-0000-4000-8000-000000000003', packageName: bundle.name,
+    version: '1.1.0', sha256: 'c'.repeat(64), size: 42, name: 'Checklist', description: '', category: 'office',
+    dshRequirement: '*',
+  }
+  remote.listBundles.mockResolvedValue({ ok: true, value: [installed] })
+  remote.installBundle.mockResolvedValue({
+    ok: true, value: { application: 'restart-required', changed: true, stage: 'enable', target: bundle.name },
+  })
+  const download = vi.fn(async () => '/archive/latest.tgz')
+  await actions.refresh()
+  expect(publishedWorkbenchAction(release, scope, undefined)).toBe('usePublished')
+  expect(publishedWorkbenchAction(release, scope, installed)).toBe('updateAndOpen')
+  const current = { ...release, version: '1.0.0', versionId: oldId, sha256: 'b'.repeat(64) }
+  expect(publishedWorkbenchAction(current, scope, installed)).toBe('open')
+  expect(publishedWorkbenchAction(release, 'd'.repeat(32), installed)).toBe('platformConflict')
+  expect(download).not.toHaveBeenCalled()
+
+  await expect(actions.installPublished(release, scope, download, () => true)).resolves.toBe(false)
+  expect(download).toHaveBeenCalledOnce()
+  expect(remote.installBundle).toHaveBeenCalledWith('/archive/latest.tgz', {
+    enabled: true, registry: null, replace: { name: bundle.name, version: '1.0.0', nextVersion: '1.1.0', source },
+  })
+  expect(latest().notice).toBe('restart')
 })

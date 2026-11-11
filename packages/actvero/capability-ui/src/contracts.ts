@@ -17,6 +17,8 @@ export interface WorkbenchClientContext {
   resourceAddress: string | null
   /** Read the current signed-in identity, or null when unavailable. */
   account(): Promise<WorkbenchAccount | null>
+  /** Read the current organization's non-secret values for this running version. */
+  config(): Promise<Readonly<Record<string, string>>>
   /** Open or create the associated native conversation. */
   conversation(): Promise<void>
   /** Commit a provider-defined operation at the last observed revision. */

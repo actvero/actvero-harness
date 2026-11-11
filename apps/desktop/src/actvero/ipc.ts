@@ -1,6 +1,10 @@
 /** Fixed account IPC channels; Main verifies the owning top-level document. */
 export const ACCOUNT_IPC = {
   snapshot: 'actvero-account:snapshot',
+  workbenchConfig: 'actvero-account:workbench-config',
+  workbenchCatalog: 'actvero-account:workbench-catalog',
+  workbenchCheck: 'actvero-account:workbench-check',
+  workbenchDownload: 'actvero-account:workbench-download',
   state: 'actvero-account:state',
   login: 'actvero-account:login',
   continueAccount: 'actvero-account:continue',

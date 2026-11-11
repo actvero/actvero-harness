@@ -13,6 +13,7 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Package format](#format)
 - [Edit the business view](#business)
 - [Native AI and shared data](#native-ai)
+- [Organization runtime configuration](#runtime-config)
 - [Limitations](#limits)
 
 <a id="create"></a>
@@ -55,6 +56,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `engines.dsh` | Supported DSH runtime range; the template pins the current development baseline |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
+| `dsh.actveroWorkbenchConfig` | Optional runtime configuration fields for organization administrators |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
 | `exports["./locale/*.json"]` | Generated name and description metadata remains available before the workbench loads |
 | `workbench.json` | Source display name, description, category, author, and tags, compiled into the Client |
@@ -86,10 +88,27 @@ Each Host workbench currently has one default business instance shared by linked
 
 See the runnable [built-in checklist provider](../packages/actvero/capability-ui/src/checklist.ts) and [Client](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx). Verify first use without a conversation, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment, floating views and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
 
+<a id="runtime-config"></a>
+
+## Organization runtime configuration
+
+For organization parameters such as service URLs, declare `dsh.actveroWorkbenchConfig` in the archive's `package.json`. Each release can declare up to 32 fields with distinct keys. Package new or changed declarations in a new workbench version.
+
+| Field | Format |
+|---|---|
+| `key` | Starts with an uppercase letter, followed by uppercase letters, digits, or underscores. Maximum 64 characters |
+| `label` | Required label for administrators, up to 80 characters |
+| `kind` | `text` or `url`, with `text` as the default. URLs use HTTP or HTTPS |
+| `required` | Boolean, defaults to `false` |
+| `description` | Optional guidance for administrators, up to 240 characters |
+| `default` | Optional non-secret value, up to 2048 characters, matching the field kind |
+
+For example, declare `{"key":"CERTIFICATE_API_URL","label":"Certificate service URL","kind":"url","required":true}`. After uploading a package, the administrator enters values under Runtime configuration in the workbench details. Keep keys stable to reuse organization values across updates. Client components call `await workbench.config()` to read fields allowed for the running version. Organization value changes take effect without repackaging. Reads require desktop sign-in and release authorization. On failure, tell the user to sign in, retry or contact their administrator. Use the host credentials service for API keys and other credentials.
+
 <a id="limits"></a>
 
 ## Limitations
 
-This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages without ZIP import, platform downloads, publishing, automatic updates or an authenticated platform request proxy. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
+The development tool creates, builds, and validates local `.tgz` archives in this repository. See the [client workbench reference](workbenches.md) for organization publishing and installation. Workbenches own authentication for their business requests. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
 
 Packages target Actvero's workbench registration service. Legacy DSH workbenches use another service; changing a marker alone does not establish compatibility. The DSH reference is retained as an [offline snapshot](third-party/dsh-desktop-workbenches/development-guide.zh.md), version 2026-10-27; it is not the current online specification and does not replace these Actvero package rules.
