@@ -30,7 +30,9 @@ function props(
 ): ToolTreeProps {
   const snapshot = {} as SessionSnapshot
   const useSession = ((selector: (value: SessionSnapshot) => unknown) => selector(snapshot)) as ToolTreeProps['useSession']
-  const renderSlot = ((_key: string, owner: ToolCallOwnerProps, options?: { fallback?: React.ReactNode }) => {
+  const renderSlot = ((key: string, owner: ToolCallOwnerProps, options?: { fallback?: React.ReactNode }) => {
+    if (key === 'tool.call.result') return null
+    if (key !== 'tool.call.toolview') throw new Error(`Unexpected Tool Slot: ${key}`)
     owners?.push(owner)
     return options?.fallback ?? null
   }) as unknown as ToolTreeProps['renderSlot']
