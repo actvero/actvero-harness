@@ -5,6 +5,7 @@
  */
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { MessageId, ToolCallId, ProviderRequestId, ReasoningEffortId } from './brand.ts'
 import type { Message, UserMessage } from './message.ts'
@@ -356,6 +357,8 @@ export interface LlmModelInfo {
   description?: string
   /** Accepted request modalities; absent means unknown, while an explicit omission is negative capability. */
   inputModalities?: readonly ModelModality[]
+  /** Native JSON Schema responses on this exact route; absent means unknown. */
+  supportsStructuredOutput?: boolean
 }
 
 /** Provider-owned context capacity for one exact provider/model route. */
@@ -527,6 +530,13 @@ export interface ToolHistory {
 
 /** A single model request, fully assembled. */
 export interface GenerateOptions {
+  /** Require a provider-native JSON Schema response from a route that declares support. */
+  structuredOutput?: {
+    /** Schema identifier accepted by the provider. */
+    name: string
+    /** JSON Schema for an object response. */
+    schema: { [key: string]: JsonValue }
+  }
   /** Registered provider route selecting the adapter instance. */
   provider: string
   model: string

@@ -13,6 +13,7 @@
 - [包格式](#format)
 - [修改业务](#business)
 - [原生 AI 与共享数据](#native-ai)
+- [从图片直接提取字段](#direct-structured-models)
 - [限制](#limits)
 
 <a id="create"></a>
@@ -85,6 +86,14 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 Host 的每个工作台目前只有一个默认业务实例，多条关联对话共享数据。普通「新会话」不自动继承工作台；工作台内部「新建工作台对话」关联同一实例。恢复已有对话时读取日志中的关联和专家版本；收起浮窗不取消关联，取消使用不删除清单。业务文件由宿主在配置目录下管理，新建关联对话自动创建或复用以工作台命名的工作区并使用该目录，不要求用户选择文件夹。现有对话的目录保持原样。
 
 可运行参考为[内置清单提供者](../packages/actvero/capability-ui/src/checklist.ts)及其[客户端](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx)。验收时分别检查首次无会话、同一清单的手动与工具修改、并发冲突、重新打开会话、取消关联、浮窗和窄窗口。安装和界面验收不替代真实模型及组织服务验证。
+
+<a id="direct-structured-models"></a>
+
+## 从图片直接提取字段
+
+工作台在后台提取字段时，通过 Host 的 `ctx.sessionController.modelCatalog()` 读取模型目录。只提供 `inputModalities` 含 `image` 且 `supportsStructuredOutput` 为 `true` 的路由。将选中的提供方和模型随任务保存，准备调用时重新校验两项能力。
+
+用 `ctx.attachments.saveImage()` 接收原图，再通过 `ctx.llm.prepareCall()` 发送图片引用和 `structuredOutput` JSON Schema。[平台适配器](../packages/actvero/model-gateway/README.zh.md)负责平台鉴权和传递 schema。按工作台字段校验返回对象后再保存。验收时检查实际请求中的图片和 schema，并通过所选路由验证返回结果。
 
 <a id="limits"></a>
 

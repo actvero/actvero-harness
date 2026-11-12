@@ -36,6 +36,8 @@ kind: "package-reference"
 
 [适配器](src/index.ts)将平台聊天模型映射为 DSH 模型元数据，准备资源专属路由，并将原生消息和工具 schema 转为兼容 OpenAI 的请求。SSE 或缓冲 JSON 响应会被转换为原生文本、推理、工具调用、用量和结束分片。账户变化通过 Main 桥接使目录缓存失效。
 
+模型目录公开聊天操作声明的结构化输出能力。请求携带 `structuredOutput` 时，适配器将其传为严格模式的 `response_format.json_schema`。
+
 图片消息通过附件服务取得有大小限制的请求字节。文件附件以原生文本句柄表示。取消和平台 HTTP 失败以原生 LLM 错误传递。
 
 </details>

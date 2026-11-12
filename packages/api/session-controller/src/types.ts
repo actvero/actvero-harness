@@ -6,7 +6,7 @@ import type {
 } from '@deepseek-ai/dsh-attachment'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { LlmAttemptId, MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { TextBlock } from '@deepseek-ai/dsh-llm'
+import type { ModelModality, TextBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionId, SessionSeqCursor } from '@deepseek-ai/dsh-session/types'
 import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/types'
 import type { Principal } from '@deepseek-ai/dsh-typert-protocol'
@@ -138,6 +138,10 @@ export interface ModelCatalogModel {
   readonly id: string
   readonly name: string
   readonly description?: string
+  /** Accepted inputs on the resolved route; absent means unknown. */
+  readonly inputModalities?: readonly ModelModality[]
+  /** Native JSON Schema responses on the resolved route; absent means unknown. */
+  readonly supportsStructuredOutput?: boolean
   readonly reasoning?: ModelReasoning
 }
 

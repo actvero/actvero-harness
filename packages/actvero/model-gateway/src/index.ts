@@ -220,7 +220,10 @@ function streamingCapability(operation: CatalogOperation): boolean | undefined {
   const endpoint = record(operation.endpoint)
   if (endpoint?.stream === true) return true
   if (endpoint?.stream === false) return false
-  const value = record(operation.capabilities)?.streaming
+  return declaredCapability(record(operation.capabilities)?.streaming)
+}
+
+function declaredCapability(value: unknown): boolean | undefined {
   if (value === true) return true
   if (value === false) return false
   if (typeof value !== 'string') return undefined
@@ -286,6 +289,7 @@ function modelInfo(model: CatalogModel, provider = PROVIDER): LlmResolvedModelIn
   const contextWindow = positiveInteger(operation.context_window)
   const maxOutput = positiveInteger(operation.max_output) ?? positiveInteger(operation.max_tokens)
   const inputModalities = modalities(operation)
+  const supportsStructuredOutput = declaredCapability(record(operation.capabilities)?.structured_output)
   const modelReasoning = reasoning(operation)
   return {
     provider,
@@ -293,6 +297,7 @@ function modelInfo(model: CatalogModel, provider = PROVIDER): LlmResolvedModelIn
     name: model.name ?? model.id,
     ...text(model.description) === undefined ? {} : { description: model.description },
     ...inputModalities === undefined ? {} : { inputModalities },
+    ...supportsStructuredOutput === undefined ? {} : { supportsStructuredOutput },
     ...contextWindow === undefined ? {} : { context: { contextWindow } },
     ...maxOutput === undefined ? {} : { defaultMaxTokens: maxOutput },
     ...modelReasoning === undefined ? {} : { reasoning: modelReasoning },
@@ -340,7 +345,9 @@ class PlatformAdapter extends LlmAdapter {
 
   override async prepareCall(provider: string, model: string, signal?: AbortSignal): Promise<PreparedAdapterCall> {
     const resolved = await this.resolveModel(provider, model, signal)
-    return { model: resolved, stream: options => this.stream(options) }
+    const route = this.resources.get(model)
+    if (!route) throw new LlmError(`平台模型 ${model} 不存在或无权访问`, 'MODEL_UNAVAILABLE')
+    return { model: resolved, stream: options => this.generateStream(options, route) }
   }
 
   override stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -393,10 +400,10 @@ class PlatformAdapter extends LlmAdapter {
     return rows
   }
 
-  private async *generateStream(options: GenerateOptions): AsyncGenerator<StreamChunk> {
+  private async *generateStream(options: GenerateOptions, prepared?: ModelRoute): AsyncGenerator<StreamChunk> {
     const signal = options.signal
     signal?.throwIfAborted()
-    let route = this.resources.get(options.model)
+    let route = prepared ?? this.resources.get(options.model)
     if (!route) {
       await this.resolveModel(options.provider, options.model, signal)
       route = this.resources.get(options.model)
@@ -421,6 +428,12 @@ class PlatformAdapter extends LlmAdapter {
       ...options.stop === undefined ? {} : { stop: options.stop },
       ...options.reasoningEffort === undefined ? {} : { reasoning_effort: String(options.reasoningEffort) },
       ...options.tools === undefined ? {} : { tools: options.tools.map(tool) },
+      ...options.structuredOutput === undefined ? {} : {
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: options.structuredOutput.name, schema: options.structuredOutput.schema, strict: true },
+        },
+      },
     }
     let response: Response
     try {
@@ -471,7 +484,11 @@ class PlatformAdapter extends LlmAdapter {
       const attachment = this.attachments()
       if (!attachment) throw new LlmError('平台模型图片需要附件服务', 'UNSUPPORTED_CONTENT')
       signal?.throwIfAborted()
-      const image = await attachment.readImageRequest(block.attachment, { width: block.attachment.width, height: block.attachment.height, maxBytes: IMAGE_MAX_BYTES }, signal)
+      const image = await attachment.readImageRequest(block.attachment, {
+        width: block.attachment.width,
+        height: block.attachment.height,
+        maxBytes: IMAGE_MAX_BYTES,
+      }, signal)
       parts.push({ type: 'text', text: requestImageHandleText(block.attachment, image) })
       parts.push({ type: 'image_url', image_url: { url: `data:${image.mediaType};base64,${Buffer.from(image.data).toString('base64')}` } })
     }
@@ -495,7 +512,10 @@ async function responseFailure(response: Response, prefix: string): Promise<LlmE
     : response.status === 429 ? 'RATE_LIMIT'
       : response.status === 404 ? 'MODEL_UNAVAILABLE' : 'PROVIDER_ERROR'
   const retryAfter = Number(response.headers.get('retry-after'))
-  return new LlmError(message, code, { status: response.status, ...Number.isFinite(retryAfter) && retryAfter > 0 ? { providerRetryAfterMs: retryAfter * 1000 } : {} })
+  return new LlmError(message, code, {
+    status: response.status,
+    ...Number.isFinite(retryAfter) && retryAfter > 0 ? { providerRetryAfterMs: retryAfter * 1000 } : {},
+  })
 }
 
 async function* parseBuffered(response: Response, signal?: AbortSignal): AsyncGenerator<StreamChunk> {
@@ -617,7 +637,9 @@ async function* parseStream(body: ReadableStream<BufferSource>, signal?: AbortSi
 
 function normalizeUsage(raw: Record<string, unknown>): TokenUsage {
   const inputTokens = Number.isSafeInteger(raw.prompt_tokens) && (raw.prompt_tokens as number) >= 0 ? raw.prompt_tokens as number : 0
-  const outputTokens = Number.isSafeInteger(raw.completion_tokens) && (raw.completion_tokens as number) >= 0 ? raw.completion_tokens as number : 0
+  const outputTokens = Number.isSafeInteger(raw.completion_tokens) && (raw.completion_tokens as number) >= 0
+    ? raw.completion_tokens as number
+    : 0
   const details = record(raw.prompt_tokens_details)
   const cached = details?.cached_tokens
   const cacheRead = Number.isSafeInteger(cached) && (cached as number) >= 0 ? cached as number : undefined

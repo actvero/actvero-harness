@@ -544,6 +544,8 @@ interface LlmModelInfo {
   description?: string
   /** Accepted request modalities; absent means unknown, while an explicit omission is negative capability. */
   inputModalities?: readonly ModelModality[]
+  /** Native JSON Schema responses on this exact route; absent means unknown. */
+  supportsStructuredOutput?: boolean
 }
 ```
 
@@ -625,6 +627,13 @@ type RequestMessage = Message | RequestUserInput
 ```ts type-equiv
 /** A single model request, fully assembled. */
 interface GenerateOptions {
+  /** Require a provider-native JSON Schema response from a route that declares support. */
+  structuredOutput?: {
+    /** Schema identifier accepted by the provider. */
+    name: string
+    /** JSON Schema for an object response. */
+    schema: { [key: string]: JsonValue }
+  }
   /** Registered provider route selecting the adapter instance. */
   provider: string
   model: string
@@ -843,6 +852,8 @@ interface PreparedLlmCall {
   readonly context?: LlmModelContext
   /** Exact model modalities captured with the adapter dispatch generation. */
   readonly inputModalities?: readonly ModelModality[]
+  /** Native JSON Schema support captured with the adapter dispatch generation. */
+  readonly supportsStructuredOutput?: boolean
   /** Exact model system prompt update mode captured with the adapter dispatch generation. */
   readonly systemPromptUpdate?: SystemPromptUpdate
   /** Exact model tool update mode captured with the adapter dispatch generation. */

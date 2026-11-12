@@ -13,6 +13,7 @@ This tutorial is for workbench developers with an Actvero repository development
 - [Package format](#format)
 - [Edit the business view](#business)
 - [Native AI and shared data](#native-ai)
+- [Extract fields directly from images](#direct-structured-models)
 - [Limitations](#limits)
 
 <a id="create"></a>
@@ -85,6 +86,14 @@ Components receive `workbench` context with the business instance, associated co
 Each Host workbench currently has one default business instance shared by linked conversations. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. The Host manages instance files beneath its configured directory; new linked conversations create or reuse a workspace named after the workbench at that directory without a folder picker. Existing conversations keep their directory.
 
 See the runnable [built-in checklist provider](../packages/actvero/capability-ui/src/checklist.ts) and [Client](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx). Verify first use without a conversation, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment, floating views and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
+
+<a id="direct-structured-models"></a>
+
+## Extract fields directly from images
+
+For a workbench that extracts fields in a background task, read the model catalog in the Host with `ctx.sessionController.modelCatalog()`. Offer routes whose `inputModalities` includes `image` and whose `supportsStructuredOutput` is `true`. Save the selected provider and model with the task and recheck both capabilities when preparing the call.
+
+Admit the original image with `ctx.attachments.saveImage()`, then use `ctx.llm.prepareCall()` to send its image reference and a `structuredOutput` JSON Schema. The [platform adapter](../packages/actvero/model-gateway/README.md) supplies platform credentials and forwards the schema. Validate the returned object against the workbench's fields before saving. Verify the outgoing image and schema and the result from the exact connected route.
 
 <a id="limits"></a>
 
