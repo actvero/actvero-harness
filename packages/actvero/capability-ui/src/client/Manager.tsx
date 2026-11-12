@@ -13,7 +13,14 @@ import type { CapabilityTab,CapabilityBackNavigation } from '../contracts.ts'
 import styles from './hub.module.css'
 declare module '@deepseek-ai/dsh-client-ui-slots'{interface LocaleNamespaceMap{ 'actvero.hub':keyof typeof zh }}
 interface Notice { text:string;tone?:'success';seq:number }
-function CapabilityToast({ useNotice,dismiss }:PropsHooks<{ notice:{ getSnapshot:()=>Notice|null;subscribe:(fn:()=>void)=>()=>void } }>&{ dismiss:()=>void }){const notice=useNotice(v=>v);return notice?<Toast key={notice.seq} text={notice.text} tone={notice.tone} icon={<IconWarningOutlineRegular/>} onDone={dismiss}/>:null}
+function CapabilityToast({ useNotice, dismiss }: PropsHooks<{
+  notice: { getSnapshot: () => Notice | null; subscribe: (fn: () => void) => () => void }
+}> & { dismiss: () => void }) {
+  const notice = useNotice(v => v)
+  return notice
+    ? <Toast key={notice.seq} text={notice.text} tone={notice.tone} icon={<IconWarningOutlineRegular/>} onDone={dismiss}/>
+    : null
+}
 class Hub {
   private notice:Notice|null=null;private noticeSequence=0;private noticeListeners=new Set<()=>void>()
   noticeSnapshot=()=>this.notice;noticeSubscribe=(fn:()=>void)=>{this.noticeListeners.add(fn);return()=>{this.noticeListeners.delete(fn)}}
@@ -30,7 +37,8 @@ function Panel({ renderSlot,t,useSelected,open,reset,notify }:PropsRuntime<'main
   const selected=useSelected(value=>value)
   useEffect(()=>()=>reset(),[reset])
   const [navigation,setNavigation]=useState<(CapabilityBackNavigation&{ tab:CapabilityTab })>()
-  const setBackNavigation=useCallback((value:CapabilityBackNavigation|undefined)=>setNavigation(current=>value?{ ...value,tab:selected }:current?.tab===selected?undefined:current),[selected])
+  const setBackNavigation = useCallback((value: CapabilityBackNavigation | undefined) =>
+    setNavigation(current => value ? { ...value, tab: selected } : current?.tab === selected ? undefined : current), [selected])
   const back=navigation?.tab===selected?navigation:undefined
   const tabIds=['experts','skills','connectors'] as const
   return <section className={styles.page}>
@@ -49,7 +57,7 @@ export function apply(ctx:Context){
   {
     const hub=new Hub(scope);scope.effect(()=>scope.reflect.provide('capabilityHub',hub))
     scope.effect(()=>scope.locale.register('actvero.hub',{ zh,en }));const t=scope.locale.bind('actvero.hub')
-    scope.slots.inject('sidebar.panellist',()=>scope.slots.register({ name:'sidebar.panellist',id:'actvero-capabilities' as MainPanelId,order:40,label:()=>t('hub') },()=> <span className={styles.sidebarEntryIcon}><IconSkillOutlineMedium/></span>))
+    scope.slots.inject('sidebar.panellist',()=>scope.slots.register({ name:'sidebar.panellist',id:'actvero-capabilities' as MainPanelId,order:-10,label:()=>t('hub') },()=> <span className={styles.sidebarEntryIcon}><IconSkillOutlineMedium/></span>))
     selectors(scope)
     scope.slots.inject('shell.overlay',()=>scope.slots.register({ name:'shell.overlay',id:'actvero-capability-toast',inject:()=>({ hooks:{ notice:{ getSnapshot:hub.noticeSnapshot,subscribe:hub.noticeSubscribe } },dismiss:hub.dismiss }) },CapabilityToast))
     scope.slots.inject('main',()=>scope.slots.register({ name:'main',key:'actvero-capabilities' as MainPanelId,locale:'actvero.hub',children:{ 'actvero.capability.content':{ kind:'keyed',scope:'root' } },inject:()=>({ hooks:{ selected:{ getSnapshot:hub.getSnapshot,subscribe:hub.subscribe } },reset:hub.reset,notify:hub.notify,open:(tab:CapabilityTab)=>hub.open(tab) }) },Panel))

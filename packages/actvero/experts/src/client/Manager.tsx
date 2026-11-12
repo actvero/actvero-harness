@@ -272,7 +272,7 @@ function WorkspaceChoice({ pending, t, useWorkspaces, addFolder }: PickerProps &
     </Dialog>
   )
 }
-type PreparationRequest = { plan: RemotePlan; finish: (ready: boolean) => void }
+type PreparationRequest = { plan: RemotePlan; finish: (ready?: RemotePlan) => void }
 function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest; manage: () => void }) {
   const [plan, setPlan] = useState(pending.plan),
     [busy, setBusy] = useState(false),
@@ -292,8 +292,8 @@ function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest
     setBusy(true)
     setError('')
     try {
-      await req('remote-stage', { id: plan.id })
-      pending.finish(true)
+      await req('remote-stage', { id: plan.id, releaseProof: plan.releaseProof })
+      pending.finish(plan)
     } catch (e) {
       setError(errorText(e, t))
     } finally {
@@ -303,14 +303,14 @@ function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest
   return (
     <Dialog
       className={styles.workspaceModal}
-      title={t('prepareTitle')}
+      title={t(plan.previousVersion ? 'updateTitle' : 'prepareTitle')}
       close={() => {
-        if (!busy) pending.finish(false)
+        if (!busy) pending.finish()
       }}
     >
       <div className={styles.workspaceBody}>
         <h2>{plan.name}</h2>
-        <p>{t('prepareHelp')}</p>
+        {(!plan.previousVersion || plan.dependencies.some(d => d.action !== 'none')) && <p>{t('prepareHelp')}</p>}
         {plan.version && <p>{t('version')} {plan.previousVersion ? `${plan.previousVersion} → ` : ''}{plan.version}</p>}
         {plan.previousVersion && <p>{t('updateSessions')}</p>}
         <div className={styles.preparationList}>
@@ -331,7 +331,7 @@ function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest
         {plan.dependencies.some(d => d.status === 'connection_required') && (
           <Button
             onClick={() => {
-              pending.finish(false)
+              pending.finish()
               manage()
             }}
             disabled={busy}
@@ -342,14 +342,14 @@ function Preparation({ t, pending, manage }: { t: T; pending: PreparationRequest
         {error && <p role="alert">{error}</p>}
       </div>
       <footer className={styles.workspaceFooter}>
-        <Button disabled={busy} onClick={() => pending.finish(false)}>
+        <Button disabled={busy} onClick={() => pending.finish()}>
           {t('cancel')}
         </Button>
         <Button disabled={busy} onClick={() => void refresh()}>
           {t('prepareRetry')}
         </Button>
         <Button variant="primary" disabled={busy || !plan.canPrepare} onClick={() => void prepare()}>
-          {t(busy ? 'busy' : 'prepareConfirm')}
+          {t(busy ? 'busy' : plan.previousVersion ? 'updateAndUse' : 'prepareConfirm')}
         </Button>
       </footer>
     </Dialog>
@@ -581,6 +581,8 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
     [revision, setRevision] = useState(0),
     [loadedSource, setLoadedSource] = useState<'local' | 'platform'>()
   const initialized = useRef(false)
+  const sourceGeneration = useRef<number>()
+  const [summoningId, setSummoningId] = useState<string>()
   const [updates, setUpdates] = useState<Record<string,{ from:string;to:string }>>({})
   const announcedUpdates = useRef(new Set<string>())
   const [packagePlan, setPackagePlan] = useState<ExpertPackagePreview>()
@@ -591,9 +593,19 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
   useEffect(() => {
     let live = true
     const update = () => {
-      void req<{ remote: boolean }>('sources')
+      void req<{ remote: boolean; generation?: number }>('sources')
         .then((v) => {
           if (!live) return
+          if (sourceGeneration.current !== v.generation) {
+            sourceGeneration.current = v.generation
+            setLoadedSource(undefined)
+            setItems([])
+            setUpdates({})
+            setTotal(0)
+            setCategories([])
+            announcedUpdates.current.clear()
+            setSelected(previous => previous?.manifest.id.startsWith('remote-') ? undefined : previous)
+          }
           setAvailable(v.remote)
           if (!initialized.current) {
             initialized.current = true
@@ -601,7 +613,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
           }
           if (!v.remote) {
             setSource('local')
-            setSelected(undefined)
+            setSelected(previous => previous?.manifest.id.startsWith('remote-') ? undefined : previous)
           }
           setRevision(r => r + 1)
         })
@@ -694,8 +706,13 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
   const create = () => void action(() => createWithAI(t('creatorPrompt')))
   const summon = (expert: Expert, text?: string) =>
     void action(async () => {
-      await useExpert(expert.manifest.id, text)
-      setSelected(undefined)
+      setSummoningId(expert.manifest.id)
+      try {
+        await useExpert(expert.manifest.id, text)
+        setSelected(undefined)
+      } finally {
+        setSummoningId(undefined)
+      }
     })
   const choose = (expert: Expert) =>
     void action(async () => {
@@ -737,7 +754,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
       setRemoveTarget(expert)
     }
   }
-  const pending = loading || available === undefined || loadedSource !== source
+  const pending = available === undefined || loadedSource !== source
   const visible =
     source === 'platform'
       ? items
@@ -782,7 +799,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
           {t('create')}
         </Button>
       </header>
-      <div className={styles.content} aria-busy={pending}>
+      <div className={styles.content} aria-busy={pending || loading}>
         {message && (
           <p role="status" className={styles.notice}>
             {message}
@@ -862,10 +879,11 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
                     className={styles.summon}
                     variant="primary"
                     disabled={busy}
+                    aria-busy={summoningId === expert.manifest.id}
                     aria-label={t('use') + ' ' + expert.manifest.name}
                     onClick={() => summon(expert)}
                   >
-                    {t('summon')}
+                    {t(summoningId === expert.manifest.id ? 'summoning' : 'summon')}
                   </Button>
                 </div>
               </article>
@@ -916,8 +934,8 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
               <div>
                 <h2>{selected.manifest.name}</h2>
                 <div className={styles.heroActions}>
-                  <Button variant="primary" disabled={busy} onClick={() => summon(selected)}>
-                    {t('use')}
+                  <Button variant="primary" disabled={busy} aria-busy={summoningId === selected.manifest.id} onClick={() => summon(selected)}>
+                    {t(summoningId === selected.manifest.id ? 'summoning' : 'use')}
                   </Button>
                 </div>
               </div>
@@ -1069,19 +1087,21 @@ export function apply(ctx: Context) {
     for (const fn of preparationListeners) fn()
   }
   const prepareRemote = (plan: RemotePlan) =>
-    new Promise<boolean>((resolve) => {
-      pendingPreparation?.finish(false)
-      pendingPreparation = {
+    new Promise<RemotePlan | undefined>((resolve) => {
+      pendingPreparation?.finish()
+      const request: PreparationRequest = {
         plan,
         finish: (ready) => {
+          if (pendingPreparation !== request) return
           pendingPreparation = undefined
           notifyPreparation()
           resolve(ready)
         },
       }
+      pendingPreparation = request
       notifyPreparation()
     })
-  ctx.effect(() => () => pendingPreparation?.finish(false))
+  ctx.effect(() => () => pendingPreparation?.finish())
   ctx.slots.inject('shell.overlay', () =>
     ctx.slots.register(
       {
@@ -1122,11 +1142,20 @@ export function apply(ctx: Context) {
         ? (workspaceForSession(sessionId) ?? (promptWorkspace ? await chooseWorkspace(sessionId) : undefined))
         : undefined
     if ((id !== null || creator) && !workspaceId) return
+    let releaseProof: string | undefined
     if (id?.startsWith('remote-')) {
       const plan = await req<RemotePlan>('remote-plan', { id })
-      if (plan.dependencies.some(d => d.required && d.action !== 'none') && !(await prepareRemote(plan))) return
+      const confirmed = plan.previousVersion || plan.dependencies.some(d => d.required && d.action !== 'none')
+        ? await prepareRemote(plan)
+        : plan
+      if (!confirmed) return
+      releaseProof = confirmed.releaseProof
     }
-    const result = await req<{ sessionId: SessionId }>('select', { id, sessionId, ...(workspaceId ? { workspaceId } : {}) })
+    const result = await req<{ sessionId: SessionId }>('select', {
+      id, sessionId,
+      ...(workspaceId ? { workspaceId } : {}),
+      ...(releaseProof ? { releaseProof } : {}),
+    })
     await sessions.refresh()
     ctx.uiWorkspace.openSession(result.sessionId)
     publish()

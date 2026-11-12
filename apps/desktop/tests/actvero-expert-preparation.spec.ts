@@ -44,8 +44,9 @@ it('waits for remote dependency preparation before completing the expert manager
   const prepared=new Promise<typeof expert>((resolve)=>{complete=resolve})
   const stage=vi.spyOn(caps.remote,'stage').mockReturnValue(prepared)
   const local=vi.spyOn(caps.experts,'dispatch'),settled=vi.fn()
-  const result=invoke(event as never,'remote-stage',{ id }).then((value)=>{settled();return value})
-  await vi.waitFor(()=>{ expect(stage).toHaveBeenCalledWith(id) })
+  const releaseProof = 'reviewed-release'
+  const result=invoke(event as never,'remote-stage',{ id, releaseProof }).then((value)=>{settled();return value})
+  await vi.waitFor(()=>{ expect(stage).toHaveBeenCalledWith(id, releaseProof) })
   expect(settled).not.toHaveBeenCalled()
   expect(local).not.toHaveBeenCalled()
   complete(expert)

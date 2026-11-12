@@ -18,7 +18,7 @@ interface Options {
   remote?: {
     get(id: string): Promise<Expert>
     recent(ids: string[]): Promise<Expert[]>
-    prepare(id: string): Promise<{ expert: Expert; remote: import('./remote-contract.ts').RemoteSnapshot }>
+    prepare(id: string, expectedRelease?: string): Promise<{ expert: Expert; remote: import('./remote-contract.ts').RemoteSnapshot }>
     validate(
       p: import('./remote-contract.ts').RemoteSnapshot,
       expert?: Expert,
@@ -262,11 +262,12 @@ export class Experts {
   /**
    * Prepare one selection and retain the verified runtime for that selection operation.
    * @param id - Local or account-scoped remote expert identifier.
+   * @param expectedRelease - Exact remote release shown for confirmation.
    * @returns The committed snapshot and its verified content; later execution must call resolve again.
    */
-  async prepareRuntime(id: string): Promise<{ lock: ExpertLock; runtime: ExpertRuntime }> {
+  async prepareRuntime(id: string, expectedRelease?: string): Promise<{ lock: ExpertLock; runtime: ExpertRuntime }> {
     const account = this.options.scope()
-    const prepared = id.startsWith('remote-') ? await this.options.remote?.prepare(id) : undefined
+    const prepared = id.startsWith('remote-') ? await this.options.remote?.prepare(id, expectedRelease) : undefined
     if (id.startsWith('remote-') && !prepared) fail('expert_remote_unavailable')
     const expert = prepared?.expert ?? (await this.get(id)),
       skills = prepared ? prepared.remote.envelope.dependency_refs.skills.map(r => ({ id: r.skill_id, versionId: r.version_id }))

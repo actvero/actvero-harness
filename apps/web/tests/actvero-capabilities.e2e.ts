@@ -70,12 +70,16 @@ function installDisplayFixtures(): void {
     revision: 1,
   }
   const remoteExpert = { ...expert, manifest: { ...expert.manifest, id: 'remote-' + 'a'.repeat(64), name: 'Platform fixture' } }
-  let expertFailure = '', plans = 0
+  let expertFailure = '', plans = 0, remoteVersionPrepared = false, remoteSummons = 0, expertRefresh: Promise<void> | undefined
   window.addEventListener('actvero-fixture-expert-error', (event) => {
     expertFailure = (event as CustomEvent<string>).detail
   })
   const listeners = new Set<() => void>(),
     expertListeners = new Set<() => void>()
+  window.addEventListener('actvero-fixture-expert-refresh', () => {
+    expertRefresh = new Promise(resolve => window.addEventListener('actvero-fixture-expert-refresh-done', () => resolve(), { once: true }))
+    expertListeners.forEach(fn => fn())
+  })
   let fail = '',
     delay = false,
     optionalOn = true,
@@ -205,6 +209,10 @@ function installDisplayFixtures(): void {
         if (action === 'remove') return rejectRemoval('expertRemovals')
         if (action === 'select') {
           expertSelected = input?.id !== null
+          if (input?.id === remoteExpert.manifest.id) {
+            document.documentElement.dataset.expertRemoteSummons = String(++remoteSummons)
+            document.documentElement.dataset.expertSummonedRelease = String(input.releaseProof)
+          }
           expertListeners.forEach(fn => fn())
           return { sessionId: input?.sessionId }
         }
@@ -234,14 +242,27 @@ function installDisplayFixtures(): void {
           }
         if (action === 'package-discard') return true
         if (action === 'sources') return { remote: true }
-        if (action === 'remote-list') return { items: [expert], total: 1, updates: { [expert.manifest.id]: { from:'0.9.0',to:'1.0.0' } } }
+        if (action === 'remote-list') {
+          if (expertRefresh) {
+            const refresh = expertRefresh
+            expertRefresh = undefined
+            await refresh
+          }
+          return { items: [expert], total: 1, updates: { [expert.manifest.id]: { from:'0.9.0',to:'1.0.0' } } }
+        }
         if (action === 'remote-categories') return [{ id: 'office', name: 'Office' }]
         if (action === 'remote-detail') { if (expertFailure) throw new Error(expertFailure); return remoteExpert }
         if (action === 'remote-plan') {
           plans++
           document.documentElement.dataset.expertPlanCount = String(plans)
           if (expertFailure) throw new Error(expertFailure)
-          return { id: remoteExpert.manifest.id, name: remoteExpert.manifest.name, version:'1.1.0',previousVersion:'1.0.0',canPrepare: true, dependencies: [] }
+          return { id: remoteExpert.manifest.id, name: remoteExpert.manifest.name, version:'1.1.0', releaseProof:'fixture-release',
+            ...(remoteVersionPrepared ? {} : { previousVersion:'1.0.0' }), canPrepare: true, dependencies: [] }
+        }
+        if (action === 'remote-stage') {
+          remoteVersionPrepared = true
+          document.documentElement.dataset.expertStagedRelease = String(input?.releaseProof)
+          return remoteExpert
         }
         if (action === 'list') return [expert]
         if (action === 'recent')
@@ -401,6 +422,13 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             .click({ timeout: 20000 })
           await page.getByRole('button', { name: 'Fixture expert', exact: true }).waitFor()
           await page.locator('[data-actvero-default-mark]').waitFor()
+          const catalog = page.locator('section > [aria-busy]').filter({ has: page.getByRole('button', { name: 'Fixture expert', exact: true }) })
+          await page.evaluate(() => window.dispatchEvent(new Event('actvero-fixture-expert-refresh')))
+          await expect.poll(() => catalog.getAttribute('aria-busy', { timeout: 500 })).toBe('true')
+          expect(await page.getByRole('button', { name: 'Fixture expert', exact: true }).isVisible()).toBe(true)
+          expect(await page.getByRole('status', { name: 'Loading…', exact: true }).count()).toBe(0)
+          await page.evaluate(() => window.dispatchEvent(new Event('actvero-fixture-expert-refresh-done')))
+          await expect.poll(() => catalog.getAttribute('aria-busy')).toBe('false')
           for (const theme of ['light', 'dark'] as const) {
             await page.emulateMedia({ colorScheme: theme })
             await page.getByRole('tab', { name: 'Skills', exact: true }).click()
@@ -624,7 +652,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
                 const access = document
                   .querySelector('button[aria-label="Access mode, current: Workspace Write"]')
                   ?.getBoundingClientRect()
-                return !!expert && !!access && expert.right < access.left
+                return !!expert && !!access && access.right < expert.left
               }),
             )
             .toBe(true)
@@ -760,13 +788,23 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           })
           await page.keyboard.press('Escape')
           await page.getByRole('option', { name: /^Fixture expert/ }).waitFor({ state: 'hidden' })
-          // Each summon checks the current release even after a successful summon of the same expert.
-          for (const count of [1, 2]) {
+          const updateDialog = page.getByRole('dialog', { name: 'Update expert', exact: true })
+          for (const count of [1, 2, 3]) {
             await expertBadge.getByRole('button', { name: 'Fixture expert', exact: true }).click()
             await page.getByRole('option', { name: 'Platform fixture', exact: true }).click()
             await expect.poll(() => page.locator('html').getAttribute('data-expert-plan-count')).toBe(String(count))
+            if (count <= 2) {
+              await updateDialog.getByText('Version 1.0.0 → 1.1.0', { exact: true }).waitFor()
+              expect(await page.locator('html').getAttribute('data-expert-staged-release')).toBeNull()
+              expect(await page.locator('html').getAttribute('data-expert-remote-summons')).toBeNull()
+              await updateDialog.getByRole('button', { name: count === 1 ? 'Cancel' : 'Update and summon', exact: true }).click()
+              await updateDialog.waitFor({ state: 'hidden' })
+            }
             await page.getByRole('option', { name: 'Platform fixture', exact: true }).waitFor({ state: 'hidden' })
           }
+          expect(await page.locator('html').getAttribute('data-expert-staged-release')).toBe('fixture-release')
+          expect(await page.locator('html').getAttribute('data-expert-summoned-release')).toBe('fixture-release')
+          expect(await page.locator('html').getAttribute('data-expert-remote-summons')).toBe('2')
           for (const [code, message] of [
             ['expert_remote_cache_stale', 'Local expert preparation is outdated. Refresh platform experts and summon again.'],
             ['expert_remote_checksum', 'Expert release validation failed. Contact your administrator.'],
@@ -784,9 +822,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const compactExpert = await expertBadge.boundingBox(),
             compactPermission = await permission.boundingBox()
           expect(compactExpert).toMatchObject({ width: 28, height: 28 })
-          const compactGap = compactPermission!.x - compactExpert!.x - compactExpert!.width
+          const compactGap = compactExpert!.x - compactPermission!.x - compactPermission!.width
           expect(compactGap).toBeGreaterThan(0)
-          expect(compactGap).toBeLessThanOrEqual(12)
+          expect(compactGap).toBeLessThanOrEqual(6)
           expect(await permission.locator('svg:visible').count()).toBe(1)
           await permission.hover()
           await page.getByRole('tooltip', { name: 'Access mode, current: Workspace Write', exact: true }).waitFor()
@@ -842,24 +880,29 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               animations: 'disabled',
               path: join(repository, '.artifacts', `actvero-expert-badge-${theme}.png`),
             })
+            await page.mouse.move(0, 0)
             await page.setViewportSize({ width: 450, height: 700 })
             await expertName.waitFor({ state: 'hidden' })
             await expertTrigger.locator('img').waitFor()
             expect(await remove.isVisible()).toBe(false)
-            await expertTrigger.hover()
-            await page.getByRole('tooltip', { name: 'Fixture expert', exact: true }).waitFor()
+            await badge.hover()
+            await remove.waitFor()
+            expect(await remove.boundingBox()).toEqual(await expertTrigger.boundingBox())
+            await expertTrigger.locator('img').waitFor({ state: 'hidden' })
+            await page.getByRole('tooltip', { name: 'Stop using this expert', exact: true }).waitFor()
             await page.screenshot({
               animations: 'disabled',
               path: join(repository, '.artifacts', `actvero-expert-compact-${theme}.png`),
             })
+            await page.mouse.move(0, 0)
             await expertTrigger.press('Enter')
             await stopExpert.waitFor()
             await page.keyboard.press('Escape')
             await stopExpert.waitFor({ state: 'hidden' })
             expect(await input.innerText()).toBe('Keep this draft')
           }
-          await expertTrigger.click()
-          await stopExpert.click()
+          await badge.hover()
+          await badge.getByRole('button', { name: 'Stop using this expert', exact: true }).click()
           await badge.waitFor({ state: 'hidden' })
           expect(await input.innerText()).toBe('Keep this draft')
           expect(errors).toEqual([])

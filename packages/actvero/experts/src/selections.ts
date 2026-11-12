@@ -7,12 +7,13 @@ interface Selection {
   expertId: string
   scope: string
   revision: number
+  expectedRelease?: string
   prepared?: Promise<Prepared>
 }
 interface Options {
   scope(): string
   revision(): number
-  prepare(id: string): Promise<Prepared>
+  prepare(id: string, expectedRelease?: string): Promise<Prepared>
 }
 
 /** Main-owned validation shared only by the IPC requests of one active summon. */
@@ -27,11 +28,12 @@ export class ExpertSelections {
    * Own the complete selection lifetime; neither failures nor successes survive this callback.
    * @param expertId - Expert being selected.
    * @param work - Trusted Host control operation receiving an opaque operation identifier.
+   * @param expectedRelease - Exact remote release shown for confirmation.
    * @returns The completed Host result; account or installation changes reject.
    */
-  async run<T>(expertId: string, work: (operation: string) => Promise<T>): Promise<T> {
+  async run<T>(expertId: string, work: (operation: string) => Promise<T>, expectedRelease?: string): Promise<T> {
     const operation = randomUUID(), started = performance.now()
-    this.operations.set(operation, { expertId, scope: this.options.scope(), revision: this.options.revision() })
+    this.operations.set(operation, { expertId, scope: this.options.scope(), revision: this.options.revision(), expectedRelease })
     let completed = false
     try {
       const result = await work(operation)
@@ -61,7 +63,7 @@ export class ExpertSelections {
   async prepare(operation: string, expertId: string): Promise<Prepared> {
     const row = this.get(operation)
     if (row.expertId !== expertId) return fail('expert_snapshot_invalid')
-    row.prepared ??= this.options.prepare(expertId)
+    row.prepared ??= this.options.prepare(expertId, row.expectedRelease)
     const result = await row.prepared
     this.get(operation)
     return result

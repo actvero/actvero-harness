@@ -56,6 +56,7 @@ export interface RemoteDependency {
 /** User-visible preparation decision and dependency recovery actions. */
 export interface RemotePlan {
   version: string
+  releaseProof: string
   previousVersion?: string
   id: string
   name: string

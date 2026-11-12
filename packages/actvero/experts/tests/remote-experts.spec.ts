@@ -173,7 +173,8 @@ test.each([401,429])('an account switch while draining HTTP %i cannot refresh or
   assert.equal(issues,0);assert.equal((await remote.list()).items.length,1);assert.equal(issues,1)
 }))
 test('retains remote update notices across detail previews and restart until preparation succeeds',()=>setup(async({ remote,engine,id,f,options })=>{
-  await remote.plan(id);await remote.stage(id)
+  const originalPlan = await remote.plan(id)
+  await remote.stage(id, originalPlan.releaseProof)
   const old=await remoteLock(engine,id)
   f.publish(nextRelease,'1.0.4')
   assert.deepEqual((await remote.list()).updates[id],{ from:'1.0.0',to:'1.0.4' })
@@ -182,9 +183,14 @@ test('retains remote update notices across detail previews and restart until pre
   const restart=new RemoteExperts(options)
   try {
     assert.deepEqual((await restart.list()).updates[id],{ from:'1.0.0',to:'1.0.4' })
+    f.calls.length = 0
     const plan=await restart.plan(id)
     assert.equal(plan.previousVersion,'1.0.0');assert.equal(plan.version,'1.0.4')
-    await restart.stage(id)
+    assert.ok(!f.calls.some(call => call.path.endsWith('/adopt')))
+    await assert.rejects(restart.stage(id, originalPlan.releaseProof), /expert_release_changed/)
+    await restart.stage(id, plan.releaseProof)
+    await assert.rejects(restart.stageForSelection(id, originalPlan.releaseProof), /expert_release_changed/)
+    await assert.rejects(engine.prepareRuntime(id, originalPlan.releaseProof), /expert_release_changed/)
     assert.deepEqual((await restart.list()).updates,{})
     assert.equal((await engine.resolve(old.id)).expert.version,'1.0.0')
   } finally {restart.dispose()}
@@ -195,13 +201,17 @@ test('warm selection reuses packages and adoption, and avoids global skill disco
   const installs=f.installs
   f.calls.length=0
   f.skills.hostList=async()=>{throw new Error('unrelated skill unavailable')}
-  await remote.plan(id);await remote.stage(id)
+  await remote.plan(id);await remote.stageForSelection(id)
   const { lock,runtime }=await engine.prepareRuntime(id)
   assert.equal(runtime.skills.length,2)
   assert.equal(f.installs,installs)
   assert.equal(f.calls.filter(r=>r.path.endsWith('/adopt')).length,0)
-  assert.equal(f.calls.filter(r=>r.path.endsWith('/resolve')).length,3)
+  assert.equal(f.calls.length,2)
+  assert.equal(f.calls.filter(r=>r.path.endsWith('/resolve')).length,2)
   assert.equal(f.calls.filter(r=>r.path.endsWith('/check-updates')).length,0)
+  await remote.plan(id)
   f.state.visible=false
+  await remote.stageForSelection(id)
+  await assert.rejects(engine.prepareRuntime(id),/expert_remote_unavailable/)
   await assert.rejects(engine.resolve(lock.id),/expert_remote_unavailable/)
 }))

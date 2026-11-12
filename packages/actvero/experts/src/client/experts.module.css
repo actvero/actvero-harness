@@ -81,6 +81,7 @@
 .bindingRow select:focus-visible {outline:2px solid var(--dsw-alias-label-tertiary);outline-offset:2px}
 
 .expertBadge {
+  position: relative;
   display: inline-flex;
   min-width: 0;
   max-width: 220px;
@@ -113,7 +114,6 @@
   cursor: default;
 }
 
-.expertBadge:has(.expertTrigger:not(:disabled)):hover,
 .expertBadge:has(button:focus-visible) {
   background: var(--dsw-alias-interactive-bg-hover-solid);
   color: var(--dsw-alias-label-primary);
@@ -148,6 +148,10 @@
 }
 
 .expertRemove {
+  position: var(--dsh-composer-leading-action-position, static);
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 1;
   display: var(--dsh-composer-leading-detail-display, grid);
   place-items: center;
   flex: none;
@@ -158,11 +162,25 @@
 .expertRemove > span { grid-area: 1 / 1; }
 .expertClose { display: grid; opacity: 0; }
 
-.expertBadge:hover .expertRemove:not(:disabled) .expertPortrait,
+.expertRemove:focus-visible { display: grid; }
 .expertRemove:focus-visible .expertPortrait { opacity: 0; }
-
-.expertBadge:hover .expertRemove:not(:disabled) .expertClose,
 .expertRemove:focus-visible .expertClose { opacity: 1; }
+.expertBadge:has(.expertRemove:focus-visible) .compactPortrait { visibility: hidden; }
+
+@media (hover: hover) {
+  .expertBadge:has(.expertTrigger:not(:disabled)):hover {
+    background: var(--dsw-alias-interactive-bg-hover-solid);
+    color: var(--dsw-alias-label-primary);
+  }
+
+  .expertBadge:hover:has(.expertTrigger[aria-expanded='false']:not(:disabled)) {
+    .expertRemove { display: grid; }
+    .compactPortrait { visibility: hidden; }
+  }
+
+  .expertBadge:hover .expertRemove:not(:disabled) .expertPortrait { opacity: 0; }
+  .expertBadge:hover .expertRemove:not(:disabled) .expertClose { opacity: 1; }
+}
 
 .expertBadge button:focus-visible {
   outline: none;
@@ -173,6 +191,7 @@
   .expertBadge {
     --dsh-composer-leading-detail-display: none;
     --dsh-composer-leading-icon-display: grid;
+    --dsh-composer-leading-action-position: absolute;
   }
 }
 
