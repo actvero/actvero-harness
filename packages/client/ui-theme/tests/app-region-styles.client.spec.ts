@@ -70,7 +70,13 @@ const CHROME_ROWS: readonly ChromeRow[] = [
     file: 'actvero/capability-ui/src/client/workbenches/runtime.module.css',
     selector: '.pageHeader',
     markup: 'actvero/capability-ui/src/client/workbenches/RuntimeView.tsx',
-    height: ['height', '50px'],
+    height: ['min-height', '50px'],
+  },
+  {
+    file: 'actvero/capability-ui/src/client/workbenches/runtime.module.css',
+    selector: '.windowChrome',
+    markup: 'actvero/capability-ui/src/client/workbenches/RuntimeView.tsx',
+    height: ['height', 'var(--dsh-frame-top-clearance, 48px)'],
   },
   {
     file: 'client/ui-settings-account/src/client/OnboardingSurface.module.css',

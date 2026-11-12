@@ -156,7 +156,7 @@ my-workbench/
 
 从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略。宿主只保留返回工作台列表、分隔线、侧栏及窗口控制；分隔线右侧由 Header 完整渲染，不额外插入图标、工作台名称、面包屑、下拉菜单或操作。未提供 Header 时显示最小的工作台图标与名称。预览只渲染正文，不挂载顶栏；注册释放时同时移除卡片、正文和顶栏。
 
-Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
+Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。macOS 收起侧栏时，宿主将窗口控件放入独立安全行，业务顶栏无需为这些控件设置左侧偏移；顶栏按实际容器宽度适配，不按整个窗口宽度定位。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
 
 正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 store；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 useStore 和 actions。状态按所需实例或视图标识组织，只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量；正文不通过 effect 向宿主反向写标题。
 

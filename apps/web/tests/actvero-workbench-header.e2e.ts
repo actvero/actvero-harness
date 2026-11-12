@@ -5,10 +5,11 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
+import { initialShortcutConfig } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
 
-it('gives a custom header the whole business region and restores the default on another workbench', async () => {
+it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole business region and restores the default on another workbench', async (platform) => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-header-'))
   let scaffold: Awaited<ReturnType<typeof launchWebScaffold>> | undefined
   let browser: Browser | undefined
@@ -50,6 +51,21 @@ it('gives a custom header the whole business region and restores the default on 
     }
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
+    await page.addInitScript(({ value, snapshot }) => {
+      if (value !== 'browser') Object.assign(window, { dshDesktop: { protocolVersion: 1,
+        keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
+        shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
+          subscribe: () => () => {}, recording: async () => {},
+          edit: async () => ({ status: 'not-ready', snapshot }) },
+      } })
+      const mark = () => {
+        document.documentElement.toggleAttribute('data-windows-titlebar', value === 'windows')
+        if (value === 'darwin') document.documentElement.dataset.platform = value
+        document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
+      }
+      if (document.documentElement === null) document.addEventListener('DOMContentLoaded', mark, { once: true })
+      else mark()
+    }, { value: platform, snapshot: initialShortcutConfig() })
     const log = watchConsole(page)
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
     await page.setViewportSize({ width: 1440, height: 900 })
@@ -78,6 +94,55 @@ it('gives a custom header the whole business region and restores the default on 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
       expect(await header.getByRole('button', { name: 'Saved by author' }).isVisible()).toBe(true)
+    }
+    // Desktop chrome must not consume the author's horizontal header space.
+    const frame = page.locator('[data-shell-bottom]').locator('..')
+    const windowChrome = page.locator('[data-workbench-window-chrome]')
+    {
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 })
+        // The frame records viewport changes through ResizeObserver and one animation frame.
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { resolve() }))))
+        await show('custom')
+        await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+        await expect.poll(() => page.locator('[data-shell-leading]').count()).toBe(platform === 'darwin' ? 1 : 0)
+        await expect.poll(() => windowChrome.evaluate(element => element.getBoundingClientRect().height)).toBe(platform === 'darwin' ? 48 : 0)
+        for (const colorScheme of ['light', 'dark'] as const) {
+          await page.emulateMedia({ colorScheme })
+          const geometry = await header.evaluate((element) => {
+            const row = element.parentElement!
+            const page = row.parentElement!
+            return { left: row.getBoundingClientRect().left - page.getBoundingClientRect().left,
+              top: row.getBoundingClientRect().top - page.getBoundingClientRect().top,
+              width: row.getBoundingClientRect().width, pageWidth: page.getBoundingClientRect().width,
+              inset: Number.parseFloat(getComputedStyle(row).paddingInlineStart) }
+          })
+          expect(geometry).toEqual({ left: 0, top: platform === 'darwin' ? 48 : 0,
+            width: geometry.pageWidth, pageWidth: geometry.pageWidth, inset: 20 })
+          expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+          expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+          const input = header.getByRole('textbox', { name: 'Find in drawing' })
+          await input.click()
+          await input.press('End')
+          await input.press('ArrowLeft')
+          expect(await input.evaluate(element => document.activeElement === element)).toBe(true)
+          await header.getByRole('button', { name: 'Saved by author' }).click()
+        }
+      }
+      if (platform === 'darwin') {
+        await page.evaluate(() => document.documentElement.setAttribute('data-fullscreen', ''))
+        expect(await windowChrome.evaluate(element => element.getBoundingClientRect().height)).toBe(48)
+        await page.evaluate(() => document.documentElement.removeAttribute('data-fullscreen'))
+        await page.setViewportSize({ width: 1280, height: 844 })
+        await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
+        await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
+        expect(await windowChrome.isVisible()).toBe(false)
+        expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
+        await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+        await expect.poll(() => windowChrome.isVisible()).toBe(true)
+      } else {
+        expect(await windowChrome.isVisible()).toBe(false)
+      }
     }
     await show('default')
     expect(await header.locator('[data-author-header]').count()).toBe(0)

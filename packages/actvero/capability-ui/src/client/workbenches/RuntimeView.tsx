@@ -62,6 +62,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   return <section className={styles.page} aria-label={name}
     data-workbench-main={!preparing && !runtimeFailed ? opened : undefined} data-workbench-instance={instance?.instanceId}
     data-workbench-session={chat?.sessionId}>
+    <div className={styles.windowChrome} data-workbench-window-chrome="" data-window-drag aria-hidden="true" />
     <header className={styles.pageHeader} data-window-drag>
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
         onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
