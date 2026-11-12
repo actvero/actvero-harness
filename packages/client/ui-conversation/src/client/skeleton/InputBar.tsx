@@ -460,13 +460,11 @@ export const InputBar = memo(function InputBar({
               hidden
               onChange={onPickFiles}
             />
+            {sessionId === undefined ? null : renderSlot('conversation.input.permission', { locked })}
             {input === undefined || sessionId === undefined
               ? null
               : renderSlot('conversation.input.left', {})}
-            <div className={css.modes}>
-              {sessionId === undefined ? null : renderSlot('conversation.input.permission', { locked })}
-              {sessionId === undefined ? null : renderSlot('conversation.input.plan', { locked })}
-            </div>
+            {sessionId === undefined ? null : renderSlot('conversation.input.plan', { locked })}
           </div>
           <div className={clsx(css.trailing, activity && css.trailingActive)}>
             <div className={css.standardControls} hidden={activity}>

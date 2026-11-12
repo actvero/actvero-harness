@@ -251,8 +251,7 @@
   line-clamp: 2;
 }
 
-/* Toolbar: attach + Plan + Read-only on the left; model + send on the right
-   (figma Input_Bottom chrome). */
+/* Toolbar: commands, access mode, and session actions on the left. */
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -276,6 +275,7 @@
   /* Leading slot controls can compact with the permission chip. */
   --dsh-composer-leading-detail-display: none;
   --dsh-composer-leading-icon-display: grid;
+  --dsh-composer-leading-action-position: absolute;
 }
 
 .row[data-model-compact] {
@@ -284,22 +284,18 @@
 }
 
 .tools,
-.modes,
 .trailing {
   display: flex;
   align-items: center;
   min-width: 0;
 }
 
-/* figma 75:8208 drew 16 between + and the mode chips and 4 between Plan /
-   Read-only; both gaps settled on 12 so the pill chips read as separate
-   controls without drifting from the + control. */
 .tools {
   gap: 12px;
 }
 
-.modes {
-  gap: 12px;
+.row[data-permission-compact] .tools {
+  gap: 4px;
 }
 
 .trailing {
@@ -316,9 +312,15 @@
 /* Compact spacing preserves room for the fixed-width controls in narrow cards. */
 @container (max-width: 560px) {
   .tools,
-  .modes,
   .trailing {
     gap: 8px;
+  }
+}
+
+/* The permission and expert controls also fold at this container width. */
+@container (max-width: 460px) {
+  .tools {
+    gap: 4px;
   }
 }
 
