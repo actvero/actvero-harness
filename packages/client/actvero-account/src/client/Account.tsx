@@ -243,14 +243,19 @@ export function BrandName({ useAccount, t }: BrandProps) {
   const account = useAccount(value => value)
   return <strong>{account?.brand.name ?? t('fallbackName')}</strong>
 }
-/** Shows platform artwork, then build artwork, then the shipped Actvero mark. */
-export function BrandMark({ useAccount }: Pick<BrandProps, 'useAccount'>) {
+/** Shows the configured wordmark in the expanded row or the available compact mark. */
+export function BrandMark({ useAccount, wordmark }: Pick<BrandProps, 'useAccount'> & Pick<PropsRuntime<'sidebar.brand.mark'>, 'wordmark'>) {
   const account = useAccount(value => value)
   const [failedUrl, setFailedUrl] = useState<string>()
   const [failedFallback, setFailedFallback] = useState<string>()
+  const [failedWordmark, setFailedWordmark] = useState<string>()
+  const sidebarLogo = account?.brand.sidebarLogoUrl
   const remoteLogo = account?.brand.logoUrl
   const fallbackLogo = account?.brand.fallbackLogoUrl
   const logo = remoteLogo && remoteLogo !== failedUrl ? remoteLogo : fallbackLogo !== failedFallback ? fallbackLogo : undefined
+  if (wordmark && sidebarLogo && sidebarLogo !== failedWordmark) {
+    return <img data-sidebar-brand-wordmark="" src={sidebarLogo} alt="" onError={() => setFailedWordmark(sidebarLogo)} />
+  }
   return (
     <span aria-hidden="true" className={css.mark}>
       {logo && logo !== failedUrl ? <img src={logo} alt="" onError={() => { if (logo === remoteLogo) setFailedUrl(logo); else setFailedFallback(logo) }} /> : (

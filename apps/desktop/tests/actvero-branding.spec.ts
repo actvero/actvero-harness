@@ -49,6 +49,21 @@ describe('ACTVERO build variants', () => {
     writeFileSync(join(root, 'actvero/app-icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32"/></svg>')
     await expect(prepareProductBranding(root)).rejects.toThrow('square')
   })
+  it('embeds a separate sidebar wordmark and refreshes it when the artwork changes', async () => {
+    const root = fixture(), configPath = join(root, 'actvero/product.json')
+    const original = await prepareProductBranding(root)
+    const { config } = original.assembly
+    const path = join(root, 'actvero/sidebar.svg')
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="24"><rect width="64" height="24"/></svg>'
+    writeFileSync(configPath, JSON.stringify({ ...config, branding: { ...config.branding, sidebarLogo: 'sidebar.svg' } }))
+    writeFileSync(path, svg)
+
+    const branded = await prepareProductBranding(root)
+    expect(branded.product.sidebarLogoDataUrl).toBe(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`)
+    expect(branded.product.logoDataUrl).toBe(original.product.logoDataUrl)
+    writeFileSync(path, svg.replace('<rect', '<rect fill="blue"'))
+    expect((await prepareProductBranding(root)).fingerprint).not.toBe(branded.fingerprint)
+  })
   it.each(['darwin', 'win32'])('assembles %s test installers without the official identity or update/signing service', async (platform) => {
     const root = fixture(), branding = await prepareProductBranding(root)
     const packed = createActveroElectronBuilderConfig(branding.product, branding.directory, { DSH_DESKTOP_TARGET_PLATFORM: platform, DSH_DESKTOP_TARGET_ARCH: 'x64' })

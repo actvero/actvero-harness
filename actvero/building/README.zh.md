@@ -30,6 +30,7 @@
 | `product.defaultLocale` | 初始原生语言，支持 `zh-CN` 和 `en-US`；已保存的用户偏好优先。 |
 | `branding.icon` | 必填的正方形 SVG/PNG，用于应用、Dock 和界面默认标志。 |
 | `branding.logo` | 可选的界面/登录页标志；默认使用 `branding.icon`。 |
+| `branding.sidebarLogo` | 可选的 SVG 或 PNG，替换展开侧栏的标志和名称。图片加载失败时，侧栏显示原有的标志和名称。 |
 | `branding.trayIcon` | 可选的 Windows 托盘正方形 SVG/PNG；默认使用 `branding.icon`。 |
 | `platform.defaultUrl` | 默认平台地址；远程服务要求 HTTPS，本机回环开发可使用 HTTP。 |
 

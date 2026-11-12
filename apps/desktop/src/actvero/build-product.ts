@@ -8,5 +8,6 @@ export interface BuildProduct {
   readonly defaultLocale: 'zh-CN' | 'en-US'
   readonly defaultUrl: string
   readonly logoDataUrl: string
+  readonly sidebarLogoDataUrl?: string
   readonly iconDataUrl: string
 }

@@ -30,6 +30,7 @@ The default [product.json](../product.json) names the distribution `Actvero Harn
 | `product.defaultLocale` | Initial native language, `zh-CN` or `en-US`; a saved user preference takes precedence. |
 | `branding.icon` | Required square SVG/PNG for the application, Dock and fallback UI logo. |
 | `branding.logo` | Optional UI/login logo; defaults to `branding.icon`. |
+| `branding.sidebarLogo` | Optional SVG or PNG that replaces the expanded sidebar mark and name. If the image fails to load, the sidebar shows the mark and name. |
 | `branding.trayIcon` | Optional square SVG/PNG for the Windows tray; defaults to `branding.icon`. |
 | `platform.defaultUrl` | Default platform address; remote services require HTTPS, loopback development may use HTTP. |
 

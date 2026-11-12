@@ -1376,7 +1376,11 @@ async function main(): Promise<void> {
   }
   actveroAccount = installAccount({ changed:()=>actveroCapabilities?.accountChanged(), enabled: actveroEnabled,
     baseUrl: process.env.ACTVERO_PLATFORM_URL ?? buildProduct?.defaultUrl ?? process.env.ACTVERO_PLATFORM_DEFAULT ?? 'http://127.0.0.1:5194',
-    ...(buildProduct ? { defaultBrand: { name: buildProduct.displayName, logoUrl: buildProduct.logoDataUrl } } : {}),
+    ...(buildProduct ? { defaultBrand: {
+      name: buildProduct.displayName,
+      logoUrl: buildProduct.logoDataUrl,
+      ...(buildProduct.sidebarLogoDataUrl === undefined ? {} : { sidebarLogoUrl: buildProduct.sidebarLogoDataUrl }),
+    } } : {}),
     version: buildProduct?.version ?? process.env.ACTVERO_APP_VERSION ?? app.getVersion(), windows: () => [mainWindow, welcomeWindow],
     enter: enterWorkspace,
     confirmLogout: async () => (await ordinaryMessageBox(logoutConfirmation(locale))).response === 0,
