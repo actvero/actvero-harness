@@ -121,6 +121,48 @@ function fallbackText(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value : undefined
 }
 
+function workbenchMeta(manifestPath: string, manifest: Record<string, unknown>): PluginLocalizedMeta['workbench'] {
+  const dsh = manifest.dsh
+  if (typeof dsh !== 'object' || dsh === null || !('actveroWorkbench' in dsh) || dsh.actveroWorkbench !== 1) return undefined
+  const root = realpathSync(dirname(manifestPath))
+  const readAsset = (path: string, maxBytes: number) => {
+    const file = realModuleFile(resolve(root, path))
+    const local = relative(root, file)
+    if (local === '..' || local.startsWith(`..${sep}`) || isAbsolute(local)) throw new Error('Workbench asset is outside its package')
+    const stat = statSync(file)
+    if (!stat.isFile() || stat.size === 0 || stat.size > maxBytes) throw new Error('Invalid workbench asset size')
+    const bytes = readFileSync(file)
+    if (bytes.length === 0 || bytes.length > maxBytes) throw new Error('Invalid workbench asset size')
+    return bytes
+  }
+  let name: string | undefined
+  let description: string | undefined
+  try {
+    const metadata = objectOf(JSON.parse(readAsset('workbench.json', 128 * 1024).toString('utf8')), 'workbench.json')
+    name = fallbackText(metadata.name)
+    description = fallbackText(metadata.description)
+  } catch (_error) {
+    // Older workbenches may publish their display text only through Client registration.
+  }
+  const paths = 'actveroWorkbenchPreviews' in dsh ? dsh.actveroWorkbenchPreviews : undefined
+  const previewUrls: string[] = []
+  if (Array.isArray(paths)) {
+    for (const path of paths.slice(0, 3)) {
+      if (typeof path !== 'string' || path.length > 200 || !/^\.\/assets\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:png|jpe?g|webp)$/u.test(path)) continue
+      const mediaType = ICON_MEDIA_TYPES.get(extname(path))
+      try {
+        const bytes = readAsset(path, 128 * 1024)
+        previewUrls.push(`data:${mediaType};base64,${bytes.toString('base64')}`)
+      } catch (_error) {
+        // Optional preview failures leave the bundle and its other artwork available.
+      }
+    }
+  }
+  if (name === undefined && description === undefined && previewUrls.length === 0) return undefined
+  return { ...(name === undefined ? {} : { name }), ...(description === undefined ? {} : { description }),
+    ...(previewUrls.length === 0 ? {} : { previewUrls }) }
+}
+
 function dictionariesOf(englishPath: string, specifier: string, parentURL: string): Map<string, DisplayFields> {
   const dictionaries = new Map<string, DisplayFields>()
   for (const entry of readdirSync(dirname(englishPath), { withFileTypes: true })) {
@@ -186,14 +228,16 @@ export function readPluginMeta(specifier: string, parentURL: string): PluginLoca
       ...title === undefined ? {} : { title },
       ...description === undefined ? {} : { description },
     }
+    const workbench = manifestPath !== undefined && manifest !== undefined ? workbenchMeta(manifestPath, manifest) : undefined
+    const display = { ...text, ...(workbench === undefined ? {} : { workbench }) }
     let icon: string | undefined
     try {
       icon = iconOf(specifier, packageName, parentURL, manifestPath, manifest?.icon)
     } catch (error) {
-      return { ...text, error: `Plugin metadata for ${specifier}: ${String(error)}` }
+      return { ...display, error: `Plugin metadata for ${specifier}: ${String(error)}` }
     }
-    if (title === undefined && description === undefined && icon === undefined) return undefined
-    return { ...text, ...icon === undefined ? {} : { icon } }
+    if (title === undefined && description === undefined && icon === undefined && workbench === undefined) return undefined
+    return { ...display, ...icon === undefined ? {} : { icon } }
   } catch (error) {
     return { error: `Plugin metadata for ${specifier}: ${String(error)}` }
   }

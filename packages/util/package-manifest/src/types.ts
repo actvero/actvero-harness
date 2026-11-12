@@ -49,6 +49,8 @@ export interface PluginLocalizedMeta {
   readonly description?: LocalizedText
   /** Base64 image data URL from a package root's manifest icon or an exported `<specifier>/icon`; render as an image, not inline markup. */
   readonly icon?: string
+  /** Display fields from an installed Actvero workbench, available before its Client loads. */
+  readonly workbench?: { readonly name?: string; readonly description?: string; readonly previewUrls?: readonly string[] }
   /** Unmodified local metadata diagnostic; the plugin remains manageable. */
   readonly error?: string
 }

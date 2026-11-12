@@ -54,3 +54,35 @@ it('reports incompatible requirements without installing and clears them on the 
   await actions.importFile(new File(['not an archive'], 'invalid.tgz'))
   expect(publish.mock.calls.at(-1)?.[0]).toMatchObject({ busy: null, notice: 'invalidPackage' })
 })
+
+it('retries a blocked import only after the person approves its listed dependency scripts', async () => {
+  type Remote = Parameters<typeof createWorkbenchManagement>[0]
+  const remote = {
+    listBundles: vi.fn<Remote['listBundles']>().mockResolvedValue({ ok: true, value: [] }),
+    installBundle: vi.fn<Remote['installBundle']>(),
+    setBundleEnabled: vi.fn<Remote['setBundleEnabled']>(),
+    removeBundle: vi.fn<Remote['removeBundle']>(),
+  }
+  const path = '/downloads/workbench.tgz'
+  const name = '@local/import-fixture'
+  const pendingBuilds = ['@ffmpeg-installer/darwin-arm64@4.1.5']
+  const denied = { ok: true, value: { application: 'failed', changed: false, stage: 'install', target: path, pendingBuilds,
+    packageResult: { exitCode: 1, output: '', truncated: false, logPath: '/logs/pnpm.log', kind: 'build-blocked' } } } as const
+  remote.installBundle.mockResolvedValueOnce(denied).mockResolvedValueOnce(denied).mockResolvedValueOnce({
+    ok: true, value: { application: 'applied', changed: true, stage: 'enable', target: name },
+  })
+  const publish = vi.fn<(state: WorkbenchManagement) => void>()
+  const actions = createWorkbenchManagement(remote, publish, async () => null)
+  vi.stubGlobal('__DSH_HOST_PATHS__', { pathFor: () => path })
+  onTestFinished(() => { actions.dispose(); vi.unstubAllGlobals() })
+  const file = await archive('^1.7.0')
+  await actions.importFile(file)
+  expect(publish.mock.calls.at(-1)?.[0]).toMatchObject({ busy: null, notice: null, pendingBuilds })
+  actions.cancelBuilds()
+  await actions.confirmBuilds()
+  expect(remote.installBundle).toHaveBeenCalledExactlyOnceWith(path, { enabled: true, registry: null })
+  await actions.importFile(file)
+  await actions.confirmBuilds()
+  expect(remote.installBundle).toHaveBeenLastCalledWith(path, { enabled: true, registry: null, approvedBuilds: pendingBuilds })
+  expect(publish.mock.calls.at(-1)?.[0]).toMatchObject({ busy: null, notice: null, pendingBuilds: [] })
+})

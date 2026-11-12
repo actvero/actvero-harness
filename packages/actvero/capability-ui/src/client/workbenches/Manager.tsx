@@ -307,7 +307,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     if (source === 'platform') void action.refreshPlatform()
   }, [source, action])
   const [disableTarget, setDisableTarget] = useState<WorkbenchItem>()
-  const blocked = !!view.busy || view.inventoryFailed
+  const blocked = !!view.busy || view.inventoryFailed || view.pendingBuilds.length > 0
   const needle = query.trim().toLocaleLowerCase()
   const catalog = workbenchCatalog(view, resolveText)
   const platform = view.platform.catalog
@@ -365,12 +365,6 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       </nav>}
       {view.inventoryFailed && <div className={styles.notice} role="alert"><span>{t('inventoryFailed')}</span>
         <Button variant="ghost" disabled={view.refreshing} onClick={() => { void action.refresh() }}>{t('refresh')}</Button></div>}
-      {view.notice && <div className={styles.notice} role="status">
-        <span>{typeof view.notice === 'string' ? t(view.notice) : t(view.notice.kind, {
-          requiredHostApi: view.notice.requiredHostApi, currentHostApi: view.notice.currentHostApi,
-        })}</span>
-        {view.diagnostic && <details><summary>{t('diagnostic')}</summary><pre>{view.diagnostic}</pre></details>}
-      </div>}
       {source === 'platform' ? (platformItems.length > 0 ? <div className={catalogStyles.grid}>
         {platformItems.map(item => <PlatformCard key={item.release.workbenchId} item={item} t={t}
           activate={() => { void action.usePublished(item.release) }}
@@ -417,6 +411,15 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       resourceName={`${catalog.find(entry => entry.id === view.pendingUpdate?.name)?.name ?? view.pendingUpdate?.name ?? ''} · ${view.pendingUpdate?.from ?? ''} → ${view.pendingUpdate?.to ?? ''}`}
       description={t('updateHelp')} cancelLabel={t('cancel')} confirmLabel={t('confirmUpdate')} pending={!!view.busy}
       onCancel={action.cancelUpdate} onConfirm={() => { void action.confirmUpdate() }} />
+    <Modal open={view.pendingBuilds.length > 0} title={t('buildApprovalTitle')} closeLabel={t('close')}
+      description={t('buildApprovalHelp')} onClose={action.cancelBuilds}
+      footer={<>
+        <Button data-modal-autofocus disabled={!!view.busy} onClick={action.cancelBuilds}>{t('cancel')}</Button>
+        <Button variant="primary" disabled={!!view.busy || view.inventoryFailed}
+          onClick={() => { void action.confirmBuilds() }}>{t('buildApprovalConfirm')}</Button>
+      </>}>
+      <ul>{view.pendingBuilds.map(name => <li key={name}><code>{name}</code></li>)}</ul>
+    </Modal>
     <ConfirmDialog open={!!disableTarget} title={t('disableTitle')} closeLabel={t('close')}
       resourceName={disableTarget?.name ?? ''} description={t('disableHelp')} cancelLabel={t('cancel')}
       confirmLabel={t('disable')} pending={!!view.busy} onCancel={() => { setDisableTarget(undefined) }}

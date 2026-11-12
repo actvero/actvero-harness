@@ -41,7 +41,8 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
   & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, runtimeFailed, accessError, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const { opened, instance, preparing, openError, accessError, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const error = accessError ?? openError
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const catalogButton = useView(value => opened ? value.catalogButtons[opened] !== 'hide' : true)
   const sessions = useSessions(value => value)
@@ -61,7 +62,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
     <h1>{name}</h1>
   </div>
   return <section className={styles.page} aria-label={name}
-    data-workbench-main={!preparing && !runtimeFailed && !accessError ? opened : undefined} data-workbench-instance={instance?.instanceId}
+    data-workbench-main={!preparing && !error ? opened : undefined} data-workbench-instance={instance?.instanceId}
     data-workbench-session={chat?.sessionId}>
     <div className={styles.windowChrome} data-workbench-window-chrome="" data-window-drag aria-hidden="true" />
     <header className={styles.pageHeader} data-window-drag>
@@ -71,15 +72,17 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
         <span className={styles.separator} aria-hidden="true" />
       </>}
       <div className={styles.headerExtension} data-workbench-header="">
-        {opened && !preparing && !runtimeFailed && !accessError
+        {opened && !preparing && !error
           ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
             entryKey: opened, fallback: defaultHeader,
           }) : defaultHeader}
       </div>
     </header>
-    {runtimeFailed || accessError ? <div className={styles.notice} role="alert">{t(accessError ?? 'runtimeFailed')}
-      <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
-      : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
+    {error ? <div className={styles.runtimeState} role="alert"><span>{t(error)}</span>
+      <Button variant="outline" onClick={() => { if (opened) action.open(opened) }}>{t('retryOpen')}</Button></div>
+      : preparing ? <div className={styles.runtimeState} role="status" aria-label={t('preparing')}>
+        <IconLoadingOutlineRegular className={styles.spinner} size={22} />
+      </div>
         : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
     {instance && action.supportsAI(instance.instanceId) && <Tooltip label={t('askAI')} side="top"><button ref={launcher} type="button" className={styles.aiLauncher}
       hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={chatPreparing}
