@@ -9,7 +9,6 @@ import type { WorkbenchDocument, WorkbenchInstanceId } from '../../types.ts'
 import type { WorkbenchClientContext } from '../../contracts.ts'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
-import { Example } from './Example.tsx'
 import { Manager } from './Manager.tsx'
 import { OpenWorkbench, BusinessContent, WorkbenchChat, WorkbenchBadge, WorkbenchUtilities, type ConversationWorkbenchActions } from './RuntimeView.tsx'
 import { WorkbenchClientRuntime } from './runtime.ts'
@@ -37,7 +36,8 @@ const selectionKey = 'actvero.workbenches.selected.v1'
 
 function readSelection(): string | null {
   try {
-    return localStorage.getItem(selectionKey)
+    const selected = localStorage.getItem(selectionKey)
+    return selected === 'builtin:project-checklist' ? null : selected
   } catch (error) {
     console.warn('Unable to restore workbench selection', error)
     return null
@@ -112,7 +112,6 @@ export function registerWorkbenches(ctx: Context): void {
   }
   const installed = (id: string) => view.bundles.find(bundle => bundle.installed && bundle.name === id)
   const checkAccess = async (id: string): Promise<WorkbenchAccessError | null> => {
-    if (id === 'builtin:project-checklist') return null
     if (!installed(id) || view.inventoryFailed) await management.refresh()
     if (view.inventoryFailed) return 'platformCheckFailed'
     const source = workbenchArchiveSource(installed(id)?.source)
@@ -202,7 +201,7 @@ export function registerWorkbenches(ctx: Context): void {
   const { initial: _initial, dispose: _dispose, installPublished, report, setEnabled, ...operations } = management
   const action: WorkbenchAction = {
     open(id) {
-      if (id !== 'builtin:project-checklist' && !view.entries.some(entry => entry.id === id)) return
+      if (!view.entries.some(entry => entry.id === id)) return
       linkedSession = null
       void load(id)
       try {
@@ -339,9 +338,6 @@ export function registerWorkbenches(ctx: Context): void {
     children: { 'actvero.workbench.chat': { kind: 'single', scope: 'session' } },
   }, OpenWorkbench))
   ctx.slots.inject('actvero.workbench.chat', () => ctx.slots.register({ name: 'actvero.workbench.chat' }, WorkbenchChat))
-  ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
-    name: 'actvero.workbench.body', key: 'builtin:project-checklist', locale: namespace,
-  }, Example))
   const conversationAction = (sessionId: SessionId): ConversationWorkbenchActions => ({
     detach: async () => { const result = await ctx.remote.actveroWorkbench.detach({ sessionId }); if (!result.ok) throw result.error },
     open(id, instanceId, selectedSession) {
@@ -364,13 +360,13 @@ export function registerWorkbenches(ctx: Context): void {
     id: 'actvero-workbench-views', locale: namespace, order: -10, inject: sessionId => ({ action: conversationAction(sessionId), hooks: { view: source } }),
   }, WorkbenchUtilities))
   ctx.effect(() => ctx.commandUi.register({ name: 'workbench', section: 'add', label: () => t('title'),
-    description: () => t('choose'), icon: WorkbenchIcon, available: () => true,
+    description: () => t('choose'), icon: WorkbenchIcon, available: () => view.entries.length > 0,
     ui: { kind: 'popupSelect', searchLabels: () => ({ placeholder: t('search'), empty: t('empty'), noResults: t('empty') }),
       options: async (_session, signal) => {
         const result = await ctx.remote.actveroWorkbench.list()
         signal.throwIfAborted()
         if (!result.ok) throw result.error
-        return result.value.filter(item => item.id === 'builtin:project-checklist' || view.entries.some(entry => entry.id === item.id))
+        return result.value.filter(item => view.entries.some(entry => entry.id === item.id))
           .map(item => ({ id: item.id, label: item.name, icon: WorkbenchIcon }))
       },
       onSelect: async (option, session) => {

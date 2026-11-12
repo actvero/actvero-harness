@@ -4,7 +4,6 @@ import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-storage-domain'
 import { WorkbenchRuntime, type WorkbenchRuntimeConfig } from './workbench-runtime.ts'
 import { workbenchDomain } from './workbench-storage.ts'
-import { checklistProvider } from './checklist.ts'
 
 export type * from './types.ts'
 export type * from './workbench-provider.ts'
@@ -16,11 +15,10 @@ export const Config: z<WorkbenchRuntimeConfig> = z.object({ dataDirectory: z.str
 /** Open authoritative data before advertising runtime availability.
  * @param ctx Host plugin scope.
  * @param config Managed files location supplied by the product profile.
- * @returns Completion when the runtime and built-in provider are ready.
+ * @returns Completion when the workbench runtime is ready.
  */
 export async function apply(ctx: Context, config: WorkbenchRuntimeConfig): Promise<void> {
   const domain = await ctx.storageDomain.open(workbenchDomain)
   ctx.effect(() => () => domain.close())
-  const runtime = new WorkbenchRuntime(ctx, domain, config)
-  ctx.effect(() => runtime.register(checklistProvider))
+  new WorkbenchRuntime(ctx, domain, config)
 }

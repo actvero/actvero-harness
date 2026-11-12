@@ -20,8 +20,8 @@ import { tmpdir } from 'node:os'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as Workbenches from '../src/index.ts'
-import { checklistProvider } from '../src/checklist.ts'
-import { checklistDocument } from '../src/checklist-data.ts'
+import { checklistProvider } from './fixtures/checklist.ts'
+import { checklistDocument } from './fixtures/checklist-data.ts'
 import type { WorkbenchId } from '../src/types.ts'
 
 async function harness(root?: string) {
@@ -54,6 +54,7 @@ async function harness(root?: string) {
   ctx.reflect.provide('sessionController', sessionController)
   await ctx.plugin(Workbenches, { dataDirectory: join(directory, 'files') })
   const runtime = ctx.actveroWorkbenchRuntime
+  ctx.effect(() => runtime.register(checklistProvider))
   const prepare = (agent: Agent) => ctx.waterfall(scopeTarget(agent, agent), 'agent/pre-step', {
     agent, messages: [], turn: 1, step: 1, signal: new AbortController().signal,
   }, async () => ({ kind: 'enter' as const, messages: [] }))

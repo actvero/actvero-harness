@@ -7,7 +7,6 @@ import {
   ImageLightbox,
   ActionMenu,
   Tooltip,
-  IconChecklistOutlineMedium,
   IconChevronLeftOutlineMedium,
   IconChevronRightOutlineMedium,
   IconCloseOutlineMedium,
@@ -23,11 +22,6 @@ import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
 import styles from './workbenches.module.css'
-import checklistPreview from './assets/project-checklist.png'
-import checklistProgressPreview from './assets/project-checklist-progress.png'
-import checklistReviewPreview from './assets/project-checklist-review.png'
-import checklistCompletedPreview from './assets/project-checklist-completed.png'
-import checklistDarkPreview from './assets/project-checklist-dark.png'
 
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
@@ -38,12 +32,12 @@ function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
 }
 
-function Mark({ url, builtIn = false }: { url?: string; builtIn?: boolean }) {
+function Mark({ url }: { url?: string }) {
   const [failed, setFailed] = useState<string>()
   return <span className={styles.mark}>
     {url && failed !== url
       ? <img src={url} alt="" onError={() => { setFailed(url) }} />
-      : builtIn ? <IconChecklistOutlineMedium size={22} /> : <WorkbenchIcon size={22} />}
+      : <WorkbenchIcon size={22} />}
   </span>
 }
 
@@ -141,11 +135,10 @@ function ManagementActions({ entry, t, open, manage, blocked, details }: Locale 
   </div>
 }
 
-function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale & {
+function Card({ entry, open, showDetails, t, manage, blocked }: Locale & {
   entry: WorkbenchItem
   manage: (action: ManageAction) => void
   blocked: boolean
-  builtIn: boolean
   open: () => void
   showDetails: (previewIndex: number) => void
 }) {
@@ -153,7 +146,7 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
     <button className={styles.cardTrigger} aria-label={`${t('details')} · ${entry.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
-        <Mark url={entry.iconUrl} builtIn={builtIn} />
+        <Mark url={entry.iconUrl} />
         <h3 className={styles.name} title={entry.name}>{entry.name}</h3>
       </div>
       <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} details={() => { showDetails(0) }} />
@@ -161,8 +154,8 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
     <p className={styles.description}>{entry.description}</p>
     <CardPreviews name={entry.name} previews={entry.previewUrls} showPreview={showDetails} t={t} />
     <footer className={styles.cardFoot}>
-      <span className={styles.metadata}>{t(builtIn ? 'builtIn' : workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')} · {t('versionPrefix')}{entry.version}</span>
-      {!builtIn && <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>}
+      <span className={styles.metadata}>{t(workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')} · {t('versionPrefix')}{entry.version}</span>
+      <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>
     </footer>
   </article>
 }
@@ -173,7 +166,7 @@ type DetailActions =
 
 function Details({ entry, source, actions, initialPreview, onClose, t }: Locale & {
   entry: WorkbenchDetails
-  source: 'builtIn' | 'platform' | 'local'
+  source: 'platform' | 'local'
   actions: DetailActions
   initialPreview: number
   onClose: () => void
@@ -220,13 +213,13 @@ function Details({ entry, source, actions, initialPreview, onClose, t }: Locale 
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
-            <div className={styles.detailIdentity}><Mark url={entry.iconUrl} builtIn={source === 'builtIn'} /><h3>{t('about')}</h3></div>
+            <div className={styles.detailIdentity}><Mark url={entry.iconUrl} /><h3>{t('about')}</h3></div>
             <p className={styles.detailDescription}>{entry.description}</p>
             {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <dl className={styles.facts}>
               <div><dt>{t('source')}</dt><dd>{t(source)}</dd></div>
               <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
-              {source !== 'builtIn' && entry.state && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
+              {entry.state && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
               {actions.kind === 'platform' && actions.item.operation === 'updateAndOpen' && actions.item.installedVersion &&
                 <div><dt>{t('installedVersion')}</dt><dd>{actions.item.installedVersion}</dd></div>}
               {entry.runningVersion && entry.runningVersion !== entry.version && <div><dt>{t('runningVersion')}</dt><dd>{entry.runningVersion}</dd></div>}
@@ -308,12 +301,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   }, [source, action])
   const blocked = !!view.busy || view.inventoryFailed
   const needle = query.trim().toLocaleLowerCase()
-  const builtIn: WorkbenchItem = {
-    state: 'ready',
-    id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
-    previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
-  }
-  const catalog = [builtIn, ...workbenchCatalog(view, resolveText)]
+  const catalog = workbenchCatalog(view, resolveText)
   const platform = view.platform.catalog
   const published = platform?.items.filter(entry => (category === 'all' || categoryOf(entry.category) === category)
     && [entry.name, entry.description, entry.packageName, t(categoryOf(entry.category))]
@@ -377,18 +365,18 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         )}</p>
       </div>) : entries.length > 0 ? <div className={catalogStyles.grid}>
         {entries.map(entry => (
-          <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} blocked={blocked}
+          <Card key={entry.id} entry={entry} t={t} blocked={blocked}
             manage={(operation) => { manage(entry, operation) }}
             showDetails={(previewIndex) => { setDetailSelection({ source: 'local', id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
         ))}
       </div> : <div className={styles.empty}>
         <WorkbenchIcon size={27} />
-        <p>{t('empty')}</p>
-        <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>
+        <p>{t(needle ? 'empty' : 'myEmpty')}</p>
+        {needle && <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>}
       </div>}
     </div>
     {detail && detailSelection && <Details key={detail.id} entry={detail}
-      source={detail.id === builtIn.id ? 'builtIn' : workbenchArchiveSource(detail.bundle?.source) ? 'platform' : 'local'}
+      source={workbenchArchiveSource(detail.bundle?.source) ? 'platform' : 'local'}
       initialPreview={detailSelection.previewIndex} t={t} onClose={() => { setDetailSelection(undefined) }}
       actions={{ kind: 'local', entry: detail, blocked, manage: (operation) => { manage(detail, operation) },
         open: () => { setDetailSelection(undefined); action.open(detail.id) } }} />}

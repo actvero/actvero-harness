@@ -6,8 +6,6 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ActveroWorkbench, WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
 
-const legacyKey = 'actvero.workbenches.project-checklist.v1'
-
 /** Human actions for opening data and selecting a conversation environment. */
 export class WorkbenchClientRuntime {
   private readonly pending = new Map<string, Promise<WorkbenchDocument | null>>()
@@ -36,23 +34,6 @@ export class WorkbenchClientRuntime {
     if (!catalog.value.some(item => item.id === id)) return null
     const result = await this.ctx.remote.actveroWorkbench.open(id as WorkbenchId)
     if (!result.ok) throw result.error
-    if (id !== 'builtin:project-checklist') return result.value
-    // The previous built-in stored only these three booleans in the renderer.
-    let legacy: unknown
-    try { legacy = JSON.parse(localStorage.getItem(legacyKey) ?? '[]') } catch (_error) { legacy = [] }
-    const state: unknown = JSON.parse(result.value.json)
-    if (typeof state === 'object' && state !== null && 'legacyImported' in state && state.legacyImported === false) {
-      const completed = Array.isArray(legacy) ? ['sampleItem1', 'sampleItem2', 'sampleItem3'].filter(item => legacy.includes(item)) : []
-      const migrated = await this.ctx.remote.actveroWorkbench.action({ instanceId: result.value.instanceId,
-        revision: result.value.revision, action: 'import-legacy', args: JSON.stringify({ completed }) })
-      if (!migrated.ok) {
-        if (migrated.error.code !== 'workbench/conflict') throw migrated.error
-        const latest = await this.ctx.remote.actveroWorkbench.read({ instanceId: result.value.instanceId })
-        if (!latest.ok) throw latest.error
-        return latest.value
-      }
-      return migrated.value
-    }
     return result.value
   }
 

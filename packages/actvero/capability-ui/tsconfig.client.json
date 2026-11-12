@@ -11,8 +11,7 @@
   "include": [
     "src/client",
     "src/contracts.ts",
-    "src/types.ts",
-    "src/checklist-data.ts"
+    "src/types.ts"
   ],
   "references": [
     {

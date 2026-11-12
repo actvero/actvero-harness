@@ -47,7 +47,7 @@ export function OpenWorkbench({ t, useView, renderFactorySlot, renderSlot, Sessi
   }
   const collapse = () => { action.collapseChat(); requestAnimationFrame(() => { launcher.current?.focus() }) }
   useEffect(() => () => { action.releaseChat() }, [action])
-  const name = opened === 'builtin:project-checklist' ? t('sampleName') : entries.find(item => item.id === opened)?.name ?? t('title')
+  const name = entries.find(item => item.id === opened)?.name ?? t('title')
   return <section className={styles.page} aria-label={name}>
     <header className={styles.pageHeader} data-window-drag>
       <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}

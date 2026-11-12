@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import type { WorkbenchId, WorkbenchInstanceId, WorkbenchSelection } from './types.ts'
 
-/** Validates persisted provider IDs, including the built-in checklist. */
+/** Validates persisted provider IDs, including historical providers. */
 export const workbenchIdSchema = z.string().regex(/^[a-z0-9@][a-z0-9@/._:-]{0,213}$/).transform(value => value as WorkbenchId)
 /** Validates host-created instance IDs. */
 export const instanceIdSchema = z.uuid().transform(value => value as WorkbenchInstanceId)

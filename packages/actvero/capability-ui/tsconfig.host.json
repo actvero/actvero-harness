@@ -11,9 +11,7 @@
   "include": [
     "src/index.ts",
     "src/types.ts",
-    "src/workbench-*.ts",
-    "src/checklist.ts",
-    "src/checklist-data.ts"
+    "src/workbench-*.ts"
   ],
   "references": [
     {

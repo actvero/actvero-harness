@@ -95,20 +95,3 @@
 }
 .business { box-sizing: border-box; width: 100%; height: 100%; flex: 1; min-width: 0; min-height: 0; overflow: auto; color: var(--dsw-alias-label-primary); }
 :global([data-platform="darwin"]) .business { padding-top: var(--dsh-frame-top-clearance, 0px); }
-.examplePage { padding: 28px 32px; }
-.exampleDescription { margin: 0 0 24px; color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 1.6; }
-.checklist { width: min(100%, 560px); box-sizing: border-box; padding: 20px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-xl); }
-.checklist header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.checklist h2 { margin: 0; font-size: 16px; font-weight: 500; }
-.meta { color: var(--dsw-alias-label-secondary); font-size: 12px; }
-.checklistItem { display: flex; align-items: start; gap: 10px; padding: 12px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); overflow-wrap: anywhere; }
-
-.addTask { display: flex; align-items: center; gap: 8px; margin-top: 16px; min-width: 0; }
-.addTask input { flex: 1; min-width: 0; }
-.addTask button { flex-shrink: 0; }
-@container (max-width: 460px) {
-  .examplePage { padding: 16px; }
-  .checklist { padding: 12px; }
-  .exampleDescription { font-size: 13px; }
-  .addTask { flex-wrap: wrap; }
-}

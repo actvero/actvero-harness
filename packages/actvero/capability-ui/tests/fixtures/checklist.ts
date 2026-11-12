@@ -1,9 +1,9 @@
-/** Built-in checklist behavior shared by human controls and conversation tools. */
+/** Checklist provider used by workbench runtime tests. */
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import type { WorkbenchProvider } from './workbench-provider.ts'
-import type { WorkbenchId } from './types.ts'
+import type { WorkbenchProvider } from '../../src/workbench-provider.ts'
+import type { WorkbenchId } from '../../src/types.ts'
 import { checklistDocument } from './checklist-data.ts'
 
 const actions = z.discriminatedUnion('action', [

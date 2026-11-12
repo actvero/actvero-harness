@@ -1,6 +1,6 @@
 /** Workbench management and quick switching share one sidebar row. */
 import { useState } from 'react'
-import { IconChecklistOutlineMedium, IconChevronDownOutlineMedium, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutlineMedium, Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsHooks, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkbenchAction, WorkbenchView } from './register.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
@@ -12,10 +12,10 @@ export type WorkbenchViewHooks = PropsHooks<{ view: {
   subscribe: (listener: () => void) => () => void
 } }>
 
-function EntryIcon({ id, url }: { id: string; url?: string }) {
+function EntryIcon({ url }: { url?: string }) {
   const [failed, setFailed] = useState<string>()
   if (url && failed !== url) return <img className={styles.icon} src={url} alt="" onError={() => { setFailed(url) }} />
-  return id === 'builtin:project-checklist' ? <IconChecklistOutlineMedium size={18} /> : <WorkbenchIcon size={18} />
+  return <WorkbenchIcon size={18} />
 }
 
 /**
@@ -28,8 +28,8 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
   const { entries, opened } = useView(value => value)
   const inBusiness = usePanelInfo(info => info.activePanelId === 'actvero-workbench-business')
   const [menuOpen, setMenuOpen] = useState(false)
-  const catalog = [{ id: 'builtin:project-checklist', name: t('sampleName'), iconUrl: undefined }, ...entries]
-  const selected = catalog.find(entry => entry.id === opened)
+  const selected = entries.find(entry => entry.id === opened)
+  const canSwitch = wide && entries.length > 0
   const row = <div className={styles.row} data-wide={wide} data-active={active || inBusiness} data-open={wide && menuOpen}>
     <Tooltip label={t('title')} disabled={wide} portal>
       <button type="button" className={styles.manage} aria-label={t('title')} aria-current={active ? 'page' : undefined}
@@ -38,7 +38,7 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
         {wide && <span>{t('title')}</span>}
       </button>
     </Tooltip>
-    {wide && <Tooltip label={selected ? `${t('switch')} · ${selected.name}` : t('switch')} portal>
+    {canSwitch && <Tooltip label={selected ? `${t('switch')} · ${selected.name}` : t('switch')} portal>
       <button type="button" className={styles.switchButton} aria-label={`${t('switch')} · ${selected?.name ?? t('choose')}`}
         aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => { setMenuOpen(value => !value) }}>
         <span className={styles.currentName}>{selected?.name ?? t('choose')}</span>
@@ -46,11 +46,11 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
       </button>
     </Tooltip>}
   </div>
-  return <Menu open={wide && menuOpen} onClose={() => { setMenuOpen(false) }} portal autoFocus minWidthFromAnchor
+  return <Menu open={canSwitch && menuOpen} onClose={() => { setMenuOpen(false) }} portal autoFocus minWidthFromAnchor
     className={styles.anchor} listClassName={styles.switchMenu} selectedId={selected?.id} anchor={row}
-    items={[{ type: 'label', id: 'heading', text: t('mine') }, ...catalog.map(entry => ({
+    items={[{ type: 'label', id: 'heading', text: t('mine') }, ...entries.map(entry => ({
       id: entry.id, label: <span className={styles.entryName} title={entry.name}>{entry.name}</span>,
-      icon: <EntryIcon id={entry.id} url={entry.iconUrl} />,
+      icon: <EntryIcon url={entry.iconUrl} />,
     }))]}
     onSelect={(id) => { setMenuOpen(false); action.open(id) }} />
 }

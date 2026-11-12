@@ -36,7 +36,7 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 
 ## Import and verify
 
-Start the Actvero development client, open Workbenches → My workbenches, choose Import workbench, and select the output. If the result requires a restart, use Harness → Restart Harness. After loading, Project checklist appears in the catalog and sidebar switcher. The built-in example remains available for reference; the independent package's details show the author 本地开发 to distinguish it.
+Start the Actvero development client, open Workbenches → My workbenches, choose Import workbench, and select the output. If the result requires a restart, use Harness → Restart Harness. After loading, Project checklist appears in the catalog and sidebar switcher. The template appears after importing its package. Its details show the author 本地开发.
 
 Open the independent package, check an item, return to the manager and reopen it, then reload the client and reopen it to verify saved progress. Check previews, expanded/collapsed sidebar, light/dark themes, and a narrow window. First use creates no conversation and requires no workspace selection. Verify the installation result, catalog entry, switcher, and actual business view separately.
 
@@ -88,7 +88,7 @@ Components receive `workbench` context with the business instance, associated co
 
 Each Host workbench currently has one default business instance shared by linked conversations. The global New conversation does not inherit it; New workbench conversation links the same instance. Reopening a conversation restores its association and expert version from the log. Collapsing does not detach, and detaching does not delete the checklist. The Host manages instance files beneath its configured directory; new linked conversations create or reuse a workspace named after the workbench at that directory without a folder picker. Existing conversations keep their directory.
 
-See the runnable [built-in checklist provider](../packages/actvero/capability-ui/src/checklist.ts) and [Client](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx). Verify first use without a conversation, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment, floating views and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
+See the provider used by the [workbench runtime tests](../packages/actvero/capability-ui/tests/workbench-runtime.spec.ts). Verify first use without a conversation, manual and tool edits to one checklist, concurrent conflicts, reopening conversations, detachment, floating views and narrow windows. Installation and UI acceptance do not replace real-model or organization-service verification.
 
 <a id="runtime-config"></a>
 
