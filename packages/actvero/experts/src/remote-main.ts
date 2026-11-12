@@ -260,7 +260,11 @@ export class RemoteExperts {
     const task=this.stageNow(id,p,c);this.stages.set(key,task)
     try{return await task}finally{if(this.stages.get(key)===task)this.stages.delete(key)}
   }
-  /** Reuse complete local preparation for a summon. The subsequent prepare call checks live access. */
+  /** Reuse complete local preparation for a summon. The subsequent prepare call checks live access.
+   * @param id Expert identifier in the current organization.
+   * @param expectedRelease Exact release shown for confirmation, when supplied.
+   * @returns Completion after the selected release and its local dependencies are prepared.
+   */
   async stageForSelection(id: string, expectedRelease?: string): Promise<void> {
     const c = this.context(), p = await this.saved(id)
     this.guard(c)

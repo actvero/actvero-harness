@@ -288,11 +288,11 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       update({ chat: reference, chatCollapsed: false })
     } catch (error) { reference.release(); throw error }
   }
-  const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null, workbenchId = view.opened) => {
+  const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null) => {
     const generation = chatGeneration
     const providerId = sessionId
       ? ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.id : view.instance?.id
-    const descriptor = view.entries.find(entry => entry.id === (workbenchId ?? providerId))
+    const descriptor = view.entries.find(entry => entry.id === (providerId ?? view.opened))
     const scope = descriptor ? workbenchArchiveSource(installed(descriptor.id)?.source)?.scope : undefined
     const providerEntry = view.entries.find(entry => entry.id === providerId)
     const isCurrent = () => generation === chatGeneration && ctx.fiber.uid !== null
@@ -329,15 +329,23 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   }
   const load = async (id: string, target?: WorkbenchInstanceId, signal?: AbortSignal) => {
     signal?.throwIfAborted()
-    if (view.opened === id && view.instance && !view.preparing && !view.runtimeFailed
-      && (!target || target === view.instance.instanceId)) return view.instance
+    const reusable = view.opened === id && view.instance && !view.preparing && !view.runtimeFailed
+      && (!target || target === view.instance.instanceId) ? view.instance : null
     const generation = ++navigation
-    releaseChat()
-    update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false, accessError: null })
+    if (!reusable) {
+      releaseChat()
+      update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false, accessError: null })
+    }
     try {
       const accessError = await checkAccess(id)
       if (generation !== navigation || ctx.fiber.uid === null) return
-      if (accessError) { update({ preparing: false, accessError }); return }
+      if (accessError) {
+        releaseChat()
+        update({ instance: null, location: null, preparing: false, accessError })
+        return
+      }
+      signal?.throwIfAborted()
+      if (reusable) { update({ accessError: null }); return reusable }
       const opened = await runtime.open(id)
       const result = target ? await ctx.remote.actveroWorkbench.read({ instanceId: target }) : null
       if (result && !result.ok) throw result.error

@@ -110,6 +110,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
 | `dsh.actveroWorkbenchConfig` | Optional runtime configuration fields for organization administrators |
 | `dsh.actveroWorkbenchIcon` | Optional catalog icon path such as `./assets/icon.webp`. Use a static PNG, JPEG or WebP up to 64 KiB and 512 × 512 pixels |
+| `dsh.actveroWorkbenchPreviews` | Optional ordered list of up to 3 package paths such as `./assets/cover.webp`. Each static PNG, JPEG or WebP must fit within 128 KiB and 2048 × 2048 pixels |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
 | `exports["./locale/*.json"]` | Generated name and description metadata remains available before the workbench loads |
 | `workbench.json` | Source display name, description, category, author, and tags, compiled into the Client |

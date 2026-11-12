@@ -609,7 +609,8 @@ describe('desktop resource authorization recovery', () => {
         const metadata = { ...pin, package_name: '@local/checklist', display_name: 'Checklist', description: 'Tasks',
           category: 'office', version: '1.0.0', dsh_requirement: '*', size: bytes.length }
         return { items: [
-          { ...metadata, icon_data_url: 'data:image/webp;base64,UklGRg==' },
+          { ...metadata, icon_data_url: 'data:image/webp;base64,UklGRg==',
+            preview_data_urls: ['data:image/webp;base64,UklGRg==', 'https://platform.example.test/cover.webp'] },
           { ...metadata, icon_data_url: 'https://platform.example.test/avatar.webp' },
         ] }
       }
@@ -619,7 +620,9 @@ describe('desktop resource authorization recovery', () => {
     const download = vi.spyOn(api, 'workbenchPackage').mockResolvedValue(bytes)
     const { scope, items: [release, invalidIcon] } = await controller.workbenchCatalog()
     expect(release?.iconUrl).toBe('data:image/webp;base64,UklGRg==')
+    expect(release?.previewUrls).toEqual(['data:image/webp;base64,UklGRg=='])
     expect(invalidIcon?.iconUrl).toBeUndefined()
+    expect(invalidIcon?.previewUrls).toBeUndefined()
     const source = { ...release!, scope }
     await expect(controller.workbenchCheck(source)).resolves.toEqual({ status: 'current', adoptedUsable: true })
     await expect(controller.workbenchCheck({ ...source, scope: '0'.repeat(32) })).resolves.toEqual({ status: 'unavailable', adoptedUsable: false })

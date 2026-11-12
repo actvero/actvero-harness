@@ -114,9 +114,10 @@ describe('local workbench developer commands', () => {
     const manifest = await readFile(manifestPath, 'utf8')
     await writeFile(manifestPath, manifest.replace(
       '"actveroWorkbench": 1,',
-      '"actveroWorkbench": 1,\n    "actveroWorkbenchIcon": "./assets/icon.png",',
+      '"actveroWorkbench": 1,\n    "actveroWorkbenchIcon": "./assets/icon.png",\n    "actveroWorkbenchPreviews": ["./assets/cover.png"],',
     ))
     await writeFile(join(source, 'assets/icon.png'), icon)
+    await writeFile(join(source, 'assets/cover.png'), icon)
     const archive = await packWorkbench(source, path)
     const checked = await checkWorkbench(archive)
     expect(checked.name).toBe('@local/delivery-checklist')
@@ -124,6 +125,7 @@ describe('local workbench developer commands', () => {
     await extract({ cwd: path, file: archive })
     expect(await readFile(join(path, 'package/assets/expert/expert.json'), 'utf8')).toContain('本地资源')
     expect(await readFile(join(path, 'package/assets/icon.png'))).toEqual(icon)
+    expect(await readFile(join(path, 'package/assets/cover.png'))).toEqual(icon)
     const patch = load(await readFile(join(path, 'package/cordis.patch.yml'), 'utf8'))
     expect(patch).toEqual([{ insert: [{ id: '@local/delivery-checklist', name: '@local/delivery-checklist' }] }])
     interface Descriptor { id: string; name: string; version: string; previewUrls: string[] }
@@ -175,6 +177,11 @@ describe('local workbench developer commands', () => {
     await create({ cwd: path, file: missingIcon, gzip: true }, ['package'])
     await expect(checkWorkbench(missingIcon)).rejects.toThrow('工作台头像')
     await writeFile(join(path, 'package/assets/icon.png'), icon)
+    await rm(join(path, 'package/assets/cover.png'))
+    const missingPreview = join(path, 'missing-preview.tgz')
+    await create({ cwd: path, file: missingPreview, gzip: true }, ['package'])
+    await expect(checkWorkbench(missingPreview)).rejects.toThrow('工作台预览')
+    await writeFile(join(path, 'package/assets/cover.png'), icon)
     await rm(join(path, 'package/lib/client.js'))
     const broken = join(path, 'broken.tgz')
     await create({ cwd: path, file: broken, gzip: true }, ['package'])
