@@ -9,8 +9,8 @@
   en: a83728a54636bbb5
   zh: af0072160f434aa9
 /workbench-development/table-of-contents:
-  en: ed91fe56e6ce5316
-  zh: efe35cf00ff61945
+  en: 57207c8268583e94
+  zh: cbe5d74eb877be4a
 /workbench-development/development-environment-and-task-entry:
   en: 945ec0df53634357
   zh: 747e0b00be2bb8f9
@@ -63,8 +63,11 @@
   en: 5a977d296e1144b8
   zh: dc6246e994071e16
 /workbench-development/organization-runtime-configuration:
-  en: 80dc3899cd80f0cc
-  zh: fef3d543ab61e105
+  en: 10056f4b43d332c3
+  zh: eec9e2c45ae85504
+/workbench-development/extract-fields-directly-from-images:
+  en: afd418e1e477caa0
+  zh: 570c1fa058418631
 /workbench-development/limitations:
   en: 7795f855afee6889
   zh: 3d6f5087dbc8fcca

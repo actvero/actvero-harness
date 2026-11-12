@@ -20,6 +20,7 @@ This guide is for workbench developers and Agents taking over a project: create 
 - [Identity and platform model directory](#platform)
 - [Local verification and troubleshooting](#verify)
 - [Organization runtime configuration](#runtime-config)
+- [Extract fields directly from images](#direct-structured-models)
 - [Limitations](#limits)
 
 <a id="environment"></a>
@@ -438,6 +439,14 @@ For organization parameters such as service URLs, declare `dsh.actveroWorkbenchC
 | `default` | Optional non-secret value, up to 2048 characters, matching the field kind |
 
 For example, declare `{"key":"CERTIFICATE_API_URL","label":"Certificate service URL","kind":"url","required":true}`. After uploading a package, the administrator enters values under Runtime configuration in the workbench details. Keep keys stable to reuse organization values across updates. Client components call `await workbench.config()` to read fields allowed for the running version. Organization value changes take effect without repackaging. Reads require desktop sign-in and release authorization. On failure, tell the user to sign in, retry or contact their administrator. Use the host credentials service for API keys and other credentials.
+
+<a id="direct-structured-models"></a>
+
+## Extract fields directly from images
+
+For a workbench that extracts fields in a background task, read the model catalog in the Host with `ctx.sessionController.modelCatalog()`. Offer routes whose `inputModalities` includes `image` and whose `supportsStructuredOutput` is `true`. Save the selected provider and model with the task and recheck both capabilities when preparing the call.
+
+Admit the original image with `ctx.attachments.saveImage()`, then use `ctx.llm.prepareCall()` to send its image reference and a `structuredOutput` JSON Schema. The [platform adapter](../packages/actvero/model-gateway/README.md) supplies platform credentials and forwards the schema. Validate the returned object against the workbench's fields before saving. Verify the outgoing image and schema and the result from the exact connected route.
 
 <a id="limits"></a>
 

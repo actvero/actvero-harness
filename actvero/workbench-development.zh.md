@@ -20,6 +20,7 @@
 - [身份与平台模型目录](#platform)
 - [本地自测与故障定位](#verify)
 - [组织运行配置](#runtime-config)
+- [从图片直接提取字段](#direct-structured-models)
 - [限制](#limits)
 
 <a id="environment"></a>
@@ -438,6 +439,14 @@ AI 模板的「查看可用模型」展示最小接入方式。平台未登录�
 | `default` | 可选的非敏感默认值，最长 2048 字符，须符合字段类型 |
 
 例如 `{"key":"CERTIFICATE_API_URL","label":"证照服务地址","kind":"url","required":true}`。管理员上传包后，在工作台详情的「运行配置」中填值。保持同一个 Key 可在升级时沿用组织的值。客户端组件调用 `await workbench.config()` 读取当前运行版本获准的字段，组织修改值后无需重新打包。读取需要桌面端登录和发布授权，失败时提示用户登录、重试或联系管理员。API Key 等凭据使用宿主的凭据服务。
+
+<a id="direct-structured-models"></a>
+
+## 从图片直接提取字段
+
+工作台在后台提取字段时，通过 Host 的 `ctx.sessionController.modelCatalog()` 读取模型目录。只提供 `inputModalities` 含 `image` 且 `supportsStructuredOutput` 为 `true` 的路由。将选中的提供方和模型随任务保存，准备调用时重新校验两项能力。
+
+用 `ctx.attachments.saveImage()` 接收原图，再通过 `ctx.llm.prepareCall()` 发送图片引用和 `structuredOutput` JSON Schema。[平台适配器](../packages/actvero/model-gateway/README.zh.md)负责平台鉴权和传递 schema。按工作台字段校验返回对象后再保存。验收时检查实际请求中的图片和 schema，并通过所选路由验证返回结果。
 
 <a id="limits"></a>
 
