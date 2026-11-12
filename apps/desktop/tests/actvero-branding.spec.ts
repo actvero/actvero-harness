@@ -71,7 +71,7 @@ describe('ACTVERO build variants', () => {
     const root = fixture(), branding = await prepareProductBranding(root)
     const packed = createActveroElectronBuilderConfig(branding.product, branding.directory, { DSH_DESKTOP_TARGET_PLATFORM: platform, DSH_DESKTOP_TARGET_ARCH: 'x64' })
     expect(packed.appId).toBe('com.actvero.desktop')
-    expect(packed.extraMetadata.version).toBe('0.1.0')
+    expect(packed.extraMetadata.version).toBe(branding.assembly.config.product.version)
     expect(packed.extraMetadata).not.toHaveProperty('dshMandatoryUpdatePolicy')
     expect(packed.productName).toBe('Actvero Harness')
     expect(packed.protocols).toEqual([{ name: 'Actvero Harness', schemes: ['actvero-desktop'] }])
