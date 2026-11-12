@@ -552,6 +552,10 @@ export class PluginManager extends TypertRemoteService {
       if (stopped()) throw new InstallCancelledError()
       const before = readProfileManifest('dsh', this.profile.dir).dependencies ?? {}
       const known = specPackageName(spec, before, this.profile.dir)
+      if (options?.installNew && (options.replace || Object.hasOwn(before, options.installNew.name)
+        || (await this.listBundles()).some(bundle => bundle.name === options.installNew?.name && bundle.installed))) {
+        throw new ManagementFailure('stale-approval')
+      }
       if (options?.replace === undefined && this.ownerContext.get('hmr') !== undefined && known !== undefined && Object.hasOwn(before, known)) {
         throw new ManagementFailure('already-installed')
       }
@@ -559,7 +563,8 @@ export class PluginManager extends TypertRemoteService {
       if (options?.replace !== undefined) {
         if (this.replacements.has(options.replace.name)) throw new ManagementFailure('stop-profile')
         const current = (await this.listBundles()).find(bundle => bundle.name === options.replace?.name)
-        if (!current?.installed || !current.removable || current.version !== options.replace.version) {
+        if (!current?.installed || !current.removable || current.version !== options.replace.version
+          || (options.replace.source !== undefined && current.source !== options.replace.source)) {
           throw new ManagementFailure('stale-approval')
         }
         replacement = await prepareReplacement(spec, options.replace, this.profile.dir)
@@ -653,6 +658,9 @@ export class PluginManager extends TypertRemoteService {
         if (compatibility !== undefined && !compatibility.exempted) throw new ManagementFailure('incompatible-version', [incompatiblePlugin(compatibility)])
         for (const file of bundlePatchPaths(dir, manifest.dsh.bundle)) loadOverlayPatches('dsh', file)
         version = manifest.version
+        if (options?.installNew && (name !== options.installNew.name || version !== options.installNew.version)) {
+          throw new ManagementFailure('stale-approval')
+        }
         this.installedFrom.set(name, used)
       } catch (error) {
         // pnpm has exited by now, so the files it rewrote go back as they were.

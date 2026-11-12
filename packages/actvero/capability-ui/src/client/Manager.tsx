@@ -13,11 +13,13 @@ import type { CapabilityTab,CapabilityBackNavigation } from '../contracts.ts'
 import styles from './hub.module.css'
 declare module '@deepseek-ai/dsh-client-ui-slots'{interface LocaleNamespaceMap{ 'actvero.hub':keyof typeof zh }}
 interface Notice { text:string;tone?:'success';seq:number }
-function CapabilityToast({ useNotice,dismiss }:
-  PropsHooks<{ notice:{ getSnapshot:()=>Notice|null;subscribe:(fn:()=>void)=>()=>void } }>&{ dismiss:()=>void }){
-  const notice=useNotice(v=>v)
-  return notice?<Toast key={notice.seq} text={notice.text} tone={notice.tone}
-    icon={<IconWarningOutlineRegular/>} onDone={dismiss}/>:null
+function CapabilityToast({ useNotice, dismiss }: PropsHooks<{
+  notice: { getSnapshot: () => Notice | null; subscribe: (fn: () => void) => () => void }
+}> & { dismiss: () => void }) {
+  const notice = useNotice(v => v)
+  return notice
+    ? <Toast key={notice.seq} text={notice.text} tone={notice.tone} icon={<IconWarningOutlineRegular/>} onDone={dismiss}/>
+    : null
 }
 class Hub {
   private notice:Notice|null=null;private noticeSequence=0;private noticeListeners=new Set<()=>void>()
@@ -35,9 +37,8 @@ function Panel({ renderSlot,t,useSelected,open,reset,notify }:PropsRuntime<'main
   const selected=useSelected(value=>value)
   useEffect(()=>()=>reset(),[reset])
   const [navigation,setNavigation]=useState<(CapabilityBackNavigation&{ tab:CapabilityTab })>()
-  const setBackNavigation=useCallback((value:CapabilityBackNavigation|undefined)=>setNavigation(
-    current=>value?{ ...value,tab:selected }:current?.tab===selected?undefined:current,
-  ),[selected])
+  const setBackNavigation = useCallback((value: CapabilityBackNavigation | undefined) =>
+    setNavigation(current => value ? { ...value, tab: selected } : current?.tab === selected ? undefined : current), [selected])
   const back=navigation?.tab===selected?navigation:undefined
   const tabIds=['experts','skills','connectors'] as const
   return <section className={styles.page}>

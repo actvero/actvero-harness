@@ -169,7 +169,9 @@ export type PluginInstallRequestId = Branded<'PluginInstallRequestId'>
 /** Bundle installation defaults to activation; callers that offer cancellation supply their request id. */
 export interface InstallBundleOptions {
   /** Replace this exact installed release with a newer local .tgz; application waits for restart. */
-  replace?: { name: string; version: string; nextVersion: string }
+  replace?: { name: string; version: string; nextVersion: string; source?: string }
+  /** Require a new dependency with the exact name and version; refuse an existing package of that name. */
+  installNew?: { name: string; version: string }
   enabled?: boolean
   /** Save the resolved dependency version without a range; applies to any bundle installation. */
   saveExact?: boolean

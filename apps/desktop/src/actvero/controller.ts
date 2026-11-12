@@ -1,8 +1,9 @@
 /** One serialized account authority for all desktop windows. Secrets stay here. */
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
-import type { AccountSnapshot, Organization, QuotaWindow } from '@actvero/dsh-client-account/protocol'
+import type { AccountSnapshot, Organization, PublishedWorkbenchCatalog, QuotaWindow, WorkbenchReleaseCheck } from '@actvero/dsh-client-account/protocol'
 import { AccountApi } from './api.ts'
+import type { WorkbenchConfigRequest } from './platform.generated.ts'
 import { listenCallback, type BrowserLoginState, type CallbackResult, type Loopback } from './callback.ts'
 import {
   AccountError,
@@ -18,6 +19,7 @@ import {
   type Tokens,
 } from './policy.ts'
 import type { Cleanup, Session, Vault, VaultData } from './state.ts'
+import { checkedWorkbench, packageSize, publishedWorkbenches, releasePin, storeWorkbench } from './workbench-distribution.ts'
 
 interface Options {
   vault: Vault
@@ -103,7 +105,7 @@ export class AccountController {
     scope: string
     expires_in: number
   }> {
-    if (!/^(?:(?:skills|experts):catalog|mcp:(?:catalog|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})|llm:(?:catalog|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$/.test(resource)) throw new AccountError('invalid_resource')
+    if (!/^(?:workbenches:config|(?:skills|experts):catalog|mcp:(?:catalog|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})|llm:(?:catalog|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))$/.test(resource)) throw new AccountError('invalid_resource')
     const generation=this.generation, organization=this.view.organization?.tenantId
     const task=this.queue.then(async()=>{
       const current=()=>!this.disposed && generation===this.generation && this.view.organization?.tenantId===organization
@@ -137,13 +139,93 @@ export class AccountController {
       }
       if(!current()) throw new AccountError('account_changed')
       const raw=object(value)
-      const endpoints:Record<string,string>={ 'skills:catalog':'/api/v1/desktop/skills','experts:catalog':'/api/v1/desktop/experts','mcp:catalog':'/api/v1/desktop/mcp/connectors','llm:catalog':'/api/llm/v1' }
+      const endpoints:Record<string,string>={ 'skills:catalog':'/api/v1/desktop/skills','experts:catalog':'/api/v1/desktop/experts','mcp:catalog':'/api/v1/desktop/mcp/connectors','llm:catalog':'/api/llm/v1','workbenches:config':'/api/v1/desktop/workbenches/config' }
       const expected=endpoints[resource]??(resource.startsWith('llm:')?'/api/llm/v1':`/api/mcp/services/${resource.slice(4)}`)
       if(raw.resource!==resource || raw.token_type!=='Bearer' || raw.endpoint!==this.data.baseUrl+expected || typeof raw.expires_in!=='number' || !Number.isFinite(raw.expires_in) || raw.expires_in<=0 || raw.expires_in>600) throw new AccountError('invalid_response')
       return { access_token:text(raw.access_token),token_type:'Bearer',resource,endpoint:text(raw.endpoint),scope:text(raw.scope),expires_in:raw.expires_in }
     })
     this.queue=task.then(()=>{},()=>{})
     return task
+  }
+  /** Read non-secret workbench values with the current account's resource authority.
+   * @param input Untrusted package name and running version from the app renderer.
+   * @returns The values declared by the authorized version.
+   */
+  async workbenchConfig(input: unknown): Promise<Readonly<Record<string, string>>> {
+    const { packageName, version, scope } = object(input)
+    if (typeof packageName !== 'string' || packageName.length > 214
+      || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(packageName)
+      || typeof version !== 'string' || !version || version.length > 80)
+      throw new AccountError('invalid_workbench_config_request')
+    const body: WorkbenchConfigRequest = { package_name: packageName, version }
+    const result = await this.withWorkbenchAccess((api, token, currentScope) => {
+      if (scope !== undefined && scope !== currentScope) throw new AccountError('account_changed')
+      return api.json('/desktop/workbenches/config', body, token)
+    })
+    const entries = Object.entries(object(object(result).values))
+    if (entries.length > 32) throw new AccountError('invalid_response')
+    return Object.fromEntries(entries.map(([key, value]) => {
+      if (!/^[A-Z][A-Z0-9_]{0,63}$/u.test(key) || typeof value !== 'string' || !value || value.length > 2048)
+        throw new AccountError('invalid_response')
+      return [key, value]
+    }))
+  }
+  /** List the current member's authorized workbenches.
+   * @returns Published releases scoped to the current organization.
+   */
+  async workbenchCatalog(): Promise<PublishedWorkbenchCatalog> {
+    return this.withWorkbenchAccess(async (api, token, scope) => ({
+      scope,
+      items: publishedWorkbenches(await api.json('/desktop/workbenches', undefined, token)),
+    }))
+  }
+  /** Check authorization and update status of an exact installed platform release.
+   * @param input Untrusted installed archive source.
+   * @returns Access to the installed release and availability of an update.
+   */
+  async workbenchCheck(input: unknown): Promise<WorkbenchReleaseCheck> {
+    const request = object(input)
+    const pin = releasePin(request)
+    return this.withWorkbenchAccess(async (api, token, scope) => {
+      if (request.scope !== scope) return { status: 'unavailable', adoptedUsable: false }
+      return checkedWorkbench(await api.json('/desktop/workbenches/check-updates', pin, token))
+    })
+  }
+  /** Fetch and persist an authorized release before the profile installer runs.
+   * @param input Untrusted release pin, organization scope and expected size.
+   * @param root Application user data directory.
+   * @returns Persistent path to the verified archive.
+   */
+  async workbenchDownload(input: unknown, root: string): Promise<string> {
+    const request = object(input)
+    const pin = releasePin(request)
+    const size = packageSize(request.size)
+    return this.withWorkbenchAccess(async (api, token, scope, check) => {
+      if (request.scope !== scope) throw new AccountError('account_changed')
+      const bytes = await api.workbenchPackage(pin, token, size)
+      check()
+      return storeWorkbench(root, scope, pin, bytes)
+    })
+  }
+  private async withWorkbenchAccess<T>(
+    run: (api: AccountApi, token: string, scope: string, check: () => void) => Promise<T>,
+  ): Promise<T> {
+    const generation = this.generation
+    const organization = this.view.organization?.tenantId
+    const member = this.view.organization?.memberId
+    const user = this.view.user?.id
+    const baseUrl = this.data.baseUrl
+    const check = () => {
+      if (this.disposed || generation !== this.generation || this.data.baseUrl !== baseUrl
+        || this.view.phase !== 'ready' || this.view.organization?.memberId !== member
+        || this.view.user?.id !== user || this.view.organization?.status !== 'active'
+        || this.view.organization.needsLogin) throw new AccountError('account_changed')
+    }
+    const token = await this.resourceToken('workbenches:config')
+    check()
+    if (token.scope !== 'workbenches:config') throw new AccountError('invalid_response')
+    const scope = createHash('sha256').update(JSON.stringify([baseUrl, organization])).digest('hex').slice(0, 32)
+    return run(this.api(baseUrl), token.access_token, scope, check).finally(check)
   }
   private empty(phase: AccountSnapshot['phase']): AccountSnapshot {
     return {

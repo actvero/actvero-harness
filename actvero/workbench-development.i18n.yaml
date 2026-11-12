@@ -9,8 +9,8 @@
   en: a83728a54636bbb5
   zh: af0072160f434aa9
 /workbench-development/table-of-contents:
-  en: 72684dc2c745f31e
-  zh: 04c56dea4d4b2ddd
+  en: ed91fe56e6ce5316
+  zh: efe35cf00ff61945
 /workbench-development/development-environment-and-task-entry:
   en: 945ec0df53634357
   zh: 747e0b00be2bb8f9
@@ -21,8 +21,8 @@
   en: ef1bf1e17eb39c39
   zh: 1bebc16c03f60cc5
 /workbench-development/package-format:
-  en: 6ea6aec886d0f4d6
-  zh: 4d4c80b4b3981bab
+  en: 4b53032a68b8e403
+  zh: 9b421b8d06dd4575
 /workbench-development/edit-the-business-view:
   en: 301e50f1f82f533d
   zh: bf6f1386e78c2855
@@ -60,8 +60,11 @@
   en: 3fd8ff17dc9e0b84
   zh: 64704a74acc8574f
 /workbench-development/local-verification-and-troubleshooting:
-  en: faec7674b2012325
-  zh: eeecdd61bc28c2d8
+  en: 5a977d296e1144b8
+  zh: dc6246e994071e16
+/workbench-development/organization-runtime-configuration:
+  en: 80dc3899cd80f0cc
+  zh: fef3d543ab61e105
 /workbench-development/limitations:
-  en: 719c7c3d0cb18eae
-  zh: 9d717272e0389264
+  en: 7795f855afee6889
+  zh: 3d6f5087dbc8fcca

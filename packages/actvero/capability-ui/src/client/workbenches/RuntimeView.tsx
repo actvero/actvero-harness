@@ -41,7 +41,7 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
   & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const { opened, instance, preparing, runtimeFailed, accessError, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const catalogButton = useView(value => opened ? value.catalogButtons[opened] !== 'hide' : true)
   const sessions = useSessions(value => value)
@@ -61,7 +61,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
     <h1>{name}</h1>
   </div>
   return <section className={styles.page} aria-label={name}
-    data-workbench-main={!preparing && !runtimeFailed ? opened : undefined} data-workbench-instance={instance?.instanceId}
+    data-workbench-main={!preparing && !runtimeFailed && !accessError ? opened : undefined} data-workbench-instance={instance?.instanceId}
     data-workbench-session={chat?.sessionId}>
     <div className={styles.windowChrome} data-workbench-window-chrome="" data-window-drag aria-hidden="true" />
     <header className={styles.pageHeader} data-window-drag>
@@ -71,13 +71,13 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
         <span className={styles.separator} aria-hidden="true" />
       </>}
       <div className={styles.headerExtension} data-workbench-header="">
-        {opened && !preparing && !runtimeFailed
+        {opened && !preparing && !runtimeFailed && !accessError
           ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
             entryKey: opened, fallback: defaultHeader,
           }) : defaultHeader}
       </div>
     </header>
-    {runtimeFailed ? <div className={styles.notice} role="alert">{t('runtimeFailed')}
+    {runtimeFailed || accessError ? <div className={styles.notice} role="alert">{t(accessError ?? 'runtimeFailed')}
       <Button variant="ghost" onClick={() => { if (opened) action.open(opened) }}>{t('refresh')}</Button></div>
       : preparing ? <p className={styles.notice} role="status">{t('preparing')}</p>
         : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
@@ -132,6 +132,7 @@ export interface ConversationWorkbenchActions {
   detach(): Promise<void>
   open(id: string, instanceId: WorkbenchInstanceId, sessionId: SessionId): void
   context(instanceId: WorkbenchInstanceId, sessionId: SessionId): WorkbenchClientContext
+  authorize(id: string): Promise<boolean>
   failed(): void
   preview(instanceId: WorkbenchInstanceId, visible: boolean): void
 }
@@ -164,14 +165,30 @@ export function WorkbenchUtilities({ t, useProjection, useView, sessionId, actio
   PropsRuntime<'conversation.session.header.resident-utilities'> & Locale & PropsRenderFactories & WorkbenchViewHooks
   & { action: ConversationWorkbenchActions }) {
   const selection = useProjection('actveroWorkbench')
-  const floating = useView(value => !selection || value.visibility[`preview:${sessionId}:${selection.instanceId}`] !== false)
+  const requested = useView(value => !selection || value.visibility[`preview:${sessionId}:${selection.instanceId}`] !== false)
+  const epoch = useView(value => value.accessEpoch)
+  const [authorized, setAuthorized] = useState<{ id: string; epoch: number }>()
+  const [checking, setChecking] = useState(false)
+  const selectedId = selection?.id
+  useEffect(() => {
+    let live = true
+    setAuthorized(undefined)
+    if (requested && selectedId) {
+      setChecking(true)
+      void action.authorize(selectedId).then((allowed) => {
+        if (live && allowed) setAuthorized({ id: selectedId, epoch })
+      }).finally(() => { if (live) setChecking(false) })
+    } else setChecking(false)
+    return () => { live = false }
+  }, [action, selectedId, epoch, requested])
+  const floating = requested && authorized?.id === selectedId && authorized?.epoch === epoch
   const icon = useView(value => selection ? workbenchIconUrl(value, selection.id) : undefined)
   const trigger = useRef<HTMLButtonElement>(null)
   if (!selection) return null
   const collapse = () => { action.preview(selection.instanceId, false); trigger.current?.focus() }
   return <div className={styles.utilities} data-workbench-conversation={selection.id}
     data-workbench-instance={selection.instanceId} data-workbench-session={sessionId}>
-    <Tooltip label={t('floatWorkbench')} side="bottom"><Button ref={trigger} size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating}
+    <Tooltip label={t('floatWorkbench')} side="bottom"><Button ref={trigger} size="sm" className={styles.iconButton} aria-label={t('floatWorkbench')} aria-pressed={floating} disabled={checking}
       onClick={() => { action.preview(selection.instanceId, !floating) }}>
       <WorkbenchArtwork id={selection.id} url={icon} /></Button></Tooltip>
     <Tooltip label={t('fullWorkbench')} side="bottom">

@@ -394,6 +394,155 @@
         "title": "DesktopTokens",
         "type": "object"
       },
+      "DesktopWorkbenchCatalog": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DesktopWorkbenchRelease"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DesktopWorkbenchCatalog",
+        "type": "object"
+      },
+      "DesktopWorkbenchCheck": {
+        "properties": {
+          "adopted_usable": {
+            "title": "Adopted Usable",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "current",
+              "update_available",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "adopted_usable"
+        ],
+        "title": "DesktopWorkbenchCheck",
+        "type": "object"
+      },
+      "DesktopWorkbenchPin": {
+        "additionalProperties": false,
+        "properties": {
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          },
+          "workbench_id": {
+            "format": "uuid",
+            "title": "Workbench Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workbench_id",
+          "version_id",
+          "sha256"
+        ],
+        "title": "DesktopWorkbenchPin",
+        "type": "object"
+      },
+      "DesktopWorkbenchRelease": {
+        "properties": {
+          "category": {
+            "enum": [
+              "office",
+              "engineering",
+              "design",
+              "content",
+              "data",
+              "education",
+              "lifestyle",
+              "general",
+              "uncategorized"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "dsh_requirement": {
+            "title": "Dsh Requirement",
+            "type": "string"
+          },
+          "icon_data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Data Url"
+          },
+          "package_name": {
+            "title": "Package Name",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          },
+          "workbench_id": {
+            "format": "uuid",
+            "title": "Workbench Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workbench_id",
+          "version_id",
+          "package_name",
+          "display_name",
+          "description",
+          "category",
+          "version",
+          "dsh_requirement",
+          "size",
+          "sha256"
+        ],
+        "title": "DesktopWorkbenchRelease",
+        "type": "object"
+      },
       "DeviceView": {
         "properties": {
           "app_version": {
@@ -665,6 +814,48 @@
           "resets_at"
         ],
         "title": "WindowView",
+        "type": "object"
+      },
+      "WorkbenchConfigRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "package_name": {
+            "maxLength": 214,
+            "minLength": 1,
+            "title": "Package Name",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "package_name",
+          "version"
+        ],
+        "title": "WorkbenchConfigRequest",
+        "type": "object"
+      },
+      "WorkbenchRuntimeConfig": {
+        "properties": {
+          "values": {
+            "patternProperties": {
+              "^[A-Z][A-Z0-9_]{0,63}$": {
+                "maxLength": 2048,
+                "type": "string"
+              }
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "values"
+        ],
+        "title": "WorkbenchRuntimeConfig",
         "type": "object"
       }
     }

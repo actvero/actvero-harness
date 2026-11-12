@@ -1814,7 +1814,7 @@ describe('command launcher chrome and control seats', () => {
     // seat set is the contract).
     expect([...new Set(slotCalls.map(c => c.key))]).toEqual([
       'conversation.input.overlay', 'conversation.input.attachments',
-      'conversation.input.left', 'conversation.input.permission', 'conversation.input.plan',
+      'conversation.input.permission', 'conversation.input.left', 'conversation.input.plan',
       'conversation.input.right', 'conversation.input.model', 'conversation.input.activity',
       'conversation.composer.dock',
     ])

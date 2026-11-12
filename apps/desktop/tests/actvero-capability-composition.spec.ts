@@ -51,7 +51,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       await manager.applyRelease()
       writeFileSync(
         join(paths.profile, 'cordis.patch.yml'),
-        '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n- id: web-runtime\n  config:\n    printUrl: false\n    openBrowser: false\n',
+        '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n- id: web-runtime\n  config:\n    printUrl: false\n    openBrowser: false\n- id: agent-default-model\n  config:\n    provider: unavailable-composition-provider\n    model: unavailable-composition-model\n',
       )
       const experts=new Experts({ root:join(root,'experts'),scope:()=> 'local',changed:()=>{},
         skills:{ hostList:async()=>[],hostGet:async()=>undefined },connectors:async()=>[] })
@@ -129,18 +129,29 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           expect(asset).toContain('actvero.account')
           expect(asset).toContain('settings.section')
           expect(asset).toContain('sidebar.brand.mark')
-          const workspacePath=join(root,'workspace');mkdirSync(workspacePath)
-          const responseWorkspace=await fetch(new URL('/api/workspace/create',ready.url),{
-            method:'POST',headers:{ 'content-type':'application/json',cookie },
-            body:JSON.stringify({ type:'client-request',rpcId:randomUUID(),method:'workspace/create',payload:{ args:{ request:{ path:workspacePath } } } }),
-          })
-          const created=await responseWorkspace.json() as { result:{ ok:boolean;value:{ workspace:{ workspaceId:string } } } }
-          expect(created.result.ok).toBe(true)
-          const result=await selections.run('local-composition',operation=>control('select',{ id:'local-composition',workspaceId:created.result.value.workspace.workspaceId,operation })) as { sessionId:string;selection:ExpertSelection }
+          const createWorkspace = async (name: string) => {
+            const path = join(root, name)
+            mkdirSync(path)
+            const response = await fetch(new URL('/api/workspace/create', ready.url), {
+              method: 'POST', headers: { 'content-type': 'application/json', cookie },
+              body: JSON.stringify({ type: 'client-request', rpcId: randomUUID(), method: 'workspace/create', payload: { args: { request: { path } } } }),
+            })
+            const created = await response.json() as { result: { ok: boolean; value: { workspace: { workspaceId: string } } } }
+            expect(created.result.ok).toBe(true)
+            return created.result.value.workspace.workspaceId
+          }
+          const workspaceId = await createWorkspace('workspace')
+          const result=await selections.run('local-composition',operation=>control('select',{ id:'local-composition',workspaceId,operation })) as { sessionId:string;selection:ExpertSelection }
           expect(result.selection).toMatchObject({ id:'local-composition',name:'Composition expert',version:'1.0.0' })
           expect(prepare).toHaveBeenCalledTimes(1)
           expect(resolve).not.toHaveBeenCalled()
           expect(await control('selection',{ sessionId:result.sessionId })).toEqual(result.selection)
+          const otherWorkspaceId = await createWorkspace('other-workspace')
+          const summoned = await selections.run('local-composition', operation => control('select', {
+            id: 'local-composition', workspaceId: otherWorkspaceId, sessionId: result.sessionId, operation,
+          })) as { sessionId: string; selection: ExpertSelection }
+          expect(summoned.sessionId).not.toBe(result.sessionId)
+          expect(summoned.selection.id).toBe(result.selection.id)
           // Reload the built Host from the persisted Session; operation evidence is gone.
           stopping=true;await host.stop();stopping=false;host=createHost();await host.start()
           expect(await control('selection',{ sessionId:result.sessionId })).toEqual(result.selection)

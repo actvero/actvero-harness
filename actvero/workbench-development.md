@@ -19,6 +19,7 @@ This guide is for workbench developers and Agents taking over a project: create 
 - [Display control and Agent entry points](#display)
 - [Identity and platform model directory](#platform)
 - [Local verification and troubleshooting](#verify)
+- [Organization runtime configuration](#runtime-config)
 - [Limitations](#limits)
 
 <a id="environment"></a>
@@ -106,6 +107,8 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `dsh.actveroWorkbenchProtocol` | Generated from that declaration during packaging; Client import preflight and check validate the same host API requirement |
 | `dsh.bundle.patch` | Points to `./cordis.patch.yml`, adding the package to the current Profile |
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
+| `dsh.actveroWorkbenchConfig` | Optional runtime configuration fields for organization administrators |
+| `dsh.actveroWorkbenchIcon` | Optional catalog icon path such as `./assets/icon.webp`. Use a static PNG, JPEG or WebP up to 64 KiB and 512 × 512 pixels |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
 | `exports["./locale/*.json"]` | Generated name and description metadata remains available before the workbench loads |
 | `workbench.json` | Source display name, description, category, author, and tags, compiled into the Client |
@@ -419,12 +422,27 @@ Developers and executing Agents use this table to record observable outcomes, se
 
 Fix source and increase the version before installation updates. Do not rewrite Session logs, same-version installed resources or clear business directories to repair loading. Without target-client access, deliver the checked package, exact import entry and unverified items without claiming it loaded.
 
+<a id="runtime-config"></a>
+
+## Organization runtime configuration
+
+For organization parameters such as service URLs, declare `dsh.actveroWorkbenchConfig` in the archive's `package.json`. Each release can declare up to 32 fields with distinct keys. Package new or changed declarations in a new workbench version.
+
+| Field | Format |
+|---|---|
+| `key` | Starts with an uppercase letter, followed by uppercase letters, digits, or underscores. Maximum 64 characters |
+| `label` | Required label for administrators, up to 80 characters |
+| `kind` | `text` or `url`, with `text` as the default. URLs use HTTP or HTTPS |
+| `required` | Boolean, defaults to `false` |
+| `description` | Optional guidance for administrators, up to 240 characters |
+| `default` | Optional non-secret value, up to 2048 characters, matching the field kind |
+
+For example, declare `{"key":"CERTIFICATE_API_URL","label":"Certificate service URL","kind":"url","required":true}`. After uploading a package, the administrator enters values under Runtime configuration in the workbench details. Keep keys stable to reuse organization values across updates. Client components call `await workbench.config()` to read fields allowed for the running version. Organization value changes take effect without repackaging. Reads require desktop sign-in and release authorization. On failure, tell the user to sign in, retry or contact their administrator. Use the host credentials service for API keys and other credentials.
+
 <a id="limits"></a>
 
 ## Limitations
 
-This tool is a repository development entry, not a published general SDK. It accepts local `.tgz` packages without ZIP import, platform downloads, publishing or automatic updates; controlled platform access currently supports model-directory reads only. Expert dependencies load explicitly through Host `activate`; adding files does not enable them. The local loader does not download or install platform dependencies.
+The development tool creates, builds, and validates local `.tgz` archives in this repository. See the [client workbench reference](workbenches.md) for organization publishing and installation. Workbenches own authentication for their business requests. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
 
-Packages target Actvero's workbench registration service. Legacy DSH workbenches use another service; changing a marker alone does not establish compatibility. The DSH reference is retained as an [offline snapshot](third-party/dsh-desktop-workbenches/development-guide.zh.md), version 2026-10-27; it is not the current online specification and does not replace these Actvero package rules.
-
-The upstream reference was actually fetched online on 2026-11-08 from the final URL https://dshdesktop.com/workbench/docs/development.md with HTTP 200 and document version 2026-10-27; no offline substitute was used. This guide describes the current ACTVERO local framework and does not claim support for every upstream API.
+Actvero workbench packages register through `ctx.actveroWorkbenches`. For a package that uses `ctx.desktopWorkbenches`, follow the [workbench migration guide](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.md).

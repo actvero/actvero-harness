@@ -67,6 +67,13 @@ export function installAccount(options: Options): AccountController | undefined 
   }
   const handlers: [string, (value: unknown) => unknown][] = [
     [ACCOUNT_IPC.snapshot, () => controller?.snapshot() ?? null],
+    [ACCOUNT_IPC.workbenchConfig, (value) => {
+      if (!controller) throw new Error('workbench_config_unavailable')
+      return controller.workbenchConfig(value)
+    }],
+    [ACCOUNT_IPC.workbenchCatalog, () => controller?.workbenchCatalog()],
+    [ACCOUNT_IPC.workbenchCheck, value => controller?.workbenchCheck(value)],
+    [ACCOUNT_IPC.workbenchDownload, value => controller?.workbenchDownload(value, app.getPath('userData'))],
     [ACCOUNT_IPC.login, () => controller?.login()],
     [ACCOUNT_IPC.switchAccount, () => controller?.switchAccount()],
     [ACCOUNT_IPC.continueAccount, () => {

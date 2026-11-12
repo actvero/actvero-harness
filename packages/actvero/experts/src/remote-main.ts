@@ -74,6 +74,15 @@ export class RemoteExperts {
     try{return await task}finally{if(this.writes.get(id)===task)this.writes.delete(id)}
   }
   private sameRelease(a:RemoteEnvelope,b:RemoteSummary){return a.release.id===b.release.id&&a.release.sha256===b.release.sha256}
+  private isPrepared(p: RemoteSnapshot) {
+    return p.localRelease?.id === p.envelope.release.id && p.localRelease.sha256 === p.envelope.release.sha256
+  }
+  private releaseProof(p: RemoteSnapshot) {
+    return `${p.envelope.release.id}:${p.envelope.release.sha256}`
+  }
+  private guardExpectedRelease(p: RemoteSnapshot, expectedRelease?: string) {
+    if (expectedRelease !== undefined && expectedRelease !== this.releaseProof(p)) fail('expert_release_changed')
+  }
   private guardRelease(id:string,e:RemoteEnvelope){const selected=this.summaries.get(id);if(selected&&!this.sameRelease(e,selected))fail('expert_release_changed')}
   private async persist(id:string,value:RemoteSnapshot,c:ReturnType<RemoteExperts['context']>){
     this.guard(c);this.proof(value);if(this.id(value.envelope)!==id)fail('expert_account_changed')
@@ -163,7 +172,7 @@ export class RemoteExperts {
       const value=saved&&this.sameRelease(saved.envelope,e)
         ?{ ...saved,envelope:e }
         :{ scope:c.identity.key,envelope:e,skills:[],connectors:[],
-          ...(saved?{ localRelease:saved.localRelease??saved.envelope.release }:{}) }
+          ...(saved?.localRelease?{ localRelease:saved.localRelease }:{}) }
       await this.persist(id,value,c)
     })
     return { ...this.view(e),manifest:{ ...e.manifest,id } }
@@ -187,7 +196,7 @@ export class RemoteExperts {
     catch{return []}
   }
   private async adopt(p:RemoteSnapshot){const c=this.context(),e=p.envelope,h=hash(p.scope+'|'+e.expert_id+'|'+e.release.id),request_id=`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`
-    if(this.adopted.has(h)||(p.localRelease?.id===e.release.id&&p.localRelease.sha256===e.release.sha256))return
+    if(this.adopted.has(h)||this.isPrepared(p))return
     await this.request('/'+e.expert_id+'/adopt',{ access_version:3,release_id:e.release.id,sha256:e.release.sha256,request_id });this.guard(c);this.adopted.add(h)
   }
   private async resolution(p:RemoteSnapshot){
@@ -207,13 +216,22 @@ export class RemoteExperts {
    * @returns Required and optional actions after current authorization and local version checks.
    */
   async plan(id:string):Promise<RemotePlan>{
-    const c=this.context();await this.detail(id)
+    const c = this.context()
+    let p = await this.saved(id, true).catch((error: unknown) => {
+      if (error instanceof Error && error.message === 'expert_remote_unavailable') return undefined
+      throw error
+    })
     this.guard(c)
-    const p=await this.saved(id);this.guard(c)
-    await this.adopt(p)
+    const latest = this.summaries.get(id)
+    if (!p || !this.isPrepared(p) || (latest && !this.sameRelease(p.envelope, latest))) {
+      await this.detail(id)
+      this.guard(c)
+      p = await this.saved(id)
+    }
     this.guard(c)
     const r=await this.resolution(p)
     this.guard(c)
+    if (r.update_available === true) fail('expert_release_changed')
     const state=await this.options.skills.state();this.guard(c)
     const dependencies=await Promise.all(r.dependencies.map(async(d)=>{
       let action=d.action
@@ -222,23 +240,44 @@ export class RemoteExperts {
       return { kind:d.kind,key:d.key,label:(p.envelope.manifest[d.kind].find(req=>req.key===d.key)??fail('expert_remote_invalid')).label,required:d.required,status:d.status,action }
     }))
     this.guard(c);this.guardRelease(id,p.envelope)
-    return { id,name:p.envelope.manifest.name,version:p.envelope.release.version,
-      ...(p.localRelease&&p.localRelease.id!==p.envelope.release.id?{ previousVersion:p.localRelease.version }:{}),
+    return { id,name:latest?.name??p.envelope.manifest.name,version:p.envelope.release.version,releaseProof:this.releaseProof(p),
+      ...(p.localRelease&&!this.isPrepared(p)?{ previousVersion:p.localRelease.version }:{}),
       canPrepare:r.can_prepare&&r.dependencies.every(d=>!d.required||['available','unverified'].includes(d.status)),dependencies }
   }
   /**
    * Coalesce preparation for one exact release; commit only while it remains the selected current release.
    * @param id - Account-scoped catalog expert ID with validated cached details.
+   * @param expectedRelease - Exact release shown for confirmation.
    * @returns Exact expert bindings after successful preparation and cache commit.
    */
-  async stage(id:string):Promise<Expert>{
+  async stage(id:string,expectedRelease?:string):Promise<Expert>{
     const c=this.context(),p=await this.saved(id)
     this.guard(c);this.guardRelease(id,p.envelope)
+    this.guardExpectedRelease(p,expectedRelease)
     const key=hash(c.identity.key+'|'+id+'|'+p.envelope.release.id+'|'+p.envelope.release.sha256)
     const existing=this.stages.get(key)
     if(existing)return existing
     const task=this.stageNow(id,p,c);this.stages.set(key,task)
     try{return await task}finally{if(this.stages.get(key)===task)this.stages.delete(key)}
+  }
+  /** Reuse complete local preparation for a summon. The subsequent prepare call checks live access. */
+  async stageForSelection(id: string, expectedRelease?: string): Promise<void> {
+    const c = this.context(), p = await this.saved(id)
+    this.guard(c)
+    this.guardRelease(id, p.envelope)
+    this.guardExpectedRelease(p, expectedRelease)
+    const { skills, connectors } = p.envelope.dependency_refs
+    if (this.isPrepared(p) && skills.every(ref => p.skills.includes(ref.key)) &&
+        connectors.every(ref => p.connectors.some(row => row.key === ref.key) &&
+          this.instances.get(this.connectionId(p, ref.key))?.ready)) {
+      const installed = skills.length ? (await this.options.skills.state()).items : []
+      const ready = await Promise.all(skills.map(ref => installed.some(row => row.skill.id === ref.skill_id && row.enabled) &&
+        this.options.skills.hasVersion(ref.skill_id, ref.version_id, ref.sha256)))
+      this.guard(c)
+      this.guardRelease(id, p.envelope)
+      if (ready.every(Boolean)) return
+    }
+    await this.stage(id, expectedRelease)
   }
   private async stageNow(id:string,p:RemoteSnapshot,c:ReturnType<RemoteExperts['context']>){
     await this.adopt(p)
@@ -289,14 +328,16 @@ export class RemoteExperts {
   /**
    * Validate committed preparation for a new immutable conversation snapshot.
    * @param id - Account-scoped expert ID whose current dependencies have been staged.
+   * @param expectedRelease - Exact release shown for confirmation.
    * @returns Exact expert bindings and release data; account and release changes reject preparation.
    */
-  async prepare(id:string):Promise<{ expert:Expert;remote:RemoteSnapshot }>{
+  async prepare(id:string,expectedRelease?:string):Promise<{ expert:Expert;remote:RemoteSnapshot }>{
     const c=this.context(),p=await this.saved(id)
     this.guard(c);this.guardRelease(id,p.envelope)
+    this.guardExpectedRelease(p,expectedRelease)
     for(const r of p.envelope.manifest.skills)if(r.required&&!p.skills.includes(r.key))fail('expert_dependencies_missing')
     for(const r of p.envelope.manifest.connectors)if(r.required&&!p.connectors.some(c=>c.key===r.key))fail('expert_dependencies_missing')
-    const allowed=await this.validate(p)
+    const allowed=await this.validate(p, undefined, true)
     const usable={ ...p,skills:p.skills.filter(key=>allowed.skills.includes(key)),
       connectors:p.connectors.filter(r=>allowed.connectors.includes(r.key)) }
     this.guard(c);this.guardRelease(id,p.envelope);return { expert:this.expert(usable),remote:usable }
@@ -311,16 +352,26 @@ export class RemoteExperts {
    * Recheck a snapshot release, authorization and required dependencies; concurrent checks share work.
    * @param p - Saved account-scoped release snapshot.
    * @param expert - Optional expert content that must match the snapshot.
+   * @param current - Require the latest release when binding a new conversation.
    * @returns Allowed skill and connector requirement keys; unavailable required resources reject.
    */
-  async validate(p:RemoteSnapshot,expert?:Expert): Promise<{ skills: string[]; connectors: string[] }> {this.proof(p);if(expert&&canonical(expert)!==canonical(this.expert(p)))fail('expert_snapshot_invalid')
-    const key=hash(canonical(p))
+  async validate(p:RemoteSnapshot,expert?:Expert,current=false): Promise<{ skills: string[]; connectors: string[] }> {this.proof(p);if(expert&&canonical(expert)!==canonical(this.expert(p)))fail('expert_snapshot_invalid')
+    const key=hash(canonical(p)+':'+current)
     const existing=this.flights.get(key);if(existing)return existing
-    const run=this.validateNow(p);this.flights.set(key,run)
+    const run=this.validateNow(p,current);this.flights.set(key,run)
     try{return await run}finally{if(this.flights.get(key)===run)this.flights.delete(key)}
   }
-  private async validateNow(p:RemoteSnapshot){
+  private async validateNow(p:RemoteSnapshot,current:boolean){
     const c=this.context(),allowed={ skills:[] as string[],connectors:[] as string[] },resolution=await this.resolution(p)
+    if (current) {
+      if (resolution.update_available === true) fail('expert_release_changed')
+      if (resolution.update_available === undefined) {
+        const update = await this.update(p)
+        this.guard(c)
+        if (update.status === 'unavailable') fail('expert_remote_unavailable')
+        if (update.status !== 'current') fail('expert_release_changed')
+      }
+    }
     if(!resolution.can_prepare)fail('expert_dependencies_missing')
     // Resolution verifies the expert's live grant and every exact dependency proof together.
     for(const key of p.skills){const state=resolution.dependencies.find(d=>d.kind==='skills'&&d.key===key)

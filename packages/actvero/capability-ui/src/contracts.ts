@@ -63,6 +63,8 @@ export interface WorkbenchClientContext {
    * @returns Mounted host view; throws when its workbench renderer has failed.
    */
   displayState(): WorkbenchDisplayState
+  /** Read the current organization's non-secret values for this running version. */
+  config(): Promise<Readonly<Record<string, string>>>
   /** Commit a provider-defined operation at the last observed revision. */
   action(revision: number, action: string, args: string): Promise<WorkbenchDocument>
 }

@@ -19,6 +19,7 @@
 - [显示控制与 Agent 入口](#display)
 - [身份与平台模型目录](#platform)
 - [本地自测与故障定位](#verify)
+- [组织运行配置](#runtime-config)
 - [限制](#limits)
 
 <a id="environment"></a>
@@ -106,6 +107,8 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 | `dsh.actveroWorkbenchProtocol` | 打包时从上述声明生成，客户端导入预检和 check 校验同一宿主 API 要求 |
 | `dsh.bundle.patch` | 指向 `./cordis.patch.yml`，把包加入当前 Profile |
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
+| `dsh.actveroWorkbenchConfig` | 可选的运行配置字段，供组织管理员填写 |
+| `dsh.actveroWorkbenchIcon` | 可选的目录头像路径，如 `./assets/icon.webp`。使用不超过 64 KiB、512 × 512 像素的静态 PNG、JPEG 或 WebP 图片 |
 | `exports["."]` / `exports["./client"]` | 本工具输出的 `./lib/index.js` 和 `./lib/client.js` |
 | `exports["./locale/*.json"]` | 打包生成名称与介绍元数据，工作台未加载时仍可展示 |
 | `workbench.json` | 源码中的名称、介绍、分类、作者和标签；编译时纳入客户端 |
@@ -419,12 +422,27 @@ AI 模板的「查看可用模型」展示最小接入方式。平台未登录�
 
 故障修复回到业务源码，安装更新前提高版本。不要改写会话日志、同版本安装资源或清空业务目录解决加载问题。无法操作目标客户端时，交付已校验包、准确导入入口和未验证清单，不能报告已加载。
 
+<a id="runtime-config"></a>
+
+## 组织运行配置
+
+需要服务地址等组织参数时，在安装包的 `package.json` 中声明 `dsh.actveroWorkbenchConfig`。每个版本最多声明 32 项，Key 必须唯一。新增或修改声明时，随新的工作台版本打包发布。
+
+| 字段 | 格式 |
+|---|---|
+| `key` | 以大写字母开头，后续使用大写字母、数字或下划线，最长 64 字符 |
+| `label` | 必填的后台显示名称，最长 80 字符 |
+| `kind` | `text` 或 `url`，省略时为 `text`。URL 接受 HTTP 或 HTTPS |
+| `required` | 布尔值，省略时为 `false` |
+| `description` | 可选的填值说明，最长 240 字符 |
+| `default` | 可选的非敏感默认值，最长 2048 字符，须符合字段类型 |
+
+例如 `{"key":"CERTIFICATE_API_URL","label":"证照服务地址","kind":"url","required":true}`。管理员上传包后，在工作台详情的「运行配置」中填值。保持同一个 Key 可在升级时沿用组织的值。客户端组件调用 `await workbench.config()` 读取当前运行版本获准的字段，组织修改值后无需重新打包。读取需要桌面端登录和发布授权，失败时提示用户登录、重试或联系管理员。API Key 等凭据使用宿主的凭据服务。
+
 <a id="limits"></a>
 
 ## 限制
 
-本工具是仓库内开发入口，不是已经发布的通用 SDK。只接入本地 `.tgz`，不支持 ZIP 导入、平台下载、发布或自动更新；受控平台通道目前仅支持模型目录读取。专家依赖通过 Host 的 `activate` 显式加载；文件放入目录不会自动启用。平台依赖的下载安装不在本地加载器中处理。
+开发工具在仓库内创建、构建和校验本地 `.tgz`。组织发布和成员安装见[客户端工作台说明](workbenches.zh.md)。业务请求的鉴权由工作台自行实现。专家、MCP 和 Skill 文件放入目录不会自动加载；内置专家指令和业务操作由 Host 提供者显式声明。
 
-安装包适用于 Actvero 自有工作台注册接口。旧 DSH 工作台使用不同的注册服务，不能仅修改标识就宣称兼容。DSH 参考文档保留在[离线快照](third-party/dsh-desktop-workbenches/development-guide.zh.md)，版本为 2026-10-27；它不是当前在线规范，也不替代本文的 Actvero 包约定。
-
-上游参考规范于 2026-11-08 实际在线获取，最终地址为 https://dshdesktop.com/workbench/docs/development.md ，HTTP 200，文档版本为 2026-10-27；本次未采用离线替代。本文对应 ACTVERO 本地运行框架，按当前源码接口编写，不宣称支持上游全部接口。
+Actvero 工作台包通过 `ctx.actveroWorkbenches` 注册。已使用 `ctx.desktopWorkbenches` 的业务包请按[工作台迁移指南](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.zh.md)更新。

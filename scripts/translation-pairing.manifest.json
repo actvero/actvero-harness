@@ -1,7 +1,7 @@
 {
   "excluded": [
-    "actvero/third-party/",
     "actvero/AGENTS.md",
+    "actvero/skills/actvero-workbench-development/SKILL.md",
     ".agents/notes/AGENTS.md",
     ".agents/notes/implemented/AGENTS.md",
     ".agents/notes/implemented/CLAUDE.md",

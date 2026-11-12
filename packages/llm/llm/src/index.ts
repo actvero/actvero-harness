@@ -175,6 +175,8 @@ export interface PreparedLlmCall {
   readonly context?: LlmModelContext
   /** Exact model modalities captured with the adapter dispatch generation. */
   readonly inputModalities?: readonly ModelModality[]
+  /** Native JSON Schema support captured with the adapter dispatch generation. */
+  readonly supportsStructuredOutput?: boolean
   /** Exact model system prompt update mode captured with the adapter dispatch generation. */
   readonly systemPromptUpdate?: SystemPromptUpdate
   /** Exact model tool update mode captured with the adapter dispatch generation. */
@@ -740,6 +742,7 @@ export class LlmRuntime extends TypertRemoteService {
         name: model.name,
         ...model.description === undefined ? {} : { description: model.description },
         ...inputModalities === undefined ? {} : { inputModalities },
+        ...model.supportsStructuredOutput === undefined ? {} : { supportsStructuredOutput: model.supportsStructuredOutput },
       }
     })
   }
@@ -831,6 +834,7 @@ export class LlmRuntime extends TypertRemoteService {
       name: resolved.name,
       ...resolved.description === undefined ? {} : { description: resolved.description },
       ...inputModalities === undefined ? {} : { inputModalities },
+      ...resolved.supportsStructuredOutput === undefined ? {} : { supportsStructuredOutput: resolved.supportsStructuredOutput },
       ...context === undefined ? {} : { context: { contextWindow: context.contextWindow } },
       ...defaultMaxTokens === undefined ? {} : { defaultMaxTokens },
       ...resolved.systemPromptUpdate === undefined ? {} : { systemPromptUpdate: resolved.systemPromptUpdate },
@@ -990,6 +994,7 @@ export class LlmRuntime extends TypertRemoteService {
       ...modelInfo.inputModalities === undefined
         ? {}
         : { inputModalities: Object.freeze([...modelInfo.inputModalities]) },
+      ...modelInfo.supportsStructuredOutput === undefined ? {} : { supportsStructuredOutput: modelInfo.supportsStructuredOutput },
       ...modelInfo.systemPromptUpdate === undefined ? {} : { systemPromptUpdate: modelInfo.systemPromptUpdate },
       ...modelInfo.toolUpdate === undefined ? {} : { toolUpdate: modelInfo.toolUpdate },
       stream: (options: GenerateOptions): AsyncIterable<StreamChunk> => {
@@ -1087,6 +1092,9 @@ export class LlmRuntime extends TypertRemoteService {
           'prepared LLM call config changed before adapter dispatch',
           'INVALID_PREPARED_CALL',
         )
+      }
+      if (options.structuredOutput !== undefined && modelInfo.supportsStructuredOutput !== true) {
+        throw new LlmError('the selected model does not declare native structured output', 'UNSUPPORTED_STRUCTURED_OUTPUT')
       }
       const resolvedOptions = callConfigEquals(options, resolvedConfig)
         ? options

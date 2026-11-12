@@ -1,5 +1,6 @@
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { Context } from '@deepseek-ai/cordis'
+import { workbenchArchiveSource, type AccountSnapshot, type PublishedWorkbench, type PublishedWorkbenchCatalog } from '@actvero/dsh-client-account/protocol'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -22,6 +23,7 @@ import { connectWorkbenchDisplay, waitForWorkbenchView } from './presentation.ts
 import { WorkbenchClientRuntime } from './runtime.ts'
 import { workbenchResource } from './resource.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
+import { publishedWorkbenchAction } from './platform.ts'
 import { Navigation } from './Navigation.tsx'
 import { workbenchIconUrl } from './catalog.ts'
 import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -42,6 +44,8 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
 const namespace = 'actvero.workbenches'
 const managerPanel = 'actvero-workbench-manager' as MainPanelId
 const businessPanel = 'actvero-workbench-business' as MainPanelId
+type WorkbenchAccessError = 'platformDenied' | 'platformCheckFailed'
+
 const selectionKey = 'actvero.workbenches.selected.v1'
 const visibilityKey = 'actvero.workbenches.visibility.v1'
 
@@ -69,6 +73,9 @@ function readSelection(): string | null {
 /** Profile catalog and foreground view state consumed by the registered slots. */
 export interface WorkbenchView extends WorkbenchManagement {
   location: WorkbenchObjectLocation | null
+  platform: { phase: 'login' | 'loading' | 'ready' | 'failed'; catalog?: PublishedWorkbenchCatalog }
+  accessEpoch: number
+  accessError: WorkbenchAccessError | null
   entries: readonly ActveroWorkbench[]
   opened: string | null
   remembered: readonly ActveroWorkbench[]
@@ -84,8 +91,11 @@ export interface WorkbenchView extends WorkbenchManagement {
 }
 
 /** Human-triggered navigation and local installation. */
-export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchManagement>, 'initial' | 'dispose'> {
+export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchManagement>, 'initial' | 'dispose' | 'installPublished' | 'report' | 'setEnabled'> {
   open(id: string): void
+  refreshPlatform(): Promise<void>
+  usePublished(release: PublishedWorkbench): Promise<void>
+  setEnabled(name: string, enabled: boolean): Promise<void>
   back(): void
   context(instanceId: WorkbenchInstanceId | null): WorkbenchClientContext
   supportsAI(instanceId: WorkbenchInstanceId | null): boolean
@@ -129,6 +139,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       ? 'activeConversation' : null
   })
   let view: WorkbenchView = { ...management.initial, entries: examples, remembered: [], opened: readSelection(),
+    platform: { phase: 'login' }, accessEpoch: 0, accessError: null,
     instance: null, location: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false, catalogButtons: {} }
   const listeners = new Set<() => void>()
@@ -143,7 +154,43 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       return () => { listeners.delete(listener) }
     },
   }
+  const bridge = window.actveroAccount
+  let account: AccountSnapshot | null = null
+  let accountKey: string | undefined
+  let catalogRequest = 0
+  const ready = () => account?.phase === 'ready' && account.organization?.status === 'active' && !account.organization.needsLogin
+  const refreshPlatform = async () => {
+    if (!bridge?.workbenchCatalog || !ready()) return
+    const request = ++catalogRequest
+    update({ platform: { phase: 'loading', ...(view.platform.catalog ? { catalog: view.platform.catalog } : {}) } })
+    try {
+      const catalog = await bridge.workbenchCatalog()
+      if (request === catalogRequest) update({ platform: { phase: 'ready', catalog } })
+    } catch (error) {
+      ctx.logger.warn('Unable to list platform workbenches: %s', error)
+      if (request === catalogRequest) update({ platform: { phase: 'failed' } })
+    }
+  }
+  const installed = (id: string) => view.bundles.find(bundle => bundle.installed && bundle.name === id)
+  const checkAccess = async (id: string): Promise<WorkbenchAccessError | null> => {
+    if (id === 'builtin:project-checklist') return null
+    if (!installed(id) || view.inventoryFailed) await management.refresh()
+    if (view.inventoryFailed) return 'platformCheckFailed'
+    const source = workbenchArchiveSource(installed(id)?.source)
+    if (!source) return null
+    if (!bridge?.workbenchCheck || !ready()) return 'platformDenied'
+    const epoch = view.accessEpoch
+    try {
+      const result = await bridge.workbenchCheck(source)
+      if (result.status !== 'current') void refreshPlatform()
+      return view.accessEpoch === epoch && result.adoptedUsable ? null : 'platformDenied'
+    } catch (error) {
+      ctx.logger.warn('Unable to check installed workbench: %s', error)
+      return 'platformCheckFailed'
+    }
+  }
   let navigation = 0
+  let pendingOpen: { id: string; version: string; signal: AbortSignal; epoch: number } | undefined
   let chatGeneration = 0
   let preparation = 0
   let linkedSession: SessionId | null = null
@@ -241,10 +288,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       update({ chat: reference, chatCollapsed: false })
     } catch (error) { reference.release(); throw error }
   }
-  const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null) => {
+  const context = (instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null, workbenchId = view.opened) => {
     const generation = chatGeneration
     const providerId = sessionId
       ? ctx.sessions.list.getSnapshot().byId[sessionId]?.projectionValues?.actveroWorkbench?.id : view.instance?.id
+    const descriptor = view.entries.find(entry => entry.id === (workbenchId ?? providerId))
+    const scope = descriptor ? workbenchArchiveSource(installed(descriptor.id)?.source)?.scope : undefined
     const providerEntry = view.entries.find(entry => entry.id === providerId)
     const isCurrent = () => generation === chatGeneration && ctx.fiber.uid !== null
       && (providerEntry !== undefined && view.entries.includes(providerEntry))
@@ -275,7 +324,8 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           throw new RemoteError('workbench/reference', 'Workbench conversation is no longer displayed', { status: 'superseded' })
         }
       }, signal)
-    }, isCurrent), location: view.location?.instanceId === instanceId ? view.location : null }
+    }, isCurrent, descriptor && scope ? { ...descriptor, scope } : descriptor),
+    location: view.location?.instanceId === instanceId ? view.location : null }
   }
   const load = async (id: string, target?: WorkbenchInstanceId, signal?: AbortSignal) => {
     signal?.throwIfAborted()
@@ -283,8 +333,11 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       && (!target || target === view.instance.instanceId)) return view.instance
     const generation = ++navigation
     releaseChat()
-    update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false })
+    update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false, accessError: null })
     try {
+      const accessError = await checkAccess(id)
+      if (generation !== navigation || ctx.fiber.uid === null) return
+      if (accessError) { update({ preparing: false, accessError }); return }
       const opened = await runtime.open(id)
       const result = target ? await ctx.remote.actveroWorkbench.read({ instanceId: target }) : null
       if (result && !result.ok) throw result.error
@@ -383,11 +436,18 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         }
         update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry],
           catalogButtons: { ...view.catalogButtons, [id]: options?.catalogButton ?? 'show' } })
+        if (pendingOpen?.id === id && pendingOpen.version === version) {
+          const intent = pendingOpen
+          pendingOpen = undefined
+          queueMicrotask(() => {
+            if (!intent.signal.aborted && intent.epoch === view.accessEpoch && ctx.fiber.uid !== null) action.open(id)
+          })
+        }
       })
     },
   }
 
-  const { initial: _initial, dispose: _dispose, ...operations } = management
+  const { initial: _initial, dispose: _dispose, installPublished, report, setEnabled, ...operations } = management
   const action: WorkbenchAction = {
     open(id) {
       if (!view.entries.some(entry => entry.id === id)) return
@@ -406,6 +466,46 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         console.warn('Unable to save workbench selection', error)
       }
       selectPanel(businessPanel)
+    },
+    refreshPlatform,
+    async setEnabled(id, enabled) {
+      if (enabled) {
+        const error = await checkAccess(id)
+        if (error) { report(error); return }
+      }
+      await setEnabled(id, enabled)
+    },
+    async usePublished(release) {
+      const catalog = view.platform.catalog
+      if (view.platform.phase !== 'ready' || !catalog || !bridge?.workbenchDownload || view.busy) return
+      const download = bridge.workbenchDownload
+      const epoch = view.accessEpoch
+      const signal = ctx.layout.beginNavigation()
+      pendingOpen = undefined
+      const stillCurrent = () => view.accessEpoch === epoch && ctx.fiber.uid !== null
+      await management.refresh()
+      if (!stillCurrent() || view.busy || view.inventoryFailed) return
+      const bundle = installed(release.packageName)
+      const operation = publishedWorkbenchAction(release, catalog.scope, bundle)
+      if (operation === 'restartState') { report('restart'); return }
+      if (operation === 'platformConflict') { report('platformConflict'); return }
+      if (operation === 'open') {
+        if (view.entries.some(entry => entry.id === release.packageName && entry.version === release.version)) {
+          if (!signal.aborted) action.open(release.packageName)
+          return
+        }
+        const error = await checkAccess(release.packageName)
+        if (error) { report(error); return }
+        if (!stillCurrent() || !await setEnabled(release.packageName, true)) return
+      } else if (!await installPublished(release, catalog.scope,
+        () => download({ ...release, scope: catalog.scope }), stillCurrent)) {
+        if (stillCurrent()) void refreshPlatform()
+        return
+      }
+      if (!stillCurrent() || signal.aborted) return
+      if (view.entries.some(entry => entry.id === release.packageName && entry.version === release.version))
+        action.open(release.packageName)
+      else pendingOpen = { id: release.packageName, version: release.version, signal, epoch }
     },
     back() {
       displaying.abort()
@@ -563,8 +663,30 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   ctx.effect(() => {
     const refresh = () => { void management.refresh() }
     const disposers = [ctx.remote.$on('plugin-manager/changed', refresh), ctx.on('connection/reset', refresh)]
+    if (bridge) {
+      const changed = (snapshot: AccountSnapshot | null) => {
+        account = snapshot
+        const key = snapshot && JSON.stringify([snapshot.baseUrl, snapshot.user?.id, snapshot.organization?.memberId, ready()])
+        if ((key ?? undefined) === accountKey) return
+        accountKey = key ?? undefined
+        catalogRequest++
+        pendingOpen = undefined
+        update({ accessEpoch: view.accessEpoch + 1, platform: { phase: ready() ? 'loading' : 'login' } })
+        if (view.opened && workbenchArchiveSource(installed(view.opened)?.source)) {
+          navigation++
+          releaseChat()
+          update({ instance: null, preparing: false, accessError: 'platformDenied' })
+        }
+        void refreshPlatform()
+      }
+      let received = false
+      disposers.push(bridge.subscribe((snapshot) => { received = true; changed(snapshot) }))
+      void bridge.snapshot().then((snapshot) => {
+        if (!received && ctx.fiber.uid !== null) changed(snapshot)
+      }).catch(error => ctx.logger.warn('Unable to read the workbench account: %s', error))
+    }
     refresh()
-    return () => { management.dispose(); for (const dispose of disposers) dispose() }
+    return () => { catalogRequest++; management.dispose(); for (const dispose of disposers) dispose() }
   })
 
   const inject = () => ({ hooks: { view: source }, action,
@@ -607,6 +729,11 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     },
     context: (instanceId, selectedSession) => context(instanceId, selectedSession),
     preview(instanceId, visible) { rememberVisibility(`preview:${sessionId}:${instanceId}`, visible) },
+    authorize: async (id) => {
+      const error = await checkAccess(id)
+      if (error) ctx.capabilityHub.notify(t(error))
+      return !error
+    },
     failed,
   })
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({ name: 'conversation.input.left',
@@ -629,12 +756,11 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
             avatar: { src: workbenchIconUrl(view, item.id), fallback: item.name.slice(0, 1) },
           }))
       },
-      onSelect: async (option, session) => { await runtime.select(option.id, session.sessionId) },
+      onSelect: async (option, session) => {
+        const error = await checkAccess(option.id)
+        if (error) { ctx.capabilityHub.notify(t(error)); return }
+        await runtime.select(option.id, session.sessionId)
+      },
     },
   }))
-  if (view.opened) {
-    const opening = load(view.opened)
-    const generation = navigation
-    void opening.catch(() => { if (generation === navigation && ctx.fiber.uid !== null) failed() })
-  }
 }

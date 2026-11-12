@@ -77,9 +77,17 @@ export function apply(ctx:Context){
       const created=await ctx.sessionController.create({ sessionId:randomUUID() as SessionId,
         ...(workspace?{ workspaceId:workspace.id }:agent?.session.header.cwd?{ cwd:agent.session.header.cwd }:{}) })
       const result=await ctx.sessionController.resolveAgent(created.sessionId);if('error' in result)throw new Error('expert_session_missing')
-      if(agent?.options.provider&&agent.options.model)await ctx.sessionController.selectModel({
-        sessionId:created.sessionId,provider:agent.options.provider,model:agent.options.model,
-        ...(agent.options.reasoningEffort?{ reasoningEffort:agent.options.reasoningEffort }:{}) })
+      if (agent?.options.provider && agent.options.model) {
+        try {
+          await ctx.sessionController.selectModel({
+            sessionId: created.sessionId, provider: agent.options.provider, model: agent.options.model,
+            ...(agent.options.reasoningEffort ? { reasoningEffort: agent.options.reasoningEffort } : {}),
+          })
+        } catch (error) {
+          // A fresh session can use its default model if the previous model is unavailable.
+          if (typeof error !== 'object' || error === null || !('code' in error) || error.code !== 'session/model-unavailable') throw error
+        }
+      }
       agent=result.agent
     }
     const target=agent,operation=typeof input.operation==='string'?{ operation:input.operation }:{}

@@ -6,6 +6,10 @@ export function exposeAccountBridge(): void {
   const invoke = (channel: string, value?: string): Promise<void> => ipcRenderer.invoke(channel, value)
   const api: AccountBridge = {
     snapshot: () => ipcRenderer.invoke(ACCOUNT_IPC.snapshot) as Promise<AccountSnapshot | null>,
+    workbenchConfig: input => ipcRenderer.invoke(ACCOUNT_IPC.workbenchConfig, input) as Promise<Readonly<Record<string, string>>>,
+    workbenchCatalog: () => ipcRenderer.invoke(ACCOUNT_IPC.workbenchCatalog),
+    workbenchCheck: input => ipcRenderer.invoke(ACCOUNT_IPC.workbenchCheck, input),
+    workbenchDownload: input => ipcRenderer.invoke(ACCOUNT_IPC.workbenchDownload, input),
     subscribe(listener) {
       const receive = (_event: Electron.IpcRendererEvent, value: AccountSnapshot): void => {
         listener(value)
@@ -34,7 +38,7 @@ export function exposeAccountBridge(): void {
 
 /** Capability messages expose only sanitized data and a closed action transport. */
 export function exposeCapabilityBridges():void {
-  for(const kind of ['skills','connectors','experts'])contextBridge.exposeInMainWorld(`actvero${kind[0]!.toUpperCase()}${kind.slice(1)}`,{
+  for(const kind of ['skills','connectors','experts'])contextBridge.exposeInMainWorld(`actvero${kind.charAt(0).toUpperCase()}${kind.slice(1)}`,{
     ...(kind==='skills'?{ previewDrop:async(file:File)=>{const path=webUtils.getPathForFile(file);if(!path)throw new Error('invalid_input');const result=await ipcRenderer.invoke('actvero:skills:drop',path) as { ok:boolean;value?:unknown;error?:string };if(!result.ok)throw new Error(result.error??'import_failed');return result.value} }:{}),
     request:async(action:string,input:Record<string,unknown>={})=>{const result=await ipcRenderer.invoke(`actvero:${kind}:invoke`,action,input) as { ok:boolean;value?:unknown;error?:string };if(!result.ok)throw new Error(result.error??'capability_action_failed');return result.value},
     subscribe:(listener:()=>void)=>{const receive=()=>listener();ipcRenderer.on(`actvero:${kind}:changed`,receive);return()=>ipcRenderer.off(`actvero:${kind}:changed`,receive)},

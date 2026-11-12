@@ -1,5 +1,9 @@
+import { createHash } from 'node:crypto'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it, vi, onTestFinished } from 'vitest'
-import type { AccountSnapshot } from '@actvero/dsh-client-account/protocol'
+import { workbenchArchiveSource, type AccountSnapshot } from '@actvero/dsh-client-account/protocol'
 import { AccountController } from '../src/actvero/controller.ts'
 import { AccountApi } from '../src/actvero/api.ts'
 import { listenCallback, type BrowserLoginState, type Loopback } from '../src/actvero/callback.ts'
@@ -557,6 +561,78 @@ describe('desktop resource authorization recovery', () => {
     fixture.api.calls.length = 0
     return fixture
   }
+  it('reads only workbench values using a dedicated resource token', async () => {
+    const { controller, api } = await ready()
+    const reply = api.reply
+    const configToken = { ...issued, resource: 'workbenches:config', scope: 'workbenches:config',
+      endpoint: baseUrl + '/api/v1/desktop/workbenches/config', access_token: 'workbench-test' }
+    const values = { CERTIFICATE_API_URL: 'https://certificate.example.test' }
+    api.reply = async (path, body) => path === '/desktop/resource-tokens' ? configToken
+      : path === '/desktop/workbenches/config' ? { values } : reply(path, body)
+    await expect(controller.workbenchConfig({
+      packageName: '@local/certificate-workbench', version: '1.0.0',
+    })).resolves.toEqual(values)
+    expect(api.calls.at(-1)).toEqual({
+      path: '/desktop/workbenches/config', access: 'workbench-test',
+      body: { package_name: '@local/certificate-workbench', version: '1.0.0' },
+    })
+    const entered = Promise.withResolvers<undefined>(), finish = Promise.withResolvers<unknown>()
+    api.reply = async (path, body) => {
+      if (path === '/desktop/workbenches/config') { entered.resolve(undefined); return finish.promise }
+      if (path === '/desktop/resource-tokens') return configToken
+      return reply(path, body)
+    }
+    const pending = expect(controller.workbenchConfig({
+      packageName: '@local/certificate-workbench', version: '1.0.0',
+    })).rejects.toThrow('account_changed')
+    await entered.promise
+    await controller.configure('https://other.example')
+    finish.resolve({ values })
+    await pending
+  })
+  it('keeps workbench release checks separate from downloads and persists only verified archives', async () => {
+    const { controller, api } = await ready()
+    const directory = await mkdtemp(join(tmpdir(), 'actvero-workbench-download-'))
+    onTestFinished(() => rm(directory, { recursive: true, force: true }))
+    const bytes = Buffer.from('published archive')
+    const pin = {
+      workbench_id: 'a0000000-0000-4000-8000-000000000001',
+      version_id: 'a0000000-0000-4000-8000-000000000002',
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    }
+    const configToken = { ...issued, resource: 'workbenches:config', scope: 'workbenches:config',
+      endpoint: baseUrl + '/api/v1/desktop/workbenches/config', access_token: 'workbench-test' }
+    const reply = api.reply
+    api.reply = async (path, body) => {
+      if (path === '/desktop/resource-tokens') return configToken
+      if (path === '/desktop/workbenches') {
+        const metadata = { ...pin, package_name: '@local/checklist', display_name: 'Checklist', description: 'Tasks',
+          category: 'office', version: '1.0.0', dsh_requirement: '*', size: bytes.length }
+        return { items: [
+          { ...metadata, icon_data_url: 'data:image/webp;base64,UklGRg==' },
+          { ...metadata, icon_data_url: 'https://platform.example.test/avatar.webp' },
+        ] }
+      }
+      if (path === '/desktop/workbenches/check-updates') return { status: 'current', adopted_usable: true }
+      return reply(path, body)
+    }
+    const download = vi.spyOn(api, 'workbenchPackage').mockResolvedValue(bytes)
+    const { scope, items: [release, invalidIcon] } = await controller.workbenchCatalog()
+    expect(release?.iconUrl).toBe('data:image/webp;base64,UklGRg==')
+    expect(invalidIcon?.iconUrl).toBeUndefined()
+    const source = { ...release!, scope }
+    await expect(controller.workbenchCheck(source)).resolves.toEqual({ status: 'current', adoptedUsable: true })
+    await expect(controller.workbenchCheck({ ...source, scope: '0'.repeat(32) })).resolves.toEqual({ status: 'unavailable', adoptedUsable: false })
+    expect(download).not.toHaveBeenCalled()
+    download.mockResolvedValueOnce(Buffer.from('incorrect archive'))
+    await expect(controller.workbenchDownload(source, directory)).rejects.toThrow('workbench_digest_mismatch')
+    const path = await controller.workbenchDownload(source, directory)
+    expect(await readFile(path)).toEqual(bytes)
+    expect(workbenchArchiveSource(`file:${path}`)).toEqual({
+      scope, workbenchId: pin.workbench_id, versionId: pin.version_id, sha256: pin.sha256,
+    })
+    expect(download).toHaveBeenLastCalledWith(pin, 'workbench-test', bytes.length)
+  })
   it('recovers a temporarily offline account before issuing a catalog token', async () => {
     const { controller, api, vault } = await ready()
     const reply = api.reply

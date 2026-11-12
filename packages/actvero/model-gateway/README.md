@@ -36,6 +36,8 @@ The plugin requests `llm:catalog` and per-model `llm:<model-uuid>` resource toke
 
 The [adapter](src/index.ts) maps platform chat models to DSH model metadata, prepares a resource-specific route and converts native messages and tool schemas to OpenAI-compatible requests. Responses are converted from SSE or buffered JSON into native text, reasoning, tool-call, usage and finish chunks. Account changes invalidate catalog data through the Main bridge.
 
+The catalog exposes the chat operation’s declared structured output capability. Requests with `structuredOutput` forward it as a strict `response_format.json_schema`.
+
 Image messages use the attachment service to obtain bounded request bytes. File attachments are represented by their native text handles. Cancellation and platform HTTP failures propagate as native LLM errors.
 
 </details>

@@ -2,6 +2,7 @@
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { once } from 'node:events'
+import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { Socket } from 'node:net'
 import { join, resolve } from 'node:path'
@@ -1266,15 +1267,24 @@ it('replaces a local release through bundled pnpm and keeps restart state across
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
   const name = '@test/versioned-workbench'
   const first = await releaseArchive(dir, name, '1.0.0')
-  const newer = await releaseArchive(dir, name, '1.1.0')
-  expect((await manager.installBundle(first, { enabled: false, registry: null })).error).toBeUndefined()
+  const archive = await releaseArchive(dir, name, '1.1.0')
+  const filename = `release-label-${createHash('sha256').update(readFileSync(archive)).digest('hex')}.tgz`
+  const newer = join(dir, filename)
+  renameSync(archive, newer)
+  const installNew = { name, version: '1.0.0' }
+  expect((await manager.installBundle(first, { enabled: false, registry: null, installNew })).error).toBeUndefined()
+  expect(await manager.installBundle(first, { installNew })).toMatchObject({ application: 'failed', error: { code: 'stale-approval' } })
   const data = join(dir, 'business-data.json')
   writeFileSync(data, '{"done":true}\n')
-  const result = await manager.installBundle(newer, { enabled: false, registry: null, replace: { name, version: '1.0.0', nextVersion: '1.1.0' } })
+  const replace = { name, version: '1.0.0', nextVersion: '1.1.0' }
+  expect(await manager.installBundle(newer, { replace: { ...replace, source: 'file:/other.tgz' } }))
+    .toMatchObject({ application: 'failed', error: { code: 'stale-approval' } })
+  const result = await manager.installBundle(newer, { enabled: false, registry: null, replace: { ...replace, source: `file:${first}` } })
   expect(result.error).toBeUndefined()
   expect(result).toMatchObject({ application: 'restart-required', restartReason: 'package-moved', version: '1.1.0' })
   expect((await manager.listBundles()).find(bundle => bundle.name === name)).toMatchObject({
     enabled: false, installed: true, version: '1.1.0', restartRequired: true,
+    source: `file:${join(dir, '.plugin-manager', 'archives', filename)}`,
     client: { platform: 'web', inject: ['@actvero/dsh-capability-ui'] },
   })
   expect(await manager.setBundleEnabled(name, true)).toMatchObject({ application: 'restart-required', restartReason: 'package-moved' })

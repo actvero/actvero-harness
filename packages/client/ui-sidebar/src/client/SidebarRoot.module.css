@@ -8,6 +8,7 @@
 
 .root {
   --dsh-sidebar-inline-padding: 12px;
+  --dsh-sidebar-panel-gap: 2px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -483,7 +484,7 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--dsh-sidebar-panel-gap);
   margin-bottom: 8px;
 }
 

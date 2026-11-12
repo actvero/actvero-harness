@@ -7,10 +7,39 @@ export class AccountApi {
     private fetcher: typeof fetch = fetch,
   ) {}
   async json(path: string, body?: unknown, access?: string): Promise<unknown> {
-    return this.request(`${this.baseUrl}/api/v1${path}`, body, access)
+    return this.jsonResponse(await this.request(`${this.baseUrl}/api/v1${path}`, body, access))
   }
   async discovery(url: string): Promise<unknown> {
-    return this.request(url)
+    return this.jsonResponse(await this.request(url))
+  }
+  /** Download a bounded archive from the native workbench endpoint.
+   * @param body Exact release pin.
+   * @param access Workbench resource credential.
+   * @param size Published compressed byte count.
+   * @returns The complete archive, before digest verification.
+   */
+  async workbenchPackage(body: object, access: string, size: number): Promise<Buffer> {
+    const response = await this.request(
+      `${this.baseUrl}/api/v1/desktop/workbenches/download`, body, access, 'application/gzip',
+    )
+    if (response.headers.get('content-type')?.split(';')[0] !== 'application/gzip' || !response.body)
+      throw new AccountError('invalid_response')
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let received = 0
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        received += value.length
+        if (received > size) throw new AccountError('invalid_response')
+        chunks.push(value)
+      }
+    } finally {
+      await reader.cancel().catch(() => undefined)
+    }
+    if (received !== size) throw new AccountError('invalid_response')
+    return Buffer.concat(chunks, received)
   }
   /** Read public platform branding without cookies or device credentials. */
   async branding(): Promise<AccountSnapshot['brand']> {
@@ -54,7 +83,7 @@ export class AccountApi {
     if (!valid) throw new AccountError('invalid_response')
     return `data:${mime};base64,${bytes.toString('base64')}`
   }
-  private async request(url: string, body?: unknown, access?: string): Promise<unknown> {
+  private async request(url: string, body?: unknown, access?: string, accept = 'application/json'): Promise<Response> {
     trustedUrl(url)
     let response: Response
     try {
@@ -64,7 +93,7 @@ export class AccountApi {
         credentials: 'omit',
         signal: AbortSignal.timeout(15_000),
         headers: {
-          Accept: 'application/json',
+          Accept: accept,
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
           ...(access ? { Authorization: `Bearer ${access}` } : {}),
         },
@@ -86,6 +115,9 @@ export class AccountApi {
         retry === null ? 0 : /^\d+$/.test(retry) ? Number(retry) * 1000 : Math.max(0, Date.parse(retry) - Date.now())
       throw new AccountError(code, response.status, Number.isFinite(retryMs) ? retryMs : 0)
     }
+    return response
+  }
+  private async jsonResponse(response: Response): Promise<unknown> {
     if (response.status === 204) return null
     try {
       return await response.json()

@@ -696,6 +696,30 @@ describe('LlmRuntime', () => {
     }])
   })
 
+  it('dispatches a native JSON schema only on a route that declares support', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    const adapter = new class extends RecordingAdapter {
+      override async resolveModel(provider: string, id: string): Promise<LlmResolvedModelInfo> {
+        return { provider, id, name: id, supportsStructuredOutput: id === 'structured' }
+      }
+    }(SCRIPT)
+    ctx.llm.registerAdapter(['route'], adapter)
+    const structuredOutput = { name: 'result', schema: { type: 'object' } }
+    const plain = await ctx.llm.prepareCall({ provider: 'route', model: 'plain' })
+    const chunks = await collect(plain.stream({ ...plain.config, structuredOutput, messages: [] }))
+    const finish = chunks.find(chunk => chunk.type === 'finish')
+    if (finish?.reason.kind !== 'error') throw new Error('Expected a failed model call')
+    expect(finish.reason.failure.code).toBe('UNSUPPORTED_STRUCTURED_OUTPUT')
+    expect(adapter.lastOptions).toBeUndefined()
+
+    const prepared = await ctx.llm.prepareCall({ provider: 'route', model: 'structured' })
+    expect(prepared.supportsStructuredOutput).toBe(true)
+    await collect(prepared.stream({ ...prepared.config, structuredOutput, messages: [] }))
+    expect(adapter.lastOptions?.structuredOutput).toEqual(structuredOutput)
+    await ctx.fiber.dispose()
+  })
+
   it('defaults adapters to their route name and an empty advisory model list', async () => {
     const ctx = new Context()
     await ctx.plugin(LlmRuntime)

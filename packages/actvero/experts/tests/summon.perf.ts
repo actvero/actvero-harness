@@ -29,7 +29,9 @@ try {
   for (let i = 0; i < 5; i++) {
     fixture.calls.length = 0
     const start = performance.now()
-    await remote.plan(id); await remote.stage(id)
+    await remote.plan(id)
+    if (beforeMode) await remote.stage(id)
+    else await remote.stageForSelection(id)
     if (beforeMode) { const lock = await engine.prepare(id); await engine.resolve(lock.id); await engine.resolve(lock.id) }
     else await selections.run(id, async (operation) => {
       const { lock } = await selections.prepare(operation, id)

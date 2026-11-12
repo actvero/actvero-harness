@@ -4,7 +4,7 @@ import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@actvero/dsh-client-account/protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchClientContext } from '../../contracts.ts'
+import type { ActveroWorkbench, WorkbenchClientContext } from '../../contracts.ts'
 import type { WorkbenchConversationOptions, WorkbenchDocument, WorkbenchId, WorkbenchInstanceId } from '../../types.ts'
 import { encodeWorkbenchReference, workbenchReferenceSource, type WorkbenchReferenceInput } from '../../workbench-reference.ts'
 import { WorkbenchSelections } from './selection.ts'
@@ -159,12 +159,14 @@ export class WorkbenchClientRuntime {
    * @param displayState Read the mounted presentation.
    * @param reference Insert a fixed snapshot while retaining the addressed composer.
    * @param isCurrent Whether the caller's view is still mounted and its provider loaded.
+   * @param descriptor Registered package and version, with its organization scope for platform installs.
    * @returns Capabilities bound to this instance.
    */
   context(instanceId: WorkbenchInstanceId | null, sessionId: SessionId | null,
     showConversation: (id: SessionId) => Promise<void>,
     display: WorkbenchClientContext['display'], displayState: WorkbenchClientContext['displayState'],
-    reference: WorkbenchClientContext['reference'], isCurrent: () => boolean = () => true): WorkbenchClientContext {
+    reference: WorkbenchClientContext['reference'], isCurrent: () => boolean = () => true,
+    descriptor?: Pick<ActveroWorkbench, 'id' | 'version'> & { scope?: string }): WorkbenchClientContext {
     return {
       instanceId, sessionId, display, displayState, reference, location: null,
       selection: async (selection) => {
@@ -203,6 +205,13 @@ export class WorkbenchClientRuntime {
         const result = await this.ctx.remote.actveroWorkbenchPlatform.models({ instanceId })
         if (!result.ok) throw result.error
         return result.value
+      },
+      config: async () => {
+        const bridge = window.actveroAccount
+        if (!descriptor || !bridge?.workbenchConfig) throw new Error('workbench_config_unavailable')
+        return bridge.workbenchConfig({ packageName: descriptor.id, version: descriptor.version,
+          ...(descriptor.scope ? { scope: descriptor.scope } : {}),
+        })
       },
       conversation: async (options) => {
         if (!instanceId) throw new Error('Workbench has no conversation provider')
