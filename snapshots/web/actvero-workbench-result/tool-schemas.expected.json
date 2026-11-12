@@ -903,6 +903,10 @@
               "preview"
             ]
           },
+          "object_id": {
+            "type": "string",
+            "description": "Existing provider-owned object id; business mode only. Does not rebind the conversation."
+          },
           "sidebar": {
             "type": "string",
             "enum": [
