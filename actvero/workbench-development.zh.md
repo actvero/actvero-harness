@@ -154,13 +154,15 @@ my-workbench/
 
 ### 自定义顶栏与共享视图状态
 
-从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略。宿主只保留返回工作台列表、分隔线、侧栏及窗口控制；分隔线右侧由 Header 完整渲染，不额外插入图标、工作台名称、面包屑、下拉菜单或操作。未提供 Header 时显示最小的工作台图标与名称。预览只渲染正文，不挂载顶栏；注册释放时同时移除卡片、正文和顶栏。
+从扩展 API `1.1.0` 起，注册可传入 `{ locale: namespace, header: Header, store: navigationStore }`。`header` 和 `store` 均可省略。宿主默认保留返回工作台列表、分隔线、侧栏及窗口控制；业务顶栏由 Header 完整渲染，不额外插入图标、工作台名称、面包屑、下拉菜单或操作。未提供 Header 时显示最小的工作台图标与名称。预览只渲染正文，不挂载顶栏；注册释放时同时移除卡片、正文和顶栏。
+
+声明 `hostApi: "^1.6.0"` 后，可在 Client 注册选项传入 `catalogButton: 'hide'`，隐藏公共返回列表按钮及分隔线；省略或传入 `'show'` 时保留。侧栏与窗口控制仍由宿主管理。作者自行安排返回项目、画布或其他业务页面的导航，用户也可从全局侧栏进入工作台管理。
 
 Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。macOS 收起侧栏时，宿主将窗口控件放入独立安全行，业务顶栏无需为这些控件设置左侧偏移；顶栏按实际容器宽度适配，不按整个窗口宽度定位。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
 
 正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 store；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 useStore 和 actions。状态按所需实例或视图标识组织，只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量；正文不通过 effect 向宿主反向写标题。
 
-验收自定义顶栏时，确认宿主没有额外插入业务标识或导航；从正文和顶栏分别操作，检查内容与状态一致。至少检查 390px 窄窗口、明暗主题、菜单的 Escape 与焦点返回、切换工作台及停用释放。统一 AI 浮窗入口已存在，具体业务动作按需要组合，不重复通用 AI 按钮。选区使用[原生引用接口](#input-references)，按项目或文档区分对话使用[业务对象关联](#conversation-objects)。
+验收自定义顶栏时，确认宿主没有额外插入业务标识或导航；从正文和顶栏分别操作，检查内容与状态一致。至少检查 390px 窄窗口、明暗主题、菜单的 Escape 与焦点返回、切换工作台及停用释放。统一 AI 浮窗入口已存在，具体业务动作按需要组合，不重复通用 AI 按钮。 API 1.6 的 Client 注册选项 `conversationTarget` 让该入口按当前业务对象打开对话：回调返回稳定的 `WorkbenchObjectId`，返回 `null` 则打开实例级对话，省略时恢复原有关联。异步准备先捕获对象 ID，再等待保存；失败会停止打开并显示错误，期间离开或卸载会丢弃结果。它只在打开 AI 时解析，不因画面切换改写已有对话；浮窗内“新建对话”沿用当前对话对象。Host 仍需通过 `resolveObject` 验证目标。选区使用[原生引用接口](#input-references)，按项目或文档区分对话使用[业务对象关联](#conversation-objects)。
 
 <a id="settings-commands"></a>
 
@@ -370,6 +372,8 @@ const visible = workbench.displayState()
 `business` 让业务占据主内容区，`ai` 选择显示或收起 AI 浮窗；`conversation` 显示原生对话并收起业务预览；`preview` 在原生对话上悬浮业务预览。后两种需要工作台启用 AI，优先复用当前关联对话，否则创建一个原生关联对话。已有对话必须属于同一运行实例；重复进入复用实例和已关联会话。业务预览与 AI 浮窗各自记住开关和位置；拖动或键盘移动不会改变业务数据。预览是不可编辑的等比画面，需要操作时进入业务主界面。
 
 常驻工具 `workbench_list` 列出已加载的 Host 提供者；`workbench_open` 选择显示方式，`workbench_status` 查询客户端当前状态。它们不要求当前线程已选择工作台。Agent 打开业务界面默认收起 AI，不自动把正在运行的调用线程重新绑定；显式选择对话或预览时，已有同工作台关联可继续使用，否则创建另一条关联对话。业务工具仍由随包专家决定，显示工具不会授予额外业务权限。
+
+扩展 API `1.7.0` 为业务展示请求增加 `objectId`，为 `workbench_open` 增加 `object_id`。客户端要求注册 `objectNavigation`，通过宿主提供器的 `resolveObject` 校验对象，再经 `workbench.location` 交给业务界面，不改绑调用对话。直接导航不携带历史版本，历史引用导航保留原版本。对象不存在、导航未启用或模式不是业务展示时明确失败。
 
 只有结果 `status: 'confirmed'` 表示客户端确认宿主视图已挂载，不代表作者的远程业务请求全部完成。没有客户端返回 `unavailable`，多个客户端返回 `ambiguous`，业务页无法加载返回 `failed`；断线或超过 `displayTimeoutMs` 返回 `unknown`，应先查询状态再决定下一步。默认等待 30 秒，可在能力包 Host 配置中调整。取消返回 `cancelled`，已经创建的实例或会话不会因此删除；连接恢复不重放导航。`workbench.display()` 在未确认时拒绝，调用方应显示可恢复的失败提示。UI-only 卡片可显示，但不会出现在 Host 提供者目录中，也不能创建原生对话。
 

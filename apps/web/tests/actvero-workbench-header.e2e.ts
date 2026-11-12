@@ -5,9 +5,14 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { initialShortcutConfig } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+
+declare global {
+  interface Window { __headerTarget: { waiting: boolean; finish(): void } }
+}
 
 it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole business region and restores the default on another workbench', async (platform) => {
   const root = await mkdtemp(join(tmpdir(), 'workbench-header-'))
@@ -29,17 +34,30 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await writeFile(join(directory, 'cordis.patch.yml'), `- insert:\n    - id: header-${kind}\n      name: ${JSON.stringify(packageName)}\n`)
       await writeFile(join(directory, 'index.js'), `export const inject = ['actveroWorkbenchRuntime'];
       export function apply(ctx) { const id = '${kind}'; ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
-        id: '${name}-' + id, name: id + ' identity', version: '1.0.0', ai: false })); }`)
+        id: '${name}-' + id, name: id + ' identity', version: '1.0.0', ai: id === 'custom',
+        resolveObject: async id => { if (id === 'missing') throw new Error('Missing object'); return { label: id }; } })); }`)
       await writeFile(join(directory, 'client.js'), `window.__ModuleLoader__.load({ id: '${packageName}', factory(require) {
       const { createElement: h } = require('react');
+      let selected = 'project-a'; let delay = false;
+      const targetState = { waiting: false, finish() {} };
+      if ('${kind}' === 'custom') window.__headerTarget = targetState;
+      async function conversationTarget() {
+        const target = selected;
+        if (target === 'fail') throw new Error('Preparation failed');
+        if (delay) { targetState.waiting = true; await new Promise(resolve => { targetState.finish = resolve; }); targetState.waiting = false; }
+        return target === 'all' ? null : target;
+      }
       function Header() { return h('div', { 'data-author-header': '', style: { display: 'flex', gap: 12, flexWrap: 'wrap' } },
         h('button', { onClick: event => { event.currentTarget.textContent = 'Saved by author'; } }, 'Save drawing'),
         h('input', { 'aria-label': 'Find in drawing', style: { minWidth: 0, width: 120 } })); }
-      function Body() { return h('p', null, 'Business content'); }
+      function Body(p) { return h('div', null, h('output', { 'aria-label': 'Opened object' }, p.workbench.location?.objectId ?? ''), h('p', null, 'Business content'),
+        h('select', { 'aria-label': 'Project', defaultValue: selected, onChange: e => { selected = e.target.value; } },
+          ...['project-a', 'project-b', 'all', 'fail'].map(id => h('option', { key: id, value: id }, id))),
+        h('input', { type: 'checkbox', 'aria-label': 'Delay preparation', onChange: e => { delay = e.target.checked; } })); }
       return { inject: ['actveroWorkbenches'], apply(ctx) {
         const id = '${kind}'; ctx.effect(() => ctx.actveroWorkbenches.register({
           id: '${name}-' + id, name: id + ' identity', description: 'Header acceptance', version: '1.0.0'
-        }, Body, id === 'custom' ? { header: Header } : undefined));
+        }, Body, id === 'custom' ? { header: Header, catalogButton: 'hide', conversationTarget, objectNavigation: true } : undefined));
       } };
     } });`)
     }
@@ -80,6 +98,16 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(result, JSON.stringify(result)).toMatchObject({ status: 'confirmed' })
     }
     await show('custom')
+    const objectOpened = await scaffold.ctx.actveroWorkbenchRuntime.present({ id: `${name}-custom` as WorkbenchId,
+      mode: 'business', objectId: 'project-b' as import('@actvero/dsh-capability-ui').WorkbenchObjectId, ai: 'hide' }, AbortSignal.timeout(15_000))
+    expect(objectOpened).toMatchObject({ status: 'confirmed' })
+    await expect.poll(() => page.getByLabel('Opened object').innerText()).toBe('project-b')
+    const missingObject = await scaffold.ctx.actveroWorkbenchRuntime.present({ id: `${name}-custom` as WorkbenchId,
+      mode: 'business', objectId: 'missing' as import('@actvero/dsh-capability-ui').WorkbenchObjectId, ai: 'hide' }, AbortSignal.timeout(15_000))
+    expect(missingObject).toMatchObject({ status: 'failed' })
+    const invalidObjectMode = await scaffold.ctx.actveroWorkbenchRuntime.present({ id: `${name}-custom` as WorkbenchId,
+      mode: 'preview', objectId: 'project-a' as import('@actvero/dsh-capability-ui').WorkbenchObjectId }, AbortSignal.timeout(15_000))
+    expect(invalidObjectMode).toMatchObject({ status: 'failed' })
     const header = page.locator('[data-workbench-header]')
     await header.getByRole('textbox', { name: 'Find in drawing' }).fill('node A')
     await header.getByRole('button', { name: 'Save drawing' }).click()
@@ -87,7 +115,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     expect(await header.innerText()).toBe('Saved by author')
     expect(await header.locator('[data-author-header]').count()).toBe(1)
     expect(await page.locator('[data-workbench-default-header]').count()).toBe(0)
-    expect(await header.locator('..').getByRole('button', { name: 'Back to workbenches', exact: true }).count()).toBe(1)
+    expect(await header.locator('..').getByRole('button', { name: 'Back to workbenches', exact: true }).count()).toBe(0)
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       await page.setViewportSize({ width: 390, height: 844 })
@@ -144,10 +172,65 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
         expect(await windowChrome.isVisible()).toBe(false)
       }
     }
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const business = page.locator('[data-workbench-main]')
+    const readBinding = (id: SessionId) => {
+      const agent = scaffold!.ctx.agents.get(id)
+      if (!agent) throw new Error('Missing associated agent')
+      return scaffold!.ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')
+    }
+    const binding = async () => {
+      const id = await business.getAttribute('data-workbench-session')
+      if (!id) throw new Error('Missing displayed conversation')
+      return readBinding(id as SessionId)
+    }
+    const openAI = async () => {
+      await page.getByRole('button', { name: 'Use AI', exact: true }).click()
+      await page.locator('[data-workbench-ai]:not([hidden])').waitFor()
+    }
+    await page.getByRole('checkbox', { name: 'Delay preparation' }).check()
+    await page.getByRole('button', { name: 'Use AI', exact: true }).click()
+    await page.waitForFunction(() => window.__headerTarget.waiting)
+    await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption('project-b')
+    await page.evaluate(() => { window.__headerTarget.finish() })
+    await page.locator('[data-workbench-ai]:not([hidden])').waitFor()
+    const original = await business.getAttribute('data-workbench-session')
+    expect({ header: await header.innerText(), object: (await binding())?.object?.id }).toMatchInlineSnapshot(`
+      {
+        "header": "Saved by author",
+        "object": "project-a",
+      }
+    `)
+    await page.getByRole('button', { name: 'Collapse', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Delay preparation' }).uncheck()
+    await openAI()
+    expect((await binding())?.object?.id).toBe('project-b')
+    expect(await business.getAttribute('data-workbench-session')).not.toBe(original)
+    expect(readBinding(original as SessionId)?.object?.id).toBe('project-a')
+    await page.getByRole('button', { name: 'Collapse', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption('project-a')
+    await openAI()
+    expect(await business.getAttribute('data-workbench-session')).toBe(original)
+    await page.getByRole('button', { name: 'Collapse', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption('all')
+    await openAI()
+    expect((await binding())?.object).toBeUndefined()
+    await page.getByRole('button', { name: 'Collapse', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption('fail')
+    await page.getByRole('button', { name: 'Use AI', exact: true }).click()
+    await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('button[aria-label="Use AI"]')?.disabled)
+    expect(await page.locator('[data-workbench-ai]:not([hidden])').count()).toBe(0)
+    await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption('project-a')
+    await page.getByRole('checkbox', { name: 'Delay preparation' }).check()
+    await page.getByRole('button', { name: 'Use AI', exact: true }).click()
+    await page.waitForFunction(() => window.__headerTarget.waiting)
     await show('default')
+    await page.evaluate(() => { window.__headerTarget.finish() })
     expect(await header.locator('[data-author-header]').count()).toBe(0)
     await header.getByRole('heading', { name: 'default identity' }).waitFor()
     expect(await page.locator('[data-workbench-default-header]').count()).toBe(1)
+    expect(await header.locator('..').getByRole('button', { name: 'Back to workbenches', exact: true }).count()).toBe(1)
+    expect(await page.locator('[data-workbench-ai]:not([hidden])').count()).toBe(0)
     expect(log.pageErrors).toEqual([])
   } catch (error) {
     const page = browser?.contexts()[0]?.pages()[0]

@@ -64,12 +64,18 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
 
       const folder = join(root, 'package')
       const archive = join(root, 'workbench.tgz')
+      const incompatibleArchive = join(root, 'incompatible-workbench.tgz')
       mkdirSync(folder)
-      writeFileSync(join(folder, 'package.json'), JSON.stringify({
+      const manifest = {
         name: fixtureName, version: '1.0.0', type: 'module',
         main: './index.js', exports: { '.': './index.js', './client': './client.js' },
         dsh: { actveroWorkbench: 1, bundle: { patch: './cordis.patch.yml' }, client: { platform: 'web', inject: ['@actvero/dsh-capability-ui'] } },
+      }
+      writeFileSync(join(folder, 'package.json'), JSON.stringify({ ...manifest,
+        dsh: { ...manifest.dsh, actveroWorkbenchProtocol: { schemaVersion: 1, hostApi: '^99.0.0' } },
       }))
+      await create({ cwd: root, file: incompatibleArchive, gzip: true }, ['package/package.json'])
+      writeFileSync(join(folder, 'package.json'), JSON.stringify(manifest))
       const environmentReport = join(root, 'workbench-environment.json')
       writeFileSync(join(folder, 'index.js'), `
         import { readFile, writeFile } from 'node:fs/promises';
@@ -581,6 +587,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         }
         await picker.setInputFiles({ name: 'invalid.tgz', mimeType: 'application/gzip', buffer: Buffer.from('not an archive') })
         await page.getByText('请选择有效的 Actvero 工作台 .tgz 包。').waitFor()
+        await importArchive(incompatibleArchive)
+        await page.getByText('工作台要求接口 ^99.0.0，当前为 1.7.0；请使用匹配的应用版本后重新导入').waitFor()
+        expect(await fixtureCard.count()).toBe(0)
         await importArchive(archive)
         let needsRestart: boolean
         try {

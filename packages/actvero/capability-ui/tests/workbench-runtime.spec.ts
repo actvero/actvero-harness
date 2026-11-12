@@ -677,10 +677,12 @@ describe('workbench runtime', () => {
 
   it('records resident tools without requiring a selected workbench or a connected Client', async () => {
     const { ctx, runtime, loop } = await harness()
+    const present = vi.spyOn(runtime, 'present')
     const adapter = new MockAdapter([
       toolCallResponse('catalog', 'workbench_list', {}),
       toolCallResponse('status', 'workbench_status', {}),
-      toolCallResponse('open', 'workbench_open', { id: 'builtin:project-checklist', mode: 'business' }),
+      toolCallResponse('open', 'workbench_open', { id: 'builtin:project-checklist', mode: 'business', object_id: 'project-b' }),
+      toolCallResponse('invalid', 'workbench_open', { id: 'builtin:project-checklist', mode: 'preview', object_id: 'project-b' }),
       textResponse('当前没有连接客户端，尚未打开界面。'),
     ])
     ctx.effect(() => ctx.llm.registerAdapter(['mock'], adapter))
@@ -693,7 +695,9 @@ describe('workbench runtime', () => {
     expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')).toBeNull()
     expect(runtime.list()).toHaveLength(1)
     const results = agent.session.snapshotEvents().filter(event => event.type === 'tool/result')
-    expect(results).toHaveLength(3)
+    expect(results).toHaveLength(4)
+    expect(present).toHaveBeenCalledTimes(2)
+    expect(present).toHaveBeenNthCalledWith(2, { id, mode: 'business', ai: 'hide', objectId: 'project-b' }, expect.any(AbortSignal))
     expect(JSON.stringify(results)).toContain('unavailable')
     expect(JSON.stringify(results)).not.toContain('confirmed')
     expect({ requests: adapter.requests.map(item => item.tools?.map(tool => tool.name)),

@@ -80,6 +80,7 @@ export interface WorkbenchView extends WorkbenchManagement {
   chatPreparing: boolean
   visibility: Readonly<Partial<Record<string, boolean>>>
   canOpenDirectory: boolean
+  catalogButtons: Readonly<Partial<Record<string, 'show' | 'hide'>>>
 }
 
 /** Human-triggered navigation and local installation. */
@@ -129,7 +130,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   })
   let view: WorkbenchView = { ...management.initial, entries: examples, remembered: [], opened: readSelection(),
     instance: null, location: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
-    chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false }
+    chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false, catalogButtons: {} }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
     view = { ...view, ...patch }
@@ -303,6 +304,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   }
   const settings = new Set<string>()
   const objectNavigation = new Set<string>()
+  const conversationTargets = new Map<string, NonNullable<Parameters<ActveroWorkbenchRegistry['register']>[2]>['conversationTarget']>()
   const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
     async openObject(target) {
@@ -348,6 +350,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       if (view.entries.some(item => item.id === id)) throw new Error(`Duplicate Actvero workbench: ${id}`)
       const entry = { ...descriptor }
       return ctx.effect(function* () {
+        if (options?.conversationTarget) {
+          conversationTargets.set(id, options.conversationTarget)
+          yield () => { conversationTargets.delete(id) }
+        }
         if (options?.objectNavigation) {
           objectNavigation.add(id)
           yield () => { objectNavigation.delete(id) }
@@ -371,8 +377,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           settings.add(id)
           yield () => { settings.delete(id) }
         }
-        yield () => { update({ entries: view.entries.filter(item => item !== entry) }) }
-        update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry] })
+        yield () => {
+          const { [id]: _removed, ...catalogButtons } = view.catalogButtons
+          update({ entries: view.entries.filter(item => item !== entry), catalogButtons })
+        }
+        update({ entries: [...view.entries, entry], remembered: [...view.remembered.filter(item => item.id !== entry.id), entry],
+          catalogButtons: { ...view.catalogButtons, [id]: options?.catalogButton ?? 'show' } })
       })
     },
   }
@@ -435,9 +445,16 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       const signal = AbortSignal.any([callerSignal, displaying.signal])
       signal.throwIfAborted()
       if (!view.entries.some(entry => entry.id === request.id)) throw new Error('Workbench client is not loaded')
+      if (request.objectId !== undefined && request.mode !== 'business') throw new Error('Business object navigation requires business mode')
       if (view.opened !== request.id) linkedSession = null
       const instance = await load(request.id)
       signal.throwIfAborted()
+      if (request.objectId !== undefined) {
+        if (!instance || !objectNavigation.has(request.id)) throw new Error('Workbench object navigation is unavailable')
+        const obj = await ctx.remote.actveroWorkbench.inspectObject({ instanceId: instance.instanceId, objectId: request.objectId }, signal)
+        if (!obj.ok) throw obj.error
+        signal.throwIfAborted()
+      }
       if (request.sessionId) {
         await ctx.sessions.refresh()
         signal.throwIfAborted()
@@ -445,6 +462,9 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           !== instance.instanceId) {
           throw new Error('Conversation belongs to another workbench')
         }
+      }
+      if (request.objectId !== undefined && instance) {
+        update({ location: { workbenchId: request.id, instanceId: instance.instanceId, objectId: request.objectId } })
       }
       linkedSession = request.sessionId ?? linkedSession
       let expectedSessionId: SessionId | undefined
@@ -498,6 +518,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       if (!view.instance || view.chatPreparing) return
       const generation = chatGeneration
       const request = ++preparation
+      const instance = view.instance
+      const entry = view.entries.find(item => item.id === instance.id)
+      const target = conversationTargets.get(instance.id)
+      const current = context(instance.instanceId, linkedSession)
       update({ chatPreparing: true })
       try {
         if (fresh) {
@@ -506,7 +530,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           if (!result.ok) throw result.error
           await ctx.sessions.refresh()
           if (generation === chatGeneration && ctx.fiber.uid !== null) await showChat(result.value.sessionId)
-        } else await context(view.instance.instanceId, linkedSession).conversation()
+        } else {
+          const options = target ? { objectId: await target() } : undefined
+          if (generation !== chatGeneration || ctx.fiber.uid === null || view.instance !== instance
+            || !entry || !view.entries.includes(entry)) return
+          await current.conversation(options)
+        }
       } catch (error) {
         ctx.logger.warn('Unable to open workbench conversation: %s', error)
         if (request === preparation && ctx.fiber.uid !== null) failed()

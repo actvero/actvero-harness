@@ -7,6 +7,8 @@ describe('workbench compatibility', () => {
     expect(resolveWorkbenchProtocol()).toEqual({ schemaVersion: 1, hostApi: '^1.0.0' })
     expect(resolveWorkbenchProtocol({ schemaVersion: 1, hostApi: ' >=1.0.0 <2.0.0 ' })).toEqual({ schemaVersion: 1, hostApi: '>=1.0.0 <2.0.0' })
     expect(resolveWorkbenchProtocol({ schemaVersion: 1, hostApi: '^1.1.0' })).toEqual({ schemaVersion: 1, hostApi: '^1.1.0' })
+    expect(resolveWorkbenchProtocol({ schemaVersion: 1, hostApi: '^1.6.0' })).toEqual({ schemaVersion: 1, hostApi: '^1.6.0' })
+    expect(resolveWorkbenchProtocol({ schemaVersion: 1, hostApi: '^1.7.0' })).toEqual({ schemaVersion: 1, hostApi: '^1.7.0' })
   })
 
   it.each([
@@ -17,6 +19,7 @@ describe('workbench compatibility', () => {
     [{ schemaVersion: 1, hostApi: '^1', requiredFeature: 'private-dom' }, 'invalid-declaration'],
     [{ schemaVersion: '1', hostApi: '^1' }, 'invalid-declaration'],
     [{ schemaVersion: 2, hostApi: '^1' }, 'unsupported-schema'],
+    [{ schemaVersion: 1, hostApi: '^1.8.0' }, 'incompatible-host'],
     [{ schemaVersion: 1, hostApi: '^2.0.0' }, 'incompatible-host'],
   ])('rejects an unsupported declaration %j', (declaration, code) => {
     expect(() => resolveWorkbenchProtocol(declaration)).toThrow(expect.objectContaining({ name: 'WorkbenchProtocolError', code }))

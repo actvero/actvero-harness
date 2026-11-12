@@ -43,6 +43,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
   const { opened, instance, preparing, runtimeFailed, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
+  const catalogButton = useView(value => opened ? value.catalogButtons[opened] !== 'hide' : true)
   const sessions = useSessions(value => value)
   const [menuOpen, setMenuOpen] = useState(false)
   const linked = sessions.ids.map(id => sessions.byId[id]).filter(summary =>
@@ -64,9 +65,11 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
     data-workbench-session={chat?.sessionId}>
     <div className={styles.windowChrome} data-workbench-window-chrome="" data-window-drag aria-hidden="true" />
     <header className={styles.pageHeader} data-window-drag>
-      <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
-        onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
-      <span className={styles.separator} aria-hidden="true" />
+      {catalogButton && <>
+        <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
+          onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
+        <span className={styles.separator} aria-hidden="true" />
+      </>}
       <div className={styles.headerExtension} data-workbench-header="">
         {opened && !preparing && !runtimeFailed
           ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {

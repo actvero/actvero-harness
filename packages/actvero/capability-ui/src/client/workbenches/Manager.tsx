@@ -260,7 +260,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     else if (operation === 'remove') setRemoveTarget(entry)
     else if (operation === 'disable') setDisableTarget(entry)
     else if (operation === 'directory') void action.openDataDirectory(entry.id)
-    else void action.setEnabled(entry.id, operation === 'enable')
+    else void action.setEnabled(entry.id, true)
   }
   async function copyInstructions(): Promise<void> {
     try { await navigator.clipboard.writeText(t('developPrompt')); setCopyState('copied') }
@@ -291,8 +291,12 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       </nav>}
       {view.inventoryFailed && <div className={styles.notice} role="alert"><span>{t('inventoryFailed')}</span>
         <Button variant="ghost" disabled={view.refreshing} onClick={() => { void action.refresh() }}>{t('refresh')}</Button></div>}
-      {view.notice && <div className={styles.notice} role="status"><span>{t(view.notice)}</span>
-        {view.diagnostic && <details><summary>{t('diagnostic')}</summary><pre>{view.diagnostic}</pre></details>}</div>}
+      {view.notice && <div className={styles.notice} role="status">
+        <span>{typeof view.notice === 'string' ? t(view.notice) : t(view.notice.kind, {
+          requiredHostApi: view.notice.requiredHostApi, currentHostApi: view.notice.currentHostApi,
+        })}</span>
+        {view.diagnostic && <details><summary>{t('diagnostic')}</summary><pre>{view.diagnostic}</pre></details>}
+      </div>}
       {source === 'platform' ? <div className={styles.platformEmpty}>
         <span className={styles.platformMark}><WorkbenchIcon size={30} /></span>
         <h2>{t('platformComing')}</h2>

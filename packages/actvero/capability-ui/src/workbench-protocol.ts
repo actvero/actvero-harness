@@ -3,7 +3,7 @@ import { satisfies, validRange } from 'semver'
 import { z } from 'zod'
 
 /** Workbench extension API implemented by this host. */
-export const WORKBENCH_HOST_API_VERSION = '1.5.0'
+export const WORKBENCH_HOST_API_VERSION = '1.7.0'
 
 /** Package requirements checked before registering a workbench implementation. */
 export interface WorkbenchProtocol {
@@ -25,6 +25,17 @@ export class WorkbenchProtocolError extends Error {
   }
 }
 
+/** Supported declarations whose API requirement excludes the current host. */
+export class WorkbenchHostCompatibilityError extends WorkbenchProtocolError {
+  /**
+   * @param requiredHostApi Package's validated API SemVer range.
+   * @param currentHostApi API implemented by the inspecting host.
+   */
+  constructor(readonly requiredHostApi: string, readonly currentHostApi: string) {
+    super('incompatible-host', `Workbench requires host API ${requiredHostApi}; current host provides ${currentHostApi}.`)
+  }
+}
+
 const declaration = z.object({ schemaVersion: z.number().int(), hostApi: z.string().trim().min(1) }).strict()
 
 /** Resolve legacy registrations and reject unsupported workbench requirements.
@@ -38,7 +49,7 @@ export function resolveWorkbenchProtocol(protocol?: unknown): WorkbenchProtocol 
   if (resolved.schemaVersion !== 1) throw new WorkbenchProtocolError('unsupported-schema', `Unsupported workbench schema version: ${resolved.schemaVersion}; this host supports 1.`)
   if (validRange(resolved.hostApi) === null) throw new WorkbenchProtocolError('invalid-declaration', 'Invalid workbench host API range.')
   if (!satisfies(WORKBENCH_HOST_API_VERSION, resolved.hostApi)) {
-    throw new WorkbenchProtocolError('incompatible-host', `Workbench requires host API ${resolved.hostApi}; current host provides ${WORKBENCH_HOST_API_VERSION}.`)
+    throw new WorkbenchHostCompatibilityError(resolved.hostApi, WORKBENCH_HOST_API_VERSION)
   }
   return { ...resolved }
 }

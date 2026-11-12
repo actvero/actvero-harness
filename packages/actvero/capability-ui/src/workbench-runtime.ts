@@ -263,12 +263,16 @@ export class WorkbenchRuntime extends TypertRemoteService {
       parameters: {
         id: { type: 'string', required: true, description: 'Exact installed id from workbench_list.' },
         mode: { type: 'string', enum: ['business', 'conversation', 'preview'], required: true },
+        object_id: { type: 'string', description: 'Existing provider-owned object id; business mode only. Does not rebind the conversation.' },
         sidebar: { type: 'string', enum: ['preserve', 'focus'] },
         ai: { type: 'string', enum: ['show', 'hide'] },
       }, output,
       execute: async (args, exec) => {
         const selection = exec.agent && this.selection(exec.agent)
-        const request: WorkbenchDisplayRequest = { ...args, id: args.id as WorkbenchId,
+        const { object_id, ...choices } = args
+        if (object_id !== undefined && args.mode !== 'business') throw new Error('Business object navigation requires business mode')
+        const request: WorkbenchDisplayRequest = { ...choices, id: args.id as WorkbenchId,
+          ...(object_id !== undefined ? { objectId: object_id as WorkbenchObjectId } : {}),
           ...(selection?.id === args.id ? { sessionId: exec.agent?.id } : {}),
           ...(args.mode === 'business' && args.ai === undefined ? { ai: 'hide' as const } : {}),
         }

@@ -169,6 +169,10 @@ Actions: add args={"text":"task description"}; complete args={"id":"item id from
             ],
             "type": "string",
           },
+          "object_id": {
+            "description": "Existing provider-owned object id; business mode only. Does not rebind the conversation.",
+            "type": "string",
+          },
           "sidebar": {
             "enum": [
               "preserve",
@@ -243,6 +247,11 @@ exports[`workbench runtime > records resident tools without requiring a selected
       "workbench_open",
       "workbench_status",
     ],
+    [
+      "workbench_list",
+      "workbench_open",
+      "workbench_status",
+    ],
   ],
   "results": [
     {
@@ -274,6 +283,16 @@ exports[`workbench runtime > records resident tools without requiring a selected
         },
       ],
       "isError": false,
+    },
+    {
+      "callId": "invalid",
+      "content": [
+        {
+          "text": "Error: Business object navigation requires business mode",
+          "type": "text",
+        },
+      ],
+      "isError": true,
     },
   ],
 }

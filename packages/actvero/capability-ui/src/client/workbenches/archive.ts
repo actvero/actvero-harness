@@ -1,4 +1,4 @@
-import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
+import { resolveWorkbenchProtocol, WorkbenchHostCompatibilityError } from '../../workbench-protocol.ts'
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024
 const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
@@ -13,6 +13,7 @@ function record(value: unknown): Record<string, unknown> | undefined {
 /** Read the manifest from an npm-packed Actvero bundle before requesting installation.
  * @param file Local archive selected by the user.
  * @returns The declared package name and version, or undefined for an invalid or unrelated bundle.
+ * @throws WorkbenchHostCompatibilityError when the package requires a different host API version.
  */
 export async function readWorkbenchPackage(file: File): Promise<{ name: string; version: string } | undefined> {
   if (!file.name.toLowerCase().endsWith('.tgz') || file.size > MAX_FILE_BYTES) return undefined
@@ -73,6 +74,7 @@ export async function readWorkbenchPackage(file: File): Promise<{ name: string; 
     resolveWorkbenchProtocol(dsh.actveroWorkbenchProtocol)
     return { name, version: manifest.version }
   } catch (error) {
+    if (error instanceof WorkbenchHostCompatibilityError) throw error
     if (error instanceof Error) return undefined
     throw error
   }

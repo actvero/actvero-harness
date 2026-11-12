@@ -2,7 +2,7 @@ import type {} from '@deepseek-ai/cordis'
 import type { ReactNode } from 'react'
 import type { HandleOf, LocaleNamespaceMap, PropsLocale, PropsRenderFactories, PropsRuntime, PropsStore, StoreDecl, StoreFactory } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkbenchReferenceInput, WorkbenchReferenceSnapshot } from './workbench-reference.ts'
+import type { WorkbenchObjectId, WorkbenchReferenceInput, WorkbenchReferenceSnapshot } from './workbench-reference.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { CommandContribution } from '@deepseek-ai/dsh-client-ui-commands/client'
 export type { WorkbenchObjectId, WorkbenchReferenceInput } from './workbench-reference.ts'
@@ -10,8 +10,11 @@ import type { WorkbenchConversationOptions, WorkbenchDisplayRequest, WorkbenchDi
 export type { WorkbenchConversationOptions, WorkbenchObject } from './types.ts'
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 
-/** Address carried by history links; revision identifies the saved snapshot, not a request to restore old data. */
-export type WorkbenchObjectLocation = Pick<WorkbenchReferenceSnapshot, 'workbenchId' | 'instanceId' | 'objectId' | 'revision'>
+/** Business navigation address; an optional revision identifies historical content, not a request to restore old data. */
+export type WorkbenchObjectLocation = Pick<WorkbenchReferenceSnapshot, 'workbenchId' | 'instanceId' | 'objectId'> & {
+  /** Historical content revision when navigation originates from a saved reference. */
+  readonly revision?: string
+}
 
 /** Public account identity; credentials remain with the desktop host. */
 export interface WorkbenchAccount {
@@ -21,7 +24,7 @@ export interface WorkbenchAccount {
 
 /** Host capabilities for one rendered workbench instance. */
 export interface WorkbenchClientContext {
-  /** Explicit historical navigation request; authors render this object and may show its current revision. */
+  /** Explicit business object navigation; a saved reference also supplies its historical revision. */
   readonly location: WorkbenchObjectLocation | null
   instanceId: WorkbenchInstanceId | null
   sessionId: SessionId | null
@@ -146,6 +149,13 @@ export interface ActveroWorkbenchRegistry {
       store?: H
       /** The body renders workbench.location when historical navigation requests an object. */
       objectNavigation?: boolean
+      /** Show the public catalog return control by default; hide it when the author supplies business navigation. */
+      catalogButton?: 'show' | 'hide'
+      /** Resolve the object for the native AI launcher, capturing its id before asynchronous preparation.
+       * Return null for an instance-wide conversation. Omission resumes the existing association.
+       * Rejection leaves the conversation closed and reports failure; navigation or disposal discards a pending result.
+       */
+      conversationTarget?: () => WorkbenchObjectId | null | Promise<WorkbenchObjectId | null>
       /** Render the entire business header. Authors own its identity, controls, responsive layout and navigation.
        * Omission uses the host's minimal name and icon.
        */
@@ -177,7 +187,7 @@ declare module '@deepseek-ai/cordis' { interface Context { capabilityHub:Capabil
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface ResourceProtocolMap { 'actvero-workbench': WorkbenchDocument }
   interface SlotMap {
-    /** Full-page business header after the host's return control; keyed by the installed workbench id. */
+    /** Full-page business header beside the optional host return control; keyed by the installed workbench id. */
     'actvero.workbench.header': { kind: 'keyed'; scope: 'root'; entryKey: string; owner: { workbench: WorkbenchClientContext; title: string } }
     /** Provider business view shared by the full page and floating preview. */
     'actvero.workbench.body': { kind: 'keyed'; scope: 'root'; entryKey: string; owner: { workbench: WorkbenchClientContext } }

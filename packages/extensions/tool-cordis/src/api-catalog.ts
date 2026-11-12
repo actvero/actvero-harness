@@ -8853,7 +8853,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchDisplayRequest',
-    declaration: 'export interface WorkbenchDisplayRequest {\n    id: WorkbenchId;\n    mode: \'business\' | \'conversation\' | \'preview\';\n    sessionId?: SessionId;\n    sidebar?: \'preserve\' | \'focus\';\n    ai?: \'show\' | \'hide\';\n}',
+    declaration: 'export interface WorkbenchDisplayRequest {\n    id: WorkbenchId;\n    mode: \'business\' | \'conversation\' | \'preview\';\n    objectId?: WorkbenchObjectId;\n    sessionId?: SessionId;\n    sidebar?: \'preserve\' | \'focus\';\n    ai?: \'show\' | \'hide\';\n}',
   },
   {
     name: 'WorkbenchDisplayRequestId',

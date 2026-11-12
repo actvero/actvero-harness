@@ -2,12 +2,14 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/client'
 import semver from 'semver'
+import { WorkbenchHostCompatibilityError } from '../../workbench-protocol.ts'
 import { readWorkbenchPackage } from './archive.ts'
 
 /** Localized outcome with optional installer diagnostics. */
 export type WorkbenchNotice = 'invalidPackage' | 'desktopOnly' | 'importFailed' | 'incompatible' | 'restart'
   | 'currentVersion' | 'olderVersion' | 'wrongPackage' | 'changedElsewhere'
   | 'operationFailed' | 'overridden' | 'unknownOutcome' | 'stopFirst' | 'activeConversation' | 'sessionStateUnavailable'
+  | { kind: 'hostIncompatible'; requiredHostApi: string; currentHostApi: string }
 
 /** Reviewed replacement, held only until the person confirms or cancels. */
 export interface WorkbenchUpdate {
@@ -88,6 +90,7 @@ export function createWorkbenchManagement(
     update({ busy: target, notice: null, diagnostic: '' })
     try {
       const blocked = await beforeChange(target)
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
       if (disposed) return
       if (blocked) { update({ notice: blocked }); return }
       const result = await operation()
@@ -139,6 +142,10 @@ export function createWorkbenchManagement(
           await run(summary.name, () => remote.installBundle(path, { enabled: true, registry: null }))
         }
       } catch (error) {
+        if (error instanceof WorkbenchHostCompatibilityError) {
+          update({ notice: { kind: 'hostIncompatible', requiredHostApi: error.requiredHostApi, currentHostApi: error.currentHostApi } })
+          return
+        }
         console.warn('Unable to inspect workbench archive', error)
         update({ notice: 'importFailed' })
       } finally { update({ busy: null }) }

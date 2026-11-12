@@ -125,6 +125,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
 export interface WorkbenchDisplayRequest {
   id: WorkbenchId
   mode: 'business' | 'conversation' | 'preview'
+  /** Existing business object to display without rebinding the calling conversation; business mode only. */
+  objectId?: WorkbenchObjectId
   /** Existing associated conversation; omitted conversation modes reuse or create a native conversation. */
   sessionId?: SessionId
   /** Omission preserves the user's saved choice. */
