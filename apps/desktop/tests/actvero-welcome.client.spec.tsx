@@ -22,6 +22,19 @@ function mount(snapshot = initial, language = 'zh-CN') {
   return { bridge, view, receive: (value: AccountSnapshot) => { act(() => { receive(value) }) } }
 }
 describe('ACTVERO account confirmation', () => {
+  it('shows the shared wordmark and restores the logo and name if it fails', async () => {
+    const wordmarkUrl = 'data:image/svg+xml;base64,wordmark'
+    const logoUrl = 'data:image/svg+xml;base64,logo'
+    const { view } = mount({ ...initial, brand: { name: 'XTD Harness', wordmarkUrl, logoUrl } })
+    await act(async () => {})
+    const image = screen.getByRole('img', { name: 'XTD Harness' })
+    expect(image.getAttribute('src')).toBe(wordmarkUrl)
+    expect(screen.queryByText('XTD Harness')).toBeNull()
+    fireEvent.error(image)
+    expect(screen.getByText('XTD Harness')).toBeTruthy()
+    expect(view.container.querySelector('.actvero-brand img')?.getAttribute('src')).toBe(logoUrl)
+  })
+
   it.each(['zh-CN', 'en'])('keeps restored %s identity visible until Continue and snapshots its copy', async (language) => {
     const { bridge, receive } = mount(initial, language)
     await act(async () => {})

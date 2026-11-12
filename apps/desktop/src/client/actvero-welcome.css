@@ -7,6 +7,7 @@ body[data-actvero-welcome] .titlebar { position: absolute; z-index: 2; top: 0; l
 .atmosphere-layer canvas[hidden] { display: none; }
 .actvero-brand { position: relative; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 24px; line-height: 32px; letter-spacing: -.02em; }
 .actvero-brand img { width: 32px; height: 32px; object-fit: contain; }
+.actvero-brand img.actvero-brand-wordmark { width: auto; max-width: 100%; object-position: left center; }
 .actvero-tagline { position: relative; margin-block: auto; }
 .actvero-tagline h2 { font-size: 40px; line-height: 1.4; font-weight: 500; letter-spacing: -.02em; margin: 24px 0; }
 .actvero-tagline p { font-size: 14px; line-height: 24px; margin: 0; }

@@ -29,8 +29,9 @@
 | `product.version` | 安装包版本；与锁定的 DSH 运行时版本独立。 |
 | `product.defaultLocale` | 初始原生语言，支持 `zh-CN` 和 `en-US`；已保存的用户偏好优先。 |
 | `branding.icon` | 必填的正方形 SVG/PNG，用于应用、Dock 和界面默认标志。 |
-| `branding.logo` | 可选的界面/登录页标志；默认使用 `branding.icon`。 |
-| `branding.sidebarLogo` | 可选的 SVG 或 PNG，替换展开侧栏的标志和名称。图片加载失败时，侧栏显示原有的标志和名称。 |
+| `branding.logo` | 可选的紧凑标志和登录页后备图。默认使用 `branding.icon`。 |
+| `branding.wordmark` | 可选的 SVG 或 PNG，为展开侧栏、桌面登录页和浏览器确认页提供完整的品牌图片。 |
+| `branding.sidebarLogo` | 可选的 SVG 或 PNG，覆盖展开侧栏的共用品牌图片。图片加载失败时，侧栏显示原有的标志和名称。 |
 | `branding.trayIcon` | 可选的 Windows 托盘正方形 SVG/PNG；默认使用 `branding.icon`。 |
 | `platform.defaultUrl` | 默认平台地址；远程服务要求 HTTPS，本机回环开发可使用 HTTP。 |
 

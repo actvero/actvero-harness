@@ -17,7 +17,13 @@ export interface ProductConfig {
     readonly version: string
     readonly defaultLocale: 'zh-CN' | 'en-US'
   }
-  readonly branding: { readonly icon: string; readonly logo?: string; readonly sidebarLogo?: string; readonly trayIcon?: string }
+  readonly branding: {
+    readonly icon: string
+    readonly logo?: string
+    readonly wordmark?: string
+    readonly sidebarLogo?: string
+    readonly trayIcon?: string
+  }
   readonly platform: { readonly defaultUrl: string }
   readonly updates: { readonly enabled: boolean; readonly feedUrl: string | null }
   readonly plugins: readonly string[]
@@ -92,7 +98,7 @@ function url(value: unknown, subject: string): string {
 export function validateProductConfig(value: unknown): ProductConfig {
   const input = record(value, ['schemaVersion', 'product', 'branding', 'platform', 'updates', 'plugins'], 'product config')
   const product = record(input.product, ['id', 'applicationId', 'displayName', 'version', 'defaultLocale'], 'product')
-  const branding = record(input.branding, ['icon', 'logo', 'sidebarLogo', 'trayIcon'], 'branding')
+  const branding = record(input.branding, ['icon', 'logo', 'wordmark', 'sidebarLogo', 'trayIcon'], 'branding')
   const platform = record(input.platform, ['defaultUrl'], 'platform')
   const updates = record(input.updates, ['enabled', 'feedUrl'], 'updates')
   const displayName = text(product.displayName, 'product.displayName')
@@ -115,6 +121,7 @@ export function validateProductConfig(value: unknown): ProductConfig {
       version: version(product.version, 'product.version'), defaultLocale: product.defaultLocale },
     branding: { icon: text(branding.icon, 'branding.icon'),
       ...(branding.logo === undefined ? {} : { logo: text(branding.logo, 'branding.logo') }),
+      ...(branding.wordmark === undefined ? {} : { wordmark: text(branding.wordmark, 'branding.wordmark') }),
       ...(branding.sidebarLogo === undefined ? {} : { sidebarLogo: text(branding.sidebarLogo, 'branding.sidebarLogo') }),
       ...(branding.trayIcon === undefined ? {} : { trayIcon: text(branding.trayIcon, 'branding.trayIcon') }) },
     platform: { defaultUrl: url(platform.defaultUrl, 'platform.defaultUrl') },

@@ -29,8 +29,9 @@ The default [product.json](../product.json) names the distribution `Actvero Harn
 | `product.version` | Installer version; independent of the pinned DSH runtime version. |
 | `product.defaultLocale` | Initial native language, `zh-CN` or `en-US`; a saved user preference takes precedence. |
 | `branding.icon` | Required square SVG/PNG for the application, Dock and fallback UI logo. |
-| `branding.logo` | Optional UI/login logo; defaults to `branding.icon`. |
-| `branding.sidebarLogo` | Optional SVG or PNG that replaces the expanded sidebar mark and name. If the image fails to load, the sidebar shows the mark and name. |
+| `branding.logo` | Optional compact mark and sign-in fallback. It defaults to `branding.icon`. |
+| `branding.wordmark` | Optional SVG or PNG that supplies the complete brand artwork in the expanded sidebar, desktop sign-in and browser confirmation. |
+| `branding.sidebarLogo` | Optional SVG or PNG that overrides the shared wordmark in the expanded sidebar. If the image fails to load, the sidebar shows the mark and name. |
 | `branding.trayIcon` | Optional square SVG/PNG for the Windows tray; defaults to `branding.icon`. |
 | `platform.defaultUrl` | Default platform address; remote services require HTTPS, loopback development may use HTTP. |
 

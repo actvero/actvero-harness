@@ -134,16 +134,19 @@ it('uses the build image when a platform has no logo or its logo fails, without 
 })
 
 it('uses the configured wordmark only in the expanded row and recovers the compact mark on error', () => {
-  const sidebarLogoUrl = 'data:image/svg+xml;base64,wordmark'
+  const wordmarkUrl = 'data:image/svg+xml;base64,wordmark'
+  const sidebarLogoUrl = 'data:image/svg+xml;base64,sidebar'
   const logoUrl = 'data:image/svg+xml;base64,mark'
-  const snapshot = { ...ready(), brand: { name: 'XTD Harness', logoUrl, sidebarLogoUrl } }
+  const snapshot = { ...ready(), brand: { name: 'XTD Harness', logoUrl, wordmarkUrl } }
   const expanded = render(<BrandMark wordmark useAccount={selector => selector(snapshot)} />)
   const compact = render(<BrandMark useAccount={selector => selector(snapshot)} />)
   const wordmark = expanded.container.querySelector('[data-sidebar-brand-wordmark]')!
 
-  expect(wordmark.getAttribute('src')).toBe(sidebarLogoUrl)
+  expect(wordmark.getAttribute('src')).toBe(wordmarkUrl)
   expect(compact.container.querySelector('img')?.getAttribute('src')).toBe(logoUrl)
   fireEvent.error(wordmark)
   expect(expanded.container.querySelector('[data-sidebar-brand-wordmark]')).toBeNull()
   expect(expanded.container.querySelector('img')?.getAttribute('src')).toBe(logoUrl)
+  expanded.rerender(<BrandMark wordmark useAccount={selector => selector({ ...snapshot, brand: { ...snapshot.brand, sidebarLogoUrl } })} />)
+  expect(expanded.container.querySelector('[data-sidebar-brand-wordmark]')?.getAttribute('src')).toBe(sidebarLogoUrl)
 })

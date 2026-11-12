@@ -38,8 +38,9 @@ export async function prepareProductBranding(root: string, selectedConfig = 'act
   const icon = bytes(config.branding.icon)
   const logoPath = config.branding.logo ?? config.branding.icon
   const logo = config.branding.logo === undefined ? icon : bytes(logoPath)
-  const sidebarLogoPath = config.branding.sidebarLogo
-  const sidebarLogo = sidebarLogoPath === undefined ? undefined : { path: sidebarLogoPath, source: bytes(sidebarLogoPath) }
+  const optionalArtwork = (path: string | undefined) => path === undefined ? undefined : { path, source: bytes(path) }
+  const sidebarLogo = optionalArtwork(config.branding.sidebarLogo)
+  const wordmark = optionalArtwork(config.branding.wordmark)
   const tray = config.branding.trayIcon === undefined ? icon : bytes(config.branding.trayIcon)
   const raster = async (source: Buffer, size: number, square: boolean) => {
     const image = sharp(source, { density: 144, limitInputPixels: 16_777_216 })
@@ -54,12 +55,16 @@ export async function prepareProductBranding(root: string, selectedConfig = 'act
     ? `data:image/svg+xml;base64,${source.toString('base64')}` : `data:image/png;base64,${png.toString('base64')}`
   const product: BuildProduct = { ...config.product, protocolScheme: `${config.product.id}-desktop`, defaultUrl: config.platform.defaultUrl,
     logoDataUrl: logoUrl(logoPath, logo, logoPng),
+    ...(wordmark === undefined ? {} : {
+      wordmarkDataUrl: logoUrl(wordmark.path, wordmark.source, await raster(wordmark.source, 256, false)),
+    }),
     ...(sidebarLogo === undefined ? {} : {
       sidebarLogoDataUrl: logoUrl(sidebarLogo.path, sidebarLogo.source, await raster(sidebarLogo.source, 256, false)),
     }),
     iconDataUrl: `data:image/png;base64,${iconPng.toString('base64')}` }
   const hash = createHash('sha256').update(JSON.stringify(config)).update(icon).update(logo).update(tray)
   if (sidebarLogo !== undefined) hash.update(sidebarLogo.source)
+  if (wordmark !== undefined) hash.update(wordmark.source)
   const fingerprint = hash.digest('hex')
   const directory = join(root, 'apps/desktop/.desktop-build/actvero/products', config.product.id, fingerprint)
   mkdirSync(directory, { recursive: true })

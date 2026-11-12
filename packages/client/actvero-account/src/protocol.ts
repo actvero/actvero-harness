@@ -21,7 +21,7 @@ export interface AccountSnapshot {
     | 'error'
     | 'logout-pending'
   baseUrl: string
-  brand: { name: string; logoUrl?: string; fallbackLogoUrl?: string; sidebarLogoUrl?: string }
+  brand: { name: string; logoUrl?: string; fallbackLogoUrl?: string; wordmarkUrl?: string; sidebarLogoUrl?: string }
   user?: { id: string; name: string; email?: string; avatarUrl?: string }
   organizations: Organization[]
   organization?: Organization

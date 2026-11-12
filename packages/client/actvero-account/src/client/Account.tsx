@@ -249,7 +249,7 @@ export function BrandMark({ useAccount, wordmark }: Pick<BrandProps, 'useAccount
   const [failedUrl, setFailedUrl] = useState<string>()
   const [failedFallback, setFailedFallback] = useState<string>()
   const [failedWordmark, setFailedWordmark] = useState<string>()
-  const sidebarLogo = account?.brand.sidebarLogoUrl
+  const sidebarLogo = account?.brand.sidebarLogoUrl ?? account?.brand.wordmarkUrl
   const remoteLogo = account?.brand.logoUrl
   const fallbackLogo = account?.brand.fallbackLogoUrl
   const logo = remoteLogo && remoteLogo !== failedUrl ? remoteLogo : fallbackLogo !== failedFallback ? fallbackLogo : undefined

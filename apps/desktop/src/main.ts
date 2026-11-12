@@ -1379,6 +1379,7 @@ async function main(): Promise<void> {
     ...(buildProduct ? { defaultBrand: {
       name: buildProduct.displayName,
       logoUrl: buildProduct.logoDataUrl,
+      ...(buildProduct.wordmarkDataUrl === undefined ? {} : { wordmarkUrl: buildProduct.wordmarkDataUrl }),
       ...(buildProduct.sidebarLogoDataUrl === undefined ? {} : { sidebarLogoUrl: buildProduct.sidebarLogoDataUrl }),
     } } : {}),
     version: buildProduct?.version ?? process.env.ACTVERO_APP_VERSION ?? app.getVersion(), windows: () => [mainWindow, welcomeWindow],
