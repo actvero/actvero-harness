@@ -15,6 +15,8 @@ const repository = fileURLToPath(new URL('../', import.meta.url))
 const template = join(repository, 'actvero/templates/project-checklist')
 const packageName = z.string().max(214).regex(/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u)
 const maxIconBytes = 64 * 1024
+const maxPreviewBytes = 128 * 1024
+const catalogImagePath = z.string().max(200).regex(/^\.\/assets\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:png|jpe?g|webp)$/u)
 const manifestSchema = z.object({
   name: packageName,
   version: z.string().refine(value => semver.valid(value) === value, '版本必须是完整的 SemVer'),
@@ -23,7 +25,9 @@ const manifestSchema = z.object({
   exports: z.object({ '.': z.literal('./lib/index.js'), './client': z.literal('./lib/client.js') }),
   dsh: z.object({
     actveroWorkbench: z.literal(1),
-    actveroWorkbenchIcon: z.string().max(200).regex(/^\.\/assets\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:png|jpe?g|webp)$/u).optional(),
+    actveroWorkbenchIcon: catalogImagePath.optional(),
+    actveroWorkbenchPreviews: z.array(catalogImagePath).max(3)
+      .refine(paths => new Set(paths).size === paths.length, '工作台预览图片路径不能重复').optional(),
     bundle: z.object({ patch: z.literal('./cordis.patch.yml') }),
     client: z.object({ platform: z.literal('web'), inject: z.array(z.string()).refine(value => value.includes('@actvero/dsh-capability-ui')) }).loose(),
   }).loose(),
@@ -87,6 +91,10 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
     const iconSize = files.get(`package/${icon.slice(2)}`)
     if (!iconSize || iconSize > maxIconBytes) throw new Error('工作台头像必须是包内不超过 64 KiB 的图片文件。')
   }
+  for (const preview of manifest.dsh.actveroWorkbenchPreviews ?? []) {
+    const size = files.get('package/' + preview.slice(2))
+    if (!size || size > maxPreviewBytes) throw new Error('工作台预览必须是包内不超过 128 KiB 的图片文件。')
+  }
   return { name: summary.name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }
 }
 
@@ -117,13 +125,13 @@ export async function packWorkbench(directory: string, output: string): Promise<
     await mkdir(join(folder, 'locale'))
     await writeFile(join(folder, 'locale/en.json'), JSON.stringify({ meta: { title: metadata.name, description: metadata.description } }) + '\n')
     const icon = manifest.dsh.actveroWorkbenchIcon
-    if (icon) {
-      await mkdir(join(folder, 'assets'))
-      await cp(join(directory, icon), join(folder, icon))
-    }
+    const assets = new Set(manifest.dsh.actveroWorkbenchPreviews ?? [])
+    if (icon) assets.add(icon)
+    if (assets.size) await mkdir(join(folder, 'assets'))
+    for (const asset of assets) await cp(join(directory, asset), join(folder, asset))
     await writeFile(join(folder, 'package.json'), JSON.stringify({ ...manifest, description: metadata.description,
       exports: { ...manifest.exports, './package.json': './package.json', './locale/*.json': './locale/*.json' },
-      files: ['lib', 'locale', 'cordis.patch.yml', ...(icon ? [icon.slice(2)] : [])],
+      files: ['lib', 'locale', 'cordis.patch.yml', ...Array.from(assets, asset => asset.slice(2))],
     }, null, 2) + '\n')
     await writeFile(join(folder, 'cordis.patch.yml'), `- insert:\n    - id: ${JSON.stringify(manifest.name)}\n      name: ${JSON.stringify(manifest.name)}\n`)
     const archiveName = `${manifest.name.replace(/^@/u, '').replaceAll('/', '-')}-${manifest.version}.tgz`

@@ -58,6 +58,7 @@ The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz`
 | `dsh.client` | Declares the Web client and preceding dependencies including `@actvero/dsh-capability-ui` |
 | `dsh.actveroWorkbenchConfig` | Optional runtime configuration fields for organization administrators |
 | `dsh.actveroWorkbenchIcon` | Optional catalog icon path such as `./assets/icon.webp`. Use a static PNG, JPEG or WebP up to 64 KiB and 512 × 512 pixels |
+| `dsh.actveroWorkbenchPreviews` | Optional ordered list of up to 3 package paths such as `./assets/cover.webp`. Each static PNG, JPEG or WebP must fit within 128 KiB and 2048 × 2048 pixels |
 | `exports["."]` / `exports["./client"]` | This tool's `./lib/index.js` and `./lib/client.js` outputs |
 | `exports["./locale/*.json"]` | Generated name and description metadata remains available before the workbench loads |
 | `workbench.json` | Source display name, description, category, author, and tags, compiled into the Client |
@@ -73,7 +74,7 @@ The artifact contains the manifest, generated patch, display `locale`, and compi
 
 Edit card copy in `workbench.json`. Categories use the expert ecosystem's identifiers: `office`, `engineering`, `design`, `content`, `data`, `education`, `lifestyle`, `general`, and `uncategorized`. My workbenches omits category filtering, but packages may carry a category.
 
-Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and maintain bilingual copy in `locales.ts`. Declare preview imports and an optional `iconUrl` in the Client entry; the Host supplies a fallback icon. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls.
+Edit the business view in `src/client/Checklist.tsx` and its CSS Module, and maintain bilingual copy in `locales.ts`. Declare preview imports and an optional `iconUrl` in the Client entry; the Host supplies a fallback icon. See the [Client definitions](../packages/actvero/capability-ui/src/contracts.ts) for registration. Business content occupies the main area while the Host retains public navigation and window controls. Use the same images for Client registration and catalog declarations to keep the cards consistent. Copy the declared files into the source package’s `assets/` directory before packing.
 
 The example isolates browser local storage by package name and restores progress after reload. A failed read reports an error and disables changes instead of overwriting unreadable data. This storage belongs to the current client configuration; it provides no project, account, or organization isolation and no backup. Production business data requires its own storage design.
 

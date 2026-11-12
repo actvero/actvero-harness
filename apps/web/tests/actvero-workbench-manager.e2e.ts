@@ -154,6 +154,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const scopeKey = 'a'.repeat(32)
           const iconUrl = 'data:image/png;base64,' + readFileSync(join(repository,
             'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist.png')).toString('base64')
+          const previewUrl = 'data:image/png;base64,' + readFileSync(join(repository,
+            'packages/actvero/capability-ui/src/client/workbenches/assets/project-checklist-progress.png')).toString('base64')
           const workbenchId = 'a0000000-0000-4000-8000-000000000001'
           function platformRelease(path: string, releaseVersion: string, versionId: string): { release: PublishedWorkbench; path: string } {
             const bytes = readFileSync(path)
@@ -162,7 +164,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             writeFileSync(pinned, bytes)
             return { path: pinned, release: { workbenchId, versionId, sha256, size: bytes.length,
               name: '平台发布的项目清单', description: '团队共享的项目清单', packageName: '@local/project-checklist',
-              version: releaseVersion, category: 'office', dshRequirement: '*', iconUrl } }
+              version: releaseVersion, category: 'office', dshRequirement: '*', iconUrl, previewUrls: [previewUrl] } }
           }
           const first = platformRelease(checklistArchive, '1.0.0', 'a0000000-0000-4000-8000-000000000002')
           const latest = platformRelease(newerArchive, '1.1.0', 'a0000000-0000-4000-8000-000000000003')
@@ -203,8 +205,15 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const showPlatform = () => page.getByRole('tab', { name: '平台工作台', exact: true }).click()
           await showPlatform()
           const platformCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '平台发布的项目清单' }) })
-          await expect.poll(() => platformCard.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth))
-            .toBeGreaterThan(0)
+          await expect.poll(() => platformCard.locator('img').evaluateAll(images =>
+            images.length === 2 && images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0),
+          )).toBe(true)
+          await platformCard.getByRole('button', { name: '查看预览 · 平台发布的项目清单 · 1', exact: true }).click()
+          const preview = page.getByRole('dialog', { name: '大图预览', exact: true })
+          await preview.waitFor()
+          expect(await preview.locator('img').getAttribute('src')).toBe(previewUrl)
+          await preview.getByRole('button', { name: '关闭大图', exact: true }).click()
+          await preview.waitFor({ state: 'hidden' })
           expect(downloads).toBe(0)
           await platformCard.getByRole('button', { name: '使用', exact: true }).click()
           const installed = page.locator('article').filter({ has: page.getByRole('heading', { name: '项目清单', exact: true }) })

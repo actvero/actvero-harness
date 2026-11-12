@@ -15,7 +15,6 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workbenchArchiveSource, type PublishedWorkbench } from '@actvero/dsh-client-account/protocol'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ActveroWorkbench } from '../../contracts.ts'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
@@ -74,8 +73,11 @@ function PreviewArrows({ t, previous, next, atStart = false, atEnd = false }: Lo
   </>
 }
 
-function CardPreviews({ entry, showDetails, t }: Locale & { entry: ActveroWorkbench; showDetails: (index: number) => void }) {
-  const previews = entry.previewUrls ?? []
+function CardPreviews({ name, previews = [], showPreview, t }: Locale & {
+  name: string
+  previews?: readonly string[]
+  showPreview: (index: number) => void
+}) {
   const track = useRef<HTMLDivElement>(null)
   const [edges, setEdges] = useState({ start: true, end: true })
   useEffect(() => {
@@ -94,11 +96,11 @@ function CardPreviews({ entry, showDetails, t }: Locale & { entry: ActveroWorkbe
     const element = track.current
     if (element) element.scrollBy({ left: direction * element.clientWidth })
   }
-  return <div className={`${styles.previewStrip} ${styles.cardPreviews}`} role="group" aria-label={`${t('previews')} · ${entry.name}`}>
+  return <div className={`${styles.previewStrip} ${styles.cardPreviews}`} role="group" aria-label={`${t('previews')} · ${name}`}>
     <div className={styles.previewRow} ref={track}>
       {previews.length ? previews.map((url, index) => (
         <button key={`${index}:${url}`} className={styles.previewButton}
-          aria-label={`${t('viewPreview')} · ${entry.name} · ${index + 1}`} onClick={() => { showDetails(index) }}>
+          aria-label={`${t('viewPreview')} · ${name} · ${index + 1}`} onClick={() => { showPreview(index) }}>
           <PreviewImage url={url} t={t} />
         </button>
       )) : <span className={`${styles.preview} ${styles.previewFallback}`}><WorkbenchIcon size={22} /><span>{t('noPreview')}</span></span>}
@@ -157,7 +159,7 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
       <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} details={() => { showDetails(0) }} />
     </header>
     <p className={styles.description}>{entry.description}</p>
-    <CardPreviews entry={entry} showDetails={showDetails} t={t} />
+    <CardPreviews name={entry.name} previews={entry.previewUrls} showPreview={showDetails} t={t} />
     <footer className={styles.cardFoot}>
       <span className={styles.metadata}>{t(builtIn ? 'builtIn' : workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')} · {t('versionPrefix')}{entry.version}</span>
       {!builtIn && <span className={styles.status} data-state={entry.state}>{t(entry.state)}</span>}
@@ -247,6 +249,8 @@ function PlatformCard({ release, operation, installedVersion, busy, blocked, t, 
   activate: () => void
   openInstalled: () => void
 }) {
+  const [selectedPreview, setSelectedPreview] = useState<number>()
+  const preview = selectedPreview === undefined ? undefined : release.previewUrls?.[selectedPreview]
   return <article className={styles.card}>
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
@@ -261,10 +265,13 @@ function PlatformCard({ release, operation, installedVersion, busy, blocked, t, 
       </div>
     </header>
     <p className={styles.description}>{release.description}</p>
+    <CardPreviews name={release.name} previews={release.previewUrls} showPreview={setSelectedPreview} t={t} />
     <footer className={styles.cardFoot}>
       <span className={styles.metadata}>{t('versionPrefix')}{release.version}</span>
       {operation === 'updateAndOpen' && <span className={styles.status}>{t('installedVersion')} {installedVersion}</span>}
     </footer>
+    {preview && <ImageLightbox src={preview} alt={`${release.name} · ${t('viewPreview')}`}
+      labels={{ dialog: t('originalPreview'), close: t('closePreview') }} onClose={() => { setSelectedPreview(undefined) }} />}
   </article>
 }
 

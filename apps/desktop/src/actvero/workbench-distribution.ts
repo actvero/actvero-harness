@@ -9,8 +9,11 @@ import { AccountError, object } from './policy.ts'
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
 const digest = /^[0-9a-f]{64}$/
 const packagePattern = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
-const iconData = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/
-const maxIconDataLength = 23 + 4 * Math.ceil(64 * 1024 / 3)
+const rasterData = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/
+
+function catalogImage(value: unknown, maxBytes: number): value is string {
+  return typeof value === 'string' && value.length <= 23 + 4 * Math.ceil(maxBytes / 3) && rasterData.test(value)
+}
 
 function string(value: unknown, max: number, pattern?: RegExp): string {
   if (typeof value !== 'string' || value.length > max || (pattern && !pattern.test(value)))
@@ -50,6 +53,9 @@ export function publishedWorkbenches(value: unknown): PublishedWorkbench[] {
   return items.map((item: unknown) => {
     const row = object(item)
     const icon = row.icon_data_url
+    const previews = Array.isArray(row.preview_data_urls)
+      ? row.preview_data_urls.slice(0, 3).filter((url: unknown) => catalogImage(url, 128 * 1024))
+      : []
     return {
       workbenchId: string(row.workbench_id, 36, uuid),
       versionId: string(row.version_id, 36, uuid),
@@ -57,7 +63,8 @@ export function publishedWorkbenches(value: unknown): PublishedWorkbench[] {
       packageName: string(row.package_name, 214, packagePattern),
       name: string(row.display_name, 100),
       description: string(row.description, 1024),
-      ...(typeof icon === 'string' && icon.length <= maxIconDataLength && iconData.test(icon) ? { iconUrl: icon } : {}),
+      ...(catalogImage(icon, 64 * 1024) ? { iconUrl: icon } : {}),
+      ...(previews.length ? { previewUrls: previews } : {}),
       category: string(row.category, 20),
       version: string(row.version, 80),
       dshRequirement: string(row.dsh_requirement, 160),

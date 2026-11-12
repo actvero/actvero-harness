@@ -58,6 +58,7 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 | `dsh.client` | 声明 Web 客户端及先加载的 `@actvero/dsh-capability-ui` 等依赖 |
 | `dsh.actveroWorkbenchConfig` | 可选的运行配置字段，供组织管理员填写 |
 | `dsh.actveroWorkbenchIcon` | 可选的目录头像路径，如 `./assets/icon.webp`。使用不超过 64 KiB、512 × 512 像素的静态 PNG、JPEG 或 WebP 图片 |
+| `dsh.actveroWorkbenchPreviews` | 可选的目录预览路径列表，如 `./assets/cover.webp`，按声明顺序展示，最多 3 张。每张须为不超过 128 KiB、2048 × 2048 像素的静态 PNG、JPEG 或 WebP 图片 |
 | `exports["."]` / `exports["./client"]` | 本工具输出的 `./lib/index.js` 和 `./lib/client.js` |
 | `exports["./locale/*.json"]` | 打包生成名称与介绍元数据，工作台未加载时仍可展示 |
 | `workbench.json` | 源码中的名称、介绍、分类、作者和标签；编译时纳入客户端 |
@@ -73,7 +74,7 @@ pnpm run actvero:workbench check .artifacts/workbenches/local-my-checklist-1.0.0
 
 在 `workbench.json` 修改卡片文案；分类使用专家生态的统一标识：`office`、`engineering`、`design`、`content`、`data`、`education`、`lifestyle`、`general`、`uncategorized`。「我的工作台」不展示分类筛选，但包仍可携带分类。
 
-在 `src/client/Checklist.tsx` 和相邻 CSS Module 修改业务视图，在 `locales.ts` 维护中英文案。在客户端入口声明预览图和可选 `iconUrl`；缺少图标时宿主显示默认图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。
+在 `src/client/Checklist.tsx` 和相邻 CSS Module 修改业务视图，在 `locales.ts` 维护中英文案。在客户端入口声明预览图和可选 `iconUrl`；缺少图标时宿主显示默认图标。工作台注册接口见[客户端约定](../packages/actvero/capability-ui/src/contracts.ts)。业务内容占据主内容区，宿主保留公共导航与窗口控件。客户端注册与目录声明使用同一套图片。打包前将声明的文件放入源码包的 `assets/` 目录。
 
 示例按包名隔离浏览器本地存储，刷新后恢复清单；读取失败会显示错误并禁用修改，避免覆盖无法读取的数据。这里的存储属于当前客户端配置，不提供多项目、账户或组织隔离，也不提供备份。正式业务的数据管理需要独立设计。
 
