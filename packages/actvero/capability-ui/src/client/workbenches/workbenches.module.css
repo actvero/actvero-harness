@@ -20,6 +20,7 @@
 .description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; min-height: 40px; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 .previewStrip { position: relative; min-width: 0; }
 .cardPreviews { z-index: 1; margin-top: auto; }
+.cardPreviews[data-empty] { pointer-events: none; }
 .previewButton { display: block; flex: 0 0 calc((100% - 12px) / 2.5); height: 82px; min-width: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; scroll-snap-align: start; }
 .previewButton:only-child { flex-basis: 100%; }
 .previewRow { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 0; }

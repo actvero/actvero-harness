@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest'
 import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { createWorkbenchManagement, type WorkbenchManagement } from '../src/client/workbenches/management.ts'
 import { workbenchCatalog } from '../src/client/workbenches/catalog.ts'
-import { publishedWorkbenchAction } from '../src/client/workbenches/platform.ts'
+import { publishedWorkbenchAction, publishedWorkbenchDetails } from '../src/client/workbenches/platform.ts'
 
 
 const bundle: BundleInfo = {
@@ -101,6 +101,18 @@ it('downloads a newer release only after a platform action and keeps its guarded
   const current = { ...release, version: '1.0.0', versionId: oldId, sha256: 'b'.repeat(64) }
   expect(publishedWorkbenchAction(current, scope, installed)).toBe('open')
   expect(publishedWorkbenchAction(release, 'd'.repeat(32), installed)).toBe('platformConflict')
+  const live = {
+    id: bundle.name, name: 'Checklist', description: '', version: '1.0.0', runningVersion: '1.0.0', bundle: installed,
+    state: 'ready' as const, iconUrl: 'loaded-icon', previewUrls: ['loaded-preview'], author: 'Author', tags: ['Tasks'],
+  }
+  expect(publishedWorkbenchDetails(current, scope, live)).toMatchObject({
+    iconUrl: 'loaded-icon', previewUrls: ['loaded-preview'], author: 'Author', state: 'ready',
+  })
+  expect(publishedWorkbenchDetails({ ...current, previewUrls: ['published-preview'] }, scope, live).previewUrls)
+    .toEqual(['published-preview'])
+  expect(publishedWorkbenchDetails(release, scope, live).previewUrls).toBeUndefined()
+  expect(publishedWorkbenchDetails(current, 'd'.repeat(32), live).previewUrls).toBeUndefined()
+  expect(publishedWorkbenchDetails(current, scope, { ...live, runningVersion: '1.1.0' }).previewUrls).toBeUndefined()
   expect(download).not.toHaveBeenCalled()
 
   await expect(actions.installPublished(release, scope, download, () => true)).resolves.toBe(false)

@@ -18,7 +18,7 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
-import { publishedWorkbenchAction, type PublishedWorkbenchAction } from './platform.ts'
+import { publishedWorkbenchAction, publishedWorkbenchDetails, type PublishedWorkbenchAction, type WorkbenchDetails } from './platform.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
 import hubStyles from '../hub.module.css'
@@ -96,7 +96,7 @@ function CardPreviews({ name, previews = [], showPreview, t }: Locale & {
     const element = track.current
     if (element) element.scrollBy({ left: direction * element.clientWidth })
   }
-  return <div className={`${styles.previewStrip} ${styles.cardPreviews}`} role="group" aria-label={`${t('previews')} · ${name}`}>
+  return <div className={`${styles.previewStrip} ${styles.cardPreviews}`} role="group" aria-label={`${t('previews')} · ${name}`} data-empty={!previews.length || undefined}>
     <div className={styles.previewRow} ref={track}>
       {previews.length ? previews.map((url, index) => (
         <button key={`${index}:${url}`} className={styles.previewButton}
@@ -167,14 +167,16 @@ function Card({ entry, builtIn, open, showDetails, t, manage, blocked }: Locale 
   </article>
 }
 
-function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blocked }: Locale & {
-  entry: WorkbenchItem
-  manage: (action: ManageAction) => void
-  blocked: boolean
-  builtIn: boolean
+type DetailActions =
+  | { kind: 'local'; entry: WorkbenchItem; open: () => void; manage: (action: ManageAction) => void; blocked: boolean }
+  | ({ kind: 'platform' } & PlatformActionProps)
+
+function Details({ entry, source, actions, initialPreview, onClose, t }: Locale & {
+  entry: WorkbenchDetails
+  source: 'builtIn' | 'platform' | 'local'
+  actions: DetailActions
   initialPreview: number
   onClose: () => void
-  open: () => void
 }) {
   const previews = entry.previewUrls ?? []
   const [selected, setSelected] = useState(initialPreview)
@@ -218,18 +220,22 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
             </> : <div className={`${styles.largePreview} ${styles.previewFallback}`}><WorkbenchIcon size={32} /><span>{t('noPreview')}</span></div>}
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
-            <div className={styles.detailIdentity}><Mark url={entry.iconUrl} builtIn={builtIn} /><h3>{t('about')}</h3></div>
+            <div className={styles.detailIdentity}><Mark url={entry.iconUrl} builtIn={source === 'builtIn'} /><h3>{t('about')}</h3></div>
             <p className={styles.detailDescription}>{entry.description}</p>
             {!!entry.tags?.length && <div className={styles.tags}>{entry.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             <dl className={styles.facts}>
-              <div><dt>{t('source')}</dt><dd>{t(builtIn ? 'builtIn' : workbenchArchiveSource(entry.bundle?.source) ? 'platform' : 'local')}</dd></div>
+              <div><dt>{t('source')}</dt><dd>{t(source)}</dd></div>
               <div><dt>{t('version')}</dt><dd>{entry.version}</dd></div>
-              {!builtIn && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
+              {source !== 'builtIn' && entry.state && <div><dt>{t('status')}</dt><dd>{t(entry.state)}</dd></div>}
+              {actions.kind === 'platform' && actions.item.operation === 'updateAndOpen' && actions.item.installedVersion &&
+                <div><dt>{t('installedVersion')}</dt><dd>{actions.item.installedVersion}</dd></div>}
               {entry.runningVersion && entry.runningVersion !== entry.version && <div><dt>{t('runningVersion')}</dt><dd>{entry.runningVersion}</dd></div>}
               {entry.author && <div><dt>{t('author')}</dt><dd>{entry.author}</dd></div>}
             </dl>
             <div className={styles.detailActions}>
-              <ManagementActions entry={entry} t={t} open={open} manage={manage} blocked={blocked} />
+              {actions.kind === 'platform'
+                ? <PlatformActions t={t} item={actions.item} activate={actions.activate} openInstalled={actions.openInstalled} />
+                : <ManagementActions t={t} entry={actions.entry} open={actions.open} manage={actions.manage} blocked={actions.blocked} />}
             </div>
           </section>
         </div>
@@ -240,38 +246,50 @@ function Details({ entry, builtIn, initialPreview, onClose, open, t, manage, blo
   </>
 }
 
-function PlatformCard({ release, operation, installedVersion, busy, blocked, t, activate, openInstalled }: Locale & {
+type PlatformItem = {
   release: PublishedWorkbench
+  details: WorkbenchDetails
   operation: PublishedWorkbenchAction
   installedVersion?: string
   busy: boolean
   blocked: boolean
+}
+
+type PlatformActionProps = {
+  item: PlatformItem
   activate: () => void
   openInstalled: () => void
+}
+
+function PlatformActions({ item, activate, openInstalled, t }: Locale & PlatformActionProps) {
+  const { release, operation, busy, blocked } = item
+  return <div className={styles.cardActions}>
+    {operation === 'updateAndOpen' && <ActionMenu className={styles.more} label={`${t('more')} · ${release.name}`}
+      items={[{ id: 'open-installed', label: t('openInstalled'), disabled: blocked }]} onSelect={openInstalled} />}
+    <Button className={styles.openButton} variant="primary" disabled={blocked || operation === 'restartState' || operation === 'platformConflict'}
+      onClick={activate}>{t(busy ? 'busy' : operation === 'platformConflict' ? 'versionConflict' : operation)}</Button>
+  </div>
+}
+
+function PlatformCard({ item, activate, openInstalled, showDetails, t }: Locale & PlatformActionProps & {
+  showDetails: (previewIndex: number) => void
 }) {
-  const [selectedPreview, setSelectedPreview] = useState<number>()
-  const preview = selectedPreview === undefined ? undefined : release.previewUrls?.[selectedPreview]
+  const { details, operation, installedVersion } = item
   return <article className={styles.card}>
+    <button className={styles.cardTrigger} aria-label={`${t('details')} · ${details.name}`} onClick={() => { showDetails(0) }} />
     <header className={styles.cardHeader}>
       <div className={styles.identity}>
-        <Mark url={release.iconUrl} />
-        <h3 className={styles.name} title={release.name}>{release.name}</h3>
+        <Mark url={details.iconUrl} />
+        <h3 className={styles.name} title={details.name}>{details.name}</h3>
       </div>
-      <div className={styles.cardActions}>
-        {operation === 'updateAndOpen' && <ActionMenu className={styles.more} label={`${t('more')} · ${release.name}`}
-          items={[{ id: 'open-installed', label: t('openInstalled'), disabled: blocked }]} onSelect={openInstalled} />}
-        <Button className={styles.openButton} variant="primary" disabled={blocked || operation === 'restartState' || operation === 'platformConflict'}
-          onClick={activate}>{t(busy ? 'busy' : operation === 'platformConflict' ? 'versionConflict' : operation)}</Button>
-      </div>
+      <PlatformActions item={item} t={t} activate={activate} openInstalled={openInstalled} />
     </header>
-    <p className={styles.description}>{release.description}</p>
-    <CardPreviews name={release.name} previews={release.previewUrls} showPreview={setSelectedPreview} t={t} />
+    <p className={styles.description}>{details.description}</p>
+    <CardPreviews name={details.name} previews={details.previewUrls} showPreview={showDetails} t={t} />
     <footer className={styles.cardFoot}>
-      <span className={styles.metadata}>{t('versionPrefix')}{release.version}</span>
+      <span className={styles.metadata}>{t('versionPrefix')}{details.version}</span>
       {operation === 'updateAndOpen' && <span className={styles.status}>{t('installedVersion')} {installedVersion}</span>}
     </footer>
-    {preview && <ImageLightbox src={preview} alt={`${release.name} · ${t('viewPreview')}`}
-      labels={{ dialog: t('originalPreview'), close: t('closePreview') }} onClose={() => { setSelectedPreview(undefined) }} />}
   </article>
 }
 
@@ -281,7 +299,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('all')
   const [source, setSource] = useState<'platform' | 'local'>('local')
-  const [detailSelection, setDetailSelection] = useState<{ id: string; previewIndex: number }>()
+  const [detailSelection, setDetailSelection] = useState<{ source: 'platform' | 'local'; id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
   const [removeTarget, setRemoveTarget] = useState<WorkbenchItem>()
@@ -300,7 +318,17 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
   const published = platform?.items.filter(entry => (category === 'all' || categoryOf(entry.category) === category)
     && [entry.name, entry.description, entry.packageName, t(categoryOf(entry.category))]
       .some(value => value.toLocaleLowerCase().includes(needle))) ?? []
-  const detail = catalog.find(entry => entry.id === detailSelection?.id)
+  const platformItems: PlatformItem[] = platform ? published.map((release) => {
+    const bundle = view.bundles.find(item => item.name === release.packageName && item.installed)
+    const installed = catalog.find(entry => entry.id === release.packageName)
+    const operation = installed?.state === 'restartState' ? 'restartState' : publishedWorkbenchAction(release, platform.scope, bundle)
+    return { release, details: publishedWorkbenchDetails(release, platform.scope, installed), operation,
+      installedVersion: bundle?.version, busy: view.busy === release.packageName,
+      blocked: blocked || view.refreshing || view.platform.phase !== 'ready' }
+  }) : []
+  const platformDetail = detailSelection?.source === 'platform'
+    ? platformItems.find(item => item.release.workbenchId === detailSelection.id) : undefined
+  const detail = detailSelection?.source === 'local' ? catalog.find(entry => entry.id === detailSelection.id) : undefined
   const entries = catalog.filter(entry => [entry.name, entry.description, entry.author ?? '', ...(entry.tags ?? []), t(categoryOf(entry.category))]
     .some(value => value.toLocaleLowerCase().includes(needle)))
 
@@ -336,17 +364,11 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         <Button variant="ghost" disabled={view.refreshing} onClick={() => { void action.refresh() }}>{t('refresh')}</Button></div>}
       {view.notice && <div className={styles.notice} role="status"><span>{t(view.notice)}</span>
         {view.diagnostic && <details><summary>{t('diagnostic')}</summary><pre>{view.diagnostic}</pre></details>}</div>}
-      {source === 'platform' ? (published.length > 0 && platform ? <div className={catalogStyles.grid}>
-        {published.map((release) => {
-          const bundle = view.bundles.find(item => item.name === release.packageName && item.installed)
-          const operation = publishedWorkbenchAction(release, platform.scope, bundle)
-          const item = catalog.find(entry => entry.id === release.packageName)
-          return <PlatformCard key={release.workbenchId} release={release} t={t} operation={item?.state === 'restartState' ? 'restartState' : operation}
-            installedVersion={bundle?.version} busy={view.busy === release.packageName}
-            blocked={blocked || view.refreshing || view.platform.phase !== 'ready'}
-            activate={() => { void action.usePublished(release) }}
-            openInstalled={() => { action.open(release.packageName) }} />
-        })}
+      {source === 'platform' ? (platformItems.length > 0 ? <div className={catalogStyles.grid}>
+        {platformItems.map(item => <PlatformCard key={item.release.workbenchId} item={item} t={t}
+          activate={() => { void action.usePublished(item.release) }}
+          openInstalled={() => { action.open(item.release.packageName) }}
+          showDetails={(previewIndex) => { setDetailSelection({ source: 'platform', id: item.release.workbenchId, previewIndex }) }} />)}
       </div> : <div className={styles.platformEmpty}>
         <span className={styles.platformMark}><WorkbenchIcon size={30} /></span>
         <p role={view.platform.phase === 'failed' ? 'alert' : 'status'}>{t(
@@ -357,7 +379,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         {entries.map(entry => (
           <Card key={entry.id} entry={entry} builtIn={entry.id === builtIn.id} t={t} blocked={blocked}
             manage={(operation) => { manage(entry, operation) }}
-            showDetails={(previewIndex) => { setDetailSelection({ id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
+            showDetails={(previewIndex) => { setDetailSelection({ source: 'local', id: entry.id, previewIndex }) }} open={() => { action.open(entry.id) }} />
         ))}
       </div> : <div className={styles.empty}>
         <WorkbenchIcon size={27} />
@@ -365,10 +387,16 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         <Button variant="ghost" onClick={() => { setQuery('') }}>{t('clear')}</Button>
       </div>}
     </div>
-    {detail && detailSelection && <Details key={detail.id} entry={detail} builtIn={detail.id === builtIn.id}
-      initialPreview={detailSelection.previewIndex} t={t} blocked={blocked} manage={(operation) => { manage(detail, operation) }}
-      onClose={() => { setDetailSelection(undefined) }}
-      open={() => { setDetailSelection(undefined); action.open(detail.id) }} />}
+    {detail && detailSelection && <Details key={detail.id} entry={detail}
+      source={detail.id === builtIn.id ? 'builtIn' : workbenchArchiveSource(detail.bundle?.source) ? 'platform' : 'local'}
+      initialPreview={detailSelection.previewIndex} t={t} onClose={() => { setDetailSelection(undefined) }}
+      actions={{ kind: 'local', entry: detail, blocked, manage: (operation) => { manage(detail, operation) },
+        open: () => { setDetailSelection(undefined); action.open(detail.id) } }} />}
+    {platformDetail && detailSelection && <Details key={platformDetail.release.versionId} entry={platformDetail.details} source="platform"
+      initialPreview={detailSelection.previewIndex} t={t} onClose={() => { setDetailSelection(undefined) }}
+      actions={{ kind: 'platform', item: platformDetail,
+        activate: () => { setDetailSelection(undefined); void action.usePublished(platformDetail.release) },
+        openInstalled: () => { setDetailSelection(undefined); action.open(platformDetail.release.packageName) } }} />}
     <ConfirmDialog open={!!view.pendingUpdate} title={t('updateTitle')} closeLabel={t('close')}
       resourceName={`${catalog.find(entry => entry.id === view.pendingUpdate?.name)?.name ?? view.pendingUpdate?.name ?? ''} · ${view.pendingUpdate?.from ?? ''} → ${view.pendingUpdate?.to ?? ''}`}
       description={t('updateHelp')} cancelLabel={t('cancel')} confirmLabel={t('confirmUpdate')} pending={!!view.busy}
