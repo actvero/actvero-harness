@@ -16,7 +16,7 @@
     },
     "./client/contracts": {
       "types": "./lib/types/contracts.d.ts",
-      "default": "./lib/types/contracts.js"
+      "default": "./lib/contracts.js"
     },
     "./package.json": "./package.json",
     "./client/loading": {
