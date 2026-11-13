@@ -36,17 +36,19 @@ export function workbenchCatalog(view: Pick<WorkbenchView, 'entries' | 'remember
   const cards: WorkbenchItem[] = installed.map((bundle) => {
     const live = view.entries.find(entry => entry.id === bundle.name)
     const remembered = live ?? view.remembered.find(entry => entry.id === bundle.name)
+    const packageCard = bundle.meta?.workbench
     const entry: ActveroWorkbench = remembered ?? {
       id: bundle.name,
-      name: bundle.meta?.title ? resolveText(bundle.meta.title) : bundle.name,
-      description: bundle.meta?.description ? resolveText(bundle.meta.description) : bundle.description ?? '',
+      name: packageCard?.name ?? (bundle.meta?.title ? resolveText(bundle.meta.title) : bundle.name),
+      description: packageCard?.description ?? (bundle.meta?.description ? resolveText(bundle.meta.description) : bundle.description ?? ''),
       version: bundle.version ?? '',
       ...(bundle.meta?.icon ? { iconUrl: bundle.meta.icon } : {}),
     }
     const iconUrl = workbenchIconUrl(view, bundle.name)
     const restart = bundle.restartRequired || view.restart.includes(bundle.name)
       || (live && (!bundle.enabled || live.version !== bundle.version))
-    return { ...entry, ...(iconUrl ? { iconUrl } : {}), version: bundle.version ?? entry.version, bundle,
+    return { ...entry, ...(iconUrl ? { iconUrl } : {}),
+      ...(packageCard?.previewUrls ? { previewUrls: packageCard.previewUrls } : {}), version: bundle.version ?? entry.version, bundle,
       ...(live ? { runningVersion: live.version } : {}),
       state: restart ? 'restartState' : bundle.error ? 'failedState' : !bundle.enabled ? 'disabledState' : live ? 'ready' : 'unloadedState',
     }

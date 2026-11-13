@@ -6,6 +6,14 @@ import { workbenchArchiveSource, type PublishedWorkbench } from '@actvero/dsh-cl
 import { WorkbenchHostCompatibilityError } from '../../workbench-protocol.ts'
 import { readWorkbenchPackage } from './archive.ts'
 
+type InstallBundle = Context['remote']['pluginManager']['installBundle']
+interface WorkbenchInstall {
+  name: string
+  path: string
+  options: NonNullable<Parameters<InstallBundle>[1]>
+  stillCurrent?: () => boolean
+}
+
 /** Localized outcome with optional installer diagnostics. */
 export type WorkbenchNotice = 'invalidPackage' | 'desktopOnly' | 'importFailed' | 'incompatible' | 'restart'
   | 'currentVersion' | 'olderVersion' | 'wrongPackage' | 'changedElsewhere'
@@ -31,6 +39,7 @@ export interface WorkbenchManagement {
   notice: WorkbenchNotice | null
   diagnostic: string
   pendingUpdate: WorkbenchUpdate | null
+  pendingBuilds: readonly string[]
   restart: readonly string[]
 }
 
@@ -46,8 +55,9 @@ export function createWorkbenchManagement(
   beforeChange: (name: string) => Promise<'activeConversation' | 'sessionStateUnavailable' | null>,
 ) {
   let state: WorkbenchManagement = {
-    bundles: [], refreshing: false, inventoryFailed: false, busy: null, notice: null, diagnostic: '', pendingUpdate: null, restart: [],
+    bundles: [], refreshing: false, inventoryFailed: false, busy: null, notice: null, diagnostic: '', pendingUpdate: null, pendingBuilds: [], restart: [],
   }
+  let blockedInstall: WorkbenchInstall | undefined
   let disposed = false
   let loading: Promise<void> | undefined
   let requested = false
@@ -87,8 +97,8 @@ export function createWorkbenchManagement(
     }
     update({ notice, diagnostic: notice === null ? '' : result.error?.diagnostic ?? result.packageResult?.kind ?? '' })
   }
-  const run = async (target: string, operation: () => ReturnType<typeof remote.installBundle>) => {
-    if (state.busy || state.inventoryFailed || disposed) return false
+  const run = async (target: string, operation: () => ReturnType<InstallBundle>, installRequest?: WorkbenchInstall) => {
+    if (state.busy || state.inventoryFailed || disposed || blockedInstall) return false
     update({ busy: target, notice: null, diagnostic: '' })
     try {
       const blocked = await beforeChange(target)
@@ -97,6 +107,13 @@ export function createWorkbenchManagement(
       if (blocked) { update({ notice: blocked }); return }
       const result = await operation()
       if (result.ok) {
+        const pendingBuilds = result.value.pendingBuilds
+        if (result.value.application === 'failed' && result.value.packageResult?.kind === 'build-blocked'
+          && installRequest && pendingBuilds?.length) {
+          blockedInstall = installRequest
+          update({ pendingBuilds })
+          return false
+        }
         outcome(result.value)
         return result.value.application === 'applied'
       }
@@ -110,18 +127,33 @@ export function createWorkbenchManagement(
     }
     return false
   }
+  const install = (request: WorkbenchInstall, approvedBuilds?: string[]) => run(request.name,
+    () => remote.installBundle(request.path, { ...request.options, ...(approvedBuilds ? { approvedBuilds } : {}) }), request)
+  const clearBuilds = () => {
+    blockedInstall = undefined
+    update({ pendingBuilds: [] })
+  }
   return {
     initial: state,
     refresh,
     dispose: () => { disposed = true },
     report(notice: WorkbenchNotice) { update({ notice, diagnostic: '' }) },
+    cancelBuilds() { if (!state.busy) clearBuilds() },
+    async confirmBuilds() {
+      if (!blockedInstall || state.busy || disposed) return
+      const request = blockedInstall
+      const names = [...state.pendingBuilds]
+      clearBuilds()
+      if (request.stillCurrent?.() === false) { update({ notice: 'changedElsewhere' }); return }
+      await install(request, names)
+    },
     async installPublished(
       release: PublishedWorkbench,
       scope: string,
       download: () => Promise<string>,
       stillCurrent: () => boolean,
     ) {
-      if (state.busy || state.inventoryFailed || disposed) return false
+      if (state.busy || state.inventoryFailed || disposed || blockedInstall) return false
       update({ busy: release.packageName, notice: null, diagnostic: '', pendingUpdate: null })
       const current = state.bundles.find(bundle => bundle.name === release.packageName && bundle.installed)
       try {
@@ -143,7 +175,7 @@ export function createWorkbenchManagement(
         }
         if (disposed || !stillCurrent()) return false
         update({ busy: null })
-        return await run(release.packageName, () => remote.installBundle(path, {
+        return await install({ name: release.packageName, path, stillCurrent, options: {
           enabled: true, registry: null,
           ...(current?.version ? { replace: {
             name: release.packageName,
@@ -152,7 +184,7 @@ export function createWorkbenchManagement(
             ...(current.source ? { source: current.source } : {}),
           } }
             : { installNew: { name: release.packageName, version: release.version } }),
-        }))
+        } })
       } finally {
         update({ busy: null })
       }
@@ -160,14 +192,14 @@ export function createWorkbenchManagement(
     cancelUpdate() { if (!state.busy) update({ pendingUpdate: null }) },
     async confirmUpdate() {
       const pending = state.pendingUpdate
-      if (!pending || state.busy) return
+      if (!pending || state.busy || blockedInstall) return
       update({ pendingUpdate: null })
-      await run(pending.name, () => remote.installBundle(pending.path, {
+      await install({ name: pending.name, path: pending.path, options: {
         enabled: pending.enabled, registry: null, replace: { name: pending.name, version: pending.from, nextVersion: pending.to },
-      }))
+      } })
     },
     async importFile(file: File, expectedName?: string) {
-      if (state.busy || disposed) return
+      if (state.busy || disposed || blockedInstall) return
       update({ busy: 'inspect', notice: null, diagnostic: '', pendingUpdate: null })
       try {
         const summary = await readWorkbenchPackage(file)
@@ -189,7 +221,7 @@ export function createWorkbenchManagement(
         else {
           // Transfer the inspection's write guard directly to the installer.
           update({ busy: null })
-          await run(summary.name, () => remote.installBundle(path, { enabled: true, registry: null }))
+          await install({ name: summary.name, path, options: { enabled: true, registry: null } })
         }
       } catch (error) {
         if (error instanceof WorkbenchHostCompatibilityError) {
