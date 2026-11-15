@@ -6,9 +6,9 @@ This reference helps ACTVERO desktop maintainers update the independent plugin a
 
 ## Loading
 
-The desktop and Web bundle resolvers consume the same archive through `file:` dependencies. The plugin manager inserts the Host row through the packaged `dsh.bundle` declaration; DSH Loader loads the Client. The base Web composition does not insert a duplicate row. Electron Main and the trusted main-frame preload provide the window bridge. Without installation there is no entry; an installed plugin on a host missing the window bridge or expert service shows a persistent requirement for the matching desktop build in settings. Experts and voice use their native Client services without creating another conversation or recognizer.
+The desktop and Web bundle resolvers consume the same archive through `file:` dependencies. The plugin manager inserts the Host row through the packaged `dsh.bundle` declaration; DSH Loader loads the Client. The base Web composition does not insert a duplicate row. Electron Main and the trusted main-frame preload provide the window bridge. The matching desktop ships this bundle, which can be enabled in Plugins without adding its GitHub URL again. Without activation there is no entry; an installed plugin on a host missing the window bridge or expert service shows a persistent requirement for the matching desktop build in settings. Experts and voice use their native Client services without creating another conversation or recognizer.
 
-For updates, run `pnpm check` and `pnpm pack` in the independent repository, then update the versioned archive, both resolver dependencies and the root lockfile together. This directory does not contain plugin source; do not deliver changes by editing unpacked `node_modules`.
+For updates, run `pnpm check` and `pnpm pack` in the independent repository, then update the versioned archive, both resolver dependencies and the root lockfile together. Desktop packaging selects the archive named in `source.json`, verifies its SHA512, private package identity and version, then includes it in the runtime package set; adjacent older archives are not selected. This directory does not contain plugin source; do not deliver changes by editing unpacked `node_modules`.
 
 ## Verification
 
