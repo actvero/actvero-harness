@@ -178,6 +178,8 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   actveroWorkbenches: 'client-side interface registry provided as an object — packages/actvero/capability-ui/README.md owns the API',
   actveroMcp: 'interface-typed Host adapter provided as an object, not a service class; refreshes session-scoped MCP registrations — packages/actvero/connectors/README.md owns the API',
   actveroExpertPolicy: 'interface-typed Host adapter provided as an object, not a service class; resolves expert connector permissions — packages/actvero/experts/README.md owns the API',
+  actveroExpertLauncher: 'Client interface for native expert shortcuts and conversation restoration — packages/actvero/experts/README.md owns the API',
+  voiceInputControls: 'Client interface for mounted native voice controls — packages/experimental/client-ui-voice-input/README.md owns the API',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',

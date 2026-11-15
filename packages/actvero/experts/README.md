@@ -36,6 +36,8 @@ A summon reuses its verified runtime only inside one Main-owned selection operat
 
 Selecting an expert overlays its exact skill versions and connector requirements on the native capabilities. It does not hide unrelated native skills or already added MCP configurations. A same-name skill resolves to the verified expert version, and a failed pin validation still rejects the view instead of falling back to discovered content.
 
+The Client service `ctx.actveroExpertLauncher` supplies expert choices for shortcuts such as game mode and resumes the expert’s latest conversation in the current workspace; without history it uses the native summon flow. Catalog checks and cancellation reject unavailable experts and late navigation; execution remains subject to Host authorization.
+
 The Host adapter `ctx.actveroExpertPolicy` resolves the permitted connector IDs for an agent from its expert snapshot and conversation choices. An undefined selection leaves the ordinary connector policy in control; an empty selection permits none. Its object interface and provider live in [the Host plugin](src/index.ts).
 
 Platform catalog cards compare the locally retained release with the latest release and show version changes. DSH Toast announces available updates when the catalog is opened or refreshed. Detail previews retain this status until preparation succeeds; preparation shows both versions. Existing conversation selections retain their snapshot name, version and avatar. Every portrait accepted by the manifest is also accepted by the session projection.

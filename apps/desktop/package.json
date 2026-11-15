@@ -56,7 +56,9 @@
     "@actvero/dsh-skills": "workspace:*",
     "@actvero/dsh-connectors": "workspace:*",
     "@actvero/dsh-experts": "workspace:*",
-    "@actvero/dsh-model-gateway": "workspace:*"
+    "@actvero/dsh-model-gateway": "workspace:*",
+    "@actvero/dsh-game-mode": "file:../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.2.tgz",
+    "koffi": "3.1.1"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-app-boot": "workspace:*",
@@ -75,7 +77,6 @@
     "electron-builder": "^26.17.0",
     "extract-zip": "^2.0.1",
     "js-yaml": "^4.3.2",
-    "koffi": "3.1.1",
     "pnpm": "11.28.5",
     "sharp": "0.35.5",
     "typescript": "^6.0.3",

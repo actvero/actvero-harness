@@ -8,6 +8,7 @@
     "actvero/templates/ai-checklist/src/document.ts",
     "actvero/templates/ai-checklist/src/index.ts",
     "apps/web/tests/actvero-capabilities.e2e.ts",
+    "apps/web/tests/actvero-game-mode.e2e.ts",
     "apps/web/tests/actvero-workbench-manager.e2e.ts",
     "apps/web/tests/actvero-workbench-header.e2e.ts",
     "apps/web/tests/actvero-workbench-lifecycle.snapshot.ts",

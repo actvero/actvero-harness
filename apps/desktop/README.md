@@ -50,6 +50,8 @@ A server-expired account credential returns to Welcome when no official API key 
 
 Desktop microphone access is restricted to audio requests from the primary `dsh-app://app` frame. macOS uses system microphone authorization, a packaged usage description, and `com.apple.security.device.audio-input` in the main application and Helper signatures.
 
+The ACTVERO main window mounts the [game mode plugin](../../actvero/plugins/game-mode/README.md), reusing native chat, experts and voice. Hardware verification of window materials and background input is recorded separately from browser integration.
+
 Press F12 (Fn+F12 on media-key keyboards), Command+Option+I on macOS, or Ctrl+Shift+I on Windows to toggle DevTools for the focused application page, including in packaged builds. These native shortcuts use hidden application-menu items. Update overlays and packaged embedded browser guests disable DevTools.
 
 <a id="terminal-command"></a>

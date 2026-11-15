@@ -171,6 +171,10 @@
       name: '@actvero/dsh-model-gateway'
       disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
 
+    - id: actvero-game-mode
+      name: '@actvero/dsh-game-mode'
+      disabled: !!js "process.env.ACTVERO_DESKTOP !== '1'"
+
     - id: account-controller
       name: '@deepseek-ai/dsh-api-account-controller'
 

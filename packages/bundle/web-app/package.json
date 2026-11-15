@@ -197,7 +197,8 @@
     "@actvero/dsh-experts": "workspace:*",
     "@actvero/dsh-model-gateway": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
-    "@deepseek-ai/dsh-sandbox": "workspace:*"
+    "@deepseek-ai/dsh-sandbox": "workspace:*",
+    "@actvero/dsh-game-mode": "file:../../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.2.tgz"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

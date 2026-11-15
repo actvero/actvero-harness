@@ -1,0 +1,13 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/plugins/game-mode/README.md
+/game-mode-plugin-integration:
+  en: ed91881db64c33c3
+  zh: 61120f3b20f44a7f
+/game-mode-plugin-integration/loading:
+  en: c80d4659d826a71e
+  zh: dc0364a7791a6033
+/game-mode-plugin-integration/verification:
+  en: 55b9251feb9e0b7f
+  zh: a166c10b0f11be13

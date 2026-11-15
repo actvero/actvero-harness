@@ -37,6 +37,7 @@ import { parseManifest } from '../schema.ts'
 import type { Bindings, DependencyCatalog, Expert, ExpertManifest, ExpertSelection } from '../contracts.ts'
 import { normalizeExpertSelectionAvatar } from '../avatar.ts'
 import styles from './experts.module.css'
+import { createExpertLauncher } from './launcher.ts'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     'actvero.experts': keyof typeof zh
@@ -1136,12 +1137,14 @@ export function apply(ctx: Context) {
     text?: string,
     creator = false,
     promptWorkspace = true,
+    signal?: AbortSignal,
   ) => {
     const workspaceId =
       id !== null || creator
         ? (workspaceForSession(sessionId) ?? (promptWorkspace ? await chooseWorkspace(sessionId) : undefined))
         : undefined
     if ((id !== null || creator) && !workspaceId) return
+    signal?.throwIfAborted()
     let releaseProof: string | undefined
     if (id?.startsWith('remote-')) {
       const plan = await req<RemotePlan>('remote-plan', { id })
@@ -1151,12 +1154,14 @@ export function apply(ctx: Context) {
       if (!confirmed) return
       releaseProof = confirmed.releaseProof
     }
+    signal?.throwIfAborted()
     const result = await req<{ sessionId: SessionId }>('select', {
       id, sessionId,
       ...(workspaceId ? { workspaceId } : {}),
       ...(releaseProof ? { releaseProof } : {}),
     })
     await sessions.refresh()
+    signal?.throwIfAborted()
     ctx.uiWorkspace.openSession(result.sessionId)
     publish()
     if (text) {
@@ -1177,6 +1182,23 @@ export function apply(ctx: Context) {
       scope.bail(scope, 'slash/input-insert-text', { text, span: { start: end, end: end, draftRev: current.draftRev } })
     }
   }
+  const launcher = createExpertLauncher({
+    list: async () => {
+      const rows = await Promise.all([req<Expert[]>('list'), req<Expert[]>('recent')])
+      return [...new Map(rows.flat().map(({ manifest }) => [manifest.id,
+        { id: manifest.id, name: manifest.name, avatar: normalizeExpertSelectionAvatar(manifest.avatar) }])).values()]
+    },
+    candidates: (fromSession) => {
+      const workspace = workspaces.list.getSnapshot().items.find(row => row.sessionIds.includes(fromSession))
+      if (!workspace) return undefined
+      const list = sessions.list.getSnapshot()
+      return workspace.sessionIds.map(id => list.byId[id]).filter(Boolean)
+    },
+    selection: sessionId => req<ExpertSelection | null>('selection', { sessionId }),
+    open: (sessionId) => { ctx.uiWorkspace.openSession(sessionId) },
+    summon: (expertId, fromSession, signal) => useExpert(expertId, fromSession, undefined, false, false, signal),
+  })
+  ctx.effect(() => ctx.reflect.provide('actveroExpertLauncher', launcher))
   ctx.slots.inject('actvero.capability.content', () =>
     ctx.slots.register(
       {

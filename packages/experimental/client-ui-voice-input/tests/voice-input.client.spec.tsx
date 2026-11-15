@@ -13,12 +13,14 @@ import { RecordingError, Recording } from '../src/client/audio.ts'
 import type { SpeechReadiness } from '../src/client/readiness.ts'
 import { zh } from '../src/client/locales.ts'
 import { captureFixture } from './audio-fixture.client.ts'
+import { VoiceControlRegistry } from '../src/client/controls.ts'
 
 beforeEach(() => { vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1)); vi.stubGlobal('cancelAnimationFrame', vi.fn()) })
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
 const id = 'sensevoice-local' as SpeechProviderId
 const transcript: Transcript = { text: '检查 TypeScript 类型', audioSeconds: 2, inferenceSeconds: 0.4 }
 function fixture(recording?: Recording) {
+  const controls = new VoiceControlRegistry()
   const capture = Object.assign(new Recording(() => {}), { start: vi.fn<Recording['start']>(async () => {}), stop: vi.fn(async () => new Uint8Array(48)),
     amplitude: () => 0, dispose: vi.fn(async () => {}) })
   const inputActions = { notify: vi.fn(), captureInsertion: vi.fn(() => ({ start: 3, end: 3, draftRev: 1 })), insertText: vi.fn(() => true),
@@ -31,12 +33,13 @@ function fixture(recording?: Recording) {
   const transcribe = vi.fn<(request: unknown, signal: AbortSignal) => Promise<RemoteResult<Transcript>>>(
     async () => ({ ok: true, value: transcript }))
   const props: VoiceInputProps = { sessionId: 'one' as SessionId, inputActions, transcribe, locked: false, onActiveChange: vi.fn(),
+    registerControl: (id, control) => controls.register(id, control), draftEmpty: vi.fn(() => false),
     openSettings: vi.fn(), prepare: vi.fn(async () => {}), cancelPreparation: vi.fn(async () => {}), configure: vi.fn(async () => {}),
     selectMicrophone: vi.fn(), useMicrophoneDevice: bindSnapshotSelector(createSnapshotStore({ id: '', label: '' })),
     useSpeechReadiness: bindSnapshotSelector(readiness), createRecording: () => recording ?? capture,
     t: makeTranslate(zh, commonZh) }
   const view = render(<VoiceInput {...props} />)
-  return { props, capture, inputActions, readiness, transcribe, view }
+  return { props, capture, inputActions, readiness, transcribe, view, controls }
 }
 async function start(): Promise<void> {
   fireEvent.click(screen.getByRole('button', { name: zh.start }))
@@ -381,4 +384,65 @@ it.each(['later', 'escape', 'ready', 'session'])('dismisses unavailable recognit
     open()
     expect(screen.getByRole('dialog')).toBeTruthy()
   }
+})
+
+it('holds the native microphone in the background and submits only an empty original draft', async () => {
+  const b = fixture(), abort = new AbortController()
+  vi.mocked(b.props.draftEmpty).mockReturnValue(true)
+  const hold = await act(async () => await b.controls.begin('one' as SessionId, abort.signal))
+  fireEvent.blur(window)
+  expect(b.capture.dispose).not.toHaveBeenCalled()
+  await act(async () => await hold.release())
+  expect(b.inputActions.insertText).toHaveBeenCalledWith(transcript.text, { start: 3, end: 3, draftRev: 1 })
+  expect(b.inputActions.submit).toHaveBeenCalledOnce()
+})
+it('keeps a held transcript in the composer when the draft or attachments are already present', async () => {
+  const b = fixture()
+  const hold = await act(async () => await b.controls.begin('one' as SessionId, new AbortController().signal))
+  await act(async () => await hold.release())
+  expect(b.inputActions.insertText).toHaveBeenCalled()
+  expect(b.inputActions.submit).not.toHaveBeenCalled()
+})
+it('refuses automatic submission if attachments appear while a held recording is active', async () => {
+  const b = fixture()
+  vi.mocked(b.props.draftEmpty).mockReturnValue(true)
+  const hold = await act(async () => await b.controls.begin('one' as SessionId, new AbortController().signal))
+  vi.mocked(b.props.draftEmpty).mockReturnValue(false)
+  await act(async () => await hold.release())
+  expect(b.inputActions.submit).not.toHaveBeenCalled()
+})
+it('an old cancelled hold cannot release or cancel a later manual recording', async () => {
+  const b = fixture()
+  const hold = await act(async () => await b.controls.begin('one' as SessionId, new AbortController().signal))
+  act(() => hold.cancel())
+  await start()
+  b.capture.dispose.mockClear()
+  await act(async () => { hold.cancel(); await hold.release() })
+  expect(b.capture.dispose).not.toHaveBeenCalled()
+  expect(b.transcribe).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: zh.stop })).toBeTruthy()
+})
+it('aborting a hold releases native capture without transcribing or submitting', async () => {
+  const b = fixture(), abort = new AbortController()
+  const hold = await act(async () => await b.controls.begin('one' as SessionId, abort.signal))
+  act(() => abort.abort())
+  await act(async () => await hold.release())
+  expect(b.capture.dispose).toHaveBeenCalledOnce()
+  expect(b.transcribe).not.toHaveBeenCalled()
+  expect(b.inputActions.submit).not.toHaveBeenCalled()
+})
+it('does not start a held recording after permission arrives for an aborted press', async () => {
+  const b = fixture(), abort = new AbortController(), permission = Promise.withResolvers<undefined>()
+  b.capture.start.mockReturnValueOnce(permission.promise)
+  await act(async () => {
+    const pending = b.controls.begin('one' as SessionId, abort.signal)
+    const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    abort.abort()
+    permission.resolve(undefined)
+    await rejected
+  })
+  expect(b.capture.dispose).toHaveBeenCalledOnce()
+  expect(b.transcribe).not.toHaveBeenCalled()
+  expect(b.inputActions.submit).not.toHaveBeenCalled()
+  expect(screen.queryByRole('button', { name: zh.stop })).toBeNull()
 })
