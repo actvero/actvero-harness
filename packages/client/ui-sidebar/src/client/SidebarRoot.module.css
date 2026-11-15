@@ -43,6 +43,10 @@
   padding: 0;
 }
 
+:global([data-windows-titlebar]) .root .logoRow:has([data-sidebar-brand-wordmark]) {
+  height: 60px;
+}
+
 :global([data-windows-titlebar]) .toggle {
   position: fixed;
   top: calc((var(--dsh-windows-titlebar-height) - 28px) / 2);
@@ -285,10 +289,14 @@
   min-width: 0;
 }
 
+.brandIdentity:has([data-sidebar-brand-wordmark]) {
+  height: 44px;
+}
+
 .brandMark [data-sidebar-brand-wordmark] {
   display: block;
-  height: 24px;
-  max-width: min(100%, 140px);
+  height: 44px;
+  max-width: min(100%, 220px);
   object-fit: contain;
   object-position: left center;
 }
