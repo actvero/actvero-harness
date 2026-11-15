@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
 import { create } from 'tar'
 import type { PublishedWorkbench, WorkbenchArchiveSource } from '@actvero/dsh-client-account/protocol'
+import { initialShortcutConfig } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { describe, expect, it, vi } from 'vitest'
 import { DesktopHostProcess } from '../../desktop/src/host-process.ts'
 import { DesktopProjectManager } from '../../desktop/src/project-manager.ts'
@@ -393,7 +394,16 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             return { status: !usable ? 'unavailable' : current?.release.sha256 === pin.sha256 ? 'current' : 'update_available',
               adoptedUsable: usable }
           })
-          await page.addInitScript(() => {
+          await page.addInitScript(({ iconUrl, snapshot }) => {
+            Object.assign(window, { dshDesktop: { protocolVersion: 1,
+              keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
+              shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
+                subscribe: () => () => {}, recording: async () => {},
+                edit: async () => ({ status: 'not-ready', snapshot }) },
+            } })
+            const markPlatform = () => { document.documentElement.dataset.platform = 'darwin' }
+            if (document.documentElement === null) document.addEventListener('DOMContentLoaded', markPlatform, { once: true })
+            else markPlatform()
             const fixture = globalThis as typeof globalThis & {
               workbenchFixtureCatalog: NonNullable<Window['actveroAccount']>['workbenchCatalog']
               workbenchFixtureDownload: NonNullable<Window['actveroAccount']>['workbenchDownload']
@@ -401,8 +411,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             }
             Object.defineProperty(window, 'actveroAccount', { value: {
               snapshot: async () => ({
-                phase: 'ready', baseUrl: 'https://platform.example.test', brand: { name: 'Actvero' },
-                user: { id: 'test-member', name: 'Member' }, organizations: [],
+                phase: 'ready', baseUrl: 'https://platform.example.test',
+                brand: { name: 'Actvero', wordmarkUrl: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1633 228"><path d="M0 0h1633v228H0z"/></svg>') },
+                user: { id: 'test-member', name: 'Member', avatarUrl: iconUrl }, organizations: [],
                 organization: { tenantId: 'test-org', memberId: 'test-member', name: 'Organization', status: 'active', needsLogin: false },
                 quota: { phase: 'idle', windows: [] },
               }),
@@ -411,9 +422,27 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               workbenchDownload: fixture.workbenchFixtureDownload,
               workbenchCheck: fixture.workbenchFixtureCheck,
             } })
-          })
+          }, { iconUrl, snapshot: initialShortcutConfig() })
           await page.goto(browserUrl(ready.url))
           await openManager()
+          const brand = page.locator('[data-sidebar-brand-wordmark]')
+          const newSession = page.getByRole('button', { name: '新建会话', exact: true }).first()
+          const sidebarToggle = page.getByRole('button', { name: '收起侧边栏', exact: true })
+          for (const colorScheme of ['light', 'dark'] as const) {
+            await page.emulateMedia({ colorScheme })
+            await brand.waitFor()
+            const brandBox = (await brand.boundingBox())!
+            const newSessionBox = (await newSession.boundingBox())!
+            const toggleBox = (await sidebarToggle.boundingBox())!
+            expect(brandBox.x - newSessionBox.x).toBeCloseTo(6)
+            expect(brandBox.y - toggleBox.y - toggleBox.height).toBeCloseTo(13)
+            expect(newSessionBox.y - brandBox.y - brandBox.height).toBeCloseTo(16)
+          }
+          await page.emulateMedia({ colorScheme: 'light' })
+          const avatar = page.getByRole('button', { name: '账户菜单', exact: true }).locator('img')
+          await expect.poll(() => avatar.evaluate(image =>
+            image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+          )).toBe(true)
           const showPlatform = () => page.getByRole('tab', { name: '平台工作台', exact: true }).click()
           await showPlatform()
           await page.getByRole('alert').getByText('无法加载平台工作台，请检查网络').waitFor()
