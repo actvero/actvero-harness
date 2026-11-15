@@ -1,5 +1,5 @@
 /** Package generation, compatibility refusal and executable Client registration. */
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -25,6 +25,17 @@ async function root(): Promise<string> {
 afterEach(async () => { await Promise.all(roots.splice(0).map(path => rm(path, { recursive: true, force: true }))) })
 
 describe('local workbench developer commands', () => {
+  it('creates project-local guidance when the CLI is launched through a directory alias', async () => {
+    const directory = await root()
+    const alias = join(directory, 'Developer Kit Alias')
+    await symlink(repository, alias, 'junction')
+    const project = join(directory, 'my workbench')
+    const { stdout } = await execute(process.execPath, ['--import', 'tsx/esm',
+      join(alias, 'scripts/actvero-workbench.client.ts'), 'create', project], { cwd: repository })
+    expect(stdout).toContain('已创建工作台开发目录')
+    expect(await readFile(join(project, '.agents/skills/develop-workbench/SKILL.md'), 'utf8')).toContain('develop-workbench')
+  })
+
   it('runs a blank project outside the checkout and rebinds after relocation without changing author files', async () => {
     const directory = await root()
     const original = join(directory, '空白 project')

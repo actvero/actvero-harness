@@ -1,6 +1,6 @@
 /** Export the coordinated compiler, templates and declarations as a relocatable local developer kit. */
 import { cp, mkdir, readFile, readdir, realpath, stat, symlink, writeFile } from 'node:fs/promises'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { createRequire, isBuiltin } from 'node:module'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -133,7 +133,8 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
   return { path: output, runtimeVersion: baseline.version }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+// Match Node's physical module URL when the checkout is reached through a directory symlink.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const destination = process.argv[2]
   if (!destination) throw new Error('用法：tsx scripts/actvero-workbench-kit.ts <新套件目录>')
   console.log(JSON.stringify(await exportWorkbenchKit(destination)))

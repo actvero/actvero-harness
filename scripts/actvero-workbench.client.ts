@@ -1,5 +1,6 @@
 /** Create and package local Actvero workbenches through the existing client compiler. */
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -233,7 +234,8 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+// Node resolves the module URL physically, including macOS /var and directory symlinks.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error))
     process.exitCode = 1
