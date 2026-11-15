@@ -8,10 +8,12 @@ import type {} from '@deepseek-ai/dsh-storage-domain'
 import { WorkbenchRuntime, type WorkbenchRuntimeConfig } from './workbench-runtime.ts'
 import { workbenchDomain } from './workbench-storage.ts'
 import { checklistProvider } from './checklist.ts'
+import { WorkbenchMaintenance } from './workbench-maintenance.ts'
 import { WorkbenchPlatformAccess } from './workbench-platform.ts'
 
 export type * from './types.ts'
 export type * from './workbench-provider.ts'
+export type { WorkbenchLifecycle } from './workbench-lifecycle.ts'
 export type { WorkbenchObjectId } from './workbench-reference.ts'
 export type { WorkbenchReferenceSnapshot, WorkbenchReferenceInput } from './workbench-reference.ts'
 export type { WorkbenchResult } from './workbench-result.ts'
@@ -19,6 +21,7 @@ export { workbenchResultMetadata, workbenchResultText } from './workbench-result
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 export { WorkbenchPlatformAccess } from './workbench-platform.ts'
 export { WorkbenchRuntime } from './workbench-runtime.ts'
+export { WorkbenchMaintenance } from './workbench-maintenance.ts'
 /** Services required by business storage and native conversation integration. */
 export const inject = ['agents', 'sessionController', 'sessionProjections', 'tools', 'systemPrompt', 'storageDomain', 'typert', 'remoteAccess', 'workspaceRegistry']
 /** Deployment-owned managed files location. */
@@ -56,6 +59,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     // Keep storage available until runtime calls and provider scopes have stopped.
     yield () => domain.close()
     const runtime = new WorkbenchRuntime(ctx, domain, config)
+    ctx.inject(['pluginManager'], (child) => { new WorkbenchMaintenance(child, runtime, child.pluginManager) })
     new WorkbenchPlatformAccess(ctx, runtime, config.platformTimeoutMs)
     if (config.exampleWorkbench) yield runtime.register(checklistProvider)
   })

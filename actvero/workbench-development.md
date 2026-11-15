@@ -4,7 +4,7 @@ English | [中文](workbench-development.zh.md)
 
 ## Summary
 
-This guide is for workbench developers and Agents taking over a project: create a local directory, implement the business and visual design, validate and package it, then install and verify it in the target client. No GitHub account, repository URL or publishing service is required. Initialization uses a built ACTVERO source toolchain; subsequent development commands run inside the generated project.
+This guide is for workbench developers and Agents taking over a project: create a local directory, implement the business and visual design, validate and package it, then install and verify it in the target client. No GitHub account, repository URL or publishing service is required. Use a standalone developer kit or a built source toolchain; subsequent commands run inside the generated project.
 
 ## Table of Contents
 
@@ -14,6 +14,7 @@ This guide is for workbench developers and Agents taking over a project: create 
 - [Package format](#format)
 - [Edit the business view](#business)
 - [Runtime directories and custom storage](#storage)
+- [Initialization, migration and removal cleanup](#lifecycle)
 - [Native AI and shared data](#native-ai)
 - [Bundled experts, Skill, MCP and CLI](#expert-bundle)
 - [Display control and Agent entry points](#display)
@@ -29,38 +30,31 @@ This guide is for workbench developers and Agents taking over a project: create 
 
 When distributed with the native `develop-workbench` Skill, `reference/environment.json` records the same build's DSH baseline, workbench format, capability-package versions and reference sources. `reference/api/` contains read-only interface source copies for checking arguments, not an installable SDK. Links to material absent from the Skill identify its source-checkout path. Check the actual target client's version first; a source baseline or this snapshot does not establish another client's capabilities.
 
-Locate the ACTVERO source root from the current project or a user-provided location. Verify `scripts/actvero-workbench.client.ts`, `actvero/upstream.lock.json`, `actvero/templates/` and the root `package.json` command `actvero:workbench`; the business output directory is not the toolchain root. Run the commands below there and compare versions with the root `package.json` fields `engines` and `packageManager`. Prepare missing dependencies according to repository instructions rather than creating a substitute host or Agent engine.
+Prefer a standalone developer kit matching the target Harness baseline. It includes the compiler, pinned dependencies, declarations, three templates and two Skills; the full Harness source checkout and pnpm are unnecessary. Check workbench-kit.json at the kit root and use the recorded operating system, CPU architecture and Node version. The project's .actvero/toolchain.json records its local kit location; the kit does not download or switch runtimes.
 
-```sh
-node --version
-pnpm --version
-```
+Maintainers run `pnpm run build:artifacts` in a checkout with locked dependencies, then `pnpm run actvero:workbench-kit /absolute/path/new-kit` to export into a nonexistent directory. Developers receive the complete kit and read its README.md; do not copy only the compiler entrypoint or run npm install inside the kit. Install additional business dependencies in the project and declare them according to the package format. The source-based `pnpm run actvero:workbench` remains available and requires that checkout to be built.
 
-Read existing sources directly for a defined modification; use `create` only for a new workbench. A name or directory without a business goal requires minimum-flow clarification first. Confirm source location and installation client separately: an isolated development Profile is not the everyday application. Sources may live outside the repository; relative output paths below are examples. Use confirmed paths and quote paths containing spaces. Ask for the toolchain location when missing rather than claiming an installed client alone can compile.
+Reuse confirmed goals; clarify the minimum flow before creating an unspecified business. Check the kit and installation client separately: development commands do not establish the target desktop's capabilities, and an isolated Profile does not validate the everyday application. The desktop does not yet bundle the complete compiler kit; obtain a kit or built source checkout when the toolchain is missing.
 
 <a id="create"></a>
 
 ## Create and package
 
-You can also choose “Create a workbench” in the manager, copy the instructions and describe your goal in a new conversation. The native `develop-workbench` skill ships with a guide generated from this document at build time; it neither chooses the business purpose nor sends a task automatically. The commands currently require a source checkout and installed dependencies; the desktop does not include a standalone compiler.
+The manager's Create a workbench dialog offers two actions. Create in Harness opens unsent instructions using the native development preset. Use another Agent copies instructions and ordinary file paths exported by the Host, with a transient notification. Those files include their relative references, so external Agents do not need to read an application archive. Exported guidance is not a compiler; obtain the developer kit described above. Neither action sends a task or installs a package automatically.
 
-Prepare repository dependencies using the [client development guide](workbenches.md), then run `pnpm run build:artifacts` at the repository root to build the current interface declarations. Creation accepts only a destination that does not exist. The optional second argument is the stable package name; when omitted, creation derives and saves a local name from the initial path. Retain that name when moving the directory.
+Create a project from the kit root. The destination must not exist; the optional second argument supplies a stable package name. Otherwise creation derives and saves one from the initial path; preserve it after relocation.
 
 ```sh
-pnpm run actvero:workbench create .artifacts/my-workbench @local/my-workbench
-cd .artifacts/my-workbench
+node scripts/actvero-workbench.client.mjs create /absolute/path/my-workbench @local/my-workbench
+cd /absolute/path/my-workbench
 npm run doctor
 npm run typecheck
 npm run build
 npm run check
+npm run dev
 ```
 
-Explicitly select a checklist example from the repository root when needed:
-
-```sh
-pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist --template plain
-pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
-```
+The blank template is the default. Append `--template plain` or `--template ai` when a checklist example is useful. The source-based entry remains `pnpm run actvero:workbench create`.
 
 `create` defaults to a compilable blank view without business behavior or AI. `plain` provides a browser-storage checklist; `ai` provides “AI 项目清单” with native data, AI and a local expert Skill. Local example features work without sign-in; examples do not establish user requirements.
 
@@ -68,7 +62,9 @@ The generated directory includes README.md, AGENTS.md, DESIGN.md, commands, type
 
 `doctor` checks declarations, entries and the runtime baseline, reminding authors about unfinished design decisions. `typecheck` checks author code against declarations built by the current toolchain. `build` and `pack` both typecheck, compile Host and Client, generate the bundle patch and report a validated `dist/*.tgz`, byte count and SHA-256. Builds do not modify business sources, install or publish; failure retains the previous artifact. `check` uses the unique archive in dist; with multiple versions, run `npm run check -- /absolute/path/package.tgz`. Authors add tests appropriate to their business behavior.
 
-Commands use the source checkout recorded in `.actvero/toolchain.json`; this is not a standalone SDK. That file and generated tsconfig.json stay uncommitted. After moving the project or changing machines, run `node scripts/workbench.mjs bind /absolute/path/actvero-harness` inside the project. Rebinding refreshes compiler settings, both Skills and interface references, preserving business code, README.md, AGENTS.md and DESIGN.md. Agents explicitly read .actvero/skills; automatic discovery by other Agent products is not assumed.
+Commands use the local kit or checkout in .actvero/toolchain.json; that file and generated tsconfig.json remain uncommitted. After relocation, run `node scripts/workbench.mjs bind /absolute/path/toolchain` to refresh compiler configuration, Skills under .agents/skills and API references. Business code, README.md, AGENTS.md and DESIGN.md are preserved. AGENTS.md requires explicit reading rather than assuming every Agent product discovers Skills automatically.
+
+`npm run dev` watches project edits and serializes checking, building and archive validation; development archives include source maps. Agents read .actvero/diagnostics.json: building means in progress, failed includes a diagnostic, and built includes the archive path and SHA-256. Failure never reports an old artifact as a new build; `runtime: not-verified` means client loading is unverified. This command does not install, reload or start Harness. Verify installation and business behavior below. Ctrl+C stops watching and waits for an in-flight build.
 
 `check` reuses desktop import preflight and checks the format marker, version declarations, nonempty entry files, and duplicate, escaping, or linked paths. It does not execute workbench code or establish business acceptance. Installation also checks compatibility with the current runtime; the development command does not bypass this check.
 
@@ -88,13 +84,13 @@ Open the workbench and exercise its actual business flow. For persistent data, r
 
 To update, retain the package name, increase `package.json.version`, and rebuild. Select the archive through the card's More → Update version action or import it directly; confirmation shows the installed and incoming versions. Repeated versions, downgrades, mismatched names, and incompatible runtimes are refused. A replacement requiring restart shows Restart required; after restarting Harness, check the card’s Open action, version and business content. Independently stored data is retained; business schema migrations belong to the workbench.
 
-The card’s More menu offers disable, enable and uninstall, plus the host-managed data folder when the workbench is loaded and a native file manager is available. Disablement and removal require confirmation and retain local data directories and conversation history. Disabling retains the package in My workbenches across restarts; only loaded workbenches enter the sidebar switcher. Importing the same package after uninstall restores the example checklist. Installation changes inspect linked conversations first; running conversations or unavailable activity state block the operation. On installation or update failure, inspect diagnostics and verify the inventory. Successful installation does not establish business acceptance.
+The card’s More menu offers disable, enable and uninstall, plus the host-managed data folder when the workbench is loaded and a native file manager is available. Disablement and ordinary removal retain local data and history; removal may explicitly clean business data as described in the lifecycle section. Disabling retains the package in My workbenches across restarts; only loaded workbenches enter the sidebar switcher. Importing the same package after keep-data removal restores the example checklist. Installation changes inspect linked conversations first; running conversations or unavailable activity state block the operation. On installation or update failure, inspect diagnostics and verify the inventory. Successful installation does not establish business acceptance.
 
 <a id="format"></a>
 
 ## Package format
 
-The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.3.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
+The workbench extension API and DSH runtime versions are checked separately: the current extension API is `1.8.0`, with declaration format `schemaVersion: 1`. Templates put `protocol` in workbench.json; a new Host provider also passes `protocol: metadata.protocol`, while the Client reads the same metadata. A legacy package without a declaration resolves to the original API `^1.0.0`, rather than automatically accepting a future API. Invalid formats, unknown fields, unsupported declaration versions and incompatible API ranges are rejected before registration. Doctor, pack, check and Client import preflight check compatibility; actual Host and Client registrations still validate independently, so archive checks do not replace loading verification.
 
 The format marker is `dsh.actveroWorkbench: 1`. Deliver an npm-compatible `.tgz` with contents under `package/`, at most 8 MiB compressed and 32 MiB unpacked. The npm package name provides stable identity; registration reads the display metadata from `workbench.json` and version from `package.json`.
 
@@ -128,10 +124,10 @@ my-workbench/
 ├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
 ├── README.md / AGENTS.md            # 开发命令与 Agent 入口
 ├── DESIGN.md                       # 已确认业务、视觉方案与验收记录
-├── scripts/workbench.mjs           # 调用绑定的源码工具链
+├── scripts/workbench.mjs           # 调用绑定的开发工具链
 ├── tsconfig.json                   # 生成的本机类型配置，不提交
 ├── .actvero/toolchain.json         # 本机绑定，不提交
-├── .actvero/skills/                # 工作台开发、工作台前端规范与接口快照
+├── .agents/skills/                # 工作台开发、工作台前端规范与接口快照
 ├── src/index.ts                    # Host 注册；纯界面模板为空入口
 ├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
 ├── src/client/                     # 自行组织业务组件、文案与样式
@@ -255,6 +251,25 @@ export async function apply(ctx: Context) {
 `resourcesDirectory` identifies package resources and must be absolute when declared; omission returns `null`, and the Host never writes there. Obtaining a path grants no AI or renderer filesystem permissions. Business components can query `await workbench.environment()`; UI-only workbenches return `null`. Actual file operations belong to author-provided Host services, MCP or CLI integrations. Directory creation failures are reported without falling back to temporary directories or overwriting existing files.
 
 For host-managed JSON, register a `storage: { initial, reduce, actionHelp }` adapter; legacy top-level fields remain supported. Only this adapter supports generic `action()` and conversation JSON tools; generic actions against custom storage return `workbench/unsupported-storage`. Uninstall retains directories and instance records; business-data deletion is a separate operation.
+
+<a id="lifecycle"></a>
+
+## Initialization, migration and removal cleanup
+
+Lifecycle users declare `^1.8.0` in the shared Host/Client protocol.hostApi and provide lifecycle: WorkbenchLifecycle on the Host provider. These are business-data hooks, not npm install/postinstall/uninstall scripts; dependency scripts remain subject to native installer review.
+
+| Field or callback | Timing and responsibility |
+| --- | --- |
+| dataVersion | Increasing business-data version, separate from the package version; downgrade reads are rejected. |
+| initialize(environment, signal) | First instance open, including adoption of existing data without a marker; must be idempotent. |
+| migrate(environment, fromVersion, signal) | After a data-version increase, before exposing a ready instance; required for changes and restartable from the old marker after failure. |
+| cleanup(environment, signal) | After explicit cleanup consent, before package removal; handles author-owned resources and never presents UI. |
+
+Preparation is serialized per instance. The Host atomically writes .actvero-data-version.json in the data directory only after success; failure preserves the old marker and blocks dependent operations. A marker cannot roll back business writes: authors own transactions, backups and restartability. Hooks honor signal and await owned tasks before returning; in-process plugins are not a security sandbox.
+
+The Host owns the removal dialog and retains data by default. Loaded, removable Host workbenches offer Also clean this workbench's data. Restore a disabled or failed provider first instead of guessing paths from a package name. Cleanup rechecks the installed version and active tasks, withdraws the provider and waits for scopes, invokes cleanup, deletes that provider's managed instance directories and JSON records, then uses the native installer to remove its package. Managed data can be cleaned without a cleanup callback; external databases and author-selected paths require explicit developer implementation. Cleanup does not delete conversation history, other workbenches' data or the installed package directory.
+
+Cleanup failure stops package removal and retains the package for diagnosis, but cannot restore completed effects. The provider stays unavailable until inspection and Host restart. Package removal can fail after data was cleaned; the UI reports the outcomes separately. Lost communication means unknown outcome, not permission to retry blindly. Keep-data removal, disablement, hot reload and ordinary upgrade never invoke cleanup. Test first and concurrent opens, interrupted migration recovery, downgrade refusal, default retention, cleanup failure and reinstallation.
 
 <a id="native-ai"></a>
 

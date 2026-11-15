@@ -10,6 +10,7 @@ const sources = {
   'guide.md': 'actvero/workbench-development.md',
   'guide.zh.md': 'actvero/workbench-development.zh.md',
   'api/client.ts': 'packages/actvero/capability-ui/src/contracts.ts',
+  'api/lifecycle.ts': 'packages/actvero/capability-ui/src/workbench-lifecycle.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',
   'api/workbench-protocol.ts': 'packages/actvero/capability-ui/src/workbench-protocol.ts',
   'api/workbench-reference.ts': 'packages/actvero/capability-ui/src/workbench-reference.ts',
@@ -19,9 +20,10 @@ const sources = {
 } as const
 
 /** Generate read-only guide and API snapshots; repository-only links remain explicit source locations.
+ * @param toolchain Distribution containing the compiler.
  * @param destination Disposable generated reference directory owned by the caller.
  */
-export function generateWorkbenchSkillReference(destination: string): void {
+export function generateWorkbenchSkillReference(destination: string, toolchain: 'source-checkout' | 'standalone-kit' = 'source-checkout'): void {
   const version = z.object({ version: z.string() })
   const baseline = version.parse(JSON.parse(readFileSync(join(repository, 'actvero/upstream.lock.json'), 'utf8')))
   const capability = version.parse(JSON.parse(readFileSync(join(repository, 'packages/actvero/capability-ui/package.json'), 'utf8')))
@@ -47,7 +49,7 @@ export function generateWorkbenchSkillReference(destination: string): void {
   writeFileSync(join(destination, 'environment.json'), JSON.stringify({
     schemaVersion: 1, workbenchFormat: 1, dshRuntimeVersion: baseline.version,
     packages: { '@actvero/dsh-capability-ui': capability.version, '@actvero/dsh-experts': experts.version },
-    toolchain: 'source-checkout', sources,
+    toolchain, sources,
     sha256: Object.fromEntries(Object.keys(sources).map(target => [target, createHash('sha256').update(readFileSync(join(destination, target))).digest('hex')])),
   }, null, 2) + '\n')
 }

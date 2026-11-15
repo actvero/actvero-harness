@@ -3,6 +3,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { Context } from '@deepseek-ai/cordis'
 import type { WorkbenchEnvironment, WorkbenchExpert, WorkbenchId, WorkbenchObject } from './types.ts'
 import type { WorkbenchObjectId } from './workbench-reference.ts'
+import type { WorkbenchLifecycle } from './workbench-lifecycle.ts'
 import type { WorkbenchProtocol } from './workbench-protocol.ts'
 
 /** Per-conversation context; business data stays separate from model-visible instructions. */
@@ -24,6 +25,8 @@ export interface WorkbenchJsonStorage {
 export interface WorkbenchProviderBase {
   /** Host API requirements shared with the Client registration; omitted for legacy packages. */
   protocol?: WorkbenchProtocol
+  /** Business-data preparation and explicitly consented cleanup; never npm lifecycle scripts. */
+  lifecycle?: WorkbenchLifecycle
   id: WorkbenchId
   name: string
   version: string

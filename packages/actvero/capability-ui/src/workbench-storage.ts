@@ -11,7 +11,7 @@ export const documentSchema = z.object({
     try { JSON.parse(value); return true } catch (_error) { return false }
   }, 'Business document must contain JSON'),
 }).strict()
-/** Profile-local workbench documents; uninstall never deletes this domain. */
+/** Profile-local documents; ordinary uninstall retains them, explicit cleanup deletes only the selected provider's instances. */
 export const workbenchDomain = defineDomain({
   name: 'actvero_workbench', version: 1,
   tables: { instances: domainTable<WorkbenchInstanceId, WorkbenchDocument>(documentSchema) },

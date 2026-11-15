@@ -108,6 +108,10 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'actveroWorkbenchMaintenance', pkg: '@actvero/dsh-capability-ui', title: 'Actvero workbench removal',
+    mode: 'service', note: 'Runs owner-confirmed business-data cleanup and delegates exact-version package removal to the native installer.',
+  },
+  {
     key: 'actveroWorkbenchPlatform', pkg: '@actvero/dsh-capability-ui', title: 'Actvero workbench platform metadata',
     mode: 'service', note: 'Reads declared model metadata through Electron Main without exposing credentials or arbitrary authenticated URLs.',
   },

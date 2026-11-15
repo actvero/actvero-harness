@@ -6,23 +6,23 @@
   en: 22f5208154142799
   zh: 9948437f8dfd2333
 /workbench-development/summary:
-  en: a83728a54636bbb5
-  zh: af0072160f434aa9
+  en: 76f7255c0eb8fb78
+  zh: 9e0220658515a142
 /workbench-development/table-of-contents:
-  en: 57207c8268583e94
-  zh: cbe5d74eb877be4a
+  en: db35f203b38c0cc7
+  zh: 8e176ffa64a96722
 /workbench-development/development-environment-and-task-entry:
-  en: 945ec0df53634357
-  zh: 747e0b00be2bb8f9
+  en: 47a9eecfcc098e18
+  zh: ad00b34b72b6b2fc
 /workbench-development/create-and-package:
-  en: f9968e7d7c54aeaf
-  zh: 9f11f578f2ba7773
+  en: cff244fb6fce1b95
+  zh: a641265ce504681c
 /workbench-development/import-and-verify:
-  en: ef1bf1e17eb39c39
-  zh: 1bebc16c03f60cc5
+  en: d1e9392b6b46e6c6
+  zh: fe40dc0d8eb5acdb
 /workbench-development/package-format:
-  en: e5c3608e0fbe2484
-  zh: b61b7f7aecd08daa
+  en: c6d12be109efb6e3
+  zh: 7ce97f7983307dba
 /workbench-development/edit-the-business-view:
   en: 301e50f1f82f533d
   zh: bf6f1386e78c2855
@@ -42,8 +42,11 @@
   en: 374f572dd4b755ad
   zh: 9466b5ff54a23e07
 /workbench-development/runtime-directories-and-custom-storage:
-  en: a99b53f9205c3a1e
-  zh: 441b9042cb9501fd
+  en: 70dc05e944237cd3
+  zh: 3dea6f7da11b6bf7
+/workbench-development/initialization-migration-and-removal-cleanup:
+  en: 860a56362de963c8
+  zh: caa2fcfcac169b14
 /workbench-development/native-ai-and-shared-data:
   en: 981753ca37cef5df
   zh: 9d4341c6e11ab495

@@ -82,6 +82,19 @@ export interface TypeApiEntry {
 /** Every harness `ctx.<key>` service, sorted by key. */
 export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
+    key: 'actveroWorkbenchMaintenance',
+    summary: 'Uses the same installer as ordinary removal, with explicit consent to data destruction.',
+    description: 'Uses the same installer as ordinary removal, with explicit consent to data destruction.',
+    methods: [
+      {
+        signature: '@Remote async uninstall(request: { id: WorkbenchId; version: string; deleteData: boolean }): Promise<WorkbenchRemovalResult>',
+        description: 'Clean a reviewed, loaded workbench and then remove its package. Never invoked for ordinary keep-data removal.',
+        parameters: [{ name: 'request', description: 'Exact package version and explicit cleanup consent from the owner UI.' }],
+        returns: 'Separate data and package outcomes; partial cleanup stops package removal and requires inspection/restart.',
+      },
+    ],
+  },
+  {
     key: 'actveroWorkbenchPlatform',
     summary: 'Read-only platform consumer; model tokens stay in Electron Main.',
     description: 'Read-only platform consumer; model tokens stay in Electron Main.',
@@ -127,6 +140,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Request Client navigation without binding the calling Agent or changing its business data.',
         parameters: [{ name: 'request', description: 'Installed workbench and display choices.' }, { name: 'signal', description: 'Cancellation; timeout or carrier loss reports an unknown outcome.' }],
         returns: 'Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.',
+      },
+      {
+        signature: '@Remote async developmentResources(): Promise<{ skillPath: string; frontendSkillPath: string }>',
+        description: 'Export bundled guidance to ordinary files readable by external Agents on this Host.',
+        parameters: [],
+        returns: 'Absolute skill entrypoints, including all relative guide and API references.',
       },
       {
         signature: '@Remote list(): WorkbenchRuntimeEntry[]',
@@ -187,6 +206,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Observe authoritative business data while at least one UI is viewing it.',
         parameters: [{ name: 'request', description: 'Instance to observe.' }, { name: 'signal', description: 'Remote stream lifetime.' }],
         returns: 'Initial state and subsequent durable changes, coalesced without polling.',
+      },
+      {
+        signature: 'async prepareRemoval(id: WorkbenchId, version: string): Promise<{ cleanup(): Promise<void>; complete(): void }>',
+        description: 'Withdraw an idle provider before removal; cleanup is called only after explicit consent.',
+        parameters: [{ name: 'id', description: 'Installed package identity.' }, { name: 'version', description: 'Version the person reviewed.' }],
+        returns: 'Operations for existing instances; no new instance is created. Call complete after successful package removal. Failures retain the provider reservation until Host restart.',
       },
     ],
   },
@@ -1878,9 +1903,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: '`cancelled` once the Git check or pnpm exited and the files are restored, `too-late` once the bundle is being applied, `not-running` for any other id.',
       },
       {
-        signature: '@Remote removeBundle(name: string): Promise<ChangeResult>',
+        signature: '@Remote removeBundle(name: string, expectedVersion?: string): Promise<ChangeResult>',
         description: 'Unload and remove a profile-owned bundle dependency through dsh plugin\'s pnpm path; a selected name no dependency holds is only deselected.',
-        parameters: [{ name: 'name', description: 'Installed dependency or selected bundle name.' }],
+        parameters: [{ name: 'name', description: 'Installed dependency or selected bundle name.' }, { name: 'expectedVersion', description: 'Reviewed version; a mismatch rejects under the profile lock before deselection or removal.' }],
         returns: 'Removal diagnostics and the remaining profile state.',
       },
     ],
@@ -8900,6 +8925,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchLegacySelection {\n    id: WorkbenchId;\n    instanceId: WorkbenchInstanceId;\n    name: string;\n    version: string;\n    expert: WorkbenchExpert | null;\n    capabilityDigest?: string | undefined;\n}',
   },
   {
+    name: 'WorkbenchLifecycle',
+    declaration: 'export interface WorkbenchLifecycle {\n    dataVersion: number;\n    initialize?(environment: WorkbenchEnvironment, signal: AbortSignal): Promise<void>;\n    migrate?(environment: WorkbenchEnvironment, fromVersion: number, signal: AbortSignal): Promise<void>;\n    cleanup?(environment: WorkbenchEnvironment, signal: AbortSignal): Promise<void>;\n}',
+  },
+  {
     name: 'WorkbenchModelCatalog',
     declaration: 'export interface WorkbenchModelCatalog {\n    scope: WorkbenchPlatformScopeId;\n    models: WorkbenchPlatformModel[];\n}',
   },
@@ -8941,7 +8970,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchProviderBase',
-    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{\n        label: string;\n    }>;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    lifecycle?: WorkbenchLifecycle;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{\n        label: string;\n    }>;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+  },
+  {
+    name: 'WorkbenchRemovalResult',
+    declaration: 'export interface WorkbenchRemovalResult {\n    application: \'applied\' | \'restart-required\' | \'failed\' | \'unknown\';\n    data: \'preserved\' | \'cleaned\' | \'partial\';\n    diagnostic: string;\n}',
   },
   {
     name: 'WorkbenchRuntimeContext',

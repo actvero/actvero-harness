@@ -1,4 +1,4 @@
-/** Local project scaffolding and TypeScript checks using the installed source toolchain. */
+/** Local project scaffolding and TypeScript checks using a bound developer kit or source toolchain. */
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import ts from 'typescript'
@@ -26,9 +26,9 @@ function compilerOptions(directory: string, repository: string): Record<string, 
   }
 }
 
-/** Add portable Agent instructions and a launcher bound to a local source checkout.
+/** Add portable Agent instructions and a launcher bound to a local developer toolchain.
  * @param directory Newly created project directory.
- * @param repository Source checkout with installed development dependencies.
+ * @param repository Developer kit or built source checkout with installed dependencies.
  * @param template Selected blank or example template.
  */
 export async function initializeWorkbenchProject(directory: string, repository: string, template: string): Promise<void> {
@@ -40,43 +40,55 @@ export async function initializeWorkbenchProject(directory: string, repository: 
   await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, scripts: {
     doctor: 'node scripts/workbench.mjs doctor', typecheck: 'node scripts/workbench.mjs typecheck',
     build: 'node scripts/workbench.mjs pack', pack: 'node scripts/workbench.mjs pack',
-    check: 'node scripts/workbench.mjs check',
+    check: 'node scripts/workbench.mjs check', dev: 'node scripts/workbench.mjs dev',
   } }, null, 2) + '\n')
   await bindWorkbenchProject(directory, repository, template)
 }
 
 /** Refresh generated toolchain configuration and bundled development guidance without changing author files.
  * @param directory Existing development directory.
- * @param repository Source checkout supplying the compiler and current guidance.
+ * @param repository Developer kit or source checkout supplying the compiler and current guidance.
  * @param template Initial template label; rebinding preserves the recorded label.
  */
 export async function bindWorkbenchProject(directory: string, repository: string, template?: string): Promise<void> {
   const baseline = z.object({ version: z.string() }).parse(JSON.parse(await readFile(join(repository, 'actvero/upstream.lock.json'), 'utf8')))
+  const kitFile = join(repository, 'workbench-kit.json')
+  const standalone = ts.sys.fileExists(kitFile)
+  if (standalone) {
+    const kit = z.object({ platform: z.string(), arch: z.string() }).parse(JSON.parse(await readFile(kitFile, 'utf8')))
+    if (kit.platform !== process.platform || kit.arch !== process.arch) throw new Error('开发套件与当前系统或 CPU 架构不匹配，请导出对应平台的套件。')
+  }
   const binding = join(directory, '.actvero/toolchain.json')
   if (template === undefined && ts.sys.fileExists(binding)) {
     const previous = z.object({ template: z.string().optional() }).parse(JSON.parse(await readFile(binding, 'utf8')))
     template = previous.template
   }
-  await mkdir(join(directory, '.actvero/skills'), { recursive: true })
+  await mkdir(join(directory, '.agents/skills'), { recursive: true })
+  await mkdir(join(directory, '.actvero'), { recursive: true })
   await writeFile(binding, JSON.stringify({ schemaVersion: 1, repository, runtimeVersion: baseline.version, template: template ?? 'custom' }, null, 2) + '\n')
   await writeFile(join(directory, 'tsconfig.json'), JSON.stringify({
     extends: join(repository, 'tsconfig.base.client.json'), compilerOptions: compilerOptions(directory, repository), include: ['src'],
   }, null, 2) + '\n')
   for (const skill of ['develop-workbench', 'workbench-frontend']) {
-    await mkdir(join(directory, '.actvero/skills', skill), { recursive: true })
-    await cp(join(repository, 'packages/actvero/capability-ui/assets', skill, 'SKILL.md'), join(directory, '.actvero/skills', skill, 'SKILL.md'), { recursive: true })
+    await mkdir(join(directory, '.agents/skills', skill), { recursive: true })
+    await cp(join(repository, 'packages/actvero/capability-ui/assets', skill, 'SKILL.md'), join(directory, '.agents/skills', skill, 'SKILL.md'), { recursive: true })
   }
-  generateWorkbenchSkillReference(join(directory, '.actvero/skills/develop-workbench/reference'))
+  const reference = join(directory, '.agents/skills/develop-workbench/reference')
+  if (standalone) {
+    await cp(join(repository, 'packages/actvero/capability-ui/assets/develop-workbench/reference'), reference, { recursive: true })
+  } else generateWorkbenchSkillReference(reference)
+  const legacySkills = join(directory, '.actvero/skills')
+  if (ts.sys.directoryExists(legacySkills)) await cp(join(directory, '.agents/skills'), legacySkills, { recursive: true })
 }
 
 /** Check author code against declarations from the coordinated toolchain build.
  * @param directory Workbench source directory, including projects outside the checkout.
- * @param repository Source checkout supplying the baseline compiler configuration.
+ * @param repository Developer kit or source checkout supplying the baseline compiler configuration.
  */
 export async function typecheckWorkbench(directory: string, repository: string): Promise<void> {
   directory = resolve(directory)
   if (!ts.sys.fileExists(join(repository, 'packages/actvero/capability-ui/lib/types/contracts.d.ts'))) {
-    throw new Error('源码工具链缺少类型产物；请先在 ACTVERO 仓库运行 pnpm run build:artifacts，再执行工作台检查。')
+    throw new Error('开发工具链缺少类型产物；请重新导出完整套件，或在源码仓库运行 pnpm run build:artifacts。')
   }
   const configPath = join(directory, 'tsconfig.json')
   const config = ts.sys.fileExists(configPath) ? ts.parseConfigFileTextToJson(configPath, await readFile(configPath, 'utf8')) : {

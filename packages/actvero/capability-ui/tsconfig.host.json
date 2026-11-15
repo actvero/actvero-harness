@@ -16,6 +16,7 @@
     "src/checklist-data.ts"
   ],
   "references": [
+    { "path": "../../boot/plugin-manager/tsconfig.json" },
     {
       "path": "../../../vendor/cordis/tsconfig.json"
     },

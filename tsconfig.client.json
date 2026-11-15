@@ -46,6 +46,7 @@
     "scripts/client-build-environment.ts",
     "scripts/actvero-workbench.client.ts",
     "scripts/actvero-workbench-project.ts",
+    "scripts/actvero-workbench-dev.ts",
     "scripts/actvero-workbench-skill.ts",
     "scripts/doc-typecheck-paths.ts",
     "scripts/bundle-input-isolation.ts",

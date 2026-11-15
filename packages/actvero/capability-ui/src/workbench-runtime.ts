@@ -10,10 +10,12 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { Remote, RemoteError, TypertRemoteService, principalOf, type PeerId } from '@deepseek-ai/dsh-typert-protocol'
 import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { mkdir } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 import type { WorkbenchActivation, WorkbenchProvider, WorkbenchRuntimeContext } from './workbench-provider.ts'
+import { prepareWorkbenchData } from './workbench-lifecycle.ts'
 import { WorkbenchDisplay } from './workbench-display.ts'
 import { workbenchAIEnabled, workbenchJsonStorage } from './workbench-provider.ts'
 import { resolveWorkbenchProtocol } from './workbench-protocol.ts'
@@ -55,6 +57,12 @@ export interface WorkbenchRuntimeConfig {
 
 /** Native Remote owner and in-process business-provider registry. */
 export class WorkbenchRuntime extends TypertRemoteService {
+  private readonly preparingData = new Map<string, Promise<void>>()
+  private developerResources?: Promise<{ skillPath: string; frontendSkillPath: string }>
+  private readonly preparedData = new WeakMap<WorkbenchProvider, Set<string>>()
+  private readonly removalLifetime = new AbortController()
+  private readonly cleanupOperations = new Set<Promise<void>>()
+  private readonly removing = new Set<WorkbenchId>()
   private readonly providers = new Map<WorkbenchId, RegisteredWorkbench>()
   private readonly scopes = new Map<Agent, ActiveCapabilities>()
   private readonly creating = new Map<WorkbenchId, Promise<WorkbenchDocument>>()
@@ -110,10 +118,12 @@ export class WorkbenchRuntime extends TypertRemoteService {
     })
     ctx.effect(() => async () => {
       this.disposed = true
+      this.removalLifetime.abort(new Error('Host is shutting down'))
       for (const client of this.displays.values()) client.dispose()
       this.displays.clear()
       this.changed()
       const results = await Promise.allSettled([...this.providers.values()].map(entry => this.retire(entry)))
+      await Promise.allSettled([...this.cleanupOperations])
       const failures = results.filter(result => result.status === 'rejected').map((result): unknown => result.reason)
       if (failures.length) throw new AggregateError(failures, 'Unable to close workbench providers')
     })
@@ -126,13 +136,18 @@ export class WorkbenchRuntime extends TypertRemoteService {
    */
   register(provider: WorkbenchProvider): () => Promise<void> {
     if (this.disposed) throw new Error('Workbench runtime is closed')
+    if (this.removing.has(provider.id)) throw new Error('Workbench data removal requires a host restart before reloading this provider')
     workbenchIdSchema.parse(provider.id)
     resolveWorkbenchProtocol(provider.protocol)
+    if (provider.lifecycle && (!Number.isSafeInteger(provider.lifecycle.dataVersion) || provider.lifecycle.dataVersion < 0)) {
+      throw new Error('Workbench dataVersion must be a nonnegative integer')
+    }
     if (!provider.name.trim() || !provider.version.trim()) throw new Error('Invalid workbench provider')
     const existing = this.providers.get(provider.id)
     if (existing) throw new Error(existing.retirement ? 'Workbench provider is still retiring' : 'Duplicate workbench provider')
     if (provider.resourcesDirectory !== undefined && !isAbsolute(provider.resourcesDirectory)) throw new Error('Workbench resourcesDirectory must be absolute')
     const entry: RegisteredWorkbench = { provider, abort: new AbortController(), operations: new Set() }
+    this.preparedData.delete(provider)
     this.providers.set(provider.id, entry)
     this.changed()
     return () => this.retire(entry)
@@ -282,6 +297,31 @@ export class WorkbenchRuntime extends TypertRemoteService {
     }))
   }
 
+  /** Export bundled guidance to ordinary files readable by external Agents on this Host.
+   * @returns Absolute skill entrypoints, including all relative guide and API references.
+   */
+  @Remote
+  async developmentResources(): Promise<{ skillPath: string; frontendSkillPath: string }> {
+    if (!this.developerResources) {
+      this.developerResources = (async () => {
+        const parent = join(this.config.dataDirectory, '.development-guides')
+        await mkdir(parent, { recursive: true })
+        const target = await mkdtemp(join(parent, 'snapshot-'))
+        try {
+          for (const skill of ['develop-workbench', 'workbench-frontend']) {
+            await cp(fileURLToPath(new URL(`../assets/${skill}/`, import.meta.url)), join(target, skill), { recursive: true })
+          }
+          return { skillPath: join(target, 'develop-workbench/SKILL.md'), frontendSkillPath: join(target, 'workbench-frontend/SKILL.md') }
+        } catch (error) {
+          await rm(target, { recursive: true, force: true })
+          throw error
+        }
+      })()
+    }
+    try { return await this.developerResources }
+    catch (error) { this.developerResources = undefined; throw error }
+  }
+
   /** List providers with a managed runtime, including those with author-owned storage.
    * @returns Runtime-ready provider metadata, independent of UI-only cards.
    */
@@ -302,7 +342,7 @@ export class WorkbenchRuntime extends TypertRemoteService {
       const existing = [...this.domain.table('instances').entries()].find(([, value]) => value.id === id)?.[1]
       if (existing) {
         if (!this.ctx.remoteAccess.allows({ kind: 'actveroWorkbench', id: existing.instanceId })) throw new RemoteError('workbench/unavailable', 'Workbench instance is not accessible.', {})
-        await this.ensureDirectory(existing.instanceId)
+        await this.prepareData(provider, existing)
         this.assertLoaded(provider)
         return existing
       }
@@ -316,6 +356,7 @@ export class WorkbenchRuntime extends TypertRemoteService {
         await this.ensureDirectory(document.instanceId)
         this.assertLoaded(provider)
         await this.domain.table('instances').put(document.instanceId, document)
+        await this.prepareData(provider, document)
         return document
       })()
       this.creating.set(id, task)
@@ -329,9 +370,11 @@ export class WorkbenchRuntime extends TypertRemoteService {
    */
   @Remote
   async environment(request: WorkbenchTarget): Promise<WorkbenchEnvironment> {
-    const document = this.read(request)
+    const document = this.domain.table('instances').get(request.instanceId)
+    if (!document) throw new RemoteError('workbench/not-found', 'Workbench instance was not found.', {})
     const provider = this.loadedProvider(document.id)
     return this.usingProvider(provider, async () => {
+      await this.prepareData(provider, document)
       const dataDirectory = await this.ensureDirectory(document.instanceId)
       this.assertLoaded(provider)
       return { id: document.id, instanceId: document.instanceId, version: provider.version,
@@ -348,7 +391,10 @@ export class WorkbenchRuntime extends TypertRemoteService {
   read(request: WorkbenchTarget): WorkbenchDocument {
     const document = this.domain.table('instances').get(request.instanceId)
     if (!document) throw new RemoteError('workbench/not-found', 'Workbench instance was not found.', {})
-    this.loadedProvider(document.id)
+    const provider = this.loadedProvider(document.id)
+    if (provider.lifecycle && !this.preparedData.get(provider)?.has(document.instanceId)) {
+      throw new RemoteError('workbench/unavailable', 'Open this workbench to finish preparing its data.', {})
+    }
     return document
   }
 
@@ -505,9 +551,69 @@ export class WorkbenchRuntime extends TypertRemoteService {
 
   private changed(): void { for (const listener of this.listeners) listener() }
   private selection(agent: Agent): WorkbenchSelection | null { return this.ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench') ?? null }
+  /** Withdraw an idle provider before removal; cleanup is called only after explicit consent.
+   * @param id Installed package identity.
+   * @param version Version the person reviewed.
+   * @returns Operations for existing instances; no new instance is created. Call complete after successful package removal.
+   * Failures retain the provider reservation until Host restart.
+   */
+  async prepareRemoval(id: WorkbenchId, version: string): Promise<{ cleanup(): Promise<void>; complete(): void }> {
+    const entry = this.providers.get(id)
+    if (!entry || entry.retirement || entry.provider.version !== version) throw new RemoteError('workbench/unavailable', 'Reload the workbench before removing its data.', {})
+    if (entry.operations.size || this.ctx.agents.list().some(agent => agent.status === 'running' && this.selection(agent)?.id === id)) {
+      throw new RemoteError('workbench/unavailable', 'Stop active work before removing this workbench.', {})
+    }
+    const provider = entry.provider
+    const documents = [...this.domain.table('instances').entries()].filter(([, document]) => document.id === id)
+    this.removing.add(id)
+    await this.retire(entry)
+    let started = false
+    let cleaned = false
+    const cleanup = async () => {
+      if (started) throw new Error('Workbench cleanup has already started')
+      started = true
+      const signal = this.removalLifetime.signal
+      const task = (async () => {
+        for (const [key, document] of documents) {
+          signal.throwIfAborted()
+          const environment: WorkbenchEnvironment = { id, instanceId: key, version,
+            dataDirectory: join(this.config.dataDirectory, key), resourcesDirectory: provider.resourcesDirectory ?? null,
+            storage: workbenchJsonStorage(provider) ? 'json' : 'custom', aiEnabled: workbenchAIEnabled(provider) }
+          await provider.lifecycle?.cleanup?.(environment, signal)
+          signal.throwIfAborted()
+          await rm(environment.dataDirectory, { recursive: true, force: true })
+          await this.domain.table('instances').delete(document.instanceId)
+        }
+      })()
+      this.cleanupOperations.add(task)
+      try { await task; cleaned = true } finally { this.cleanupOperations.delete(task) }
+    }
+    return { cleanup, complete: () => { if (!cleaned) throw new Error('Cleanup has not finished'); this.removing.delete(id) } }
+  }
+
+  private async prepareData(provider: WorkbenchProvider, document: WorkbenchDocument): Promise<void> {
+    const dataDirectory = await this.ensureDirectory(document.instanceId)
+    if (!provider.lifecycle || this.preparedData.get(provider)?.has(document.instanceId)) return
+    let task = this.preparingData.get(document.instanceId)
+    if (!task) {
+      const entry = this.assertLoaded(provider)
+      task = prepareWorkbenchData(provider.lifecycle, { id: document.id, instanceId: document.instanceId, version: provider.version,
+        dataDirectory, resourcesDirectory: provider.resourcesDirectory ?? null,
+        storage: workbenchJsonStorage(provider) ? 'json' : 'custom', aiEnabled: workbenchAIEnabled(provider) }, entry.abort.signal)
+      this.preparingData.set(document.instanceId, task)
+    }
+    try {
+      await task
+      this.assertLoaded(provider)
+      let ready = this.preparedData.get(provider)
+      if (!ready) { ready = new Set(); this.preparedData.set(provider, ready) }
+      ready.add(document.instanceId)
+    } finally { if (this.preparingData.get(document.instanceId) === task) this.preparingData.delete(document.instanceId) }
+  }
+
   private loadedProvider(id: WorkbenchId): WorkbenchProvider {
     const entry = this.providers.get(id)
-    const provider = !this.disposed && !entry?.retirement ? entry?.provider : undefined
+    const provider = !this.disposed && !this.removing.has(id) && !entry?.retirement ? entry?.provider : undefined
     if (!provider) throw new RemoteError('workbench/unavailable', 'Workbench provider is not loaded.', {})
     return provider
   }

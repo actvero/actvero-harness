@@ -75,6 +75,7 @@ function readSelection(): string | null {
 export interface WorkbenchView extends WorkbenchManagement {
   location: WorkbenchObjectLocation | null
   platform: { phase: 'login' | 'loading' | 'ready' | 'failed'; catalog?: PublishedWorkbenchCatalog }
+  cleanupProviders?: readonly string[]
   accessEpoch: number
   accessError: WorkbenchAccessError | null
   entries: readonly ActveroWorkbench[]
@@ -92,7 +93,15 @@ export interface WorkbenchView extends WorkbenchManagement {
 }
 
 /** Human-triggered navigation and local installation. */
-export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchManagement>, 'initial' | 'dispose' | 'installPublished' | 'report' | 'setEnabled'> {
+export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchManagement>, 'initial' | 'dispose' | 'maintain' | 'installPublished' | 'report' | 'setEnabled'> {
+  /** Open a native conversation with unsent development instructions, preserving existing draft content. */
+  startDevelopment(): void
+  /** Remove the reviewed version with explicit data cleanup consent. */
+  removeWithData(id: string, version: string): Promise<void>
+  /** Copy instructions and bundled skill paths for an Agent on the Host machine.
+   * @returns Completion after clipboard success or a transient failure report.
+   */
+  copyDevelopmentInstructions(): Promise<void>
   open(id: string): void
   refreshPlatform(): Promise<void>
   usePublished(release: PublishedWorkbench): Promise<void>
@@ -123,6 +132,7 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
  * @returns Completion when the host catalog and client registrations are ready.
  */
 export async function registerWorkbenches(ctx: Context): Promise<void> {
+  const mounted = () => ctx.fiber.uid !== null
   const providers = await ctx.remote.actveroWorkbench.list()
   if (!providers.ok) throw providers.error
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
@@ -148,7 +158,8 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     return sessions.ids.some(key => sessions.byId[key]?.running && sessions.byId[key]?.projectionValues?.actveroWorkbench?.id === id)
       ? 'activeConversation' : null
   })
-  let view: WorkbenchView = { ...management.initial, entries: examples, remembered: [], opened: readSelection(),
+  let view: WorkbenchView = { ...management.initial, cleanupProviders: providers.value.map(entry => entry.id),
+    entries: examples, remembered: [], opened: readSelection(),
     platform: { phase: 'login' }, accessEpoch: 0, accessError: null,
     instance: null, location: null, preparing: false, openError: null, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false, catalogButtons: {} }
@@ -348,7 +359,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     }
     try {
       const accessError = await checkAccess(id)
-      if (generation !== navigation || ctx.fiber.uid === null) return
+      if (generation !== navigation || !mounted()) return
       if (accessError) {
         releaseChat()
         update({ instance: null, location: null, preparing: false, accessError })
@@ -361,7 +372,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       if (result && !result.ok) throw result.error
       const instance = result?.ok ? result.value : opened
       if (instance && instance.id !== id) throw new Error('Workbench instance belongs to another provider')
-      if (generation !== navigation || ctx.fiber.uid === null) throw new Error('Workbench navigation superseded')
+      if (generation !== navigation || !mounted()) throw new Error('Workbench navigation superseded')
       signal?.throwIfAborted()
       update({ instance, preparing: false })
       return instance
@@ -467,8 +478,45 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     },
   }
 
-  const { initial: _initial, dispose: _dispose, installPublished, report, setEnabled, ...operations } = management
+  const { initial: _initial, dispose: _dispose, installPublished, report, setEnabled, maintain, ...operations } = management
   const action: WorkbenchAction = {
+    async removeWithData(id, version) {
+      await maintain(id, async () => {
+        try {
+          const result = await ctx.remote.actveroWorkbenchMaintenance.uninstall({ id: id as WorkbenchId, version, deleteData: true })
+          if (!result.ok) { ctx.logger.warn('Workbench removal request failed: %s', result.error); ctx.capabilityHub.notify(t('cleanupUnknown')); return }
+          if (result.value.application === 'applied') ctx.capabilityHub.notify(t('cleanupRemoved'), 'success')
+          else if (result.value.application === 'restart-required') ctx.capabilityHub.notify(t('cleanupRestart'))
+          else ctx.capabilityHub.notify(t(result.value.data === 'preserved' ? 'cleanupBlocked' : 'cleanupIncomplete'))
+          if (result.value.diagnostic) ctx.logger.warn('Workbench removal: %s', result.value.diagnostic)
+        } catch (error) { ctx.logger.warn('Workbench removal outcome unknown: %s', error); ctx.capabilityHub.notify(t('cleanupUnknown')) }
+      })
+    },
+    startDevelopment() {
+      ctx.uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt: t('developPrompt'), whenDraftExists: 'append' })
+    },
+    async copyDevelopmentInstructions() {
+      let resources: Awaited<ReturnType<typeof ctx.remote.actveroWorkbench.developmentResources>>
+      try { resources = await ctx.remote.actveroWorkbench.developmentResources() }
+      catch (error) {
+        ctx.logger.warn('Unable to locate workbench development resources: %s', error)
+        ctx.capabilityHub.notify(t('developResourcesFailed'))
+        return
+      }
+      if (!resources.ok) {
+        ctx.logger.warn('Unable to locate workbench development resources: %s', resources.error)
+        ctx.capabilityHub.notify(t('developResourcesFailed'))
+        return
+      }
+      const instructions = `${t('developPrompt')}\n\n${t('developResources', resources.value)}`
+      try { await navigator.clipboard.writeText(instructions) }
+      catch (error) {
+        ctx.logger.warn('Unable to copy workbench development instructions: %s', error)
+        ctx.capabilityHub.notify(t('copyFailed'))
+        return
+      }
+      ctx.capabilityHub.notify(t('copied'), 'success')
+    },
     open(id) {
       if (!view.entries.some(entry => entry.id === id)) return
       linkedSession = null
@@ -476,12 +524,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       const opening = load(id)
       const generation = navigation
       void opening.then(() => {
-        if (generation !== navigation || ctx.fiber.uid === null || view.accessError) return
+        if (generation !== navigation || !mounted() || view.accessError) return
         const preference = view.visibility[`focus:${id}`] ?? (view.entries.find(item => item.id === id)?.display?.sidebar === 'focus')
         setFocus(preference)
         action.restoreChat()
-      }).catch((error) => {
-        if (generation !== navigation || ctx.fiber.uid === null || view.openError) return
+      }).catch((error: unknown) => {
+        if (generation !== navigation || !mounted() || view.openError) return
         ctx.logger.warn('Unable to restore workbench navigation: %s', error)
         failed()
       })
@@ -503,7 +551,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     async usePublished(release) {
       const catalog = view.platform.catalog
       if (view.platform.phase !== 'ready' || !catalog || !bridge?.workbenchDownload || view.busy) return
-      const download = bridge.workbenchDownload
+      const download = bridge.workbenchDownload.bind(bridge)
       const epoch = view.accessEpoch
       const signal = ctx.layout.beginNavigation()
       pendingOpen = undefined
@@ -686,7 +734,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   }
 
   ctx.effect(() => {
-    const refresh = () => { void management.refresh() }
+    const refresh = () => {
+      void management.refresh()
+      void ctx.remote.actveroWorkbench.list().then((result) => {
+        if (ctx.fiber.uid !== null) update({ cleanupProviders: result.ok ? result.value.map(entry => entry.id) : [] })
+      }).catch((error: unknown) => { update({ cleanupProviders: [] }); ctx.logger.warn('Unable to inspect loaded providers: %s', error) })
+    }
     const disposers = [ctx.remote.$on('plugin-manager/changed', refresh), ctx.on('connection/reset', refresh)]
     if (bridge) {
       const changed = (snapshot: AccountSnapshot | null) => {
@@ -708,7 +761,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       disposers.push(bridge.subscribe((snapshot) => { received = true; changed(snapshot) }))
       void bridge.snapshot().then((snapshot) => {
         if (!received && ctx.fiber.uid !== null) changed(snapshot)
-      }).catch(error => ctx.logger.warn('Unable to read the workbench account: %s', error))
+      }).catch((error: unknown) =>{  ctx.logger.warn('Unable to read the workbench account: %s', error) })
     }
     refresh()
     return () => { catalogRequest++; management.dispose(); for (const dispose of disposers) dispose() }
@@ -729,7 +782,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     name: 'sidebar.panellist.row', key: managerPanel, locale: namespace, inject,
   }, Navigation))
   ctx.slots.inject('main', () => ctx.slots.register({
-    name: 'main', key: managerPanel, locale: namespace, inject,
+    name: 'main', key: managerPanel, locale: namespace,
+    inject: () => ({ ...inject(), hooks: {
+      view: source, workspaces: ctx.uiWorkspace.workspacesView, sessions: ctx.uiWorkspace.sessionsView,
+    } }),
   }, Manager))
   ctx.effect(() => ctx.slots.registerFactory({
     name: 'actvero.workbench.content', scope: 'root', locale: namespace,

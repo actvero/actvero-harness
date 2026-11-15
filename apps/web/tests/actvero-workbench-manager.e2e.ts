@@ -26,7 +26,7 @@ function version(path: string): string {
 }
 
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('Actvero workbench manager', () => {
-  it.each(['local workbench management', 'platform workbench distribution'])('%s', async (scenario) => {
+  it.each(['local workbench management', 'platform workbench distribution', 'workbench development entry', 'workbench data cleanup'])('%s', async (scenario) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-workbench-manager-')))
     let host: DesktopHostProcess | undefined
     let proxy: PrefixProxy | undefined
@@ -37,6 +37,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       vi.stubEnv('DSH_HOME', home)
       vi.stubEnv('DSH_TELEMETRY_MODE', 'DISABLED')
       vi.stubEnv('ACTVERO_DESKTOP', '1')
+      vi.stubEnv('DSH_CLIENT_VERSION', version(join(repository, 'apps/desktop/package.json')))
       const pnpmDirectory = join(repository, 'apps/desktop/node_modules/pnpm')
       const project = prepareDevelopmentProject({
         projectDir: join(root, 'project'), cliDir: join(repository, 'apps/cli'),
@@ -90,7 +91,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           try { runtime.register({ id: '${fixtureName}', name: '不兼容', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^2' } }); }
           catch (error) { if (error.code !== 'incompatible-host') throw error; refused = true; }
           if (!refused) throw new Error('Host admitted an incompatible workbench');
-          ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^1' }, resourcesDirectory: import.meta.dirname }));
+          ctx.effect(() => runtime.register({ id: '${fixtureName}', name: '活动复盘', version: '1.0.0', protocol: { schemaVersion: 1, hostApi: '^1' }, resourcesDirectory: import.meta.dirname, lifecycle: { dataVersion: 1, cleanup: async (environment) => { await writeFile(${JSON.stringify(join(root, 'cleanup-report.json'))}, JSON.stringify(environment)); } } }));
           ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/__workbench_test/display', handler: async (req, res) => {
             const params = new URL(req.url, 'http://127.0.0.1').searchParams;
             const request = params.has('mode') ? { id: params.get('id') || '${fixtureName}', mode: params.get('mode'),
@@ -227,7 +228,14 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           if (response.status() >= 500) errors.push(`${new URL(response.url()).pathname}: ${await response.text()}`)
         })
         const openManager = async () => {
-          await page.getByRole('button', { name: '工作台', exact: true }).click()
+          const workbench = page.getByRole('button', { name: '工作台', exact: true })
+          const expand = page.getByRole('button', { name: '打开侧边栏', exact: true })
+          await workbench.or(expand).first().waitFor().catch(async (error) => {
+            console.error('Workbench manager unavailable', { errors, body: await page.locator('body').ariaSnapshot() })
+            throw error
+          })
+          if (!await workbench.isVisible()) await expand.click()
+          await workbench.click()
           await page.getByRole('tab', { name: '我的工作台', exact: true }).waitFor()
         }
         const restart = async () => {
@@ -236,6 +244,114 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const next = await startHost()
           await page.goto(browserUrl(next.url))
           await openManager()
+        }
+        if (scenario === 'workbench data cleanup') {
+          await page.goto(browserUrl(ready.url))
+          await openManager()
+          await page.getByRole('tab', { name: '我的工作台', exact: true }).click()
+          await page.locator('input[type="file"][accept=".tgz"]').setInputFiles(archive)
+          const card = page.locator('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+          await expect.poll(() => card.getAttribute('data-workbench-state'), { timeout: 40_000 }).toMatch(/^(ready|restartState)$/)
+          if (await card.getByText('待重启', { exact: true }).count()) {
+            await restart()
+            await page.getByRole('tab', { name: '我的工作台', exact: true }).click()
+          }
+          await expect.poll(() => existsSync(environmentReport)).toBe(true)
+          const environment = JSON.parse(readFileSync(environmentReport, 'utf8')) as { dataDirectory: string }
+          const remove = async () => {
+            await card.hover()
+            await card.getByRole('button', { name: `更多操作 · ${title}`, exact: true }).click()
+            await page.getByRole('menuitem', { name: '卸载', exact: true }).click()
+          }
+          const dialog = page.getByRole('dialog', { name: '卸载工作台', exact: true })
+          for (const colorScheme of ['light', 'dark'] as const) {
+            await page.emulateMedia({ colorScheme })
+            await page.setViewportSize({ width: colorScheme === 'light' ? 1200 : 640, height: 800 })
+            await remove()
+            const cleanup = dialog.getByRole('checkbox', { name: '同时清理此工作台的数据', exact: true })
+            expect(await cleanup.isChecked()).toBe(false)
+            await cleanup.check()
+            await dialog.getByText(/此操作无法撤销/).waitFor()
+            await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-cleanup-${colorScheme}.png`) })
+            await page.keyboard.press('Escape')
+            await dialog.waitFor({ state: 'hidden' })
+            expect(existsSync(join(environment.dataDirectory, 'campaign.txt'))).toBe(true)
+          }
+          await remove()
+          const cleanup = dialog.getByRole('checkbox', { name: '同时清理此工作台的数据', exact: true })
+          expect(await cleanup.isChecked()).toBe(false)
+          await cleanup.check()
+          await dialog.getByRole('button', { name: '卸载', exact: true }).click()
+          await card.waitFor({ state: 'hidden', timeout: 40_000 })
+          expect(existsSync(environment.dataDirectory)).toBe(false)
+          expect(JSON.parse(readFileSync(join(root, 'cleanup-report.json'), 'utf8'))).toMatchObject({ dataDirectory: environment.dataDirectory })
+          return
+        }
+        if (scenario === 'workbench development entry') {
+          await page.goto(browserUrl(ready.url))
+          await openManager()
+          await page.getByRole('button', { name: '制作工作台', exact: true }).click()
+          const developer = page.getByRole('dialog', { name: '制作工作台', exact: true })
+          await developer.getByText('告诉 AI 你的想法，一起完成工作台。', { exact: true }).waitFor()
+          expect(await developer.locator('pre').count()).toBe(0)
+          await developer.getByRole('button', { name: '在 Harness 中创建', exact: true }).click()
+          const initialDraft = page.locator('[data-composer-input][contenteditable="true"]')
+          await initialDraft.filter({ hasText: '请使用 develop-workbench' }).waitFor()
+          await openManager()
+          await page.getByRole('button', { name: '制作工作台', exact: true }).click()
+          for (const colorScheme of ['light', 'dark'] as const) {
+            await page.emulateMedia({ colorScheme })
+            await page.setViewportSize({ width: 390, height: 850 })
+            expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+            await developer.getByRole('button', { name: '在 Harness 中创建', exact: true }).waitFor()
+            await developer.getByRole('button', { name: '交给其他 Agent', exact: true }).waitFor()
+            await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-developer-${colorScheme}.png`) })
+          }
+          await page.setViewportSize({ width: 1440, height: 1000 })
+          await page.emulateMedia({ colorScheme: 'light' })
+          await page.evaluate(() => {
+            Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+              writeText: async (text: string) => { document.documentElement.dataset.workbenchInstructions = text },
+            } })
+          })
+          try {
+            await developer.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+            const copied = page.getByRole('alert').filter({ hasText: '已复制开发说明，粘贴给其他 Agent 即可' })
+            await copied.waitFor()
+            const instructions = await page.evaluate(() => document.documentElement.dataset.workbenchInstructions)
+            expect(instructions).toContain('需求明确前不要创建业务代码')
+            expect(instructions).toContain('develop-workbench/SKILL.md')
+            expect(instructions).toContain('workbench-frontend/SKILL.md')
+            expect(instructions).toContain('environment.json')
+            await copied.waitFor({ state: 'hidden' })
+            await page.evaluate(() => {
+              Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+                writeText: async () => { throw new DOMException('Clipboard denied', 'NotAllowedError') },
+              } })
+            })
+            await developer.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+            await page.getByRole('alert').filter({ hasText: '复制失败，请允许剪贴板访问后重试' }).waitFor()
+            expect(await developer.isVisible()).toBe(true)
+          } finally {
+            await page.evaluate(() => {
+              Reflect.deleteProperty(navigator, 'clipboard')
+              delete document.documentElement.dataset.workbenchInstructions
+            })
+          }
+          await developer.getByRole('button', { name: '在 Harness 中创建', exact: true }).click()
+          await developer.waitFor({ state: 'hidden' })
+          const developmentDraft = page.locator('[data-composer-input][contenteditable="true"]')
+          await expect.poll(async () => (await developmentDraft.innerText()).match(/请使用 develop-workbench/gu)?.length).toBe(2)
+          await writeComposerDraft(page, developmentDraft, '')
+          await expect.poll(async () => (await developmentDraft.innerText()).trim()).toBe('')
+          await page.keyboard.insertText('保留尚未发送的工作台需求')
+          await expect.poll(() => developmentDraft.innerText()).toBe('保留尚未发送的工作台需求')
+          await openManager()
+          await page.getByRole('button', { name: '制作工作台', exact: true }).click()
+          await developer.getByRole('button', { name: '在 Harness 中创建', exact: true }).click()
+          await developmentDraft.filter({ hasText: '请使用 develop-workbench' }).waitFor()
+          expect(await developmentDraft.innerText()).toContain('保留尚未发送的工作台需求')
+          return
         }
         if (scenario === 'platform workbench distribution') {
           const packagePath = join(development, 'package.json')
@@ -264,7 +380,11 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const latest = platformRelease(newerArchive, '1.1.0', 'a0000000-0000-4000-8000-000000000003')
           let current: typeof first | undefined = first
           let downloads = 0
-          await page.exposeFunction('workbenchFixtureCatalog', () => ({ scope: scopeKey, items: current ? [current.release] : [] }))
+          let catalogAvailable = false
+          await page.exposeFunction('workbenchFixtureCatalog', () => {
+            if (!catalogAvailable) throw new Error('catalog unavailable')
+            return { scope: scopeKey, items: current ? [current.release] : [] }
+          })
           await page.exposeFunction('workbenchFixtureDownload', (pin: WorkbenchArchiveSource) => {
             if (!current || pin.sha256 !== current.release.sha256 || pin.scope !== scopeKey) throw new Error('release unavailable')
             downloads++
@@ -298,7 +418,13 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await openManager()
           const showPlatform = () => page.getByRole('tab', { name: '平台工作台', exact: true }).click()
           await showPlatform()
+          await page.getByRole('alert').getByText('无法加载平台工作台，请检查网络').waitFor()
+          expect(await page.getByRole('button', { name: '刷新', exact: true }).count()).toBe(0)
+          catalogAvailable = true
+          await page.getByRole('button', { name: '重试', exact: true }).click()
           const platformCard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: '平台发布的项目清单' }) })
+          await platformCard.waitFor()
+          expect(await page.getByRole('button', { name: '重试', exact: true }).count()).toBe(0)
           await expect.poll(() => platformCard.locator('img').evaluateAll(images =>
             images.length === 2 && images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0),
           )).toBe(true)
@@ -726,7 +852,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await picker.setInputFiles({ name: 'invalid.tgz', mimeType: 'application/gzip', buffer: Buffer.from('not an archive') })
         await page.getByText('请选择有效的 Actvero 工作台 .tgz 包。').waitFor()
         await importArchive(incompatibleArchive)
-        await page.getByText('工作台要求接口 ^99.0.0，当前为 1.7.0；请使用匹配的应用版本后重新导入').waitFor()
+        await page.getByText('工作台要求接口 ^99.0.0，当前为 1.8.0；请使用匹配的应用版本后重新导入').waitFor()
         expect(await fixtureCard.count()).toBe(0)
         await importArchive(archive)
         let needsRestart: boolean
@@ -1143,20 +1269,6 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.screenshot({ path: join(repository, `.artifacts/workbench-management-${colorScheme}.png`) })
           await page.keyboard.press('Escape')
         }
-        await openManager()
-        await page.getByRole('button', { name: '制作工作台', exact: true }).click()
-        const developer = page.getByRole('dialog', { name: '制作工作台', exact: true })
-        await developer.getByText(/本地开发需要 ACTVERO/).waitFor()
-        for (const colorScheme of ['light', 'dark'] as const) {
-          await page.emulateMedia({ colorScheme })
-          await page.setViewportSize({ width: 390, height: 850 })
-          expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-          await developer.getByRole('button', { name: '复制开发说明', exact: true }).waitFor()
-          await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-developer-${colorScheme}.png`) })
-        }
-        await page.keyboard.press('Escape')
-        await page.setViewportSize({ width: 1440, height: 1000 })
-        await page.emulateMedia({ colorScheme: 'light' })
         const aiDevelopment = join(root, 'ai-development')
         execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', aiDevelopment, '--template', 'ai', '@local/ai-checklist'], { cwd: repository })
         const extensionEntry = join(aiDevelopment, 'src/client/index.ts')

@@ -4,7 +4,7 @@
 
 ## 概述
 
-本文面向工作台开发者与接手项目的 Agent：创建本地开发目录，按业务与视觉方案开发，校验并打包，再到目标客户端安装和验收。无需 GitHub 账号、仓库地址或发布服务。初始化使用已构建的 ACTVERO 源码工具链，之后在生成的项目目录运行开发命令。
+本文面向工作台开发者与接手项目的 Agent：创建本地开发目录，按业务与视觉方案开发，校验并打包，再到目标客户端安装和验收。无需 GitHub 账号、仓库地址或发布服务。可使用独立开发套件或已构建的源码工具链，之后在生成的项目目录运行开发命令。
 
 ## 目录
 
@@ -14,6 +14,7 @@
 - [包格式](#format)
 - [修改业务](#business)
 - [运行目录与自定义存储](#storage)
+- [初始化、迁移与卸载清理](#lifecycle)
 - [原生 AI 与共享数据](#native-ai)
 - [随包专家、Skill、MCP 与 CLI](#expert-bundle)
 - [显示控制与 Agent 入口](#display)
@@ -29,38 +30,31 @@
 
 本指南随原生 `develop-workbench` Skill 分发时，`reference/environment.json` 记录同次构建的 DSH 基线、工作台格式、能力包版本与参考文件来源。`reference/api/` 是接口源码的只读副本，用于核对参数，不是可安装的 SDK。指南链接到未随包分发的资料时，会标明其源码仓库路径。先核对目标客户端实际版本；源码基线或本快照不能证明另一个客户端具备相同能力。
 
-先从当前项目或用户已提供的位置找到 ACTVERO 源码根目录，确认其中存在 `scripts/actvero-workbench.client.ts`、`actvero/upstream.lock.json`、`actvero/templates/` 和根 `package.json` 的 `actvero:workbench` 命令；不要把业务输出目录当工具链根目录。在该根目录检查以下命令，并将版本与根 `package.json` 的 `engines`、`packageManager` 比较。构建依赖未准备好时按仓库说明安装，不创建替代宿主或独立 Agent 引擎。
+优先使用与目标 Harness 基线匹配的独立开发套件：其中包含编译器、固定版本依赖、类型声明、三个模板和两份 Skill，不需要完整 Harness 源码，也不需要 pnpm。核对套件根目录的 `workbench-kit.json`，使用与套件记录相同的操作系统、CPU 架构和 Node 版本。项目的 `.actvero/toolchain.json` 记录本机套件位置；套件不会自动下载或切换运行时。
 
-```sh
-node --version
-pnpm --version
-```
+维护者在已安装锁定依赖的源码仓库中运行 `pnpm run build:artifacts`，再运行 `pnpm run actvero:workbench-kit /绝对路径/新套件目录` 导出。目的目录必须不存在。开发者取得完整套件后，先读取其中 README.md；不要单独复制编译器入口或对套件运行 npm install。需新增业务依赖时，在业务项目安装并按包规范声明。源码方式仍支持 `pnpm run actvero:workbench`；它要求该仓库已构建。
 
-需求已经明确的修改任务直接读取已有源码；新建任务才使用 `create`。只知道名字或目录、尚无业务目标时先确认最小流程。源码目录与安装客户端分别确认：安装到隔离开发 Profile 不等于安装到日常应用。源目录可以在仓库之外，下面的相对输出路径仅为示例；实际操作使用已确认的路径，含空格时引用整个路径。找不到工具链时询问其位置，不能据此声称只凭已安装客户端就能编译。
+需求已明确时沿用现有目标，不重新询问；新建业务范围不明时先确认最小流程。独立套件与安装客户端分别核对：开发命令不代表目标桌面已具备相同接口，隔离 Profile 的验收不算日常应用的验收。当前桌面尚未内置完整编译套件，缺少工具链时先取得套件或已构建的源码目录。
 
 <a id="create"></a>
 
 ## 创建和打包
 
-也可在管理页点击「制作工作台」，复制说明并在新对话补充业务目标。原生 `develop-workbench` Skill 随客户端提供，引用构建时从本文生成的指南；它不会自动决定业务内容或发送任务。当前开发命令需要源码仓库和已安装依赖，客户端尚未附带独立编译器。
+管理页的「制作工作台」提供两个入口：「在 Harness 中创建」使用原生开发预设打开待发送的说明；「交给其他 Agent」复制说明及 Host 导出的普通文件路径，短时提示已复制。规范文件包含全部相对引用，外部 Agent 不必读取应用归档。导出的规范不是编译器；仍需取得上述开发套件。两种入口均不自动发送任务或安装包。
 
-先按[客户端开发说明](workbenches.zh.md)准备仓库依赖，并在仓库根目录执行 `pnpm run build:artifacts` 生成当前接口的类型产物。创建命令只接受尚不存在的目标目录，保护已有文件。可选的第二个参数是稳定包名；省略时根据初始路径生成并保存本地包名，移动目录后仍保留该名称。
+在套件根目录创建项目。目标目录必须不存在，第二个参数可指定稳定包名；省略时根据初始路径生成并保存，移动项目后保留该名称。
 
 ```sh
-pnpm run actvero:workbench create .artifacts/my-workbench @local/my-workbench
-cd .artifacts/my-workbench
+node scripts/actvero-workbench.client.mjs create /absolute/path/my-workbench @local/my-workbench
+cd /absolute/path/my-workbench
 npm run doctor
 npm run typecheck
 npm run build
 npm run check
+npm run dev
 ```
 
-需要清单示例时，在仓库根目录显式选择：
-
-```sh
-pnpm run actvero:workbench create .artifacts/my-checklist @local/my-checklist --template plain
-pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checklist --template ai
-```
+默认空白模板；需要参考清单时在 create 命令末尾加 `--template plain` 或 `--template ai`。源码方式对应入口仍是 `pnpm run actvero:workbench create`。
 
 `create` 默认生成可编译的空白界面，不预设业务或启用 AI。`plain` 是浏览器存储清单，`ai` 是带原生数据、AI 和本地专家 Skill 的「AI 项目清单」。示例均可免登录使用本地功能；模板不代表用户的业务需求。
 
@@ -68,7 +62,9 @@ pnpm run actvero:workbench create .artifacts/my-ai-checklist @local/my-ai-checkl
 
 `doctor` 检查声明、入口和运行时基线，提醒未完成的设计项；`typecheck` 用当前工具链构建的声明检查作者代码。`build` 与 `pack` 均先检查类型，再编译 Host 和 Client、生成 bundle patch，输出经过校验的 `dist/*.tgz`、字节数与 SHA-256。构建不修改业务源码、不安装或发布；失败保留原产物。`check` 默认复核 dist 中唯一的包；多个版本时运行 `npm run check -- /绝对路径/包.tgz`。业务测试由作者按需求添加。
 
-这些命令依赖 `.actvero/toolchain.json` 中绑定的源码目录，尚非独立 SDK。此文件与生成的 tsconfig.json 不提交；项目移动或换机器后，在项目内执行 `node scripts/workbench.mjs bind /绝对路径/actvero-harness`。重新绑定刷新编译配置、两份 Skill 与接口快照，保留业务代码、README.md、AGENTS.md 和 DESIGN.md。.actvero/skills 供 Agent 明确读取，不假设其他 Agent 产品会自动发现。
+命令使用 `.actvero/toolchain.json` 记录的本机套件或源码目录；此文件和生成的 tsconfig.json 不提交。目录移动后运行 `node scripts/workbench.mjs bind /绝对路径/工具链`，刷新编译配置、`.agents/skills/` 下的 Skill 和接口快照；业务代码、README.md、AGENTS.md、DESIGN.md 保留。AGENTS.md 要求 Agent 明确读取规范，不假设所有 Agent 产品会自动发现 Skill。
+
+`npm run dev` 监听项目变更，串行检查、构建和校验，开发包包含源码映射。Agent 读取 `.actvero/diagnostics.json`：`building` 表示进行中，`failed` 包含诊断，`built` 包含归档路径和 SHA-256。失败不会把旧产物报告为新构建；`runtime: not-verified` 表示尚未核实客户端加载。此命令不自动安装、重载或启动 Harness；仍按下文核验真实安装和业务。Ctrl+C 停止监听并等待已经开始的构建结束。
 
 `check` 复用客户端导入预检，并检查格式版本、版本声明、非空入口文件以及重复、越界和链接路径。它不执行工作台代码，不能证明业务功能正常。客户端还会在安装时执行当前运行版本的兼容性检查；开发命令不会跳过这一步。
 
@@ -88,13 +84,13 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 更新时保持包名不变，提高 `package.json.version`，重新打包。在卡片的「更多 → 更新版本」选择新包，或直接导入同名包；确认弹窗显示旧版本与新版本。同版本重复导入、降级、包名不符和运行时不兼容会被拒绝。替换结果要求重启时显示「待重启」；重启 Harness 后检查卡片的打开入口、版本与业务内容。已有独立存储数据不清除；业务数据结构变化由工作台自行迁移。
 
-卡片的「更多」菜单可停用、启用或卸载；已加载且原生文件管理器可用时，还可打开宿主管理的数据文件夹。停用与卸载需要确认，保留本地数据目录和历史对话。停用保留安装包，重启后仍在「我的工作台」中；只有加载成功的工作台进入侧栏切换菜单。卸载后重新导入同名包可恢复示例清单。修改安装状态前检查关联对话，仍在运行或状态无法确认时暂不执行。安装或更新失败时查看错误详情并核对列表状态。不要把安装成功写成已完成业务验收。
+卡片的「更多」菜单可停用、启用或卸载；已加载且原生文件管理器可用时，还可打开宿主管理的数据文件夹。停用与普通卸载保留本地数据和历史对话；勾选清理时按生命周期说明删除业务数据。停用保留安装包，重启后仍在「我的工作台」中；只有加载成功的工作台进入侧栏切换菜单。保留数据时，重新导入同名包可恢复示例清单。修改安装状态前检查关联对话，仍在运行或状态无法确认时暂不执行。安装或更新失败时查看错误详情并核对列表状态。不要把安装成功写成已完成业务验收。
 
 <a id="format"></a>
 
 ## 包格式
 
-工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.3.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.8.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
 
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
@@ -128,10 +124,10 @@ my-workbench/
 ├── workbench.json                  # 名称与简介必填，分类/作者/标签可选
 ├── README.md / AGENTS.md            # 开发命令与 Agent 入口
 ├── DESIGN.md                       # 已确认业务、视觉方案与验收记录
-├── scripts/workbench.mjs           # 调用绑定的源码工具链
+├── scripts/workbench.mjs           # 调用绑定的开发工具链
 ├── tsconfig.json                   # 生成的本机类型配置，不提交
 ├── .actvero/toolchain.json         # 本机绑定，不提交
-├── .actvero/skills/                # 工作台开发、工作台前端规范与接口快照
+├── .agents/skills/                # 工作台开发、工作台前端规范与接口快照
 ├── src/index.ts                    # Host 注册；纯界面模板为空入口
 ├── src/client/index.ts             # 注册业务组件、语言、预览和显示建议
 ├── src/client/                     # 自行组织业务组件、文案与样式
@@ -254,7 +250,26 @@ export async function apply(ctx: Context) {
 
 `resourcesDirectory` 指向包内资源，作者应传入绝对路径；未声明时返回 `null`，Host 不写入此目录。获取路径不授予 AI 或渲染器文件访问权限。业务前端可以调用 `await workbench.environment()` 查询环境，UI-only 工作台返回 `null`；实际文件读写通过作者的 Host 服务、MCP 或 CLI 完成。目录无法创建时明确报错，不退回临时目录或覆盖已有文件。
 
-需要宿主托管 JSON 时，注册 `storage: { initial, reduce, actionHelp }` 适配器；旧式顶层字段继续兼容。只有该适配器支持通用 `action()` 和会话中的 JSON 读写工具；自定义存储调用通用动作会返回 `workbench/unsupported-storage`。卸载保留目录与实例记录，清理业务数据需要单独处理。
+需要宿主托管 JSON 时，注册 `storage: { initial, reduce, actionHelp }` 适配器；旧式顶层字段继续兼容。只有该适配器支持通用 `action()` 和会话中的 JSON 读写工具；自定义存储调用通用动作会返回 `workbench/unsupported-storage`。普通卸载保留目录与实例记录；显式清理按下述生命周期执行。
+
+<a id="lifecycle"></a>
+
+## 初始化、迁移与卸载清理
+
+使用生命周期时，Host 与 Client 共用的 `protocol.hostApi` 声明 `^1.8.0`，在 Host 提供者声明 `lifecycle: WorkbenchLifecycle`。这是业务数据钩子，不是 npm install/postinstall/uninstall 脚本；安装依赖的脚本仍由原生安装器审阅。
+
+| 字段或回调 | 执行时机与职责 |
+| --- | --- |
+| `dataVersion` | 递增的业务数据版本，与包版本分开；禁止降级读取。 |
+| `initialize(environment, signal)` | 首次打开实例时执行，包括接管没有版本标记的已有数据；必须可重复执行。 |
+| `migrate(environment, fromVersion, signal)` | 数据版本提高后、返回可用实例前执行；版本变化时必须提供；失败后能从旧标记继续。 |
+| `cleanup(environment, signal)` | 用户明确勾选清理后、卸载包前执行；只处理开发者负责的资源，不自行弹窗。 |
+
+同一实例的准备过程串行执行。宿主只在回调成功后原子写入数据目录的 `.actvero-data-version.json`；失败保留旧标记并阻止依赖该实例的操作。版本标记不能回滚业务写入，开发者负责事务、备份及重入。钩子响应 signal，等待自有任务结束后返回；进程中运行的插件代码不构成安全沙箱。
+
+卸载弹窗由宿主统一提供，默认保留数据。已加载、可卸载的 Host 工作台可勾选「同时清理此工作台的数据」；停用或加载失败的包先恢复提供者，不能根据包名猜测文件位置。清理前复核安装版本和活动任务，撤下提供者并等待其作用域释放，再调用 cleanup，删除该提供者的托管实例目录及 JSON 记录，最后使用原生安装器卸载。没有 cleanup 时仍能清理宿主管理的数据；外部数据库和业务自行选择的路径只有开发者明确实现后才会处理。历史对话、其他工作台数据与插件安装目录不由 cleanup 删除。
+
+清理失败会停止卸载并保留包供诊断，但已发生的副作用不能恢复；该提供者保持不可用，检查数据并重启 Harness 后再处理。包卸载失败可能发生在数据已清理之后，界面分别报告两者；通信中断视为结果未知，不盲目重试。只卸载而不清理、停用、热重载与普通升级都不会调用 cleanup。测试至少覆盖首次打开、并发打开、迁移中断后恢复、降级拒绝、默认保留、清理失败及重新安装。
 
 <a id="native-ai"></a>
 

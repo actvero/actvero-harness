@@ -178,6 +178,22 @@ interface SessionActivity {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxactveroworkbenchmaintenance--workbenchmaintenance"></a>
+
+### `ctx.actveroWorkbenchMaintenance` — `WorkbenchMaintenance`
+
+Uses the same installer as ordinary removal, with explicit consent to data destruction.
+
+```ts cordis-catalog
+/** Clean a reviewed, loaded workbench and then remove its package. Never invoked for ordinary keep-data removal.
+ * @param request Exact package version and explicit cleanup consent from the owner UI.
+ * @returns Separate data and package outcomes; partial cleanup stops package removal and requires inspection/restart.
+ */
+@Remote async uninstall(request: { id: WorkbenchId; version: string; deleteData: boolean }): Promise<WorkbenchRemovalResult>
+```
+
+Source: [`packages/actvero/capability-ui/src/workbench-maintenance.ts`](../../packages/actvero/capability-ui/src/workbench-maintenance.ts)
+
 <a id="ctxactveroworkbenchplatform--workbenchplatformaccess"></a>
 
 ### `ctx.actveroWorkbenchPlatform` — `WorkbenchPlatformAccess`
@@ -235,6 +251,11 @@ register(provider: WorkbenchProvider): () => Promise<void>
  * @returns Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.
  */
 present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<WorkbenchDisplayResult>
+
+/** Export bundled guidance to ordinary files readable by external Agents on this Host.
+ * @returns Absolute skill entrypoints, including all relative guide and API references.
+ */
+@Remote async developmentResources(): Promise<{ skillPath: string; frontendSkillPath: string }>
 
 /** List providers with a managed runtime, including those with author-owned storage.
  * @returns Runtime-ready provider metadata, independent of UI-only cards.
@@ -296,6 +317,14 @@ platformAccess(request: WorkbenchTarget): string
  * @returns Initial state and subsequent durable changes, coalesced without polling.
  */
 @Remote({ mode: 'stream' }) async *follow(request: WorkbenchTarget, signal: AbortSignal): AsyncIterable<WorkbenchDocument>
+
+/** Withdraw an idle provider before removal; cleanup is called only after explicit consent.
+ * @param id Installed package identity.
+ * @param version Version the person reviewed.
+ * @returns Operations for existing instances; no new instance is created. Call complete after successful package removal.
+ * Failures retain the provider reservation until Host restart.
+ */
+async prepareRemoval(id: WorkbenchId, version: string): Promise<{ cleanup(): Promise<void>; complete(): void }>
 ```
 
 Types: [SessionId](core.md)

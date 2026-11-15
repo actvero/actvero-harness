@@ -90,7 +90,7 @@ describe('local workbench developer commands', () => {
     const path = await root()
     const source = join(path, 'AI development')
     await createWorkbench(source, '@local/ai-checklist', 'ai')
-    const reference = join(source, '.actvero/skills/develop-workbench/reference')
+    const reference = join(source, '.agents/skills/develop-workbench/reference')
     expect(await readFile(join(reference, 'api/workbench-result.ts'), 'utf8')).toContain('workbenchResultMetadata')
     expect(await readFile(join(reference, 'guide.zh.md'), 'utf8')).toContain('自动选区与发送')
     const archive = await packWorkbench(source, path)

@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
 import { resolveWorkbenchProtocol } from '../packages/actvero/capability-ui/src/workbench-protocol.ts'
+import { watchWorkbench } from './actvero-workbench-dev.ts'
 import { bindWorkbenchProject, initializeWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
@@ -133,7 +134,7 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
  * @param output Directory receiving the versioned .tgz.
  * @returns Absolute path of the validated archive.
  */
-export async function packWorkbench(directory: string, output: string): Promise<string> {
+export async function packWorkbench(directory: string, output: string, development = false): Promise<string> {
   directory = resolve(directory)
   output = resolve(output)
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
@@ -147,7 +148,7 @@ export async function packWorkbench(directory: string, output: string): Promise<
     await mkdir(lib, { recursive: true })
     // Reuse the host/client compiler, including shared React, CSS Modules and image imports.
     for (const config of clientBundle(directory, ['src/index.ts'])({})) {
-      await build({ ...config, cwd: directory, outDir: lib, config: false, tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false,
+      await build({ ...config, cwd: directory, outDir: lib, config: false, logLevel: development ? 'silent' : 'info', tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: development,
         inputOptions: async (options, format, context) => {
           const configured = typeof config.inputOptions === 'function'
             ? await config.inputOptions(options, format, context) ?? options : { ...options, ...config.inputOptions }
@@ -205,6 +206,17 @@ async function main(): Promise<void> {
   } else if (command === 'pack') {
     const archive = await packWorkbench(path, argument ?? join(path, 'dist'))
     console.log(JSON.stringify({ path: archive, ...await checkWorkbench(archive) }, null, 2))
+  } else if (command === 'dev' && argument === undefined) {
+    const abort = new AbortController()
+    const stop = () => { abort.abort() }
+    process.once('SIGINT', stop)
+    process.once('SIGTERM', stop)
+    try {
+      await watchWorkbench(resolve(path), async () => {
+        const archive = await packWorkbench(path, join(path, 'dist'), true)
+        return { path: archive, ...await checkWorkbench(archive) }
+      }, abort.signal)
+    } finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop) }
   } else if (command === 'check' && argument === undefined) {
     console.log(JSON.stringify(await checkWorkbench(path), null, 2))
   } else if (command === 'doctor' && argument === undefined) {
@@ -217,7 +229,7 @@ async function main(): Promise<void> {
     await bindWorkbenchProject(resolve(path), repository)
     console.log('已更新本地工具链绑定、类型配置和开发规范；业务代码与 DESIGN.md 保持不变。')
   } else {
-    throw new Error('未知命令，请使用 create、bind、doctor、typecheck、pack 或 check。')
+    throw new Error('未知命令，请使用 create、bind、doctor、typecheck、dev、pack 或 check。')
   }
 }
 

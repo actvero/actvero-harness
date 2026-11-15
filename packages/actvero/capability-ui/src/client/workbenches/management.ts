@@ -59,6 +59,7 @@ export function createWorkbenchManagement(
   }
   let blockedInstall: WorkbenchInstall | undefined
   let disposed = false
+  const isDisposed = () => disposed
   let loading: Promise<void> | undefined
   let requested = false
   const update = (patch: Partial<WorkbenchManagement>) => { state = { ...state, ...patch }; if (!disposed) publish(state) }
@@ -102,8 +103,7 @@ export function createWorkbenchManagement(
     update({ busy: target, notice: null, diagnostic: '' })
     try {
       const blocked = await beforeChange(target)
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
-      if (disposed) return
+      if (isDisposed()) return
       if (blocked) { update({ notice: blocked }); return }
       const result = await operation()
       if (result.ok) {
@@ -135,9 +135,18 @@ export function createWorkbenchManagement(
   }
   return {
     initial: state,
+    async maintain(this: void, name: string, operation: () => Promise<void>) {
+      if (state.busy || state.inventoryFailed || disposed || blockedInstall) return
+      update({ busy: name, notice: null })
+      try {
+        const blocked = await beforeChange(name)
+        if (blocked) { update({ notice: blocked }); return }
+        await operation()
+      } finally { await refresh(); update({ busy: null }) }
+    },
     refresh,
     dispose: () => { disposed = true },
-    report(notice: WorkbenchNotice) { update({ notice, diagnostic: '' }) },
+    report(this: void, notice: WorkbenchNotice) { update({ notice, diagnostic: '' }) },
     cancelBuilds() { if (!state.busy) clearBuilds() },
     async confirmBuilds() {
       if (!blockedInstall || state.busy || disposed) return
@@ -148,6 +157,7 @@ export function createWorkbenchManagement(
       await install(request, names)
     },
     async installPublished(
+      this: void,
       release: PublishedWorkbench,
       scope: string,
       download: () => Promise<string>,
@@ -173,7 +183,7 @@ export function createWorkbenchManagement(
           if (stillCurrent()) update({ notice: 'platformDownloadFailed' })
           return false
         }
-        if (disposed || !stillCurrent()) return false
+        if (isDisposed() || !stillCurrent()) return false
         update({ busy: null })
         return await install({ name: release.packageName, path, stillCurrent, options: {
           enabled: true, registry: null,
@@ -232,7 +242,7 @@ export function createWorkbenchManagement(
         update({ notice: 'importFailed' })
       } finally { update({ busy: null }) }
     },
-    async setEnabled(name: string, enabled: boolean) {
+    async setEnabled(this: void, name: string, enabled: boolean) {
       return run(name, () => remote.setBundleEnabled(name, enabled))
     },
     async remove(name: string) {

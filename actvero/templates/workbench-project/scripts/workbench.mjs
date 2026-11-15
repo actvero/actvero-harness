@@ -1,35 +1,38 @@
-/** Run this project's commands with its explicitly bound ACTVERO source toolchain. */
+/** Run this project's commands with its explicitly bound ACTVERO developer toolchain. */
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 async function main() {
   const [command, argument, ...extra] = process.argv.slice(2)
-  if (!['doctor', 'typecheck', 'pack', 'check', 'bind'].includes(command) || extra.length || (argument && !['check', 'bind'].includes(command))) {
-    throw new Error('用法：node scripts/workbench.mjs doctor|typecheck|pack|check [包路径]，或 bind <ACTVERO 源码目录>。')
+  if (!['doctor', 'typecheck', 'pack', 'check', 'bind', 'dev'].includes(command) || extra.length || (argument && !['check', 'bind'].includes(command))) {
+    throw new Error('用法：node scripts/workbench.mjs doctor|typecheck|pack|check|dev [包路径]，或 bind <ACTVERO 开发套件或源码目录>。')
   }
   let repository
   if (command === 'bind') {
-    if (!argument) throw new Error('请提供已安装依赖的 ACTVERO 源码目录。')
+    if (!argument) throw new Error('请提供已安装依赖的 ACTVERO 开发套件或源码目录。')
     repository = resolve(argument)
   } else {
     const path = join(project, '.actvero/toolchain.json')
     let binding
     try { binding = JSON.parse(await readFile(path, 'utf8')) } catch (error) {
-      throw new Error(`无法读取本机工具链绑定；请运行 node scripts/workbench.mjs bind <ACTVERO 源码目录>。${error.message}`)
+      throw new Error(`无法读取本机工具链绑定；请运行 node scripts/workbench.mjs bind <ACTVERO 开发套件或源码目录>。${error.message}`)
     }
     if (binding.schemaVersion !== 1 || typeof binding.repository !== 'string' || !isAbsolute(binding.repository)) {
       throw new Error('本机工具链绑定无效；请重新运行 bind。')
     }
     repository = binding.repository
   }
-  const launcher = join(repository, 'node_modules/tsx/dist/cli.mjs')
-  const entry = join(repository, 'scripts/actvero-workbench.client.ts')
+  const compiled = join(repository, 'scripts/actvero-workbench.client.mjs')
+  const standalone = existsSync(join(repository, 'workbench-kit.json'))
+  const launcher = standalone ? compiled : join(repository, 'node_modules/tsx/dist/cli.mjs')
+  const entry = standalone ? compiled : join(repository, 'scripts/actvero-workbench.client.ts')
   try { await Promise.all([stat(launcher), stat(entry)]) } catch (error) {
-    throw new Error(`找不到已绑定的源码工具链或其依赖；请在源码仓库安装锁定依赖，目录移动后重新 bind。${error.message}`)
+    throw new Error(`找不到已绑定的开发工具链或其依赖；请在源码仓库安装锁定依赖，目录移动后重新 bind。${error.message}`)
   }
   let args = [command, project]
   if (command === 'pack') args.push(join(project, 'dist'))
@@ -47,7 +50,7 @@ async function main() {
     args = [command, archive]
   }
   await new Promise((resolveChild, reject) => {
-    const child = spawn(process.execPath, [launcher, entry, ...args], { cwd: repository, stdio: 'inherit', shell: false })
+    const child = spawn(process.execPath, [launcher, ...(standalone ? [] : [entry]), ...args], { cwd: repository, stdio: 'inherit', shell: false })
     child.once('error', reject)
     child.once('exit', (code, signal) => {
       if (signal) reject(new Error(`开发命令被信号 ${signal} 中止。`))

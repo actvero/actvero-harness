@@ -70,6 +70,7 @@
     }
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
@@ -77,6 +78,7 @@
     "@deepseek-ai/dsh-skill-filesystem": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-client-locale": "workspace:*",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:*",

@@ -115,4 +115,7 @@
   .addTask { flex-wrap: wrap; }
 }
 
-.developerPrompt { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 12px; font: inherit; }
+.developerDialog { width: min(560px, 100%); max-height: 100%; overflow-y: auto; }
+.developerHint { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 22px; }
+.developerActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.developerActions button { flex: 1 1 210px; height: 40px; white-space: nowrap; }

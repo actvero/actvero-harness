@@ -21,7 +21,7 @@ DESIGN.md 写明实际采用的方式、复用的组件、关键页面和例外�
 
 ## 复用真实组件与语义
 
-先查当前工具链真实导出的组件和已有同类页面，再写界面。源码仓库的 `packages/client/ui-primitives/src/index.ts` 是公共组件入口；本地项目的 `.actvero/toolchain.json` 记录源码位置。运行环境中的开发 Skill 提供同次构建的 API 快照，不能根据组件名猜参数，不能使用未导出的内部实现。
+先查当前工具链真实导出的组件和已有同类页面，再写界面。独立套件的 `packages/client/ui-primitives/lib/types/index.d.ts` 是公共组件声明入口，源码方式对应 `src/index.ts`；本地项目的 `.actvero/toolchain.json` 记录工具链位置。运行环境中的开发 Skill 提供同次构建的 API 快照，不能根据组件名猜参数，不能使用未导出的内部实现。
 
 按钮、输入框、选择器、菜单、弹窗、提示、开关和标签优先使用 `@deepseek-ai/dsh-client-ui-primitives`。图标沿用宿主图标体系，包图标用于业务身份；图标按钮保留可访问名称。宿主已提供导航、AI 会话、权限与模型选择时直接复用，不在业务区复制一套。文案通过工作台语言字典维护。
 

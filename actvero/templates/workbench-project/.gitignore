@@ -1,4 +1,4 @@
 node_modules/
 dist/
-.actvero/toolchain.json
+.actvero/
 tsconfig.json

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   ConfirmDialog,
+  Checkbox,
   Input,
   Modal,
   ImageLightbox,
@@ -10,10 +11,12 @@ import {
   IconChevronLeftOutlineMedium,
   IconChevronRightOutlineMedium,
   IconCloseOutlineMedium,
+  IconCopyOutlineMedium,
   IconSearchOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workbenchArchiveSource, type PublishedWorkbench } from '@actvero/dsh-client-account/protocol'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsHooks, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
 import type { WorkbenchViewHooks } from './Navigation.tsx'
@@ -26,7 +29,10 @@ import styles from './workbenches.module.css'
 const categories = ['all', 'office', 'engineering', 'design', 'content', 'data', 'education', 'lifestyle', 'general', 'uncategorized'] as const
 type Category = typeof categories[number]
 type Locale = PropsLocale<'actvero.workbenches'>
-type ViewHooks = WorkbenchViewHooks
+type ViewHooks = WorkbenchViewHooks & PropsHooks<{
+  workspaces: UiWorkspace['workspacesView']
+  sessions: UiWorkspace['sessionsView']
+}>
 
 function categoryOf(value: string | undefined): Category {
   return categories.find(category => category !== 'all' && category === value) ?? 'uncategorized'
@@ -292,16 +298,21 @@ function PlatformCard({ item, activate, openInstalled, showDetails, t }: Locale 
 }
 
 /** Search, import and open workbenches registered in the current profile. */
-export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks & { action: WorkbenchAction; resolveText: ResolveText }) {
+export function Manager({ t, useView, useWorkspaces, useSessions, action, resolveText }:
+  Locale & ViewHooks & { action: WorkbenchAction; resolveText: ResolveText }) {
   const view = useView(value => value)
+  const workspaceReady = useWorkspaces(value => value.phase === 'ready' && value.items.length > 0)
+  const sessionsReady = useSessions(value => value.phase === 'ready')
   const [query, setQuery] = useState('')
   const [developerOpen, setDeveloperOpen] = useState(false)
-  const [copyState, setCopyState] = useState<'copy' | 'copied' | 'copyFailed'>('copy')
+  const [copying, setCopying] = useState(false)
   const [category, setCategory] = useState<Category>('all')
   const [source, setSource] = useState<'platform' | 'local'>('local')
   const [detailSelection, setDetailSelection] = useState<{ source: 'platform' | 'local'; id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
+  const [deleteData, setDeleteData] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<WorkbenchItem>()
   useEffect(() => {
     if (source === 'platform') void action.refreshPlatform()
@@ -330,14 +341,15 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
 
   const manage = (entry: WorkbenchItem, operation: ManageAction) => {
     if (operation === 'update') { updateTarget.current = entry.id; fileInput.current?.click() }
-    else if (operation === 'remove') setRemoveTarget(entry)
+    else if (operation === 'remove') { setDeleteData(false); setRemoveTarget(entry) }
     else if (operation === 'disable') setDisableTarget(entry)
     else if (operation === 'directory') void action.openDataDirectory(entry.id)
     else void action.setEnabled(entry.id, true)
   }
   async function copyInstructions(): Promise<void> {
-    try { await navigator.clipboard.writeText(t('developPrompt')); setCopyState('copied') }
-    catch (_error) { setCopyState('copyFailed') }
+    setCopying(true)
+    try { await action.copyDevelopmentInstructions() }
+    finally { setCopying(false) }
   }
   return <section className={`${hubStyles.page} ${styles.page}`}>
     <header className={styles.pageTitle}>
@@ -346,11 +358,10 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
     <div className={`${catalogStyles.toolbar} ${styles.toolbar}`}>
       <Input className={catalogStyles.search} icon={<IconSearchOutlineMedium />}
         aria-label={t('search')} placeholder={t('search')} value={query} onChange={(event) => { setQuery(event.currentTarget.value) }} />
-      {source === 'local' ? <Button variant="outline" disabled={blocked} onClick={() => { updateTarget.current = undefined; fileInput.current?.click() }}>
+      {source === 'local' && <Button variant="outline" disabled={blocked} onClick={() => { updateTarget.current = undefined; fileInput.current?.click() }}>
         {t(view.busy ? 'busy' : 'import')}
-      </Button> : view.platform.phase !== 'login' && <Button variant="outline" disabled={view.platform.phase === 'loading' || blocked}
-        onClick={() => { void action.refreshPlatform() }}>{t('refresh')}</Button>}
-      <Button variant="primary" onClick={() => { setCopyState('copy'); setDeveloperOpen(true) }}>{t('develop')}</Button>
+      </Button>}
+      <Button variant="primary" onClick={() => { setDeveloperOpen(true) }}>{t('develop')}</Button>
       <input ref={fileInput} type="file" accept=".tgz" hidden onChange={(event) => {
         const file = event.currentTarget.files?.[0]
         event.currentTarget.value = ''
@@ -376,6 +387,7 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
           view.platform.phase === 'loading' ? 'platformLoading' : view.platform.phase === 'failed' ? 'platformCatalogFailed'
             : view.platform.phase === 'login' ? 'platformLogin' : query.trim() || category !== 'all' ? 'empty' : 'platformEmpty',
         )}</p>
+        {view.platform.phase === 'failed' && <Button variant="ghost" onClick={() => { void action.refreshPlatform() }}>{t('retry')}</Button>}
       </div>) : entries.length > 0 ? <div className={catalogStyles.grid}>
         {entries.map(entry => (
           <Card key={entry.id} entry={entry} builtIn={entry.id === 'builtin:project-checklist'} t={t} blocked={blocked}
@@ -400,12 +412,18 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
       actions={{ kind: 'platform', item: platformDetail,
         activate: () => { setDetailSelection(undefined); void action.usePublished(platformDetail.release) },
         openInstalled: () => { setDetailSelection(undefined); action.open(platformDetail.release.packageName) } }} />}
-    <Modal open={developerOpen} onClose={() => { setDeveloperOpen(false) }} title={t('develop')} closeLabel={t('close')}>
-      <p>{t('developHelp')}</p>
-      <p>{t('developPrerequisites')}</p>
-      <pre className={styles.developerPrompt}>{t('developPrompt')}</pre>
-      <Button variant="primary" onClick={() => { void copyInstructions() }}>{t('copy')}</Button>
-      <p role="status">{copyState !== 'copy' && t(copyState)}</p>
+    <Modal open={developerOpen} onClose={() => { setDeveloperOpen(false) }} title={t('develop')} closeLabel={t('close')}
+      className={styles.developerDialog} description={t('developHelp')}>
+      <p className={styles.developerHint}>{t('developChoice')}</p>
+      <div className={styles.developerActions}>
+        <Button variant="primary" disabled={!workspaceReady || !sessionsReady}
+          onClick={() => { setDeveloperOpen(false); action.startDevelopment() }}>
+          {t('developHere')}
+        </Button>
+        <Button variant="outline" disabled={copying} onClick={() => { void copyInstructions() }}>
+          <IconCopyOutlineMedium size={16} />{t('developElsewhere')}
+        </Button>
+      </div>
     </Modal>
     <ConfirmDialog open={!!view.pendingUpdate} title={t('updateTitle')} closeLabel={t('close')}
       resourceName={`${catalog.find(entry => entry.id === view.pendingUpdate?.name)?.name ?? view.pendingUpdate?.name ?? ''} · ${view.pendingUpdate?.from ?? ''} → ${view.pendingUpdate?.to ?? ''}`}
@@ -429,15 +447,21 @@ export function Manager({ t, useView, action, resolveText }: Locale & ViewHooks 
         setDisableTarget(undefined)
         void action.setEnabled(name, false)
       }} />
-    <ConfirmDialog open={!!removeTarget} title={t('removeTitle')} closeLabel={t('close')}
-      resourceName={removeTarget?.name ?? ''} description={t('removeHelp')} cancelLabel={t('cancel')}
-      confirmLabel={t('remove')} pending={!!view.busy} onCancel={() => { setRemoveTarget(undefined) }}
-      onConfirm={() => {
-        if (!removeTarget) return
-        const name = removeTarget.id
-        setRemoveTarget(undefined)
-        setDetailSelection(undefined)
-        void action.remove(name)
-      }} />
+    <Modal open={!!removeTarget} title={t('removeTitle')} closeLabel={t('close')} description={t(deleteData ? 'cleanupWarning' : 'removeHelp')}
+      onClose={() => { if (!removing) setRemoveTarget(undefined) }} footer={<>
+        <Button data-modal-autofocus disabled={removing} onClick={() => { setRemoveTarget(undefined) }}>{t('cancel')}</Button>
+        <Button disabled={removing || !!view.busy} onClick={() => {
+          if (!removeTarget || removing) return
+          const target = removeTarget
+          setRemoving(true)
+          const task = deleteData && target.bundle?.version
+            ? action.removeWithData(target.id, target.bundle.version) : action.remove(target.id)
+          void task.finally(() => { setRemoving(false); setRemoveTarget(undefined); setDetailSelection(undefined) })
+        }}>{t('remove')}</Button>
+      </>}>
+      <p>{removeTarget?.name}</p>
+      {removeTarget?.bundle?.version && view.cleanupProviders?.includes(removeTarget.id) && <Checkbox
+        checked={deleteData} disabled={removing} onChange={setDeleteData} label={t('cleanupLabel')} />}
+    </Modal>
   </section>
 }

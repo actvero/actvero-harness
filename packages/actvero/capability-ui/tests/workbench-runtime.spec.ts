@@ -69,6 +69,105 @@ async function harness(root?: string, exampleWorkbench = true) {
 const id = checklistProvider.id
 
 describe('workbench runtime', () => {
+  it.each(['success', 'cleanup-failure', 'remove-failure', 'stale-version'] as const)('reports separate data and package results: %s', async (scenario) => {
+    const { ctx, runtime } = await harness(undefined, false)
+    const cleanup = vi.fn(async () => { if (scenario === 'cleanup-failure') throw new Error('Cleanup failed') })
+    runtime.register({ id, name: '清理测试', version: '1.0.0', lifecycle: { dataVersion: 1, cleanup } })
+    await runtime.open(id)
+    const removeBundle = vi.fn(async (target: string) => ({ changed: scenario !== 'remove-failure', stage: 'remove' as const, target,
+      application: scenario === 'remove-failure' ? 'failed' as const : 'applied' as const }))
+    const maintenance = new Workbenches.WorkbenchMaintenance(ctx, runtime, {
+      listBundles: async () => [{ name: id, version: '1.0.0', installed: true, removable: true, enabled: true,
+        official: false, availability: 'profile', optional: false, rows: [], overrides: [] }],
+      removeBundle,
+    })
+    await expect(maintenance.uninstall({ id, version: '1.0.0', deleteData: false })).rejects.toThrow('consent')
+    expect(cleanup).not.toHaveBeenCalled()
+    const result = await maintenance.uninstall({ id, version: scenario === 'stale-version' ? 'old' : '1.0.0', deleteData: true })
+    const data = scenario === 'cleanup-failure' ? 'partial' : scenario === 'stale-version' ? 'preserved' : 'cleaned'
+    expect(result).toMatchObject({ application: scenario === 'success' ? 'applied' : 'failed', data })
+    expect(removeBundle).toHaveBeenCalledTimes(data === 'cleaned' ? 1 : 0)
+  })
+
+  it('prepares data once for concurrent opens and migrates only after a successful version change', async () => {
+    const { runtime } = await harness(undefined, false)
+    const initialize = vi.fn(async () => {})
+    const provider = { id, name: '生命周期', version: '1.0.0', lifecycle: { dataVersion: 1, initialize } }
+    const unregister = runtime.register(provider)
+    const [first, second] = await Promise.all([runtime.open(id), runtime.open(id)])
+    expect(first.instanceId).toBe(second.instanceId)
+    expect(initialize).toHaveBeenCalledTimes(1)
+    const environment = await runtime.environment(first)
+    const marker = join(environment.dataDirectory, '.actvero-data-version.json')
+    expect(JSON.parse(await readFile(marker, 'utf8'))).toEqual({ dataVersion: 1 })
+    await unregister()
+    const migrate = vi.fn(async (): Promise<void> => { throw new Error('Migration interrupted') })
+    const unload = runtime.register({ ...provider, version: '2.0.0', lifecycle: { dataVersion: 2, migrate } })
+    await expect(runtime.open(id)).rejects.toThrow('Migration interrupted')
+    expect(JSON.parse(await readFile(marker, 'utf8'))).toEqual({ dataVersion: 1 })
+    migrate.mockImplementation(async () => {})
+    await runtime.open(id)
+    expect(migrate).toHaveBeenLastCalledWith(expect.objectContaining({ instanceId: first.instanceId }), 1, expect.any(AbortSignal))
+    expect(JSON.parse(await readFile(marker, 'utf8'))).toEqual({ dataVersion: 2 })
+    await unload()
+    runtime.register(provider)
+    await expect(runtime.open(id)).rejects.toThrow('cannot be downgraded')
+  })
+
+  it('keeps data on provider withdrawal and cleans only the explicitly selected workbench', async () => {
+    const { runtime } = await harness(undefined, false)
+    const cleanup = vi.fn(async () => {})
+    const provider = { id, name: '生命周期', version: '1.0.0', lifecycle: { dataVersion: 1, cleanup } }
+    const unload = runtime.register(provider)
+    const document = await runtime.open(id)
+    const environment = await runtime.environment(document)
+    const file = join(environment.dataDirectory, 'business.txt')
+    await writeFile(file, 'retain me')
+    await unload()
+    expect(await readFile(file, 'utf8')).toBe('retain me')
+    expect(cleanup).not.toHaveBeenCalled()
+    runtime.register(provider)
+    await expect(runtime.prepareRemoval(id, 'stale')).rejects.toThrow()
+    expect(await readFile(file, 'utf8')).toBe('retain me')
+    const other = 'test:other' as WorkbenchId
+    runtime.register({ id: other, name: '其他', version: '1.0.0' })
+    const otherDocument = await runtime.open(other)
+    const removeData = await runtime.prepareRemoval(id, '1.0.0')
+    expect(() => runtime.register(provider)).toThrow('restart')
+    await removeData.cleanup()
+    expect(cleanup).toHaveBeenCalledTimes(1)
+    await expect(readFile(file)).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(() => runtime.read(document)).toThrow('not found')
+    expect(runtime.read(otherDocument)).toEqual(otherDocument)
+    await expect(removeData.cleanup()).rejects.toThrow('already started')
+  })
+
+  it('does not erase managed files when a cleanup hook fails', async () => {
+    const { runtime } = await harness(undefined, false)
+    runtime.register({ id, name: '生命周期', version: '1.0.0', lifecycle: {
+      dataVersion: 1, cleanup: async () => { throw new Error('External cleanup failed') },
+    } })
+    const document = await runtime.open(id)
+    const { dataDirectory } = await runtime.environment(document)
+    const file = join(dataDirectory, 'business.txt')
+    await writeFile(file, 'keep')
+    await expect((await runtime.prepareRemoval(id, '1.0.0')).cleanup()).rejects.toThrow('External cleanup failed')
+    expect(await readFile(file, 'utf8')).toBe('keep')
+    await expect(runtime.open(id)).rejects.toThrow('not loaded')
+  })
+
+  it('blocks removal while business initialization is running', async () => {
+    const { runtime } = await harness(undefined, false)
+    let finish!: () => void
+    const initialize = vi.fn(() => new Promise<void>((resolve) => { finish = resolve }))
+    runtime.register({ id, name: '生命周期', version: '1.0.0', lifecycle: { dataVersion: 1, initialize } })
+    const opening = runtime.open(id)
+    await vi.waitFor(() => expect(initialize).toHaveBeenCalled())
+    await expect(runtime.prepareRemoval(id, '1.0.0')).rejects.toThrow('Stop active work')
+    finish()
+    await opening
+  })
+
   it('starts without example providers when the profile does not opt in', async () => {
     expect(z.resolve({ dataDirectory: '/workbench-files' }, Workbenches.Config, {})[0]).toMatchObject({ exampleWorkbench: false })
     const { runtime } = await harness(undefined, false)
@@ -346,10 +445,16 @@ describe('workbench runtime', () => {
     const { ctx, workbenches } = await harness()
     await ctx.plugin(Skills)
     const skill = await ctx.skills.get('develop-workbench')
+    const resources = await ctx.actveroWorkbenchRuntime.developmentResources()
+    expect(await readFile(resources.skillPath, 'utf8')).toContain('name: develop-workbench')
+    expect(await readFile(resources.frontendSkillPath, 'utf8')).toContain('name: workbench-frontend')
     expect(skill?.source).toBe('bundled')
     expect(skill?.content).toContain('reference/guide.zh.md')
     expect(skill?.resourceBase?.kind).toBe('directory')
     if (skill?.resourceBase?.kind !== 'directory') throw new Error('Missing packaged developer resources')
+    expect(resources.skillPath).not.toBe(join(skill.resourceBase.path, 'SKILL.md'))
+    expect(await ctx.actveroWorkbenchRuntime.developmentResources()).toEqual(resources)
+    expect(await readFile(join(resources.skillPath, '../reference/environment.json'), 'utf8')).toContain('dshRuntimeVersion')
     expect(ctx.skills.renderContent(skill).replaceAll(skill.resourceBase.path, '<developer-skill>')).toMatchSnapshot()
     const frontend = await ctx.skills.get('workbench-frontend')
     expect(frontend?.source).toBe('bundled')

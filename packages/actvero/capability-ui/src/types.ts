@@ -47,7 +47,7 @@ export interface WorkbenchDocument {
 export interface WorkbenchEnvironment extends WorkbenchTarget {
   id: WorkbenchId
   version: string
-  /** Stable writable root retained across reload, upgrade and uninstall; authors own layout and transactions. */
+  /** Stable writable root retained across reload, upgrade and ordinary uninstall; explicit cleanup removes it. Authors own transactions. */
   dataDirectory: string
   /** Declared package resources, or null when the provider does not declare any. Never use for business writes. */
   resourcesDirectory: string | null
@@ -156,3 +156,10 @@ export type WorkbenchDisplayCommand = { type: 'ready'; channelId: WorkbenchDispl
   | { type: 'inspect'; requestId: WorkbenchDisplayRequestId }
   | { type: 'open'; requestId: WorkbenchDisplayRequestId; request: WorkbenchDisplayRequest }
   | { type: 'cancel'; requestId: WorkbenchDisplayRequestId }
+
+/** Cleanup and package removal are separate commits; failures never imply restored data. */
+export interface WorkbenchRemovalResult {
+  application: 'applied' | 'restart-required' | 'failed' | 'unknown'
+  data: 'preserved' | 'cleaned' | 'partial'
+  diagnostic: string
+}
