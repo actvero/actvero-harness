@@ -237,6 +237,41 @@ it.each(['github:acme/connected', 'https://github.com/acme/connected.git', 'git+
   },
 )
 
+it('updates a Git bundle through real pnpm when the saved source stays unchanged', async () => {
+  const pnpm = fileURLToPath(new URL('../../../../apps/desktop/node_modules/pnpm/bin/pnpm.mjs', import.meta.url))
+  const env = { GIT_CONFIG_GLOBAL: '', GIT_CONFIG_NOSYSTEM: '1' }
+  const { manager, dir } = await fixture('startup', false, undefined, {}, {
+    command: process.execPath, args: ['--expose-internals', pnpm], env,
+  })
+  const repository = join(dir, 'repository')
+  mkdirSync(repository)
+  env.GIT_CONFIG_GLOBAL = join(dir, 'git.config')
+  const spec = 'https://git.example/acme/upgrade.git'
+  writeFileSync(env.GIT_CONFIG_GLOBAL, `[url "${pathToFileURL(repository).href}"]\n insteadOf = ${spec}\n`)
+  const git = (args: string[]) => execa('git', args, { cwd: repository, env })
+  await git(['init', '--initial-branch=main'])
+  const name = '@test/git-upgrade'
+  const commit = async (version: string) => {
+    writeFileSync(join(repository, 'package.json'), JSON.stringify({ name, version, dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+    writeFileSync(join(repository, 'cordis.patch.yml'), '[]\n')
+    await git(['add', '.'])
+    await git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', version])
+  }
+  const manifest = readProfileManifest('test', dir)
+  delete manifest.dependencies
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  writeFileSync(join(dir, '.npmrc'), `store-dir=${join(dir, 'store').replaceAll('\\', '/')}\n`)
+  await commit('1.0.0')
+  expect(await manager.installBundle(spec, { enabled: false })).toMatchObject({ bundle: name, version: '1.0.0', packageResult: { exitCode: 0 } })
+  const saved = readProfileManifest('test', dir).dependencies
+  expect(saved).toEqual({ [name]: spec })
+  await commit('2.0.0')
+  const updated = await manager.installBundle(spec, { enabled: false })
+  expect(updated).toMatchObject({ bundle: name, version: '2.0.0', application: 'restart-required', packageResult: { exitCode: 0 } })
+  expect(readProfileManifest('test', dir).dependencies).toEqual(saved)
+  expect(readProfileManifest('test', join(dir, 'node_modules', name)).version).toBe('2.0.0')
+})
+
 it.each(['missing package', 'invalid manifest', 'not a bundle', 'missing patch', 'invalid patch'])(
   'boots with %s, lists its error, and permits deselection without enabling the broken bundle', async (failure) => {
     const { manager, dir, ctx } = await fixture('live', false, undefined, {}, undefined, (dir) => {
@@ -873,6 +908,50 @@ it('recognizes a repeated installation without HMR that leaves the saved depende
   onTestFinished(() => { install.mockRestore() })
   expect(await manager.installBundle(`link:${join(dir, 'node_modules', 'extra')}`, { enabled: false }))
     .toMatchObject({ changed: false, application: 'restart-required', bundle: 'extra', enabled: false })
+})
+
+it.each([
+  'https://github.com/acme/extra',
+  'https://github.com/acme/extra.git',
+  'git+https://github.com/acme/extra.git',
+])('recognizes the saved Git dependency when reinstalling %s', async (spec) => {
+  const { manager, dir } = await fixture('startup')
+  const manifest = readProfileManifest('test', dir)
+  manifest.dependencies = { extra: 'git+https://github.com/acme/extra.git' }
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  const install = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({ exitCode: 0, output: '', truncated: false, logPath: join(dir, 'pnpm.log') })
+  onTestFinished(() => { install.mockRestore() })
+  expect(await manager.installBundle(spec, { enabled: false }))
+    .toMatchObject({ application: 'restart-required', bundle: 'extra', enabled: false })
+  expect(readProfileManifest('test', dir).dependencies).toEqual(manifest.dependencies)
+})
+
+it('refuses an equivalent Git address before replacing a live package', async () => {
+  const { manager, dir } = await fixture()
+  const manifest = readProfileManifest('test', dir)
+  manifest.dependencies = { extra: 'git+https://github.com/acme/extra.git' }
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+  const install = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({ exitCode: 0, output: '', truncated: false, logPath: join(dir, 'pnpm.log') })
+  onTestFinished(() => { install.mockRestore() })
+  expect(await manager.installBundle('https://github.com/acme/extra'))
+    .toMatchObject({ application: 'failed', changed: false, error: { code: 'already-installed' } })
+  expect(install).not.toHaveBeenCalled()
+})
+
+it.each([
+  { saved: { extra: 'git+https://github.com/acme/extra.git#v1' }, spec: 'https://github.com/acme/extra#v2' },
+  { saved: { extra: 'git+https://github.com/acme/extra.git?path=one' }, spec: 'https://github.com/acme/extra?path=two' },
+  { saved: { extra: 'git+https://git.example/acme/extra.git' }, spec: 'https://git.example/acme/extra' },
+  { saved: { extra: 'git+https://github.com/acme/extra.git', alias: 'git+https://github.com/acme/extra.git' }, spec: 'https://github.com/acme/extra' },
+])('does not guess the target of an unchanged Git install: $spec', async ({ saved, spec }) => {
+  const { manager, dir } = await fixture('startup')
+  const manifest = readProfileManifest('test', dir)
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ ...manifest, dependencies: saved }))
+  const install = vi.spyOn(operations, 'runProfilePnpm').mockResolvedValue({ exitCode: 0, output: '', truncated: false, logPath: join(dir, 'pnpm.log') })
+  onTestFinished(() => { install.mockRestore() })
+  expect(await manager.installBundle(spec, { enabled: false }))
+    .toMatchObject({ application: 'failed', error: { code: 'ambiguous-install' } })
+  expect(readProfileManifest('test', dir).dependencies).toEqual(saved)
 })
 
 it('reports ambiguous package changes as failures', async () => {
