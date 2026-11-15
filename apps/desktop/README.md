@@ -112,7 +112,7 @@ Node prepares the bundled interpreters and Python libraries without a system Pyt
 
 The shared Desktop/SDK runtime builder omits directories named `tests` beneath NumPy and pandas before copying or signing the payload, and removes their rows from each distribution’s `RECORD`. It retains `numpy.testing`, `pandas.testing`, `pandas._testing`, native extensions and licenses. Complete upstream suites are unavailable; native checks verify the retained testing APIs, absence of test directories and existence of recorded files.
 
-Runtime preparation allows five minutes per npm download request, including the bundled LibreOffice engine. Set `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` in the packaging environment or platform dotenv file to an integer from 1 to 2147483647 milliseconds to change this deadline. This setting affects build-time dependency downloads only.
+Electron archives, including cached downloads, are verified against the SHA256 entry shipped in the lockfile-pinned Electron npm package; a missing target checksum stops preparation. Runtime preparation allows five minutes per npm download request, including the bundled LibreOffice engine. Set `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` in the packaging environment or platform dotenv file to an integer from 1 to 2147483647 milliseconds to change this deadline. This setting affects build-time dependency downloads only.
 
 On Windows, branded-package checks copy the complete packaged application into a short temporary directory before verifying its archive and exercising its runtime. This keeps Python and Office checks compatible with hosts where Windows long paths are disabled. The checks remove their temporary copy after completion.
 
