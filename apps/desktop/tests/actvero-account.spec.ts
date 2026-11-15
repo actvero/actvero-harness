@@ -49,6 +49,49 @@ function rotated(body: unknown, refresh = 'successor', expires = 300) {
   if (!body || typeof body !== 'object' || !('request_id' in body) || typeof body.request_id !== 'string') throw new Error('missing recovery request')
   return { ...token(refresh, expires), acknowledgement_required: true, refresh_request_id: body.request_id }
 }
+
+describe('desktop account avatar', () => {
+  const avatarPath = '/api/v1/desktop/avatar?v=first'
+  const webp = Buffer.from('RIFF0000WEBP', 'ascii')
+  const avatarUrl = `data:image/webp;base64,${webp.toString('base64')}`
+
+  it('loads the protected profile image once per version and clears a removed avatar', async () => {
+    const vault = new MemoryVault()
+    vault.saved = { ...vault.saved, session: { service, tokens: token('original'), expiresAt: Date.now() + 300_000 } }
+    let path: string | null = avatarPath
+    const fetcher = vi.fn<typeof fetch>(async (input, init) => {
+      switch (String(input)) {
+        case `${baseUrl}/api/v1/auth/session`: return Response.json({ platform_name: 'ACTVERO' })
+        case `${baseUrl}/api/v1/desktop/me`: return Response.json({ ...me, user: { ...me.user, avatar_url: path } })
+        case `${baseUrl}${avatarPath}`: {
+          expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer access-original')
+          expect(init?.redirect).toBe('error')
+          return new Response(new Uint8Array(webp), { headers: { 'Content-Type': 'image/webp' } })
+        }
+        default: throw new Error(`Unexpected request: ${String(input)}`)
+      }
+    })
+    const controller = new AccountController({ vault, api: () => new AccountApi(baseUrl, fetcher), baseUrl, appVersion: 'test',
+      changed: () => {}, openExternal: async () => {} })
+    onTestFinished(() => controller.dispose())
+    await controller.restore()
+    await vi.waitFor(() => expect(controller.snapshot().user?.avatarUrl).toBe(avatarUrl))
+    await controller.refresh()
+    expect(fetcher.mock.calls.filter(([url]) => url === `${baseUrl}${avatarPath}`)).toHaveLength(1)
+    path = null
+    await controller.refresh()
+    expect(controller.snapshot().user?.avatarUrl).toBeUndefined()
+  })
+
+  it('refuses avatar references outside the desktop avatar endpoint', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+    const api = new AccountApi(baseUrl, fetcher)
+    await expect(api.avatar('https://other.example/api/v1/desktop/avatar', 'access')).rejects.toThrow('invalid_response')
+    await expect(api.avatar('/api/v1/desktop/me', 'access')).rejects.toThrow('invalid_response')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+})
+
 describe('persistent desktop recovery', () => {
   it('persists the predecessor before sending and the successor before acknowledging', async () => {
     const { controller, api, vault } = setup()

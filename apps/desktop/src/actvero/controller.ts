@@ -84,6 +84,7 @@ export class AccountController {
   private disposed = false
   private brand: AccountSnapshot['brand'] = { name: 'ACTVERO' }
   private brandGeneration = 0
+  private avatar: { key: string; pending: boolean; url?: string } | undefined
   constructor(private options: Options) {
     this.brand = { ...(options.defaultBrand ?? { name: 'ACTVERO' }) }
     this.data = { version: 1, baseUrl: platformUrl(options.baseUrl), cleanup: [] }
@@ -237,6 +238,7 @@ export class AccountController {
     }
   }
   private publish(value: AccountSnapshot): void {
+    if (!value.user) this.avatar = undefined
     this.view = value
     if (!this.disposed) this.options.changed(this.snapshot())
   }
@@ -591,7 +593,7 @@ export class AccountController {
   }
   private async readAccount(generation: number): Promise<void> {
     try {
-      const session = await this.ensureSession(generation)
+      let session = await this.ensureSession(generation)
       if (!session) return
       let raw: unknown
       try {
@@ -602,7 +604,8 @@ export class AccountController {
         await this.commit({ ...this.data, session: { ...session, expiresAt: 0 } })
         const renewed = await this.ensureSession(generation)
         if (!renewed) return
-        raw = await this.api().json('/desktop/me', undefined, renewed.tokens.access_token)
+        session = renewed
+        raw = await this.api().json('/desktop/me', undefined, session.tokens.access_token)
       }
       if (generation !== this.generation) return
       const me = object(raw),
@@ -631,9 +634,14 @@ export class AccountController {
       this.accountUrl = accountUrl
       this.retryAt = 0
       this.failures = 0
+      const userId = text(user.id)
+      const avatarPath = typeof user.avatar_url === 'string' && user.avatar_url ? user.avatar_url : undefined
+      const avatarKey = avatarPath && JSON.stringify([this.data.baseUrl, userId, avatarPath])
+      const avatarUrl = avatarKey === this.avatar?.key ? this.avatar?.url : undefined
       const verified: AccountSnapshot = {
         ...this.empty(phase),
-        user: { id: text(user.id), name: text(user.name), ...(typeof user.email === 'string' ? { email: user.email } : {}) },
+        user: { id: userId, name: text(user.name), ...(typeof user.email === 'string' ? { email: user.email } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}) },
         organizations,
         ...(current ? { organization: current } : {}),
         quota: sameScope ? previous.quota : { phase: 'idle', windows: [] },
@@ -641,7 +649,11 @@ export class AccountController {
       if (this.data.session?.browserPending) {
         this.browserAccount = verified
         this.publish(this.empty('waiting'))
-      } else this.publish(verified)
+      } else {
+        if (this.avatar?.key !== avatarKey) this.avatar = undefined
+        this.publish(verified)
+        if (avatarPath && avatarKey) void this.loadAvatar(avatarKey, avatarPath, userId, session.tokens.access_token)
+      }
     } catch (error) {
       if (generation !== this.generation) return
       if (error instanceof AccountError && fatal.has(error.code)) {
@@ -652,6 +664,23 @@ export class AccountController {
         this.publish(this.empty('signed-out'))
       }
       throw error
+    }
+  }
+  private async loadAvatar(key: string, path: string, userId: string, access: string): Promise<void> {
+    if (this.avatar?.key === key && (this.avatar.pending || this.avatar.url)) return
+    const avatar: NonNullable<AccountController['avatar']> = { key, pending: true }
+    const generation = this.generation
+    this.avatar = avatar
+    try {
+      const url = await this.api().avatar(path, access)
+      const user = this.view.user
+      if (this.disposed || this.generation !== generation || this.avatar !== avatar || user?.id !== userId) return
+      avatar.url = url
+      this.publish({ ...this.view, user: { ...user, avatarUrl: url } })
+    } catch (_error) {
+      // Avatar failure leaves the verified account usable with its initial.
+    } finally {
+      avatar.pending = false
     }
   }
   selectOrganization(tenantId: string): Promise<void> {

@@ -35,7 +35,8 @@ export function ActveroWelcome({
     [actionError, setActionError] = useState(false),
     [failedWordmark, setFailedWordmark] = useState<string>(),
     [failedLogo, setFailedLogo] = useState<string>(),
-    [failedFallback, setFailedFallback] = useState<string>()
+    [failedFallback, setFailedFallback] = useState<string>(),
+    [failedAvatar, setFailedAvatar] = useState<string>()
   const busyRef = useRef(false)
   const run = async (action: () => Promise<void>) => {
     if (busyRef.current) return
@@ -68,6 +69,7 @@ export function ActveroWelcome({
   const logo = account.brand.logoUrl && account.brand.logoUrl !== failedLogo
     ? account.brand.logoUrl : account.brand.fallbackLogoUrl !== failedFallback ? account.brand.fallbackLogoUrl : undefined
   const wordmark = account.brand.wordmarkUrl
+  const avatar = account.user?.avatarUrl
   const hasAccount = !!account.user || ['offline', 'restoring'].includes(account.phase)
   const confirmed = account.phase === 'ready' && !!account.user && !!account.organization
   const waiting = ['waiting', 'exchanging', 'restoring'].includes(account.phase)
@@ -148,7 +150,9 @@ export function ActveroWelcome({
                   {account.user && (
                     <div className="actvero-identity">
                       <span className="actvero-avatar" aria-hidden="true">
-                        {account.user.avatarUrl ? <img src={account.user.avatarUrl} alt="" /> : account.user.name.slice(0, 1)}
+                        {avatar && avatar !== failedAvatar
+                          ? <img src={avatar} alt="" onError={() => setFailedAvatar(avatar)} />
+                          : account.user.name.slice(0, 1)}
                       </span>
                       <div><div className="actvero-identity-name">{account.user.name}</div>
                         {account.user.email && <div className="actvero-identity-email">{account.user.email}</div>}

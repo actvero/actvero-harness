@@ -22,6 +22,17 @@ function mount(snapshot = initial, language = 'zh-CN') {
   return { bridge, view, receive: (value: AccountSnapshot) => { act(() => { receive(value) }) } }
 }
 describe('ACTVERO account confirmation', () => {
+  it('shows the server avatar and falls back to the initial when the image fails', async () => {
+    const avatarUrl = 'data:image/webp;base64,avatar'
+    const { view } = mount({ ...initial, user: { id: 'user', name: '测试用户', avatarUrl } })
+    await act(async () => {})
+    const avatar = view.container.querySelector('.actvero-avatar')!
+    const image = avatar.querySelector('img')!
+    expect(image.getAttribute('src')).toBe(avatarUrl)
+    fireEvent.error(image)
+    expect(avatar.textContent).toBe('测')
+  })
+
   it('shows the shared wordmark and restores the logo and name if it fails', async () => {
     const wordmarkUrl = 'data:image/svg+xml;base64,wordmark'
     const logoUrl = 'data:image/svg+xml;base64,logo'

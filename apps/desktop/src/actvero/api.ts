@@ -54,8 +54,23 @@ export class AccountApi {
     }
     return brand
   }
-  private async image(url: string): Promise<string> {
-    const response = await this.fetcher(url, { redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15_000) })
+  /** Read the current user's versioned avatar from the selected desktop service.
+   * @param path Avatar reference returned by the authenticated profile.
+   * @param access Desktop access token.
+   * @returns A bounded raster image as a data URL for the owned windows.
+   */
+  async avatar(path: string, access: string): Promise<string> {
+    const url = trustedUrl(new URL(path, this.baseUrl).href)
+    if (url.origin !== this.baseUrl || url.pathname !== '/api/v1/desktop/avatar') throw new AccountError('invalid_response')
+    return this.image(url.href, access)
+  }
+  private async image(url: string, access?: string): Promise<string> {
+    const response = await this.fetcher(url, {
+      redirect: 'error',
+      credentials: 'omit',
+      signal: AbortSignal.timeout(15_000),
+      ...(access ? { headers: { Authorization: `Bearer ${access}` } } : {}),
+    })
     const mime = response.headers.get('content-type')?.split(';')[0]
     if (!response.ok || !['image/png', 'image/jpeg', 'image/webp'].includes(mime ?? '') || !response.body)
       throw new AccountError('invalid_response')

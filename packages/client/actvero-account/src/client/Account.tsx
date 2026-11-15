@@ -173,7 +173,9 @@ export function AccountSection({ useAccount, bridge, t }: SectionProps) {
 export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuProps) {
   const account = useAccount(value => value)
   const [open, setOpen] = useState(false)
+  const [failedAvatar, setFailedAvatar] = useState<string>()
   if (!account) return null
+  const avatar = account.user?.avatarUrl
   const close = () => {
     setOpen(false)
   }
@@ -198,7 +200,10 @@ export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuP
             setOpen(value => !value)
           }}
         >
-          <span className={css.avatar}>{account.user?.name.slice(0, 1) ?? <IconUserOutlineMedium size={16} />}</span>
+          <span className={css.avatar} aria-hidden="true">
+            {avatar && avatar !== failedAvatar ? <img src={avatar} alt="" onError={() => setFailedAvatar(avatar)} />
+              : account.user?.name.slice(0, 1) ?? <IconUserOutlineMedium size={16} />}
+          </span>
           {wide && <span>{account.user?.name ?? t('login')}</span>}
         </button>
       }
