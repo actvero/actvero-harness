@@ -313,11 +313,13 @@ function contentText(parts: OpenAiPart[]): string | OpenAiPart[] | null {
 class PlatformAdapter extends LlmAdapter {
   private catalogPromise: Promise<CatalogModel[]> | undefined
   private catalogExpires = 0
+  private catalogGeneration = 0
   private readonly resources = new Map<string, ModelRoute>()
 
   constructor(private readonly bridge: MainBridge, private readonly attachments: () => AttachmentStore | undefined) { super() }
 
   invalidate(): void {
+    this.catalogGeneration++
     this.catalogPromise = undefined
     this.catalogExpires = 0
     this.resources.clear()
@@ -336,7 +338,9 @@ class PlatformAdapter extends LlmAdapter {
   override async resolveModel(provider: string, model: string, signal?: AbortSignal): Promise<LlmResolvedModelInfo> {
     if (provider !== PROVIDER) throw new LlmError('平台模型路由不存在', 'NO_ADAPTER')
     signal?.throwIfAborted()
+    const generation = this.catalogGeneration
     const row = (await this.catalog()).find(candidate => candidate.id === model)
+    if (generation !== this.catalogGeneration) throw new LlmError('平台账号已变更，请重试', 'AUTH')
     if (!row) throw new LlmError(`平台模型 ${model} 不存在或无权访问`, 'MODEL_UNAVAILABLE')
     const operation = chatOperation(row)
     this.resources.set(row.id, { resource: row.resource, streaming: streamingCapability(operation) })
@@ -366,6 +370,7 @@ class PlatformAdapter extends LlmAdapter {
   }
 
   private async loadCatalog(): Promise<CatalogModel[]> {
+    const generation = this.catalogGeneration
     const token = await this.bridge.request(CATALOG_RESOURCE)
     const rows: CatalogModel[] = []
     for (let page = 1; page <= 100; page++) {
@@ -390,6 +395,7 @@ class PlatformAdapter extends LlmAdapter {
       }
       if (raw.has_more !== true) break
     }
+    if (generation !== this.catalogGeneration) throw new LlmError('平台账号已变更，请重试', 'AUTH')
     this.resources.clear()
     for (const row of rows) {
       try {
@@ -667,6 +673,9 @@ export function apply(ctx: Context, _config: Config): void {
   if (!process.send) return
   const bridge = new MainBridge(ctx)
   const adapter = new PlatformAdapter(bridge, () => ctx.get('attachments'))
-  bridge.setChanged(() => adapter.invalidate())
-  ctx.llm.registerAdapter([PROVIDER], adapter)
+  const registration = ctx.llm.registerAdapter([PROVIDER], adapter)
+  bridge.setChanged(() => {
+    adapter.invalidate()
+    registration.replace([PROVIDER])
+  })
 }

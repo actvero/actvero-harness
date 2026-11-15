@@ -34,7 +34,7 @@ The plugin requests `llm:catalog` and per-model `llm:<model-uuid>` resource toke
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The [adapter](src/index.ts) maps platform chat models to DSH model metadata, prepares a resource-specific route and converts native messages and tool schemas to OpenAI-compatible requests. Responses are converted from SSE or buffered JSON into native text, reasoning, tool-call, usage and finish chunks. Account changes invalidate catalog data through the Main bridge.
+The [adapter](src/index.ts) maps platform chat models to DSH model metadata, prepares a resource-specific route and converts native messages and tool schemas to OpenAI-compatible requests. Responses are converted from SSE or buffered JSON into native text, reasoning, tool-call, usage and finish chunks. Desktop account changes invalidate the Host catalog and prompt the model selector to reload it, including after first sign-in.
 
 The catalog exposes the chat operation’s declared structured output capability. Requests with `structuredOutput` forward it as a strict `response_format.json_schema`.
 
