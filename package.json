@@ -225,6 +225,7 @@
     "actvero:start": "tsx scripts/actvero-product.ts --account --skip-build",
     "actvero:contract": "tsx scripts/actvero-contract.ts",
     "actvero:workbench-kit": "tsx scripts/actvero-workbench-kit.ts",
+    "actvero:workbench-npm": "tsx scripts/actvero-workbench-npm.ts",
     "actvero:workbench": "tsx scripts/actvero-workbench.client.ts",
     "actvero:contract:check": "tsx scripts/actvero-contract.ts --check",
     "actvero:build": "tsx scripts/actvero-build.ts",

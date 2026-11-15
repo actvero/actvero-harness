@@ -12,6 +12,8 @@ const sources = {
   'guide.zh.md': 'actvero/workbench-development.zh.md',
   'implementation.md': 'actvero/workbench-implementation.md',
   'implementation.zh.md': 'actvero/workbench-implementation.zh.md',
+  'npm.md': 'actvero/workbench-npm.md',
+  'npm.zh.md': 'actvero/workbench-npm.zh.md',
   'api/client.ts': 'packages/actvero/capability-ui/src/contracts.ts',
   'api/lifecycle.ts': 'packages/actvero/capability-ui/src/workbench-lifecycle.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',

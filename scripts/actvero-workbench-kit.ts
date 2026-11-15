@@ -91,6 +91,11 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
         if (!ts.sys.directoryExists(join(repository, path, 'lib'))) continue
         await mkdir(join(output, path), { recursive: true })
         await cp(manifestPath, join(output, path, 'package.json'))
+        for (const file of await readdir(join(repository, path))) {
+          if (/^(?:licen[cs]e|notice|copying)(?:[.-].*)?$/iu.test(file)) {
+            await cp(join(repository, path, file), join(output, path, file), { recursive: true })
+          }
+        }
         await cp(join(repository, path, 'lib'), join(output, path, 'lib'), { recursive: true, filter: file => !file.endsWith('.map') })
         const { name } = manifestSchema.parse(JSON.parse(await readFile(manifestPath, 'utf8')))
         await linkDependency(name, join(output, path), join(output, 'node_modules'))

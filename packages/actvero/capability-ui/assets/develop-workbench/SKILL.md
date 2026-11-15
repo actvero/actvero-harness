@@ -16,6 +16,8 @@ description: 为 ACTVERO Harness 创建、修改、调试和本地安装工作�
 
 ## 实现与调试
 
+使用 [npm 发行版](reference/npm.zh.md)时，先运行 `actvero-workbench info` 获取已校验的工具链目录与版本，再用 `actvero-workbench create` 或 `bind`。Skill 安装只复制规范；当前 Agent 是否发现它需要单独确认。
+
 新项目按指南运行 `create`，默认空白模板；仅需要示例时选 `plain` 或 `ai`。读取生成项目的 README.md、AGENTS.md 和 DESIGN.md，写明最小业务流程、首次入口、存储和验收点。已有项目直接修改。界面开发加载 `workbench-frontend` Skill，业务允许原生、品牌或自定义设计。
 
 首次实现或架构不明时，读[实施手册](reference/implementation.zh.md#choose)：按数据与 AI 需求选方案，先打通一个业务操作。需要原生持久化时，跟随[完整示例](reference/implementation.zh.md#counter)连接 Host、Client 与资源更新；它是接入练习，不替代用户业务。接口或组件不确定时查[查找方法](reference/implementation.zh.md#lookup)，遇到问题按[分层排障](reference/implementation.zh.md#debug)收集证据。

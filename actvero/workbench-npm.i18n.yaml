@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for workbench-npm.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/workbench-npm.md
+/workbench-npm-developer-kit:
+  en: aed66883a7460922
+  zh: 368fbcae15b5230d
+/workbench-npm-developer-kit/install-and-create:
+  en: 95c66d69d57efbc0
+  zh: 522a18af6398cbcf
+/workbench-npm-developer-kit/install-skills-for-an-agent:
+  en: c914a4a387d08525
+  zh: 15644d63a9f3721a
+/workbench-npm-developer-kit/update-debug-and-deliver:
+  en: 09e6edb56753adfb
+  zh: f4107f7b34d58eae
+/workbench-npm-developer-kit/maintainer-packaging:
+  en: 4f89e11f5764e0ac
+  zh: e79ac26a856906ee

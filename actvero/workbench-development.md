@@ -38,6 +38,8 @@ Maintainers run `pnpm run build:artifacts` in a checkout with locked dependencie
 
 Reuse confirmed goals; clarify the minimum flow before creating an unspecified business. Check the kit and installation client separately: development commands do not establish the target desktop's capabilities, and an isolated Profile does not validate the everyday application. The desktop does not yet bundle the complete compiler kit; obtain a kit or built source checkout when the toolchain is missing.
 
+The npm distribution provides the `actvero-workbench` command and installable Skills; see the [npm developer kit](workbench-npm.md) for installation, caching and upgrades.
+
 <a id="native-development"></a>
 
 ### Develop inside Harness
