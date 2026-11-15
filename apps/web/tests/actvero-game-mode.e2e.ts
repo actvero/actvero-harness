@@ -1,6 +1,7 @@
 /** 真实 Loader、原生会话与设置；仅操作系统窗口和账户/专家外部入口使用无凭据替身。 */
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { createRequire } from 'node:module'
 import { chromium, type Page } from 'playwright'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
@@ -48,7 +49,7 @@ function nativeFixtures(): void {
 it('keeps native drafts, saves slots, restores the theme and supports keyboard navigation at desktop and narrow widths', async () => {
   vi.stubEnv('ACTVERO_DESKTOP', '1')
   onTestFinished(() => { vi.unstubAllEnvs() })
-  const scaffold = await launchWebScaffold()
+  const scaffold = await launchGameScaffold()
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch({ channel: 'chrome' })
   onTestFinished(() => browser.close())
@@ -142,3 +143,32 @@ async function settingsSnapshot(page: Page) {
     aria: element.getAttribute('aria-label'), text: element.textContent,
   })))
 }
+
+/** 通过已安装的组合包激活，保持与插件管理器一致的加载路径。 */
+function launchGameScaffold(withoutExperts = false) {
+  const resolve = createRequire(new URL('../../../packages/bundle/web-app/package.json', import.meta.url)).resolve
+  return launchWebScaffold({ ...(withoutExperts ? { extraOverlayPath: join(import.meta.dirname, 'game-mode-no-experts.overlay.yml') } : {}), profile: { hmr: false, packages: [
+    { dir: dirname(resolve('@actvero/dsh-game-mode/package.json')), enabled: true },
+  ] } })
+}
+
+it.each(['window bridge', 'expert service'])('shows a persistent compatibility message without the %s', async (missing) => {
+  vi.stubEnv('ACTVERO_DESKTOP', '1')
+  onTestFinished(() => { vi.unstubAllEnvs() })
+  const scaffold = await launchGameScaffold(missing === 'expert service')
+  onTestFinished(() => scaffold.close())
+  const browser = await chromium.launch({ channel: 'chrome' })
+  onTestFinished(() => browser.close())
+  const page = await newEnglishPage(browser)
+  if (missing === 'expert service') await page.addInitScript(nativeFixtures)
+  const consoleLog = watchConsole(page)
+  await page.goto(scaffold.authenticatedUrl)
+  await connectFreshWorkspace(page, scaffold.workspaceCwd)
+  await page.getByRole('button', { name: 'Game mode', exact: true }).click()
+  const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+  await settings.getByRole('status').filter({ hasText: 'This app does not include' }).waitFor()
+  expect(await page.getByRole('button', { name: 'Enter game mode', exact: true }).count()).toBe(0)
+  await expect((await settings.getByRole('status').innerText()) + '\n')
+    .toMatchFileSnapshot(join(import.meta.dirname, 'expected', 'game-mode-unavailable.txt'))
+  expect(consoleLog.pageErrors).toEqual([])
+}, 90000)

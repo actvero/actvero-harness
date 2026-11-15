@@ -57,7 +57,7 @@
     "@actvero/dsh-connectors": "workspace:*",
     "@actvero/dsh-experts": "workspace:*",
     "@actvero/dsh-model-gateway": "workspace:*",
-    "@actvero/dsh-game-mode": "file:../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.2.tgz",
+    "@actvero/dsh-game-mode": "file:../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz",
     "koffi": "3.1.1"
   },
   "devDependencies": {

@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/plugins/game-mode/README.md
 /game-mode-plugin-integration:
-  en: ed91881db64c33c3
-  zh: 61120f3b20f44a7f
+  en: 0ca8ff627135b618
+  zh: 8acb78dbdb435ccc
 /game-mode-plugin-integration/loading:
-  en: c80d4659d826a71e
-  zh: dc0364a7791a6033
+  en: ff56b1718c5aa622
+  zh: 97e23c72a1aa92d3
 /game-mode-plugin-integration/verification:
-  en: 55b9251feb9e0b7f
-  zh: a166c10b0f11be13
+  en: a8e16eaff49e4087
+  zh: c217353c12c87808
