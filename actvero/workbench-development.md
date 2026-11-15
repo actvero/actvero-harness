@@ -6,6 +6,8 @@ English | [中文](workbench-development.zh.md)
 
 This guide is for workbench developers and Agents taking over a project: create a local directory, implement the business and visual design, validate and package it, then install and verify it in the target client. No GitHub account, repository URL or publishing service is required. Use a standalone developer kit or a built source toolchain; subsequent commands run inside the generated project.
 
+For a first implementation, start with the [implementation tutorial](workbench-implementation.md): choose an approach, complete the persistent example, and diagnose the failing layer. This guide owns capability interfaces and installation rules.
+
 ## Table of Contents
 
 - [Development environment and task entry](#environment)

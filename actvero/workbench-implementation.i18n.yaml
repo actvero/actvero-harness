@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for workbench-implementation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write actvero/workbench-implementation.md
+/workbench-implementation-tutorial:
+  en: 6bc7b8577bcc19a3
+  zh: 7c7cf8a16d65c3c5
+/workbench-implementation-tutorial/1-choose-the-smallest-implementation:
+  en: d4ed2887208d0d9b
+  zh: dfb10f7751d2da67
+/workbench-implementation-tutorial/1-choose-the-smallest-implementation/file-responsibilities:
+  en: 05416a7e2e38107c
+  zh: 312b2974ce62653f
+/workbench-implementation-tutorial/2-complete-one-persistent-operation:
+  en: 3bf7ec99901765aa
+  zh: 3981d83cd6f3caea
+/workbench-implementation-tutorial/3-find-real-interfaces-before-extending:
+  en: 5a818480006f07d4
+  zh: 70dbd05f80c1b169
+/workbench-implementation-tutorial/4-debug-the-failing-layer:
+  en: fb3beb7daa9f08d5
+  zh: 1c375d77c62fe539
+/workbench-implementation-tutorial/5-accept-and-hand-off-actual-capabilities:
+  en: a4dcd90c76f11111
+  zh: e2b9a49307f45d5c

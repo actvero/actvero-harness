@@ -101,6 +101,56 @@ describe('local workbench developer commands', () => {
     expect(providers).toEqual([])
   })
 
+  it('builds the portable tutorial and rejects invalid persistent actions without enabling AI', async () => {
+    const path = await root()
+    const source = join(path, 'counter tutorial')
+    await createWorkbench(source, '@local/counter-demo')
+    const reference = join(source, '.agents/skills/develop-workbench/reference')
+    const guide = await readFile(join(reference, 'implementation.zh.md'), 'utf8')
+    const english = await readFile(join(reference, 'implementation.md'), 'utf8')
+    const snippets = (text: string) => [...text.matchAll(/```ts\n([\s\S]*?)\n```/gu)].map(match => match[1]!)
+    const code = snippets(guide)
+    expect(code).toHaveLength(3)
+    expect(snippets(english)).toEqual(code)
+    for (const [index, file] of ['src/counter.ts', 'src/index.ts', 'src/client/index.ts'].entries()) {
+      await writeFile(join(source, file), code[index]! + '\n')
+    }
+    const manifestPath = join(source, 'package.json')
+    const manifest = z.looseObject({ dsh: z.looseObject({ client: z.looseObject({ inject: z.array(z.string()) }) }) })
+      .parse(JSON.parse(await readFile(manifestPath, 'utf8')))
+    manifest.dsh.client.inject.push('@deepseek-ai/dsh-client-ui-primitives')
+    await writeFile(manifestPath, JSON.stringify(manifest))
+    const archive = await packWorkbench(source, path)
+    await extract({ cwd: path, file: archive })
+    interface Provider {
+      id: string
+      ai: boolean
+      storage: { initial(): string; reduce(json: string, action: string, args: string): string }
+    }
+    const providers: Provider[] = []
+    const disposers: (() => void)[] = []
+    const ctx = {
+      effect(callback: () => () => void) { disposers.push(callback()) },
+      actveroWorkbenchRuntime: { register(provider: Provider) {
+        providers.push(provider)
+        return () => { providers.splice(providers.indexOf(provider), 1) }
+      } },
+    }
+    const plugin = await import(pathToFileURL(join(path, 'package/lib/index.js')).href) as { apply(context: typeof ctx): void }
+    plugin.apply(ctx)
+    expect(providers).toHaveLength(1)
+    const provider = providers[0]!
+    expect(provider).toMatchObject({ id: '@local/counter-demo', ai: false })
+    const initial = provider.storage.initial()
+    expect(provider.storage.reduce(initial, 'increment', '{}')).toBe('{"count":1}')
+    expect(() => provider.storage.reduce('{"count":-1}', 'increment', '{}')).toThrow()
+    expect(() => provider.storage.reduce('{"count":9007199254740991}', 'increment', '{}')).toThrow()
+    expect(() => provider.storage.reduce(initial, 'reset', '{}')).toThrow()
+    expect(() => provider.storage.reduce(initial, 'increment', '{"count":999}')).toThrow()
+    for (const dispose of disposers.reverse()) dispose()
+    expect(providers).toEqual([])
+  }, 90000)
+
   it('builds the AI template with native data, its expert and declared local skill', async () => {
     const path = await root()
     const source = join(path, 'AI development')

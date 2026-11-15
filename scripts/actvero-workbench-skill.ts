@@ -10,6 +10,8 @@ const repository = fileURLToPath(new URL('../', import.meta.url))
 const sources = {
   'guide.md': 'actvero/workbench-development.md',
   'guide.zh.md': 'actvero/workbench-development.zh.md',
+  'implementation.md': 'actvero/workbench-implementation.md',
+  'implementation.zh.md': 'actvero/workbench-implementation.zh.md',
   'api/client.ts': 'packages/actvero/capability-ui/src/contracts.ts',
   'api/lifecycle.ts': 'packages/actvero/capability-ui/src/workbench-lifecycle.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',
