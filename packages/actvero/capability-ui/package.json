@@ -133,6 +133,7 @@
     "lib/*.js",
     "lib/*.d.ts",
     "lib/types/**/*.d.ts",
+    "lib/types/contracts.js",
     "lib/types/types.js",
     "lib/typert.host.js",
     "lib/typert.host.d.ts",

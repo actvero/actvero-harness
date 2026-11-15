@@ -83,10 +83,14 @@ function input(value: unknown): BuilderInput {
 }
 function profileForInput(request: BuilderInput, assets: Partial<Record<AssetKind, string | undefined>>, baseConfig = 'actvero/product.json'): StoredPreset {
   return normalizeActveroBuildProfile({ schemaVersion: 1, name: request.presetName, baseConfig,
-    ...(request.productName || request.version ? { product: { ...(request.productName ? { displayName: request.productName } : {}), ...(request.version ? { version: request.version } : {}) } } : {}),
+    ...(request.productName || request.version ? { product: {
+      ...(request.productName ? { displayName: request.productName } : {}),
+      ...(request.version ? { version: request.version } : {}),
+    } } : {}),
     ...(request.platformUrl ? { platform: { defaultUrl: request.platformUrl } } : {}),
     ...(Object.keys(assets).length > 0 ? { branding: assets } : {}),
-    package: { target: request.target, format: request.format, out: request.output, ...(request.minSystem ? { minSystem: request.minSystem } : {}), ...(request.notes ? { notes: request.notes } : {}) },
+    package: { target: request.target, format: request.format, out: request.output,
+      ...(request.minSystem ? { minSystem: request.minSystem } : {}), ...(request.notes ? { notes: request.notes } : {}) },
   })
 }
 async function previousPreset(slug: string): Promise<StoredPreset | undefined> {
@@ -95,7 +99,10 @@ async function previousPreset(slug: string): Promise<StoredPreset | undefined> {
 async function saveInput(request: BuilderInput, slug = presetSlug(request.presetName)): Promise<StoredPreset> {
   const previous = await previousPreset(slug)
   await mkdir(join(root, PRESET_DIRECTORY), { recursive: true })
-  const assets: Partial<Record<AssetKind, string | undefined>> = { ...previous?.branding }; if (request.assets && Object.keys(request.assets).length > 0) await mkdir(join(root, ASSET_DIRECTORY, slug), { recursive: true })
+  const assets: Partial<Record<AssetKind, string | undefined>> = { ...previous?.branding }
+  if (request.assets && Object.keys(request.assets).length > 0) {
+    await mkdir(join(root, ASSET_DIRECTORY, slug), { recursive: true })
+  }
   for (const kind of ASSET_KINDS) { const asset = request.assets?.[kind]; if (!asset) continue; const path = assetPath(slug, kind, asset.name); const encoded = asset.data.slice(asset.data.indexOf(';base64,') + 8); await writeFile(path, Buffer.from(encoded, 'base64')); assets[kind] = localPath(path) }
   const stored = profileForInput(request, assets, previous?.baseConfig)
   await writeFile(presetPath(slug), `${JSON.stringify(stored, null, 2)}\n`); return stored
@@ -104,7 +111,7 @@ async function listPresets(): Promise<StoredPreset[]> {
   let names: string[]
   try { names = await readdir(join(root, PRESET_DIRECTORY)) } catch (error) { if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return []; throw error }
   const presets: StoredPreset[] = []
-  for (const name of names.filter(value => value.endsWith('.json'))) { try { presets.push(normalizeActveroBuildProfile(JSON.parse(await readFile(join(root, PRESET_DIRECTORY, name), 'utf8'))) as StoredPreset) } catch { /* Ignore a partially-written local preset. */ } }
+  for (const name of names.filter(value => value.endsWith('.json'))) { try { presets.push({ ...normalizeActveroBuildProfile(JSON.parse(await readFile(join(root, PRESET_DIRECTORY, name), 'utf8'))), slug: basename(name, '.json') }) } catch { /* Ignore a partially-written local preset. */ } }
   return presets.sort((a, b) => a.name.localeCompare(b.name))
 }
 async function readPreset(slug: string): Promise<StoredPreset> { return normalizeActveroBuildProfile(JSON.parse(await readFile(presetPath(slug), 'utf8'))) as StoredPreset }
@@ -127,7 +134,8 @@ function environmentFor(profilePath: string): NodeJS.ProcessEnv {
   return environment
 }
 async function runBuild(request: BuilderInput, check: boolean, job: BuildJob): Promise<void> {
-  const assets = await materializeAssets(request, job.id); const profile = profileForInput(request, assets); const profilePath = join(root, ASSET_DIRECTORY, 'runs', job.id, 'profile.json'); await writeFile(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
+  const baseConfig = request.presetSlug ? (await readPreset(request.presetSlug)).baseConfig : undefined
+  const assets = await materializeAssets(request, job.id); const profile = profileForInput(request, assets, baseConfig); const profilePath = join(root, ASSET_DIRECTORY, 'runs', job.id, 'profile.json'); await writeFile(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
   const environment = environmentFor(localPath(profilePath))
   const executable = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'; const args = ['run', 'actvero:package']; if (check) args.push('--', '--check')
   emit(job, { type: 'log', line: `$ ${executable} ${args.join(' ')}` }); const child = spawn(executable, args, { cwd: root, env: environment, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
@@ -146,7 +154,8 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   if (request.method === 'POST' && path === '/api/build') {
     try {
       const record = await body(request) as Record<string, unknown>; const requestInput = input(record); const preset = stringField(record.presetSlug, 'presetSlug', 80); const hydrated = preset ? await hydrateStoredAssets(requestInput, preset) : requestInput
-      const job: BuildJob = { id: randomUUID(), events: [], subscribers: new Set(), done: false, ok: false, artifacts: [] }; jobs.set(job.id, job)
+      const job: BuildJob = { id: randomUUID(), events: [], subscribers: new Set(), done: false, ok: false, artifacts: [] }
+      jobs.set(job.id, job)
       void runBuild(hydrated, record.check === true, job).catch((error) => { job.done = true; job.ok = false; emit(job, { type: 'log', line: error instanceof Error ? error.message : String(error) }); emit(job, { type: 'done', ok: false, artifacts: [] }) }); return jsonResponse(response, 202, { id: job.id })
     } catch (error) { return jsonResponse(response, 400, { error: error instanceof Error ? error.message : String(error) }) }
   }
@@ -155,7 +164,11 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 }
 
 async function main(): Promise<void> {
-  const server = createServer((request, response) => { void route(request, response).catch(error => jsonResponse(response, 500, { error: error instanceof Error ? error.message : String(error) })) })
+  const server = createServer((request, response) => {
+    void route(request, response).catch(error => jsonResponse(response, 500, {
+      error: error instanceof Error ? error.message : String(error),
+    }))
+  })
   const portIndex = process.argv.indexOf('--port'); const requestedPort = portIndex >= 0 ? Number(process.argv[portIndex + 1]) : 0
   server.on('error', (error) => { console.error(`Actvero Harness Builder: ${error instanceof Error ? error.message : String(error)}`); process.exitCode = 1 })
   server.listen(Number.isFinite(requestedPort) ? requestedPort : 0, '127.0.0.1', () => { const address = server.address(); if (address && typeof address !== 'string') console.log(`Actvero Harness Builder: http://127.0.0.1:${address.port}`) })
