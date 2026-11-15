@@ -1,4 +1,4 @@
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { Context } from '@deepseek-ai/cordis'
 import { workbenchArchiveSource, type AccountSnapshot, type PublishedWorkbench, type PublishedWorkbenchCatalog } from '@actvero/dsh-client-account/protocol'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -45,6 +45,7 @@ const namespace = 'actvero.workbenches'
 const managerPanel = 'actvero-workbench-manager' as MainPanelId
 const businessPanel = 'actvero-workbench-business' as MainPanelId
 type WorkbenchAccessError = 'platformDenied' | 'platformCheckFailed'
+type WorkbenchOpenError = 'openFailed' | 'openUnavailable' | 'openDataUnavailable'
 
 const selectionKey = 'actvero.workbenches.selected.v1'
 const visibilityKey = 'actvero.workbenches.visibility.v1'
@@ -81,7 +82,7 @@ export interface WorkbenchView extends WorkbenchManagement {
   remembered: readonly ActveroWorkbench[]
   instance: WorkbenchDocument | null
   preparing: boolean
-  runtimeFailed: boolean
+  openError: WorkbenchOpenError | null
   chat: SessionReference | null
   chatCollapsed: boolean
   chatPreparing: boolean
@@ -130,7 +131,16 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
     previewUrls: [checklistPreview, checklistProgressPreview, checklistReviewPreview, checklistCompletedPreview, checklistDarkPreview],
   }] : []
-  const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => { update(state) }, async (id) => {
+  const management = createWorkbenchManagement(ctx.remote.pluginManager, (state) => {
+    const notice = state.notice
+    if (notice && notice !== view.notice) {
+      if (state.diagnostic) ctx.logger.warn('Workbench package operation: %s', state.diagnostic)
+      ctx.capabilityHub.notify(typeof notice === 'string' ? t(notice) : t(notice.kind, {
+        requiredHostApi: notice.requiredHostApi, currentHostApi: notice.currentHostApi,
+      }))
+    }
+    update(state)
+  }, async (id) => {
     try { await ctx.sessions.refresh() }
     catch (error) { ctx.logger.warn('Unable to inspect linked conversation activity: %s', error); return 'sessionStateUnavailable' }
     const sessions = ctx.sessions.list.getSnapshot()
@@ -140,7 +150,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   })
   let view: WorkbenchView = { ...management.initial, entries: examples, remembered: [], opened: readSelection(),
     platform: { phase: 'login' }, accessEpoch: 0, accessError: null,
-    instance: null, location: null, preparing: false, runtimeFailed: false, chat: null, chatCollapsed: true,
+    instance: null, location: null, preparing: false, openError: null, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false, catalogButtons: {} }
   const listeners = new Set<() => void>()
   const update = (patch: Partial<WorkbenchView>) => {
@@ -329,12 +339,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   }
   const load = async (id: string, target?: WorkbenchInstanceId, signal?: AbortSignal) => {
     signal?.throwIfAborted()
-    const reusable = view.opened === id && view.instance && !view.preparing && !view.runtimeFailed
+    const reusable = view.opened === id && view.instance && !view.preparing && !view.openError
       && (!target || target === view.instance.instanceId) ? view.instance : null
     const generation = ++navigation
     if (!reusable) {
       releaseChat()
-      update({ opened: id, instance: null, location: null, preparing: true, runtimeFailed: false, accessError: null })
+      update({ opened: id, instance: null, location: null, preparing: true, openError: null, accessError: null })
     }
     try {
       const accessError = await checkAccess(id)
@@ -358,7 +368,9 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     } catch (error) {
       if (generation === navigation && ctx.fiber.uid !== null && !signal?.aborted) {
         ctx.logger.warn('Unable to open workbench: %s', error)
-        update({ preparing: false, runtimeFailed: true })
+        const code = remoteErrorOf(error)?.code
+        update({ preparing: false, openError: code === 'workbench/failed' ? 'openDataUnavailable'
+          : code === 'workbench/unavailable' || code === 'workbench/not-found' ? 'openUnavailable' : 'openFailed' })
       }
       throw error
     }
@@ -464,10 +476,15 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       const opening = load(id)
       const generation = navigation
       void opening.then(() => {
+        if (generation !== navigation || ctx.fiber.uid === null || view.accessError) return
         const preference = view.visibility[`focus:${id}`] ?? (view.entries.find(item => item.id === id)?.display?.sidebar === 'focus')
         setFocus(preference)
         action.restoreChat()
-      }).catch(() => { if (generation === navigation && ctx.fiber.uid !== null) failed() })
+      }).catch((error) => {
+        if (generation !== navigation || ctx.fiber.uid === null || view.openError) return
+        ctx.logger.warn('Unable to restore workbench navigation: %s', error)
+        failed()
+      })
       try {
         localStorage.setItem(selectionKey, id)
       } catch (error) {

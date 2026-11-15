@@ -117,6 +117,15 @@ it('keeps the package icon authoritative across loading and legacy Client descri
   expect(workbenchIconUrl({ entries: [], bundles: [], remembered: [entry] }, bundle.name)).toBe('legacy-client-icon')
 })
 
+it('shows the installed workbench description and previews before Client activation', () => {
+  const installed = { ...bundle, enabled: false, meta: {
+    icon: 'package-icon',
+    workbench: { name: '创作', description: '创作画布', previewUrls: ['canvas-preview'] },
+  } }
+  expect(workbenchCatalog({ entries: [], remembered: [], bundles: [installed], restart: [] }, () => 'technical title'))
+    .toMatchObject([{ name: '创作', description: '创作画布', iconUrl: 'package-icon', previewUrls: ['canvas-preview'], state: 'disabledState' }])
+})
+
 it('downloads a newer release only after a platform action and keeps its guarded replacement', async () => {
   const { actions, remote, latest } = fixture()
   const scope = 'a'.repeat(32)

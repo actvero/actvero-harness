@@ -6569,7 +6569,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PluginLocalizedMeta',
-    declaration: 'export interface PluginLocalizedMeta {\n    readonly title?: LocalizedText;\n    readonly description?: LocalizedText;\n    readonly icon?: string;\n    readonly error?: string;\n}',
+    declaration: 'export interface PluginLocalizedMeta {\n    readonly title?: LocalizedText;\n    readonly description?: LocalizedText;\n    readonly icon?: string;\n    readonly workbench?: {\n        readonly name?: string;\n        readonly description?: string;\n        readonly previewUrls?: readonly string[];\n    };\n    readonly error?: string;\n}',
   },
   {
     name: 'PluginOptions',

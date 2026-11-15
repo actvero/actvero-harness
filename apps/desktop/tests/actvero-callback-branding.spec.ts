@@ -15,3 +15,14 @@ it('embeds the configured fallback logo, escapes the name and targets its own re
     expect(page.csp).toContain('img-src data:')
   }
 })
+
+it('renders the shared wordmark in browser sign-in without appending the product name', async () => {
+  vi.stubEnv('ACTVERO_PRODUCT_NAME', 'XTD & Harness')
+  vi.stubEnv('ACTVERO_PRODUCT_LOGO', 'data:image/png;base64,bG9nbw==')
+  vi.stubEnv('ACTVERO_PRODUCT_WORDMARK', 'data:image/svg+xml;base64,d29yZG1hcms=')
+  const { callbackPage, browserAccountPage } = await import('../src/actvero/callback-page.ts')
+  for (const page of [callbackPage(), browserAccountPage('/confirm/test', 'csrf')]) {
+    expect(page.html).toContain('<p class="art-brand"><img class="brand-wordmark" src="data:image/svg+xml;base64,d29yZG1hcms=" alt="XTD &amp; Harness"></p>')
+    expect(page.html).not.toContain('class="brand-icon"')
+  }
+})

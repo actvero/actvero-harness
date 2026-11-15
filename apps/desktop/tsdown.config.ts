@@ -44,6 +44,7 @@ const clientVersionDefine = { 'process.env.ACTVERO_BUILD_PRODUCT': JSON.stringif
   'process.env.ACTVERO_PRODUCT_NAME': JSON.stringify(actveroProduct.product.displayName),
   'process.env.ACTVERO_PRODUCT_PROTOCOL': JSON.stringify(actveroBranding.product.protocolScheme),
   'process.env.ACTVERO_PRODUCT_LOGO': JSON.stringify(actveroBranding.product.logoDataUrl),
+  'process.env.ACTVERO_PRODUCT_WORDMARK': JSON.stringify(actveroBranding.product.wordmarkDataUrl ?? ''),
   'process.env.ACTVERO_FLOW_IMAGE': JSON.stringify('data:image/webp;base64,' + readFileSync(new URL('./renderer/assets/actvero-login-atmosphere.webp', import.meta.url)).toString('base64')),
   'process.env.ACTVERO_FLOW_SCRIPT': JSON.stringify(readFileSync(new URL('./renderer/assets/actvero-flow.js', import.meta.url), 'utf8')),
 }

@@ -280,6 +280,23 @@
   justify-content: center;
 }
 
+.brandMark:has([data-sidebar-brand-wordmark]) {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.brandMark [data-sidebar-brand-wordmark] {
+  display: block;
+  height: 24px;
+  max-width: min(100%, 140px);
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brandIdentity:has([data-sidebar-brand-wordmark]) .brandName {
+  display: none;
+}
+
 .brandName {
   display: inline-flex;
   align-items: center;

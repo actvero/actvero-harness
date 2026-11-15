@@ -191,6 +191,23 @@ describe('plugin locale display metadata', () => {
       .toBe(`data:image/svg+xml;base64,${Buffer.from('legacy').toString('base64')}`)
   })
 
+  it('reads installed workbench previews without executing code or following an asset outside the package', () => {
+    manifest({ './package.json': './package.json' }, { dsh: {
+      actveroWorkbench: 1,
+      actveroWorkbenchPreviews: ['./assets/first.png', './assets/outside.png', './assets/last.jpg'],
+    } })
+    file(join(dir, 'workbench.json'), JSON.stringify({ name: '创作', description: '创作画布' }))
+    file(join(dir, 'assets', 'first.png'), 'first')
+    file(join(dir, 'assets', 'last.jpg'), 'last')
+    file(join(root, 'outside.png'), 'outside')
+    symlinkSync(join(root, 'outside.png'), join(dir, 'assets', 'outside.png'))
+    expect(readPluginMeta('localized', parentURL)?.workbench).toEqual({
+      name: '创作',
+      description: '创作画布',
+      previewUrls: ['data:image/png;base64,Zmlyc3Q=', 'data:image/jpeg;base64,bGFzdA=='],
+    })
+  })
+
   it('resolves a legacy icon relative to its remapped exported manifest', () => {
     manifest({ './package.json': './display/manifest.json', './icon': './fallback.svg' })
     file(join(dir, 'display', 'manifest.json'), JSON.stringify({ icon: './logo.svg' }))

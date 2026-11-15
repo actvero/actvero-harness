@@ -33,6 +33,7 @@ export function ActveroWelcome({
     [address, setAddress] = useState(initial.baseUrl),
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState(false),
+    [failedWordmark, setFailedWordmark] = useState<string>(),
     [failedLogo, setFailedLogo] = useState<string>(),
     [failedFallback, setFailedFallback] = useState<string>()
   const busyRef = useRef(false)
@@ -66,6 +67,7 @@ export function ActveroWelcome({
   }, [account.brand.name])
   const logo = account.brand.logoUrl && account.brand.logoUrl !== failedLogo
     ? account.brand.logoUrl : account.brand.fallbackLogoUrl !== failedFallback ? account.brand.fallbackLogoUrl : undefined
+  const wordmark = account.brand.wordmarkUrl
   const hasAccount = !!account.user || ['offline', 'restoring'].includes(account.phase)
   const confirmed = account.phase === 'ready' && !!account.user && !!account.organization
   const waiting = ['waiting', 'exchanging', 'restoring'].includes(account.phase)
@@ -78,8 +80,14 @@ export function ActveroWelcome({
             <img src="assets/actvero-login-atmosphere.webp" alt="" />
           </div>
           <strong className="actvero-brand">
-            {logo && logo !== failedLogo && <img src={logo} alt="" onError={() => { if (logo === account.brand.logoUrl) setFailedLogo(logo); else setFailedFallback(logo) }} />}
-            {account.brand.name}
+            {wordmark && wordmark !== failedWordmark ? (
+              <img className="actvero-brand-wordmark" src={wordmark} alt={account.brand.name} onError={() => setFailedWordmark(wordmark)} />
+            ) : (
+              <>
+                {logo && logo !== failedLogo && <img src={logo} alt="" onError={() => { if (logo === account.brand.logoUrl) setFailedLogo(logo); else setFailedFallback(logo) }} />}
+                {account.brand.name}
+              </>
+            )}
           </strong>
           <div className="actvero-tagline">
             <p>{label('你的桌面 AI 工作空间', 'Your desktop AI workspace')}</p>

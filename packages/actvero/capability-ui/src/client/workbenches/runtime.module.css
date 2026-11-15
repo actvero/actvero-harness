@@ -69,5 +69,5 @@
 .badge:hover .badgeRemove:not(:disabled) .mark,.badgeRemove:focus-visible .mark { opacity:0; }
 .badge:hover .badgeRemove:not(:disabled) .cross,.badgeRemove:focus-visible .cross { opacity:1; }
 .badge button:focus-visible { outline:none; box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)); }
-.notice { padding: 16px 24px; color: var(--dsw-alias-label-secondary); }
+.runtimeState { flex: 1; display: grid; align-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--dsw-alias-label-secondary); }
 @container (max-width:540px) { .badge { --dsh-composer-leading-detail-display:none; --dsh-composer-leading-icon-display:grid; } }

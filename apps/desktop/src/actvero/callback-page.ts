@@ -6,6 +6,10 @@ const htmlBrand = defaultName.replaceAll('&', '&amp;').replaceAll('<', '&lt;').r
 const returnUrl = `${process.env.ACTVERO_PRODUCT_PROTOCOL ?? 'dsh'}://open`
 const logo = process.env.ACTVERO_PRODUCT_LOGO ?? ''
 const brandIcon = logo ? `<img class="brand-icon" src="${logo}" alt="">` : ''
+const wordmark = process.env.ACTVERO_PRODUCT_WORDMARK ?? ''
+const brandContent = (labelId?: string) => wordmark
+  ? `<img class="brand-wordmark" src="${wordmark}" alt="${htmlBrand}">`
+  : `${brandIcon}${labelId === undefined ? htmlBrand : `<span id="${labelId}">${htmlBrand}</span>`}`
 const image = process.env.ACTVERO_FLOW_IMAGE ?? ''
 const animation = process.env.ACTVERO_FLOW_SCRIPT ?? ''
 const cleanAddress = "history.replaceState(null, '', location.pathname);"
@@ -15,6 +19,7 @@ const styles = `
 *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;grid-template-columns:1fr 1fr;-webkit-font-smoothing:antialiased}
 main{min-width:0;grid-column:2;grid-row:1;display:grid;place-items:center;padding:48px 24px}.content{width:100%;max-width:360px;text-align:left}
 .brand-icon{width:28px;height:28px;object-fit:contain;vertical-align:middle;margin-right:10px}
+.brand-wordmark{height:32px;max-width:100%;object-fit:contain;object-position:left center;vertical-align:middle}
 .brand{margin:0 0 48px;font-size:26px;font-weight:500;line-height:32px;letter-spacing:.025em}
 h1{margin:0;font-size:20px;font-weight:400;line-height:32px}.description{margin:8px 0 0;font-size:14px;line-height:22px;color:var(--dsw-alias-label-secondary)}
 .return{display:flex;align-items:center;justify-content:center;width:100%;max-width:360px;min-height:44px;margin:48px 0 0;padding:10px 16px;border-radius:12px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted);font-size:14px;font-weight:500;line-height:24px;text-decoration:none;transition:background-color .2s}
@@ -42,12 +47,12 @@ export function callbackPage(cancelled = false) {
     csp: `default-src 'none'; style-src ${hash(styles)}; script-src ${hash(cleanAddress)} ${hash(animation)}; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     html: `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · ${htmlBrand}</title><style>${styles}</style><script>${cleanAddress}</script></head>
-<body><main aria-labelledby="title"><div class="content"><p class="brand">${brandIcon}${htmlBrand}</p>
+<body><main aria-labelledby="title"><div class="content"><p class="brand">${brandContent()}</p>
 <h1 id="title">${title}</h1>
 <p class="description">${cancelled ? '本次登录未完成，请返回桌面端重新登录' : '桌面端正在确认登录，你可以关闭此页面'}</p>
 <a class="return" href="${returnUrl}">返回桌面端</a>
 </div></main><aside aria-label="${htmlBrand}"><div class="atmosphere-layer" data-actvero-atmosphere aria-hidden="true"><img src="${image}" alt=""></div>
-<p class="art-brand">${brandIcon}${htmlBrand}</p><div class="art-copy"><p>你的桌面 AI 工作空间</p><p class="tagline"><span>让想法</span><span>更进一步。</span></p><p>从一个问题开始，把想法变成现实。</p></div></aside><script>${animation}</script></body></html>`,
+<p class="art-brand">${brandContent()}</p><div class="art-copy"><p>你的桌面 AI 工作空间</p><p class="tagline"><span>让想法</span><span>更进一步。</span></p><p>从一个问题开始，把想法变成现实。</p></div></aside><script>${animation}</script></body></html>`,
   }
 }
 
@@ -77,8 +82,10 @@ export function browserAccountPage(path: string, csrf: string) {
       get('avatar').textContent = state.user.name.slice(0, 1);
       if (state.brand) {
         document.title = '确认账号 · ' + state.brand;
-        get('brand').textContent = state.brand;
-        get('art-brand').textContent = state.brand;
+        for (const id of ['brand', 'art-brand']) {
+          const label = get(id);
+          if (label) label.textContent = state.brand;
+        }
       }
     } else {
       get('name').textContent = get('email').textContent = get('avatar').textContent = '';
@@ -118,11 +125,11 @@ export function browserAccountPage(path: string, csrf: string) {
   return {
     csp: `default-src 'none'; style-src ${hash(styles)}; script-src ${hash(script)} ${hash(animation)}; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     html: `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>确认账号 · ${htmlBrand}</title><style>${styles}</style></head><body>
-<main aria-labelledby="title"><div class="content"><p class="brand">${brandIcon}<span id="brand">${htmlBrand}</span></p><h1 id="title">正在确认登录</h1>
+<main aria-labelledby="title"><div class="content"><p class="brand">${brandContent('brand')}</p><h1 id="title">正在确认登录</h1>
 <div class="identity" id="identity" hidden><span class="avatar" id="avatar" aria-hidden="true"></span><div><div class="name" id="name"></div><div class="email" id="email"></div></div></div>
 <p class="description" id="description" role="status">正在验证账号，请稍候</p>
 <div class="actions" id="choices" hidden><button id="continue" class="return" type="button">继续使用此账号</button><button id="switch" class="return secondary" type="button">切换账号登录</button></div>
 <a class="return" id="return" href="${returnUrl}" hidden>返回桌面端</a></div></main>
-<aside aria-label="${htmlBrand}"><div class="atmosphere-layer" data-actvero-atmosphere aria-hidden="true"><img src="${image}" alt=""></div><p class="art-brand">${brandIcon}<span id="art-brand">${htmlBrand}</span></p><div class="art-copy"><p>你的桌面 AI 工作空间</p><p class="tagline"><span>让想法</span><span>更进一步。</span></p><p>从一个问题开始，把想法变成现实。</p></div></aside><script>${animation}</script><script>${script}</script></body></html>`,
+<aside aria-label="${htmlBrand}"><div class="atmosphere-layer" data-actvero-atmosphere aria-hidden="true"><img src="${image}" alt=""></div><p class="art-brand">${brandContent('art-brand')}</p><div class="art-copy"><p>你的桌面 AI 工作空间</p><p class="tagline"><span>让想法</span><span>更进一步。</span></p><p>从一个问题开始，把想法变成现实。</p></div></aside><script>${animation}</script><script>${script}</script></body></html>`,
   }
 }

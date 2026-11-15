@@ -65,6 +65,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export interface SidebarBrandMarkOwnerProps {
   /** Requested square edge in pixels. */
   size: number
+  /** The expanded row accepts an image marked `data-sidebar-brand-wordmark` in place of both mark and name. */
+  wordmark?: true
 }
 
 /** Empty owner share for the sidebar brand-name occupant. */
