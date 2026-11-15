@@ -1799,3 +1799,16 @@ it.each(['absent', 'bundle', 'not-bundle', 'unreadable'])('keeps a missing sourc
   expect((await manager.listBundles()).find(item => item.name === name)?.error?.diagnostic).toContain('restore the checkout')
   expect((await manager.listBundles()).find(item => item.name === name)?.installTarget).toBeUndefined()
 })
+
+
+it('refuses removal when the installed version changed after review', async () => {
+  const { manager, dir } = await fixture()
+  const before = readFileSync(join(dir, 'package.json'), 'utf8')
+  const remove = vi.spyOn(operations, 'runProfilePnpm')
+  onTestFinished(() => { remove.mockRestore() })
+  expect(await manager.removeBundle('extra', '999.0.0')).toMatchObject({
+    changed: false, application: 'failed', error: { code: 'stale-approval' },
+  })
+  expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(before)
+  expect(remove).not.toHaveBeenCalled()
+})

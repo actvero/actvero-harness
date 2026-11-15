@@ -723,15 +723,17 @@ export class PluginManager extends TypertRemoteService {
   /** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
    * dependency holds is only deselected.
    * @param name Installed dependency or selected bundle name.
+   * @param expectedVersion Reviewed version; a mismatch rejects under the profile lock before deselection or removal.
    * @returns Removal diagnostics and the remaining profile state.
    */
   @Remote
-  removeBundle(name: string): Promise<ChangeResult> {
+  removeBundle(name: string, expectedVersion?: string): Promise<ChangeResult> {
     return this.change(async (result) => {
       if (this.replacements.has(name)) throw new ManagementFailure('stop-profile')
       const installed = await this.configure(async () => {
         const bundle = (await this.listBundles()).find(item => item.name === name)
         if (bundle === undefined || !bundle.removable) throw new ManagementFailure('not-removable')
+        if (expectedVersion !== undefined && bundle.version !== expectedVersion) throw new ManagementFailure('stale-approval')
         if (this.ownerContext.get('hmr') === undefined && (this.profile.startedBundles.includes(name)
           || (bundle.error === undefined && this.bundleRows(name).some(row => [...this.ctx.loader.entries()]
             .some(entry => entry.options.id === row.id && entry.fiber !== undefined))))) {

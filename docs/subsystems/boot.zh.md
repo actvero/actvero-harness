@@ -229,9 +229,10 @@ Manage profile files and apply their declared reload lifecycle.
 /** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
  * dependency holds is only deselected.
  * @param name Installed dependency or selected bundle name.
+ * @param expectedVersion Reviewed version; a mismatch rejects under the profile lock before deselection or removal.
  * @returns Removal diagnostics and the remaining profile state.
  */
-@Remote removeBundle(name: string): Promise<ChangeResult>
+@Remote removeBundle(name: string, expectedVersion?: string): Promise<ChangeResult>
 ```
 
 Source: [`packages/boot/plugin-manager/src/index.ts`](../../packages/boot/plugin-manager/src/index.ts)

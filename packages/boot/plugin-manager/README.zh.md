@@ -174,3 +174,5 @@ pnpm 执行和组合包校验成功即完成安装，后续发布或启用失败
 无。
 
 </details>
+
+`removeBundle(name, expectedVersion?)` 可要求调用者审阅过的安装版本。管理器在 Profile 锁内、停用或卸载前复核；版本不符返回 stale-approval，不修改 Profile。

@@ -174,3 +174,5 @@ Ordinary installation restores the two snapshotted files; explicit replacement a
 None.
 
 </details>
+
+`removeBundle(name, expectedVersion?)` can require the version reviewed by the caller. The manager checks it under the profile lock before deselection or package removal; mismatch returns stale-approval without changing the profile.
