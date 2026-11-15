@@ -34,6 +34,10 @@ describe('local workbench developer commands', () => {
       join(alias, 'scripts/actvero-workbench.client.ts'), 'create', project], { cwd: repository })
     expect(stdout).toContain('已创建工作台开发目录')
     expect(await readFile(join(project, '.agents/skills/develop-workbench/SKILL.md'), 'utf8')).toContain('develop-workbench')
+    const design = await readFile(join(project, 'DESIGN.md'), 'utf8')
+    for (const [, link] of design.matchAll(/\]\(([^)]+)\)/gu)) {
+      expect(await readFile(join(project, link!), 'utf8')).not.toBe('')
+    }
   })
 
   it('runs a blank project outside the checkout and rebinds after relocation without changing author files', async () => {

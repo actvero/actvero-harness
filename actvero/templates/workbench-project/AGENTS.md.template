@@ -2,7 +2,7 @@
 
 本文面向在此目录开发工作台的 Agent。任务是按已确认需求实现业务、验证本地包，并区分安装成功与业务验收。
 
-先读 README.md，完整读取 .agents/skills/develop-workbench/SKILL.md 及其要求的指南和 environment.json，再读 DESIGN.md。开发规则属于“工作台开发”；视觉建议单独放在 .agents/skills/workbench-frontend/SKILL.md，采用原生或品牌风格时读取，需要自定义时保留宿主兼容要求。
+先读 README.md 和 .agents/skills/develop-workbench/SKILL.md，再读其 reference/environment.json 与要求的指南章节；其他能力按 Skill 索引选读。检查 DESIGN.md 中的现有决定。界面开发读取 .agents/skills/workbench-frontend/SKILL.md，原生、品牌与自定义风格都保留宿主兼容要求。
 
 先检查未提交更改，保留用户内容。模板名称和示例不是业务需求；缺少目标时先问一个必要问题，不自行编造业务。已有需求不重复询问。实现界面前更新 DESIGN.md 中的核心流程、视觉选择与验收项，允许短文档及明确的自定义理由，不把填表当作开工条件。
 

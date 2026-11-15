@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
+import { WORKBENCH_HOST_API_VERSION } from '../packages/actvero/capability-ui/src/workbench-version.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
 const sources = {
@@ -13,6 +14,7 @@ const sources = {
   'api/lifecycle.ts': 'packages/actvero/capability-ui/src/workbench-lifecycle.ts',
   'api/provider.ts': 'packages/actvero/capability-ui/src/workbench-provider.ts',
   'api/workbench-protocol.ts': 'packages/actvero/capability-ui/src/workbench-protocol.ts',
+  'api/workbench-version.ts': 'packages/actvero/capability-ui/src/workbench-version.ts',
   'api/workbench-reference.ts': 'packages/actvero/capability-ui/src/workbench-reference.ts',
   'api/workbench-result.ts': 'packages/actvero/capability-ui/src/workbench-result.ts',
   'api/types.ts': 'packages/actvero/capability-ui/src/types.ts',
@@ -20,8 +22,8 @@ const sources = {
 } as const
 
 /** Generate read-only guide and API snapshots; repository-only links remain explicit source locations.
- * @param toolchain Distribution containing the compiler.
  * @param destination Disposable generated reference directory owned by the caller.
+ * @param toolchain Distribution producing these references, not the consumer's installed environment.
  */
 export function generateWorkbenchSkillReference(destination: string, toolchain: 'source-checkout' | 'standalone-kit' = 'source-checkout'): void {
   const version = z.object({ version: z.string() })
@@ -48,6 +50,7 @@ export function generateWorkbenchSkillReference(destination: string, toolchain: 
   }
   writeFileSync(join(destination, 'environment.json'), JSON.stringify({
     schemaVersion: 1, workbenchFormat: 1, dshRuntimeVersion: baseline.version,
+    workbenchHostApiVersion: WORKBENCH_HOST_API_VERSION,
     packages: { '@actvero/dsh-capability-ui': capability.version, '@actvero/dsh-experts': experts.version },
     toolchain, sources,
     sha256: Object.fromEntries(Object.keys(sources).map(target => [target, createHash('sha256').update(readFileSync(join(destination, target))).digest('hex')])),

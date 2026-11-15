@@ -28,13 +28,24 @@ This guide is for workbench developers and Agents taking over a project: create 
 
 ## Development environment and task entry
 
-When distributed with the native `develop-workbench` Skill, `reference/environment.json` records the same build's DSH baseline, workbench format, capability-package versions and reference sources. `reference/api/` contains read-only interface source copies for checking arguments, not an installable SDK. Links to material absent from the Skill identify its source-checkout path. Check the actual target client's version first; a source baseline or this snapshot does not establish another client's capabilities.
+When distributed with the native `develop-workbench` Skill, `reference/environment.json` records the same build's DSH baseline (`dshRuntimeVersion`), workbench API (`workbenchHostApiVersion`), package format, capability-package versions and reference sources. `toolchain` identifies whether the references were generated from a source toolchain or standalone kit; it does not establish that a compiler is installed on the current machine. `reference/api/` contains read-only interface source copies for checking arguments, not an installable SDK. Links to material absent from the Skill identify its source-checkout path. Check the actual target client's version first; a source baseline or this snapshot does not establish another client's capabilities.
 
 Prefer a standalone developer kit matching the target Harness baseline. It includes the compiler, pinned dependencies, declarations, three templates and two Skills; the full Harness source checkout and pnpm are unnecessary. Check workbench-kit.json at the kit root and use the recorded operating system, CPU architecture and Node version. The project's .actvero/toolchain.json records its local kit location; the kit does not download or switch runtimes.
 
 Maintainers run `pnpm run build:artifacts` in a checkout with locked dependencies, then `pnpm run actvero:workbench-kit /absolute/path/new-kit` to export into a nonexistent directory. Developers receive the complete kit and read its README.md; do not copy only the compiler entrypoint or run npm install inside the kit. Install additional business dependencies in the project and declare them according to the package format. The source-based `pnpm run actvero:workbench` remains available and requires that checkout to be built.
 
 Reuse confirmed goals; clarify the minimum flow before creating an unspecified business. Check the kit and installation client separately: development commands do not establish the target desktop's capabilities, and an isolated Profile does not validate the everyday application. The desktop does not yet bundle the complete compiler kit; obtain a kit or built source checkout when the toolchain is missing.
+
+<a id="native-development"></a>
+
+### Develop inside Harness
+
+When the workbench plugin loads in the ACTVERO desktop, it registers `develop-workbench` and `workbench-frontend` in the native skill catalog. This is an ACTVERO distribution capability, not a promise that every unmodified DSH installation includes these Skills. Exported ordinary file paths let another agent on the same machine read the guidance; project .agents/skills/ and AGENTS.md provide a handoff entry, not a global installation for every agent.
+
+1. Open Workbenches → Create a workbench → Create in Harness. The client selects the cordis development preset and fills a draft; the user adds requirements and sends it. It does not execute a task automatically.
+2. The agent loads develop-workbench with the native skill tool and reads environment.json and the guide relative to the returned resource directory. If the skill is missing, check whether the workbench plugin is loaded; if skill or file tools are absent, check the conversation's development preset. Mentioning a skill in a prompt does not establish that it loaded.
+3. Identify the business directory and local toolchain. A new project can use an extracted standalone kit path; an existing project reads .actvero/toolchain.json. Follow Create and package and the native file/Shell permissions. The installed desktop does not replace Node or the developer kit.
+4. After producing a .tgz, follow Import and verify for the selected Profile. Native plugin_manager availability depends on that Profile and preset; otherwise import through the management page. Check installation, restart requirements, loading and business results separately.
 
 <a id="create"></a>
 
@@ -430,7 +441,7 @@ Developers and executing Agents use this table to record observable outcomes, se
 
 | Symptom | Next action |
 |---|---|
-| Missing command or dependency | Check working directory, source-root `package.json`, Node/pnpm and locked dependencies; do not run repository commands from the business directory or start a substitute host |
+| Missing command or dependency | Check the project .actvero/toolchain.json, kit workbench-kit.json, Node version and paths first; rebind after relocation. Only the source toolchain needs repository dependency and pnpm checks; do not run repository commands inside the business directory |
 | Package validation fails | Follow diagnostics for metadata, entries, resource sizes and paths, then rebuild from source rather than editing `.tgz` or installed files |
 | `incompatible-version` | Compare target runtime and `engines.dsh`, then decide adaptation or a compatible client; changing a version number or granting an exemption does not establish compatibility |
 | Installed but missing entry or blank view | Inspect installation outcome, enabled state and Host/Client errors, then both ids, registrations, injections and console diagnostics; request restart only when required |
@@ -468,6 +479,6 @@ Admit the original image with `ctx.attachments.saveImage()`, then use `ctx.llm.p
 
 ## Limitations
 
-The development tool creates, builds, and validates local `.tgz` archives in this repository. See the [client workbench reference](workbenches.md) for organization publishing and installation. Workbenches own authentication for their business requests. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
+The developer tool creates, builds and checks local `.tgz` files through a standalone kit or built source toolchain; projects need not reside inside the Harness checkout. No published npm developer kit or global Skill installation command is currently provided. See the [client workbench reference](workbenches.md) for organization publishing and installation. Workbenches own authentication for their business requests. Merely adding expert, MCP or Skill files does not load them; Host providers explicitly declare bundled instructions and business actions.
 
 Actvero workbench packages register through `ctx.actveroWorkbenches`. For a package that uses `ctx.desktopWorkbenches`, follow the [workbench migration guide](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.md).

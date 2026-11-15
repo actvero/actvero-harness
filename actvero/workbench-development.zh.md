@@ -28,13 +28,24 @@
 
 ## 开发环境与任务入口
 
-本指南随原生 `develop-workbench` Skill 分发时，`reference/environment.json` 记录同次构建的 DSH 基线、工作台格式、能力包版本与参考文件来源。`reference/api/` 是接口源码的只读副本，用于核对参数，不是可安装的 SDK。指南链接到未随包分发的资料时，会标明其源码仓库路径。先核对目标客户端实际版本；源码基线或本快照不能证明另一个客户端具备相同能力。
+本指南随原生 `develop-workbench` Skill 分发时，`reference/environment.json` 记录同次构建的 DSH 基线（`dshRuntimeVersion`）、工作台 API（`workbenchHostApiVersion`）、包格式、能力包版本与参考文件来源。`toolchain` 表示文档从源码工具链还是独立套件生成，不表示当前机器已安装编译器。`reference/api/` 是接口源码的只读副本，用于核对参数，不是可安装的 SDK。指南链接到未随包分发的资料时，会标明其源码仓库路径。先核对目标客户端实际版本；源码基线或本快照不能证明另一个客户端具备相同能力。
 
 优先使用与目标 Harness 基线匹配的独立开发套件：其中包含编译器、固定版本依赖、类型声明、三个模板和两份 Skill，不需要完整 Harness 源码，也不需要 pnpm。核对套件根目录的 `workbench-kit.json`，使用与套件记录相同的操作系统、CPU 架构和 Node 版本。项目的 `.actvero/toolchain.json` 记录本机套件位置；套件不会自动下载或切换运行时。
 
 维护者在已安装锁定依赖的源码仓库中运行 `pnpm run build:artifacts`，再运行 `pnpm run actvero:workbench-kit /绝对路径/新套件目录` 导出。目的目录必须不存在。开发者取得完整套件后，先读取其中 README.md；不要单独复制编译器入口或对套件运行 npm install。需新增业务依赖时，在业务项目安装并按包规范声明。源码方式仍支持 `pnpm run actvero:workbench`；它要求该仓库已构建。
 
 需求已明确时沿用现有目标，不重新询问；新建业务范围不明时先确认最小流程。独立套件与安装客户端分别核对：开发命令不代表目标桌面已具备相同接口，隔离 Profile 的验收不算日常应用的验收。当前桌面尚未内置完整编译套件，缺少工具链时先取得套件或已构建的源码目录。
+
+<a id="native-development"></a>
+
+### 在 Harness 内开发
+
+ACTVERO 桌面端加载工作台插件后，将 `develop-workbench` 和 `workbench-frontend` 注册到原生技能目录；这是当前 ACTVERO 发行版提供的能力，不代表任意原版 DSH 都自带这两份 Skill。普通文件路径导出的 Skill 可供同机外部 Agent 读取；项目内的 `.agents/skills/` 与 AGENTS.md 提供后续接手入口，不等于已向所有 Agent 全局安装。
+
+1. 打开「工作台 → 制作工作台 → 在 Harness 中创建」。客户端选择 `cordis` 开发预设并填入草稿，用户补充需求后发送；不会自动执行任务。
+2. Agent 用原生 `skill` 工具加载 `develop-workbench`，以返回的资源目录为基准读取 environment.json 和指南。若技能缺失，先检查工作台插件是否加载；若没有技能或文件工具，检查当前对话是否使用开发预设，不把提示词里写了技能名当作已加载。
+3. 确定业务目录和本机工具链。新项目可提供解压后的独立套件路径；已有项目读取 `.actvero/toolchain.json`。按「创建和打包」运行命令，文件与 Shell 操作遵循原生权限；安装版桌面本身不代替 Node 与开发套件。
+4. 生成 `.tgz` 后按「导入和验收」安装到指定 Profile。原生 `plugin_manager` 是否可用取决于当前 Profile 和预设；不可用时通过管理页导入。实际安装、重启要求、工作台加载与业务结果分别核对。
 
 <a id="create"></a>
 
@@ -430,7 +441,7 @@ AI 模板的「查看可用模型」展示最小接入方式。平台未登录�
 
 | 现象 | 下一步 |
 |---|---|
-| 找不到命令或依赖 | 核对当前目录、源码根 `package.json`、Node/pnpm 和锁定依赖；不要在业务目录执行仓库命令或启动另一套宿主 |
+| 找不到命令或依赖 | 先核对项目 `.actvero/toolchain.json` 和套件 `workbench-kit.json`、Node 版本及路径；移动后重新 bind。仅源码工具链需要检查仓库依赖与 pnpm，不要在业务目录执行仓库命令 |
 | 包校验失败 | 按具体诊断检查清单、入口、资源大小和路径，从源码重建；不要直接修改 `.tgz` 或已安装文件 |
 | `incompatible-version` | 对比目标运行时与 `engines.dsh`，判断适配还是需要兼容客户端；不能只改版本号或授予豁免来证明兼容 |
 | 已安装但没有入口或白屏 | 先查安装结果、启用状态及 Host/Client 加载错误，再核对两端包名、注册、依赖注入和控制台错误；仅待重启时提示重启 |
@@ -468,6 +479,6 @@ AI 模板的「查看可用模型」展示最小接入方式。平台未登录�
 
 ## 限制
 
-开发工具在仓库内创建、构建和校验本地 `.tgz`。组织发布和成员安装见[客户端工作台说明](workbenches.zh.md)。业务请求的鉴权由工作台自行实现。专家、MCP 和 Skill 文件放入目录不会自动加载；内置专家指令和业务操作由 Host 提供者显式声明。
+开发工具可通过独立套件或已构建源码工具链创建、构建和校验本地 `.tgz`；开发项目不必位于 Harness 仓库内。当前未提供已发布的 npm 开发套件或全局 Skill 安装命令。组织发布和成员安装见[客户端工作台说明](workbenches.zh.md)。业务请求的鉴权由工作台自行实现。专家、MCP 和 Skill 文件放入目录不会自动加载；内置专家指令和业务操作由 Host 提供者显式声明。
 
 Actvero 工作台包通过 `ctx.actveroWorkbenches` 注册。已使用 `ctx.desktopWorkbenches` 的业务包请按[工作台迁移指南](../docs/upgrade-guide/v0.2.1-rc.3/actvero-dsh-workbench-removal/guide.zh.md)更新。

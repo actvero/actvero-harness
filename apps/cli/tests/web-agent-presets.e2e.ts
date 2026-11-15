@@ -115,6 +115,7 @@ async function bootWeb(
     // back on the next run, so a stored document from any other build decides
     // this test's boot.
     { id: 'storage-json', config: { root: storageRoot } },
+    { id: 'actvero-capability-ui', config: { dataDirectory: join(profileHome, 'workbench-data') } },
     // Fixed Session IDs must stay inside this boot's temporary profile root.
     { id: 'session-persistence-jsonl', config: { root: join(profileHome, 'sessions') } },
     { id: 'attachment-local', config: { dshHome: profileHome } },
@@ -628,6 +629,47 @@ describe('the shipped Web composition', () => {
       })
       expect(loaded.isError).toBe(false)
       expect(JSON.stringify(loaded.content)).toContain('powered by dsh')
+    } finally {
+      await handle.dispose()
+    }
+  })
+
+  it('loads ACTVERO developer guidance and references through the cordis preset tools', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'actvero-developer-preset-'))
+    const developer: { context?: Context } = {}
+    onTestFinished(async () => {
+      await developer.context?.fiber.dispose()
+      await rm(home, { recursive: true, force: true })
+    })
+    // The plain Web fixture leaves ACTVERO desktop integrations disabled.
+    const ctx = await bootWeb(home, [{ id: 'actvero-capability-ui', disabled: false }])
+    developer.context = ctx
+    const handle = await ctx.agents.create({
+      sessionId: SessionId(`workbench-developer-${randomUUID()}`),
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'cordis').then(() => undefined),
+    })
+    try {
+      expect(toolNames(ctx, handle.agent)).toEqual(expect.arrayContaining(['skill', 'read', 'write', process.platform === 'win32' ? 'pwsh' : 'bash']))
+      for (const name of ['develop-workbench', 'workbench-frontend']) {
+        const loaded = await ctx.tools.execute({
+          callId: ToolCallId(`load-${name}`), name: 'skill', arguments: { name },
+          signal: new AbortController().signal, agent: handle.agent,
+        })
+        expect(loaded.isError, JSON.stringify(loaded.content)).toBe(false)
+        const skill = await ctx.skills.get(name, { scope: handle.agent })
+        if (skill?.resourceBase?.kind !== 'directory') throw new Error(`Missing resources for ${name}`)
+        expect(JSON.stringify(loaded.content)).toContain(skill.resourceBase.path)
+        if (name !== 'develop-workbench') continue
+        for (const path of ['reference/environment.json', 'reference/guide.zh.md', 'reference/api/client.ts']) {
+          const read = await ctx.tools.execute({
+            callId: ToolCallId(`read-${path}`), name: 'read',
+            arguments: { file_path: join(skill.resourceBase.path, path), limit: 40 },
+            signal: new AbortController().signal, agent: handle.agent,
+          })
+          expect(read.isError, JSON.stringify(read.content)).toBe(false)
+          expect(read.content.length).toBeGreaterThan(0)
+        }
+      }
     } finally {
       await handle.dispose()
     }

@@ -10,69 +10,51 @@ Resolve relative paths mentioned by this skill against the base directory before
 <skill_instructions>
 # 工作台开发
 
-面向首次接手 ACTVERO 工作台开发的 Agent。目标是完成用户确认的业务功能，交付经过校验的本地包，并核实目标客户端的安装与加载结果。业务布局、存储和 AI 操作方式由需求决定，模板中的清单不代表用户需求。
+面向接手 ACTVERO 工作台项目的 Agent。按用户已确认的业务目标交付本地包，分别验证构建、安装、加载和实际业务。模板提供接入示例，不代表用户需求。
 
-## 确认业务目标
+## 开始前
 
-先复用当前对话的明确需求。每次只问一个必要问题；名称未知时问“这个工作台想叫什么名字？”，允许暂定名。只有名称不等于业务范围已确认。缺少核心流程时，用业务语言建议一个最小流程，请用户确认或调整；不要求填写固定需求表。目标和最小流程不清楚时等待回答，不创建业务代码、界面或包文件，不构建、安装或发布。可先只读检查目录、说明和未提交更改；现有代码和目录名不是用户的业务意图。
+1. 沿用对话中已明确的需求；只追问缺少的关键业务目标或最小流程。范围不明时先只读检查，不创建业务代码或安装包。修复已有工作台时保留包名、数据和未提交修改，不重建项目、不重复确认已获授权的工作。
+2. 加载 \`reference/environment.json\`，阅读指南的[开发环境](reference/guide.zh.md#environment)、[创建和打包](reference/guide.zh.md#create)、[包格式](reference/guide.zh.md#format)。其他章节按下表读取，无需一次读完整本手册。路径相对于本 Skill 的资源目录，不能假设当前目录就是 Skill 或源码仓库。
+3. 核对独立开发套件或已构建源码工具链的位置及目标客户端/Profile。已有项目先查 \`.actvero/toolchain.json\`；缺失且上下文无法确定时询问套件位置。客户端内的 Skill 不包含完整编译器。独立套件无需 Harness 源码或 pnpm，不要求 GitHub 账号；不擅自克隆源码、安装其他运行时或改宿主配置。
+4. \`environment.json\` 记录参考文档的 DSH 基线、工作台 API 版本与来源，不证明目标桌面已更新。包的 \`engines.dsh\` 与 \`protocol.hostApi\` 分别检查；不能改版本声明绕过不兼容。指南中标为“源码仓库”的路径不是随 Skill 安装的文件。
 
-已有工作台的修复或更新，先读取其源码和安装版本，保留包名、数据和用户修改；不重新询问已明确的需求，也不重新创建目录。需求足够且已确认后继续开发，不反复请求同一授权。
+## 实现与调试
 
-## 阅读当前接口
+新项目按指南运行 \`create\`，默认空白模板；仅需要示例时选 \`plain\` 或 \`ai\`。读取生成项目的 README.md、AGENTS.md 和 DESIGN.md，写明最小业务流程、首次入口、存储和验收点。已有项目直接修改。界面开发加载 \`workbench-frontend\` Skill，业务允许原生、品牌或自定义设计。
 
-先完整读取相对本 Skill 目录的开发指南 \`reference/guide.zh.md\`，再读取构建版本与资源索引 \`reference/environment.json\`。这些文件由同一次构建生成；记录其中的运行时版本和包格式，另行核对目标客户端的实际版本。它们描述 ACTVERO 自有框架，不是旧 DSH 市场接口，也不是最新在线上游规范。用户要求查在线规范时实际获取并记录地址与版本，不能拿本快照代替。
+在项目目录使用 \`npm run doctor\`、\`npm run typecheck\`、相关业务测试、\`npm run build\` 和 \`npm run check\`。持续开发用 \`npm run dev\`，从 \`.actvero/diagnostics.json\` 读取状态、错误和实际包路径；\`built\` 仅证明包检查通过，\`runtime: not-verified\` 表示客户端尚未验证。监听不自动安装、重载或启动 Harness。工具链移动后按 README 执行 \`bind\`，保留业务代码与设计文件。
 
-引用路径以本 Skill 的资源目录为基准，不能假设当前工作目录是 Skill 或源码仓库。\`reference/api/\` 提供随构建复制的真实接口，按任务读取 Client 上下文、Host 提供者、显示与环境类型、专家清单；不要仅凭接口名字猜参数。指南中标为“源码仓库”的资料只在开发仓库中可读。
+按任务选读以下章节，再查对应真实接口；不要凭 API 名称猜参数。\`reference/api/\` 是只读接口副本，不能作为 SDK 安装。
 
-按指南的“开发环境与任务入口”核对独立开发套件或已构建源码工具链、Node 及目标客户端基线。独立套件不需要完整 Harness 源码；客户端内的 Skill 不等于编译器。找不到工具链时只说明缺少的开发环境，并询问其位置；不能把下载新仓库、修改宿主配置或安装别的运行时当作已获授权。版本不一致时指出具体能力差异和受阻步骤，不修改版本声明来绕过兼容性检查。
+| 需求 | 先读指南 | 接口与注意点 |
+|---|---|---|
+| 业务界面、布局与顶栏 | [修改业务](reference/guide.zh.md#business)、[显示控制](reference/guide.zh.md#display)、[顶栏](reference/guide.zh.md#header) | \`reference/api/client.ts\`；保留公共导航、主题、共享 React 与原生会话组件 |
+| 持久化、初始化、迁移与卸载 | [存储](reference/guide.zh.md#storage)、[生命周期](reference/guide.zh.md#lifecycle) | \`reference/api/provider.ts\`、\`reference/api/lifecycle.ts\`；使用宿主 dataDirectory，清理由宿主确认，默认保留数据 |
+| 原生 AI、专家与开发依赖 | [原生 AI](reference/guide.zh.md#native-ai)、[随包专家](reference/guide.zh.md#expert-bundle) | \`reference/api/expert.ts\`；显式连接 activate，验证资源绑定、取消和回收；沿用会话模型 |
+| 对话与项目、文档绑定 | [业务对象](reference/guide.zh.md#conversation-objects) | \`reference/api/provider.ts\`；使用固定 object，不读全局 UI 选中项替代会话对象 |
+| 选区引用与自动上下文 | [主动引用](reference/guide.zh.md#input-references)、[自动选区](reference/guide.zh.md#automatic-context) | \`reference/api/workbench-reference.ts\`；区分 conversation、reference 与 selection，保留原生发送和草稿流程 |
+| 工具结果与历史跳转 | [业务结果](reference/guide.zh.md#business-results) | \`reference/api/workbench-result.ts\`；结果持久化，历史对象失效时明确反馈，不改写旧数据 |
+| 设置与对话命令 | [设置和命令](reference/guide.zh.md#settings-commands) | \`reference/api/client.ts\`；按传入 sessionId 执行，卸载时清理注册 |
+| 账号、模型目录与组织参数 | [身份与模型](reference/guide.zh.md#platform)、[运行配置](reference/guide.zh.md#runtime-config) | \`reference/api/client.ts\`、\`reference/api/types.ts\`；目录读取不代表图片、视频生成已接通，不暴露登录凭据 |
 
-## 开发与验证
+使用新能力前查 \`reference/api/workbench-protocol.ts\` 和对应章节的最低 API 要求，Host 与 Client 共用同一份声明。AI、MCP、CLI 和远程服务都是按需能力，不要求每个工作台实现全部功能。
 
-1. 确定业务范围、源码目录和安装目标。已有上下文能确定时不再提问。所有本地路径使用真实绝对路径，含空格时正确引用。不要求 GitHub 账号或仓库地址，纯本地包省略 \`repository\`。
-2. 新建时运行指南中的 \`create\`，默认空白模板；仅在用户需要参考示例时显式选 \`--template plain\` 或 \`--template ai\`。创建后读取项目 AGENTS.md、README.md 和 DESIGN.md，再用项目内的 npm 命令开发。先在 DESIGN.md 写明已确认的最小流程、首次入口、存储、AI 及验收点；视觉可使用独立的 \`workbench-frontend\` Skill，支持原生、品牌或自定义风格。已有源码直接修改，不为套模板重建。按指南的文件职责表改业务信息、界面、语言、资源和 Host 服务。包名是稳定身份；Host 与 Client 的标识和版本从同一份包信息读取。Host 与 Client 也共用 workbench.json 的 \`protocol\`；按 \`reference/api/workbench-protocol.ts\` 核对扩展 API，不能用 DSH 版本代替。保留宿主依赖及共享 React。
-3. 先确定数据归属与最小读写流程。有持久化需求时使用宿主 \`dataDirectory\`，作者可选文件、SQLite、远程服务或 JSON 适配器，一个目录可组织多个业务项目。普通模板的浏览器存储只是示例，不能当作宿主管理的业务目录。资源目录、临时目录和会话工作目录各有用途；获取路径不授予模型文件权限。
-4. AI 是可选能力。仅开原生 AI 用 \`ai: true\`，需要专属行为时增加专家或 \`WorkbenchExpertBundle\`，按指南显式连接 \`activate\`。专家沿用会话模型，不另造 Agent 引擎；作者选择业务工具、Skill、MCP、CLI 或已授权文件方式。验证声明、绑定、实际资源和必要运行环境，不能只把文件放进包就认为依赖已启用。准备和激活回调响应 AbortSignal，退出前等待自有任务停止；持久注册通过传入的会话作用域管理，不在回调内等待自身注销。验证准备中卸载、失败回收和重新加载。打开工作台不等于发送消息或执行任务。 需要按项目或文档关联对话时按指南声明 API 1.4，实现 resolveObject，并用 conversation({ objectId }) 打开匹配对话；工具使用 prepare/activate 收到的固定 object，不读取全局界面选中项。宿主仅记录标识和名称，作者负责存储、权限、事务和版本冲突。验证不同对象的会话隔离、恢复，以及对象失效后停止请求。
-5. 先用业务语言确定首次无会话入口。业务整页与按需 AI、边对话边查看资料均可；显示建议在 Client 注册处配置，保留公共导航及用户记忆的开关。需要顶栏时按指南注册 Header，完整渲染分隔线右侧区域；图标、名称、导航、页签、搜索和操作均由业务决定，不默认套面包屑或旧工具栏 Factory。声明所需 API 版本；共享导航通过原生 Store，业务数据通过资源读取，不用 effect 向宿主反向写标题。选区引用按指南的 \`workbench.reference()\` 接入原生输入框，提供对象标识、修订号和必要快照；不用复制内部编号、DOM 注入或自行改写发送。验收已有草稿、刷新恢复、移除后不补回、切换会话取消以及卸载后的历史查看。需要设置或命令时按指南声明 API 1.3，通过注册选项 settings 和 commands 接入；安装级偏好走原生 Host 配置，业务对象设置仍由作者存储。命令使用传入的 sessionId，验证普通对话不可见、菜单中途切换关联不执行旧选项、设置页定位、停用清理和重载恢复。不要重复通用 AI 按钮或复制输入框。复用宿主主题、图标、按钮、菜单和会话组件，业务按自身容器宽度排版。图标在包信息中声明，预览图展示真实业务内容。
-6. 只按需读取公开账户信息或已声明的模型目录能力。公开身份不是令牌，模型目录不代表图片或视频生成已经接通；不得把宿主凭据发到自定义地址或要求用户提供登录令牌。
-7. 在生成的项目中运行 \`npm run doctor\`、\`npm run typecheck\`、与业务变化相关的测试、\`npm run build\` 和 \`npm run check\`。doctor 的设计提醒需要人工处理；build/pack 先做类型检查再打包，check 复核归档。使用命令输出的实际路径、字节数和 SHA-256，不手猜文件名。检查通过不证明专家依赖启动、业务正常或安装生效。按指南“本地自测与故障定位”完成相应验证；记录命令、结果和未测项。开发套件或源码仓库移动、换机器时按项目 README 重新 bind；随项目的 Skill 与接口快照可刷新，业务代码与 DESIGN.md 保留。
+## 安装与验收
 
-## 调试与数据生命周期
+先阅读[导入和验收](reference/guide.zh.md#install)及[故障定位](reference/guide.zh.md#verify)。只操作身份已确认的目标客户端/Profile；隔离开发客户端的结果不能算作日常应用验收。
 
-持续开发时用 npm run dev，并读取 .actvero/diagnostics.json。built 证明归档检查通过，runtime: not-verified 不能作为已加载的证据；安装、加载与真实业务仍分别验证。开发包含源码映射，类型错误按文件和行号修复。
+- 发现当前可用工具并读取参数。原生 \`plugin_manager\` 可用时，先 \`list_bundles\` 核对目标，再用 \`install_bundle\` 安装校验后的绝对路径 \`.tgz\`，沿用原生授权。不要捏造安装工具。
+- 更新保留包名、提高版本，使用支持版本替换的工具或管理页“更多 → 更新版本”；不以卸载重装绕过检查，不删除数据解决错误。
+- 分别核对 \`application\` 安装结果与实际加载。\`applied\` 后继续查看界面；\`restart-required\` 只代表待重启；\`failed\`、\`cancelled\`、\`overridden\` 不算成功。未知结果先查询，避免重复操作。
+- 不关闭或重启当前承载本轮任务的应用。需要重启时，任务结束后请用户使用“立即重启”或“Harness → 重启 Harness”；目标外的隔离客户端按已有授权使用正常重启流程。
+- 核对管理卡片、侧栏入口和真实业务界面。\`workbench_list\` 只列 Host 提供者；\`workbench_open\` 返回 \`confirmed\` 只表示视图挂载，未知状态用 \`workbench_status\` 查询。UI-only 包按管理页和界面验证。
 
-需要初始化、迁移或卸载清理时，阅读指南生命周期章节及 reference/api/lifecycle.ts，声明 API ^1.8.0。在 Host 提供者实现 lifecycle，使用宿主 dataDirectory 和递增 dataVersion；首次打开执行初始化，升级先迁移。实现幂等、失败恢复和取消，不用任意 npm 脚本代替。卸载确认由宿主负责，默认保留数据；只有用户明确选择清理才调用 cleanup。清理失败不能宣称回滚或擅自重试，历史对话不删除。
+按实际能力执行指南自测表，包含最小业务流程及适用的数据保留、窄容器、明暗主题、会话隔离与失败恢复。模型调用、外部写入仍遵循用户授权；未调用真实模型时明确标记待验证，不把模拟结果写成真实验收。
 
-## 输入上下文、结果与对象定位
+故障在业务源码修复并重新打包，不直接修改安装缓存。目标工具和界面不可用时交付校验后的包，给出“工作台 → 我的工作台 → 导入工作台”入口，并说明尚未安装。
 
-需要自动带入选区或历史对象跳转时声明 API 1.5，读取指南的“自动选区与发送”“业务结果与历史对象”及 \`reference/api/workbench-result.ts\`。先区分三件事：\`conversation({ objectId })\` 固定对话操作对象；\`reference()\` 主动添加不可变引用并打开 AI；\`selection(snapshot | null)\` 只同步已有对话的自动引用，不创建会话。不得用当前画面的选中项隐式替换已绑定的操作对象。
-
-自动选区由业务事件驱动，保留作者捕获的版本和内容。检查 attached、cleared、dismissed、busy、inactive，失败要明确反馈，不能无限重试或在 render 中调用。用户删除同一选区后不补回，发送后不修改已发送内容；保留原生提交、附件、错误和草稿恢复流程，不包装另一个输入框或截获 DOM。
-
-工具返回可持久化的业务结果，用 workbenchResultText 和 workbenchResultMetadata 呈现同一份执行结果；只记录必要摘要和快照。Client 声明 objectNavigation 并读取 workbench.location，Host resolveObject 复核存在性和权限；打开历史对象不改变原对话绑定，不把历史版本写回当前数据。明确处理卸载、对象删除和无权限，保留历史可读内容。
-
-用新生成的 AI 清单或用户自己的非画布项目完成一次实测：doctor → typecheck → build → check → 安装/加载 → 两个业务对象各自讨论 → 可预览和删除的引用 → 原生发送 → 工具结果卡片 → 刷新历史 → 打开对应对象。测试发送中换选区、失败恢复、快速切换和停用；真实模型未调用时将模型验证单独标注，不把模拟适配器结果算作真实模型验收。
-
-## 安装、加载与更新
-
-只操作用户指定且能够确认身份的客户端/Profile；不把隔离开发客户端的结果算到日常客户端。先发现当前可用工具并读取参数。工具和界面都不可用时保留校验后的 \`.tgz\`，给出“工作台 → 我的工作台 → 导入工作台”的准确入口，说明安装尚未完成。
-
-- 若目标提供专用本地安装工具，按实际参数调用，不捏造 \`install_local_workbench\`。若提供原生 \`plugin_manager\`，可先用 \`list_bundles\` 核对目标，再以 \`install_bundle\` 安装绝对路径的 \`.tgz\`；它影响当前 Profile 的全部会话，并沿用原生授权。
-- 更新同名工作台保持包名不变并提高版本。使用支持版本替换的专用工具或管理页“更多 → 更新版本”，核对新旧版本。通用 \`plugin_manager\` 没有受审阅版本替换参数时不能承担这一步；不要用先卸载再安装规避检查，也不删除数据解决版本或依赖错误。
-- 读取 \`application\`：\`applied\` 后核验界面；\`restart-required\` 只代表待重启；\`failed\`、\`cancelled\`、\`overridden\` 均不算已生效。未知结果先重新查询，不盲目重复安装。不绕过 \`incompatible-version\`。
-- 不关闭或重启用户当前正在使用的目标应用，不用进程探测管理重启。需要重启时等本轮任务结束后请用户操作；在目标应用之外的隔离开发客户端，按已有授权采用其正常重启流程。
-- 分别记录安装清单的包名/版本/状态、左侧切换入口、真实业务界面证据。用 \`workbench_list\` 检查已加载 Host 提供者；UI-only 包不会出现在该目录中。用 \`workbench_open\` 打开并读取确认结果，必要时用 \`workbench_status\` 查询；仅 \`confirmed\` 表示宿主视图已挂载，仍需验证业务内容。
-
-## 验收与交付
-
-按指南的自测表选择适用项：无会话首次进入、实际业务读写、重开与刷新保留、原生 AI 及声明的操作方式、不同对话隔离、显示切换与记忆、窄容器、明暗主题、更新后数据。不要为未使用的 MCP、CLI 或平台能力建立验收要求。
-
-用户未授权模型费用或外部写入时，不为验收自动提交生成或发送任务；可以验证本地依赖和界面，将真实调用标为待验证。模型不可用时先验证本地业务，不要求给专家另配模型。
-
-工作台问题在其源码中修复、提高版本并重建，保留已安装文件用于诊断；不直接改安装目录或同版本缓存。白屏、找不到入口、AI 失败和数据不一致分别按指南定位，不能把全部问题归为需要重启。
-
-## 完成汇报
-
-先说明能做什么、实际执行的操作和未验证项，再列修改文件、实际包路径和检查结果。最后以醒目的“接下来怎么用”三点收尾，之后不追加内容：① 用实际工作台名称说明开发、安装与加载状态，未完成不得宣称已安装；② 只有安装成功且需要重启时，请用户等任务结束后点击顶部“立即重启”或“Harness → 重启 Harness”，通常无需退出桌面应用，其他情况如实说明；③ 展开侧栏，在“工作台”右侧的名称切换区域选择实际工作台，未显示时到“工作台 → 我的工作台”检查安装及加载状态。用户可以直接试用，不必返回对话；需要继续验收时可回原对话说“重启好了”，Agent 再核验入口和真实界面。
+交付时说明完成的业务、实际包路径、执行过的检查、目标安装/加载状态和未验证项。按实际状态给出下一步操作，不默认要求重启。只做本地开发与安装；上传、发布或推送需另有明确授权。
 </skill_instructions>
 </skill_content>"
 `;

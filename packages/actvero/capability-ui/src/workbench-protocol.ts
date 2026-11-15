@@ -1,9 +1,9 @@
 /** Shared compatibility declaration for Host and Client workbench registrations. */
 import { satisfies, validRange } from 'semver'
 import { z } from 'zod'
+import { WORKBENCH_HOST_API_VERSION } from './workbench-version.ts'
 
-/** Workbench extension API implemented by this host. */
-export const WORKBENCH_HOST_API_VERSION = '1.8.0'
+export { WORKBENCH_HOST_API_VERSION } from './workbench-version.ts'
 
 /** Package requirements checked before registering a workbench implementation. */
 export interface WorkbenchProtocol {
