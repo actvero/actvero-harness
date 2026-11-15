@@ -1,1 +1,0 @@
-This app does not include the desktop support required by game mode. Install the matching ACTVERO desktop build and reopen the app. Installing the plugin alone cannot enable game mode.

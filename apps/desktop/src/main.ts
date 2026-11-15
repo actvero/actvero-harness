@@ -1,5 +1,4 @@
 import type { BuildProduct } from './actvero/build-product.ts'
-import { installGameMode } from '@actvero/dsh-game-mode/desktop'
 import { brandDesktopLocale } from './actvero/brand-locale.ts'
 import { configureProductIdentity } from './actvero/native-identity.ts'
 import { Capabilities } from './actvero/capabilities/runtime.ts'
@@ -299,13 +298,6 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     window.on('restore', applyBackdrop)
     window.on('show', applyBackdrop)
   }
-  if (primary && buildProduct) installGameMode(window, {
-    restoreBackdrop: () => {
-      if (process.platform === 'darwin') window.setVibrancy('sidebar')
-      if (process.platform === 'win32') window.setBackgroundMaterial('none')
-    },
-    report: (error) => { console.error('[game-mode]', error) },
-  })
   window.webContents.on('context-menu', (_event, { isEditable, selectionText, editFlags }) => {
     const items: MenuItemConstructorOptions[] = []
     if (isEditable) {

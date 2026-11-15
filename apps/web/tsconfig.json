@@ -22,7 +22,6 @@
   // this client-registered project must not also hold them (one program
   // cannot see both sides of the cordis Context merges).
   "exclude": [
-    "tests/actvero-game-mode.e2e.ts",
     "tests/actvero-capabilities.e2e.ts",
     "tests/actvero-workbench-manager.e2e.ts",
     "tests/actvero-workbench-header.e2e.ts",

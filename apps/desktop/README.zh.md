@@ -50,8 +50,6 @@ Desktop Host 的 Platform API 请求与更新策略请求用相同的 Platform �
 
 桌面麦克风访问仅允许主 `dsh-app://app` 页面发起的音频请求。macOS 使用系统麦克风授权、随包用途说明，以及主应用与 Helper 签名中的 `com.apple.security.device.audio-input` 权限。
 
-ACTVERO 主窗口挂载[游戏模式插件](../../actvero/plugins/game-mode/README.zh.md)，复用原生聊天、专家与语音。系统材质和后台按键的实机验收范围与浏览器联调分开记录。
-
 按 F12（多媒体功能键键盘上为 Fn+F12）、macOS 的 Command+Option+I 或 Windows 的 Ctrl+Shift+I，可切换当前获得焦点的应用页面的 DevTools，打包版本同样支持。这些原生快捷键通过隐藏的应用菜单项注册。更新遮罩和打包版本的内嵌浏览器禁用 DevTools。
 
 <a id="terminal-command"></a>
@@ -112,7 +110,7 @@ Node 准备内置解释器和 Python 库，无需系统 Python 或 pip。[下载
 
 Desktop/SDK 共享运行时构建器在复制或签名产物前，裁剪 NumPy 和 pandas 下名为 `tests` 的目录，并移除各分发包 `RECORD` 中对应的记录。它保留 `numpy.testing`、`pandas.testing`、`pandas._testing`、原生扩展和许可证。完整上游测试套件不可用；本机检查验证保留的 testing API、测试目录已移除，以及清单所列文件存在。
 
-Electron 归档（包括缓存下载）按锁文件固定的 Electron npm 包内 SHA256 记录校验；缺少目标归档校验值时停止准备。运行时准备阶段为每次 npm 下载请求提供五分钟时限，包括内置 LibreOffice 引擎。在打包环境或平台 dotenv 文件中设置 `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` 可调整此时限，取值为 1 至 2147483647 之间的整数，单位为毫秒。该设置仅影响构建期间的依赖下载。
+运行时准备阶段为每次 npm 下载请求提供五分钟时限，包括内置 LibreOffice 引擎。在打包环境或平台 dotenv 文件中设置 `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` 可调整此时限，取值为 1 至 2147483647 之间的整数，单位为毫秒。该设置仅影响构建期间的依赖下载。
 
 Windows 下的品牌安装包检查先将完整打包应用复制到路径较短的临时目录，再校验归档并运行实际功能。这样可在未启用 Windows 长路径的主机上检查 Python 和 Office。检查完成后会删除临时副本。
 

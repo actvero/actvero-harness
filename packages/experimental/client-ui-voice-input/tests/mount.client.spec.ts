@@ -46,8 +46,6 @@ async function fixture(fail = false) {
   new Remote()
   const openBundle = vi.fn()
   ctx.provide('pluginNavigation', { openBundle })
-  ctx.provide('sessions', { scope: () => undefined })
-  ctx.provide('conversation', { input: { for: () => { throw new Error('missing fixture session') } } })
   const configure = vi.fn(async () => ({ ok: true, value: {} }))
   const prepare = vi.fn(async () => ({ ok: true, value: {} }))
   const cancelPreparation = vi.fn(async () => ({ ok: true, value: {} }))

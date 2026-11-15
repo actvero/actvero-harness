@@ -50,8 +50,6 @@ A server-expired account credential returns to Welcome when no official API key 
 
 Desktop microphone access is restricted to audio requests from the primary `dsh-app://app` frame. macOS uses system microphone authorization, a packaged usage description, and `com.apple.security.device.audio-input` in the main application and Helper signatures.
 
-The ACTVERO main window mounts the [game mode plugin](../../actvero/plugins/game-mode/README.md), reusing native chat, experts and voice. Hardware verification of window materials and background input is recorded separately from browser integration.
-
 Press F12 (Fn+F12 on media-key keyboards), Command+Option+I on macOS, or Ctrl+Shift+I on Windows to toggle DevTools for the focused application page, including in packaged builds. These native shortcuts use hidden application-menu items. Update overlays and packaged embedded browser guests disable DevTools.
 
 <a id="terminal-command"></a>
@@ -112,7 +110,7 @@ Node prepares the bundled interpreters and Python libraries without a system Pyt
 
 The shared Desktop/SDK runtime builder omits directories named `tests` beneath NumPy and pandas before copying or signing the payload, and removes their rows from each distribution’s `RECORD`. It retains `numpy.testing`, `pandas.testing`, `pandas._testing`, native extensions and licenses. Complete upstream suites are unavailable; native checks verify the retained testing APIs, absence of test directories and existence of recorded files.
 
-Electron archives, including cached downloads, are verified against the SHA256 entry shipped in the lockfile-pinned Electron npm package; a missing target checksum stops preparation. Runtime preparation allows five minutes per npm download request, including the bundled LibreOffice engine. Set `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` in the packaging environment or platform dotenv file to an integer from 1 to 2147483647 milliseconds to change this deadline. This setting affects build-time dependency downloads only.
+Runtime preparation allows five minutes per npm download request, including the bundled LibreOffice engine. Set `DSH_DESKTOP_NPM_FETCH_TIMEOUT_MS` in the packaging environment or platform dotenv file to an integer from 1 to 2147483647 milliseconds to change this deadline. This setting affects build-time dependency downloads only.
 
 On Windows, branded-package checks copy the complete packaged application into a short temporary directory before verifying its archive and exercising its runtime. This keeps Python and Office checks compatible with hosts where Windows long paths are disabled. The checks remove their temporary copy after completion.
 

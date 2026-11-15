@@ -10,7 +10,6 @@ import { syncNativeTheme } from './preload-theme.ts'
 import { syncWindowsAppearance } from './preload-windows.ts'
 import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
-import { createGameModeBridge } from '@actvero/dsh-game-mode/preload'
 
 function createProductApi(): DshDesktopProductApi {
   return {
@@ -102,9 +101,6 @@ syncNativeTheme()
 if (location.protocol === `${SCHEME}:` && location.hostname === 'app' && process.isMainFrame) exposeAccountBridge()
 exposeCapabilityBridges()
 contextBridge.exposeInMainWorld('dshDesktop', location.protocol === `${SCHEME}:` && location.hostname === 'app' && process.isMainFrame ? createProductApi() : { protocolVersion: 1 })
-if (location.protocol === `${SCHEME}:` && location.hostname === 'app' && process.isMainFrame) {
-  contextBridge.exposeInMainWorld('actveroGameMode', createGameModeBridge())
-}
 
 if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
   contextBridge.exposeInMainWorld('__DSH_LOCALE__', {

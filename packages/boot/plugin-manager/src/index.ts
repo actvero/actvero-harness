@@ -162,8 +162,7 @@ function bundleSelection(manifest: ProfileManifest): readonly string[] {
 
 /**
  * The package an installation spec names before pnpm runs: a registry name, a local directory's manifest name, or the
- * sole dependency saved with this git or tarball spec. Git HTTP addresses accept pnpm's `git+` prefix
- * and the optional `.git` suffix on GitHub, GitLab, and Bitbucket; refs and queries remain distinct.
+ * dependency saved with this git or tarball spec, compared as the plugin list shows saved specs.
  * @param spec The installation spec.
  * @param dependencies The profile's saved dependencies.
  * @param profileDir The profile directory saved local paths are relative to.
@@ -173,18 +172,8 @@ function specPackageName(spec: string, dependencies: Readonly<Record<string, str
   const parsed = parsedForRegistry(spec)
   if (parsed.kind === 'registry') return parsed.name
   if (parsed.kind === 'path') return packageName(parsed.path)
-  const specs = parsed.kind === 'tarball' && parsed.path !== undefined ? [parsed.spec, `file:${parsed.path}`] : [parsed.spec]
-  const normalize = (value: string): string => parsed.kind === 'git' ? normalizedGitSpec(value) : value
-  const candidates = specs.map(normalize)
-  const matches = Object.entries(dependencies).filter(([dependency, saved]) =>
-    candidates.includes(normalize(dependencySpec(dependency, saved, profileDir))))
-  return matches.length === 1 ? matches[0]?.[0] : undefined
-}
-
-/** Compare Git HTTP spellings without treating different refs, queries, or custom-host paths as the same source. */
-function normalizedGitSpec(spec: string): string {
-  return spec.replace(/^git\+(?=https?:\/\/)/i, '')
-    .replace(/^(https?:\/\/(?:github\.com|gitlab\.com|bitbucket\.org)\/[^?#]+)\.git(?=[?#]|$)/i, '$1')
+  const specs = parsed.kind === 'tarball' && parsed.path !== undefined ? [spec, `file:${parsed.path}`] : [spec]
+  return Object.entries(dependencies).find(([dependency, saved]) => specs.includes(dependencySpec(dependency, saved, profileDir)))?.[0]
 }
 
 /** The package name a local directory declares, or `undefined` without a readable manifest. */

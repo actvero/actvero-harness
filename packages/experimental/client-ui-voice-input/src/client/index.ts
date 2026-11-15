@@ -4,7 +4,6 @@ import speechRemote from '@deepseek-ai/dsh-experimental-api-speech-to-text/remot
 import { mountVoiceInput } from './mount.ts'
 
 export { inject } from './mount.ts'
-export type { VoiceInputControls, VoiceHold } from './controls.ts'
 
 /**
  * Activate the experimental microphone contribution.

@@ -39,9 +39,7 @@ Before downloading or retrying, **Model download source** offers Automatic and t
 <details>
 <summary>Maintainer details — click to expand</summary>
 
-Native MediaRecorder captures audio and Web Audio converts it to the Host PCM format after flushing the final recorder chunks. Input-level previews use Web Audio without creating a MediaRecorder. Window blur during the microphone permission request does not cancel capture; blur during ordinary click recording does. Capture failures immediately end the recording UI and offer retry inside the toolbar. Cancellation, failure and plugin disposal share one resource-release promise; the plugin retains ownership until AudioContext closure settles. The original editor selection carries a draft revision: changed drafts retain the transcript for explicit insertion or discard beside the microphone. Session changes, hiding the page during ordinary click capture and plugin disposal invalidate late results and release tracks. One plugin-owned readiness subscription serves the composer, installation prompt and details. These views use the existing Slot lifecycle and own no preparation tasks.
-
-Client plugins can hold to talk through `ctx.voiceInputControls` for a mounted Session, using the same device, recognition preferences and draft revision checks. This operation continues while hidden or unfocused; release submits only when the draft has no text or attachments at both press and transcription completion, and insertion passes its revision check. Existing content stays for review; cancellation, release while permission is pending, Session changes and disposal do not send. Callers must own and cancel the corresponding AbortSignal; a completed operation cannot cancel a later recording.
+Native MediaRecorder captures audio and Web Audio converts it to the Host PCM format after flushing the final recorder chunks. Input-level previews use Web Audio without creating a MediaRecorder. Window blur during the microphone permission request does not cancel capture; blur during recording does. Capture failures immediately end the recording UI and offer retry inside the toolbar. Cancellation, failure and plugin disposal share one resource-release promise; the plugin retains ownership until AudioContext closure settles. The original editor selection carries a draft revision: changed drafts retain the transcript for explicit insertion or discard beside the microphone. Session changes, hiding the page during capture and plugin disposal invalidate late results and release tracks. One plugin-owned readiness subscription serves the composer, installation prompt and details. These views use the existing Slot lifecycle and own no preparation tasks.
 
 </details>
 
@@ -57,7 +55,7 @@ Client plugins can hold to talk through `ctx.voiceInputControls` for a mounted S
 <a id="model-experience"></a>
 ## Model Experience
 
-None, as capture and preparation remain outside model requests; native submission owns any later text.
+None, as recordings and preparation remain outside model requests; ordinary user submission owns any later text.
 
 #### KV Cache effect
 
@@ -67,7 +65,7 @@ No direct effect; ordinary submission owns the message content.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- Ordinary click recording does not send automatically; only an explicit hold operation submits when the draft checks pass. No always-on microphone, wake word, streaming captions or speech synthesis. “Local” means the Host machine, which can differ from the browser’s machine.
+- No automatic send, always-on microphone, wake word, streaming captions or speech synthesis. “Local” means the Host machine, which can differ from the browser’s machine.
 
 -----
 

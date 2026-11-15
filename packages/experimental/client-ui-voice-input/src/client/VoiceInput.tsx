@@ -14,15 +14,9 @@ import { VoiceSetupDialog } from './VoiceSetupDialog.tsx'
 import { NS } from './locales.ts'
 import { Button, IconCloseOutlineRegular, IconStopFillRegular, IconMicrophoneOutlineRegular, StateDot, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './VoiceInput.module.css'
-import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { VoiceControl } from './controls.ts'
 
 /** Host calls injected without exposing a Cordis Context to React. */
 export interface VoiceInputActions {
-  /** 注册此会话的原生按住说话操作；卸载时撤销。 */
-  registerControl: (sessionId: SessionId, control: VoiceControl) => () => void
-  /** 仅无草稿、引用和附件时允许按住说话自动提交。 */
-  draftEmpty: (sessionId: SessionId) => boolean
   /** Open the voice bundle details without starting preparation. */
   openSettings: () => void
   /** @returns one microphone operation owned by the plugin lifecycle. */
@@ -52,8 +46,6 @@ interface ActiveRecording {
   readonly selection: SpeechSelection
   readonly maxDurationSeconds: number
   readonly maxAudioBytes: number
-  readonly background: boolean
-  readonly submitOnRelease: boolean
   phase: 'requesting' | 'recording' | 'transcribing'
   timer?: ReturnType<typeof setTimeout> | undefined
 }
@@ -66,7 +58,7 @@ async function disposeRecording(capture: Recording): Promise<void> {
 
 /** Render a compact microphone or an expanded capture, transcription, or retry row. */
 export function VoiceInput({ sessionId, inputActions, locked, onActiveChange,
-  createRecording, transcribe, openSettings, useSpeechReadiness, registerControl, draftEmpty, t }: VoiceInputProps) {
+  createRecording, transcribe, openSettings, useSpeechReadiness, t }: VoiceInputProps) {
   const readiness = useSpeechReadiness(value => value), catalog = readiness.catalog
   const provider = catalog?.providers.find(item => item.id === catalog.selection.providerId)
   const usable = readiness.connected && (provider?.preparation.phase === 'ready' || provider?.preparation.phase === 'standby'
@@ -87,9 +79,9 @@ export function VoiceInput({ sessionId, inputActions, locked, onActiveChange,
   }
   useEffect(() => {
     setPending(''); setMessage(''); setPhase('idle'); setSetupOpen(false)
-    const blur = (): void => { if (current.current?.phase === 'recording' && !current.current.background) cancel() }
+    const blur = (): void => { if (current.current?.phase === 'recording') cancel() }
     const visibility = (): void => {
-      if (document.hidden && current.current && !current.current.background && current.current.phase !== 'transcribing') cancel()
+      if (document.hidden && current.current && current.current.phase !== 'transcribing') cancel()
     }
     const escape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape' && current.current) { event.preventDefault(); cancel() }
@@ -121,25 +113,19 @@ export function VoiceInput({ sessionId, inputActions, locked, onActiveChange,
       if (run !== generation.current) return
       if (!result.ok) { feedback(t('failed', { message: result.error.message })); return }
       if (result.value.text === '') { feedback(t('empty')); return }
-      const submit = active.submitOnRelease && draftEmpty(sessionId)
       if (!inputActions.insertText(result.value.text, active.span)) { setPending(result.value.text); feedback(t('conflict')); return }
       setPhase('idle')
-      if (submit) inputActions.submit()
     } catch (failure) {
       await disposeRecording(active.capture)
       if (run === generation.current) feedback(failureText(failure, t))
     } finally { if (run === generation.current) current.current = undefined }
   }
-  const start = async (background = false): Promise<void> => {
-    if (!catalog || !usable || locked || current.current) {
-      if (background) throw new Error('voice_not_ready')
-      return
-    }
+  const start = async (): Promise<void> => {
+    if (!catalog || !usable || locked || current.current) return
     const run = ++generation.current
     const active: ActiveRecording = { capture: createRecording(), abort: new AbortController(),
       span: inputActions.captureInsertion(), selection: catalog.selection,
-      maxDurationSeconds: catalog.maxDurationSeconds, maxAudioBytes: catalog.maxAudioBytes, phase: 'requesting',
-      background, submitOnRelease: background && draftEmpty(sessionId) }
+      maxDurationSeconds: catalog.maxDurationSeconds, maxAudioBytes: catalog.maxAudioBytes, phase: 'requesting' }
     current.current = active
     setMessage(''); setPending(''); setPhase('requesting')
     try {
@@ -152,35 +138,12 @@ export function VoiceInput({ sessionId, inputActions, locked, onActiveChange,
       if (run !== generation.current || current.current !== active) return
       active.phase = 'recording'
       setPhase('recording')
-      active.timer = setTimeout(() => { if (background) cancel(); else void finish() }, active.maxDurationSeconds * 1000)
+      active.timer = setTimeout(() => { void finish() }, active.maxDurationSeconds * 1000)
     } catch (failure) {
       await disposeRecording(active.capture)
       if (run === generation.current) { current.current = undefined; feedback(failureText(failure, t)) }
-      if (background) throw failure
     }
   }
-  const activeRecording = (): ActiveRecording | undefined => current.current
-  useEffect(() => registerControl(sessionId, {
-    begin: async (signal) => {
-      signal.throwIfAborted()
-      if (activeRecording()) throw new Error('voice_not_ready')
-      const started = start(true)
-      const owned = activeRecording()
-      const stop = () => { if (owned && current.current === owned) cancel() }
-      signal.addEventListener('abort', stop, { once: true })
-      const detach = () => { signal.removeEventListener('abort', stop) }
-      try {
-        if (signal.aborted) stop()
-        await started
-        signal.throwIfAborted()
-        if (!owned || current.current !== owned || owned.phase !== 'recording') throw new Error('voice_cancelled')
-        return {
-          release: async () => { try { if (current.current === owned) await finish() } finally { detach() } },
-          cancel: () => { detach(); stop() },
-        }
-      } catch (error) { detach(); throw error }
-    },
-  }), [sessionId, registerControl, catalog, usable, locked, inputActions, draftEmpty])
   if (!expanded) return <>
     <Tooltip label={t('dictate')} disabled={!usable} side="top" portal>
       <span className={css.triggerAnchor}><Button className={css.trigger} size="sm" disabled={locked}
