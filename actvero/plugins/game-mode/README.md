@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-This reference helps ACTVERO desktop maintainers update the independent plugin and its host integration. Source lives in [actvero-game-mode](https://github.com/heyjianhang/actvero-game-mode). This directory retains the `0.1.0-alpha.3` archive consumed by the current desktop composition; the root `pnpm-lock.yaml` pins its integrity.
+This reference helps ACTVERO desktop maintainers update the independent plugin and its host integration. Source lives in [actvero-game-mode](https://github.com/heyjianhang/actvero-game-mode). This directory retains the `0.1.0-alpha.4` archive consumed by the current desktop composition; the root `pnpm-lock.yaml` pins its integrity.
 
 ## Loading
 
@@ -12,6 +12,6 @@ For updates, run `pnpm check` and `pnpm pack` in the independent repository, the
 
 ## Verification
 
-The browser scenario `apps/web/tests/actvero-game-mode.e2e.ts` uses the real Loader, native conversations, settings and UI, with credential-free substitutes for system windows, accounts and external expert resources. It boots through the installed bundle and checks the older-host compatibility message, draft retention, expert selection, settings persistence, both themes, narrow-window menus and exit restoration; screenshots use isolated `.artifacts/game-mode/run-*` directories. Native voice component tests cover holding, cancellation, delayed permission, stale-operation isolation and draft protection.
+The browser scenario `apps/web/tests/actvero-game-mode.e2e.ts` uses the real Loader, native conversations, settings and UI, with credential-free substitutes for system windows, accounts and external expert resources. It boots through the installed bundle and checks the older-host compatibility message, draft retention, expert selection, settings persistence, both themes, narrow-window controls, numeric slot selection, shortcut recording, opaque dialogs and exit restoration; screenshots use isolated `.artifacts/game-mode/run-*` directories. Native voice component tests cover holding, cancellation, delayed permission, stale-operation isolation and draft protection.
 
 System materials on macOS/Windows, fullscreen games, real microphones and hardware controllers still require device verification. Controller input currently works only in the foreground window and cannot summon the app from a background game. A passing build does not imply an installer, signing or passed hardware acceptance.

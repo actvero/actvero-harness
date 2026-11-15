@@ -689,8 +689,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/actvero/experts
       '@actvero/dsh-game-mode':
-        specifier: file:../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz
-        version: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(3cc454938802a0315097ff9fb3295aff))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)
+        specifier: file:../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz
+        version: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(3cc454938802a0315097ff9fb3295aff))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)
       '@actvero/dsh-model-gateway':
         specifier: workspace:*
         version: link:../../packages/actvero/model-gateway
@@ -3136,8 +3136,8 @@ importers:
         specifier: workspace:*
         version: link:../../actvero/experts
       '@actvero/dsh-game-mode':
-        specifier: file:../../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz
-        version: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-brand@0.2.1-rc.3(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-hmr@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)(@deepseek-ai/cordis-plugin-timer@1.1.7(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-cmdline@packages+boot+cmdline))(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/schemastery@vendor+schemastery)(node-addon-require-builtin@0.1.9))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)
+        specifier: file:../../../actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz
+        version: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-brand@0.2.1-rc.3(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-hmr@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)(@deepseek-ai/cordis-plugin-timer@1.1.7(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-cmdline@packages+boot+cmdline))(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/schemastery@vendor+schemastery)(node-addon-require-builtin@0.1.9))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)
       '@actvero/dsh-model-gateway':
         specifier: workspace:*
         version: link:../../actvero/model-gateway
@@ -16679,9 +16679,9 @@ importers:
 
 packages:
 
-  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz':
-    resolution: {integrity: sha512-2e3yvOr8TZ4+FloHZATlB7YJJBp0xzY76aCbcCyfCqYnVJSWxK59bLbhepkvoBbgzOLdHcnW57JCeWS5eLZfCw==, tarball: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz}
-    version: 0.1.0-alpha.3
+  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz':
+    resolution: {integrity: sha512-3LRYVhFEPEvSFqhojAKjNr7C0kQUUj3n/jNx+/+OS8pNWBQVcGLG+Vn6yA0/ehuvk9AR0eXVRQa/ocKAuSN/Ew==, tarball: file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz}
+    version: 0.1.0-alpha.4
     engines: {node: ^22.19.0 || >=24}
     peerDependencies:
       '@deepseek-ai/cordis': 4.0.5
@@ -24399,7 +24399,7 @@ packages:
 
 snapshots:
 
-  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(3cc454938802a0315097ff9fb3295aff))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)':
+  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(3cc454938802a0315097ff9fb3295aff))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-settings': 0.2.1-rc.3(3cc454938802a0315097ff9fb3295aff)
@@ -24409,7 +24409,7 @@ snapshots:
       electron: 44.7.0(supports-color@9.4.0)
       koffi: 3.1.1
 
-  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.3.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-brand@0.2.1-rc.3(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-hmr@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)(@deepseek-ai/cordis-plugin-timer@1.1.7(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-cmdline@packages+boot+cmdline))(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/schemastery@vendor+schemastery)(node-addon-require-builtin@0.1.9))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)':
+  '@actvero/dsh-game-mode@file:actvero/plugins/game-mode/actvero-dsh-game-mode-0.1.0-alpha.4.tgz(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-brand@0.2.1-rc.3(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-hmr@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)(@deepseek-ai/cordis-plugin-timer@1.1.7(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-cmdline@packages+boot+cmdline))(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/schemastery@vendor+schemastery)(node-addon-require-builtin@0.1.9))(electron@44.7.0(supports-color@9.4.0))(koffi@3.1.1)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-settings': 0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-brand@0.2.1-rc.3(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-hmr@0.2.1-rc.3(@deepseek-ai/cordis-plugin-include@vendor+include)(@deepseek-ai/cordis-plugin-loader@vendor+loader)(@deepseek-ai/cordis-plugin-timer@1.1.7(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-app-boot@packages+boot+app-boot)(@deepseek-ai/dsh-cmdline@packages+boot+cmdline))(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/schemastery@vendor+schemastery)(node-addon-require-builtin@0.1.9)
