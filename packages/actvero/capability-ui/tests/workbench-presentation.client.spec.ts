@@ -36,4 +36,20 @@ describe('workbench mount acknowledgement', () => {
     dismissed.abort('dismissed')
     await expect(waitForWorkbenchView(read, dismissed.signal)).rejects.toThrow('Workbench display cancelled')
   })
+
+  it('observes the rendered object identity and label after the workbench mount', async () => {
+    const node = document.createElement('section')
+    node.dataset.workbenchMain = 'board'
+    node.dataset.workbenchObject = 'old-board'
+    node.dataset.workbenchObjectLabel = '研发看板'
+    document.body.append(node)
+    const read = vi.fn(() => node.dataset.workbenchObject === 'new-board'
+      && node.dataset.workbenchObjectLabel === '新媒体工作台' ? state : null)
+    const result = waitForWorkbenchView(read, new AbortController().signal)
+    node.dataset.workbenchObject = 'new-board'
+    await Promise.resolve()
+    expect(read).toHaveBeenCalledTimes(2)
+    node.dataset.workbenchObjectLabel = '新媒体工作台'
+    expect(await result).toBe(state)
+  })
 })

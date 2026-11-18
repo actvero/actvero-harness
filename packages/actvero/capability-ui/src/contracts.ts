@@ -43,6 +43,10 @@ export interface WorkbenchClientContext {
    * @param options Explicit object choice; omitted to preserve the associated conversation, fresh to create another for that object.
    */
   conversation(options?: WorkbenchConversationOptions): Promise<void>
+  /** Replace a visible business conversation with the selected object's conversation.
+   * The previous composer is released during preparation. Cancellation preserves each session's draft.
+   */
+  followConversation?(objectId: WorkbenchObjectId, signal: AbortSignal): Promise<void>
   /** Insert an immutable business snapshot into the associated native draft without sending it.
    * @param reference Object identity, author-defined revision and readable content captured by the caller.
    * @returns Target conversation. Native cancellation rejects with AbortError; local refusal uses workbench/reference with a stable status.
@@ -151,6 +155,8 @@ export interface ActveroWorkbenchRegistry {
       store?: H
       /** The body renders workbench.location when historical navigation requests an object. */
       objectNavigation?: boolean
+      /** Confirm object navigation only after the business view has rendered the requested object. */
+      observesObject?: boolean
       /** Localized action for an object in the reference dialog. Undefined uses the host label. */
       referenceOpenLabel?: (objectId: WorkbenchObjectId) => string | undefined
       /** Show the public catalog return control by default; hide it when the author supplies business navigation. */

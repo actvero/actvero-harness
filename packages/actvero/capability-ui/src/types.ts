@@ -139,6 +139,8 @@ export interface WorkbenchDisplayState {
   id: WorkbenchId | null
   instanceId: WorkbenchInstanceId | null
   sessionId: SessionId | null
+  /** Object observed in the mounted business view when its provider reports one. */
+  object?: WorkbenchObject
   mode: 'business' | 'conversation' | 'other'
   aiVisible: boolean
   previewVisible: boolean

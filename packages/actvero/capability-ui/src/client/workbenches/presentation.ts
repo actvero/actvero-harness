@@ -22,7 +22,8 @@ export function waitForWorkbenchView(read: () => WorkbenchDisplayState | null, s
     }
     const observer = new MutationObserver(check)
     observer.observe(document.body, { childList: true, subtree: true, attributes: true,
-      attributeFilter: ['data-workbench-main', 'data-workbench-conversation', 'data-workbench-instance', 'data-workbench-session', 'data-slot-error', 'data-factory-error', 'hidden'] })
+      attributeFilter: ['data-workbench-main', 'data-workbench-conversation', 'data-workbench-instance', 'data-workbench-session',
+        'data-workbench-object', 'data-workbench-object-label', 'data-slot-error', 'data-factory-error', 'hidden'] })
     signal.addEventListener('abort', abort, { once: true })
     check()
   })

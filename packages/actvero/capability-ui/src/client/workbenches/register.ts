@@ -8,6 +8,7 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchDisplayRequest, WorkbenchDisplayState, WorkbenchId, WorkbenchDocument, WorkbenchInstanceId } from '../../types.ts'
 import type { WorkbenchClientContext, WorkbenchObjectLocation } from '../../contracts.ts'
+import type { WorkbenchObjectId } from '../../workbench-reference.ts'
 import { resolveWorkbenchProtocol } from '../../workbench-protocol.ts'
 import type { ActveroWorkbench, ActveroWorkbenchRegistry } from '../../contracts.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from './management.ts'
@@ -218,6 +219,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   let restoreSidebar: boolean | undefined
   let changingSidebar = false
   let displaying = new AbortController()
+  const observedObjects = new Set<string>()
   let observedPanel = ctx.layout.panelInfo.getSnapshot().activePanelId
   const selectPanel = (panel: MainPanelId | null) => {
     observedPanel = panel
@@ -235,7 +237,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     const instanceId = (business?.dataset.workbenchInstance ?? conversation?.dataset.workbenchInstance) as WorkbenchInstanceId | undefined
     const sessionId = root?.dataset.workbenchSession as SessionId | undefined
     const preview = conversation?.querySelector('[data-workbench-preview]')
+    const mounted = id && observedObjects.has(id)
+      ? business?.querySelector<HTMLElement>('[data-workbench-object][data-workbench-object-label]')?.dataset : undefined
+    const object = mounted?.workbenchObject && mounted.workbenchObjectLabel
+      ? { id: mounted.workbenchObject as WorkbenchObjectId, label: mounted.workbenchObjectLabel } : undefined
     return { id: id ?? null, instanceId: instanceId ?? null, sessionId: sessionId ?? null,
+      ...(object ? { object } : {}),
       mode: business ? 'business' : conversation ? 'conversation' : 'other',
       aiVisible: Boolean(business?.querySelector('[data-workbench-ai]:not([hidden])')),
       previewVisible: Boolean(preview), sidebar: ctx.layout.sidebarExpanded.getSnapshot() ? 'expanded' : 'collapsed' }
@@ -346,6 +353,21 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         }
       }, signal)
     }, isCurrent, descriptor && scope ? { ...descriptor, scope } : descriptor),
+    async followConversation(objectId: WorkbenchObjectId, signal: AbortSignal) {
+      signal.throwIfAborted()
+      if (!instanceId || !isCurrent()) throw new Error('Workbench view changed')
+      releaseChat()
+      const request = ++preparation
+      update({ chatPreparing: true })
+      try {
+        const id = await runtime.conversation(instanceId, linkedSession ?? undefined, { objectId })
+        signal.throwIfAborted()
+        if (request === preparation && view.instance?.instanceId === instanceId
+          && ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel) await showChat(id)
+      } finally {
+        if (request === preparation) update({ chatPreparing: false })
+      }
+    },
     location: view.location?.instanceId === instanceId ? view.location : null }
   }
   const load = async (id: string, target?: WorkbenchInstanceId, signal?: AbortSignal) => {
@@ -417,7 +439,8 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       const mounted = AbortSignal.any([ctx.layout.beginNavigation(), displaying.signal])
       await waitForWorkbenchView(() => {
         const state = snapshot()
-        return state.instanceId === captured.instanceId && state.mode === 'business' ? state : null
+        return state.instanceId === captured.instanceId && state.mode === 'business'
+          && (!observedObjects.has(captured.workbenchId) || state.object?.id === captured.objectId) ? state : null
       }, mounted)
     },
     openSettings(id) {
@@ -441,6 +464,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         if (options?.objectNavigation) {
           objectNavigation.set(id, options.referenceOpenLabel)
           yield () => { objectNavigation.delete(id) }
+        }
+        if (options?.observesObject) {
+          observedObjects.add(id)
+          yield () => { observedObjects.delete(id) }
         }
         yield registerWorkbenchCommands(ctx, id, options?.commands ?? [], () => ctx.locale.bind(namespace)('commandUnavailable'))
         yield ctx.slots.inject('actvero.workbench.body', () => ctx.slots.register({
@@ -682,6 +709,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           if (state.id !== request.id || (request.mode === 'business' ? state.mode !== 'business'
             : state.mode !== 'conversation' || state.previewVisible !== (request.mode === 'preview'))) return null
           if (expectedSessionId && state.sessionId !== expectedSessionId) return null
+          if (request.objectId !== undefined && observedObjects.has(request.id) && state.object?.id !== request.objectId) return null
           if (request.mode === 'business' && request.ai !== undefined && state.aiVisible !== (request.ai === 'show')) return null
           return state
         }, signal)

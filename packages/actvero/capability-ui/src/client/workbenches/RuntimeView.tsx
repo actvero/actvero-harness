@@ -49,7 +49,12 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   const [menuOpen, setMenuOpen] = useState(false)
   const linked = sessions.ids.map(id => sessions.byId[id]).filter(summary =>
     instance !== null && summary.projectionValues?.actveroWorkbench?.instanceId === instance.instanceId)
-  const chatTitle = (chat && sessions.byId[chat.sessionId]?.title) || t('newConversation')
+  const conversationTitle = (summary: (typeof sessions.byId)[SessionId] | undefined) => {
+    const title = summary?.title || t('newConversation')
+    const object = summary?.projectionValues?.actveroWorkbench?.object?.label
+    return object && object !== title ? `${object} · ${title}` : title
+  }
+  const chatTitle = conversationTitle(chat ? sessions.byId[chat.sessionId] : undefined)
   const launcher = useRef<HTMLButtonElement>(null)
   const conversation = (fresh: boolean) => {
     void action.conversation(fresh)
@@ -100,7 +105,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
             <span className={styles.title}>{chatTitle}</span><IconChevronDownOutlineRegular size={14} />
           </Button>}
           items={linked.map(summary => ({ id: summary.id,
-            label: <span className={styles.conversationName}>{summary.title || t('newConversation')}</span>,
+            label: <span className={styles.conversationName}>{conversationTitle(summary)}</span>,
           }))}
           onSelect={(id) => {
             setMenuOpen(false)
