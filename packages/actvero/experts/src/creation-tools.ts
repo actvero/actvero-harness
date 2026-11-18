@@ -48,11 +48,11 @@ export function creationTools(request: (action: AuthorAction, input: Record<stri
     },
     {
       name: 'expert_create',
-      description: 'Create a new local ACTVERO expert. Follow expert-creator for the configuration and check the saved expert with expert_check.',
+      description: 'Save a new local ACTVERO expert designed with the user. Load expert-creator before authoring. A role name alone is not a design brief: ask about missing work context, inputs and expected results, then wait for the answer before saving. Use an already complete or agreed plan without repeating questions. Tool success confirms saving only; expert_check checks dependencies, not task quality.',
       parameters: {
         type: 'object',
         properties: {
-          configuration: { type: 'string', maxLength: maxConfiguration, description: 'JSON with manifest and bindings. Dependency IDs come from expert_catalog.' },
+          configuration: { type: 'string', maxLength: maxConfiguration, description: 'JSON with manifest and bindings based on the user’s understood requirements. Dependency IDs come from expert_catalog.' },
         },
         required: ['configuration'],
         additionalProperties: false,
@@ -92,7 +92,7 @@ export function creationTools(request: (action: AuthorAction, input: Record<stri
     },
     {
       name: 'expert_update',
-      description: 'Update an existing local expert as requested by the user when the revision still matches expert_get. Omitted fields are preserved. Check the saved expert with expert_check.',
+      description: 'Revise an existing local expert for the user’s requested change. Follow expert-creator, read expert_get and use its current revision. Ask and wait when the intended improvement is unclear; apply an already clear change without another interview. Omitted fields are preserved. expert_check verifies dependencies, not task quality.',
       parameters: {
         type: 'object',
         properties: {
