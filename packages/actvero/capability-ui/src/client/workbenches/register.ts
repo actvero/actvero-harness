@@ -376,7 +376,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     }
   }
   const settings = new Set<string>()
-  const objectNavigation = new Set<string>()
+  const objectNavigation = new Map<string, NonNullable<Parameters<ActveroWorkbenchRegistry['register']>[2]>['referenceOpenLabel']>()
   const conversationTargets = new Map<string, NonNullable<Parameters<ActveroWorkbenchRegistry['register']>[2]>['conversationTarget']>()
   const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
@@ -428,7 +428,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
           yield () => { conversationTargets.delete(id) }
         }
         if (options?.objectNavigation) {
-          objectNavigation.add(id)
+          objectNavigation.set(id, options.referenceOpenLabel)
           yield () => { objectNavigation.delete(id) }
         }
         yield registerWorkbenchCommands(ctx, id, options?.commands ?? [], () => ctx.locale.bind(namespace)('commandUnavailable'))
@@ -721,7 +721,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   ctx.effect(() => ctx.resources.register(workbenchResource(ctx.remote.actveroWorkbench)))
   ctx.effect(() => connectWorkbenchDisplay(ctx, (request, signal) => action.present(request, signal), snapshot))
   ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat(); restoreNavigation() })
-  registerWorkbenchReferences(ctx, target => registry.openObject(target))
+  registerWorkbenchReferences(ctx, {
+    openObject: target => registry.openObject(target),
+    openLabel: target => objectNavigation.get(target.workbenchId)?.(target.objectId),
+  })
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))

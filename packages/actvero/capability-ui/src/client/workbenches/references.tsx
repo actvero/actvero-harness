@@ -47,10 +47,13 @@ export const workbenchReferenceRule: UserTextRule<'actvero.workbench.reference'>
   },
 }
 
-type Navigation = { openObject: (target: WorkbenchObjectLocation) => Promise<void> }
+type Navigation = {
+  openObject: (target: WorkbenchObjectLocation) => Promise<void>
+  openLabel: (target: WorkbenchObjectLocation) => string | undefined
+}
 type Labels = PropsLocale<'actvero.workbenches'>
 
-function SnapshotDialog({ snapshot, t, openObject, close }: Labels & Navigation & {
+function SnapshotDialog({ snapshot, t, openObject, openLabel, close }: Labels & Navigation & {
   snapshot: WorkbenchReferenceSnapshot
   close: () => void
 }) {
@@ -64,15 +67,14 @@ function SnapshotDialog({ snapshot, t, openObject, close }: Labels & Navigation 
     finally { setPending(false) }
   }
   return <Modal open onClose={close} title={snapshot.label} closeLabel={t('close')}
-    description={t('referenceSnapshot')}>
-    <p>{t('referenceRevision')}: {snapshot.revision}</p>
-    <UserTextRun text={snapshot.content} />
-    <Button disabled={pending} onClick={() => { void navigate() }}>{t('referenceOpen')}</Button>
-    {failed && <p role="alert">{t('referenceOpenFailed')}</p>}
+    className={css.snapshotDialog} contentClassName={css.snapshotContent}
+    footer={<Button variant="primary" disabled={pending} onClick={() => { void navigate() }}>{openLabel(snapshot) ?? t('referenceOpen')}</Button>}>
+    <div className={css.snapshotText}><UserTextRun text={snapshot.content} /></div>
+    {failed && <p className={css.snapshotError} role="alert">{t('referenceOpenFailed')}</p>}
   </Modal>
 }
 
-function Snapshot({ snapshot, interactive, t, openObject }: Labels & Navigation & {
+function Snapshot({ snapshot, interactive, t, ...navigation }: Labels & Navigation & {
   snapshot: WorkbenchReferenceSnapshot
   interactive: boolean
 }) {
@@ -80,7 +82,7 @@ function Snapshot({ snapshot, interactive, t, openObject }: Labels & Navigation 
   return <>
     <ReferenceChip appearance="file" label={snapshot.label} title={t('referenceSnapshot')}
       {...interactive ? { onActivate: () => { setOpened(true) } } : {}} />
-    {opened && <SnapshotDialog snapshot={snapshot} t={t} openObject={openObject} close={() => { setOpened(false) }} />}
+    {opened && <SnapshotDialog snapshot={snapshot} t={t} {...navigation} close={() => { setOpened(false) }} />}
   </>
 }
 
@@ -88,7 +90,7 @@ function Reference({ node, interactive, ...props }: UserTextNodeProps<'actvero.w
   return <Snapshot {...props} snapshot={node.data} interactive={interactive} />
 }
 
-function Result({ block, t, openObject }: PropsRuntime<'tool.call.result'> & Labels & Navigation) {
+function Result({ block, t, ...navigation }: PropsRuntime<'tool.call.result'> & Labels & Navigation) {
   const result = readWorkbenchResult(block.meta)
   if (block.isError || !result) return null
   return <article className={css.result} aria-label={result.title}>
@@ -96,23 +98,23 @@ function Result({ block, t, openObject }: PropsRuntime<'tool.call.result'> & Lab
     <UserTextRun text={result.summary} />
     <div className={css.references}>{result.references.map(snapshot =>
       <Snapshot key={JSON.stringify([snapshot.workbenchId, snapshot.instanceId, snapshot.objectId, snapshot.revision])}
-        snapshot={snapshot} t={t} openObject={openObject} interactive />)}</div>
+        snapshot={snapshot} t={t} {...navigation} interactive />)}</div>
   </article>
 }
 
 type Preview = { hooks: { preview: ReturnType<typeof createSnapshotStore<WorkbenchReferenceSnapshot | null>> }; close: () => void }
 
-function DraftPreview({ usePreview, close, t, openObject }: InjectFace<Preview> & Labels & Navigation) {
+function DraftPreview({ usePreview, close, t, ...navigation }: InjectFace<Preview> & Labels & Navigation) {
   const snapshot = usePreview(value => value)
   return snapshot ? <SnapshotDialog key={encodeURIComponent(JSON.stringify(snapshot))}
-    snapshot={snapshot} close={close} t={t} openObject={openObject} /> : null
+    snapshot={snapshot} close={close} t={t} {...navigation} /> : null
 }
 
 /** Register platform-owned reference reading separately from business plugin lifetimes.
  * @param ctx Workbench host Client scope with native input and user-text services.
- * @param openObject Validated navigation to an installed provider's object view.
+ * @param navigation Opening the provider's object view and resolving its action label.
  */
-export function registerWorkbenchReferences(ctx: Context, openObject: Navigation['openObject']): void {
+export function registerWorkbenchReferences(ctx: Context, navigation: Navigation): void {
   const t = ctx.locale.bind('actvero.workbenches')
   const preview = createSnapshotStore<WorkbenchReferenceSnapshot | null>(null)
   const close = () => { preview.set(null) }
@@ -128,13 +130,13 @@ export function registerWorkbenchReferences(ctx: Context, openObject: Navigation
   }
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'actvero.workbench.reference-preview', locale: 'actvero.workbenches',
-    inject: () => ({ hooks: { preview }, close, openObject }),
+    inject: () => ({ hooks: { preview }, close, ...navigation }),
   }, DraftPreview))
   ctx.uiConversation.userText.register(workbenchReferenceRule)
   ctx.slots.inject('conversation.user.text.node', () => ctx.slots.register({
-    name: 'conversation.user.text.node', key: 'actvero.workbench.reference', locale: 'actvero.workbenches', inject: () => ({ openObject }),
+    name: 'conversation.user.text.node', key: 'actvero.workbench.reference', locale: 'actvero.workbenches', inject: () => navigation,
   }, Reference))
   ctx.slots.inject('tool.call.result', () => ctx.slots.register({
-    name: 'tool.call.result', id: 'actvero.workbench.result', locale: 'actvero.workbenches', inject: () => ({ openObject }),
+    name: 'tool.call.result', id: 'actvero.workbench.result', locale: 'actvero.workbenches', inject: () => navigation,
   }, Result))
 }

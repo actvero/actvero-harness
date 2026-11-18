@@ -151,6 +151,8 @@ export interface ActveroWorkbenchRegistry {
       store?: H
       /** The body renders workbench.location when historical navigation requests an object. */
       objectNavigation?: boolean
+      /** Localized action for an object in the reference dialog. Undefined uses the host label. */
+      referenceOpenLabel?: (objectId: WorkbenchObjectId) => string | undefined
       /** Show the public catalog return control by default; hide it when the author supplies business navigation. */
       catalogButton?: 'show' | 'hide'
       /** Resolve the object for the native AI launcher, capturing its id before asynchronous preparation.
