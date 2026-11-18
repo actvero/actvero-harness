@@ -47,3 +47,26 @@ export function parseBindings(value:unknown,manifest:ExpertManifest):Bindings {
  * @returns Validated manifest, bindings and revision.
  */
 export function parseExpert(value:unknown):Expert {const v=object(value);keys(v,['manifest','bindings','revision']);const manifest=parseManifest(v.manifest);if(!Number.isSafeInteger(v.revision)||Number(v.revision)<0)fail('expert_invalid');return { manifest,bindings:parseBindings(v.bindings,manifest),revision:Number(v.revision) }}
+
+/**
+ * Apply an authoring patch to the current expert and validate the result. Supplied arrays and binding maps replace their previous values.
+ * @param current - Local expert at the revision the author read.
+ * @param patch - Changes to editable manifest fields and/or binding maps.
+ * @returns Validated expert retaining the identity and revision of the current record.
+ */
+export function patchExpert(current: Expert, patch: unknown): Expert {
+  const changes = object(patch)
+  keys(changes, ['manifest', 'bindings'])
+  const manifest = changes.manifest === undefined ? {} : object(changes.manifest)
+  const bindings = changes.bindings === undefined ? {} : object(changes.bindings)
+  keys(manifest, ['name', 'description', 'avatar', 'category', 'tags', 'instructions', 'conversationStarters', 'skills', 'connectors'])
+  keys(bindings, ['skills', 'connectors'])
+  if (Object.keys(manifest).length === 0 && Object.keys(bindings).length === 0) fail('expert_invalid')
+  if (Object.values(manifest).some(value => value === null || value === undefined)) fail('expert_invalid')
+  for (const map of Object.values(bindings)) object(map)
+  return parseExpert({
+    manifest: { ...current.manifest, ...manifest },
+    bindings: { ...current.bindings, ...bindings },
+    revision: current.revision,
+  })
+}

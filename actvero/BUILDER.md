@@ -15,6 +15,6 @@ make package PROFILE=.actvero-builder/presets/my-profile.json
 make package-check PROFILE=.actvero-builder/presets/my-profile.json
 ```
 
-Command-line values still override profile values. The profile never contains credentials, and the original `actvero/product.json` is never rewritten.
+Command-line values still override profile values. Checks and builds preserve the selected profile's `baseConfig`, allowing product configuration and wordmarks from a separate brand directory. The profile never contains credentials, and the original `actvero/product.json` is never rewritten.
 
 Run the command from the repository root. The server binds only to `127.0.0.1` and prints its randomly allocated URL. To choose a fixed port, use `ARGS="--port 3081" make builder`. Stop it with `Ctrl-C`.

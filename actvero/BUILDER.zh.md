@@ -15,6 +15,6 @@ make package PROFILE=.actvero-builder/presets/my-profile.json
 make package-check PROFILE=.actvero-builder/presets/my-profile.json
 ```
 
-命令行参数仍然优先于预设值。预设不包含凭据，原始 `actvero/product.json` 不会被改写。
+命令行参数仍然优先于预设值。检查和构建保留所选预设的 `baseConfig`，因此可加载独立品牌目录中的产品配置与横版 Logo。预设不包含凭据，原始 `actvero/product.json` 不会被改写。
 
 请在仓库根目录运行命令。服务仅绑定 `127.0.0.1`，并输出随机分配的访问地址。使用 `ARGS="--port 3081" make builder` 可以指定固定端口。按 `Ctrl-C` 停止服务。

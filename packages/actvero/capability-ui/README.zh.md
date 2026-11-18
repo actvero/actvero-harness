@@ -52,7 +52,7 @@ Host 配置 `dataDirectory` 指定工作台文件根目录，Actvero Profile 使
 
 工作台的公开账户信息与受控模型目录通过宿主提供，模型目录要求 Host 显式声明 `models:read`，只读元信息，不返回凭据或开放任意地址代理。Host 的 `platformTimeoutMs` 默认 30 秒。原生「工作台开发」（`develop-workbench`）和独立的「工作台前端规范」（`workbench-frontend`）Skill 随包提供。初始化生成空白项目、DESIGN.md 与开发命令，并复制同次工具链的指南及接口快照；前端可采用原生、品牌或自定义风格。编译使用独立开发套件或已构建的源码工具链，桌面端不内置完整编译器。开发环境、模板、安装与验收见[开发指南](../../../actvero/workbench-development.zh.md#environment)，首次接手的实现选择、完整持久化示例与分层排障见[实施手册](../../../actvero/workbench-implementation.zh.md)。
 
-扩展 API `1.2.0` 将业务选区作为固定快照插入关联会话的原生输入框。引用可删除、恢复草稿并随用户消息记录；历史内容在业务包卸载后仍可查看。它不自动提交或读取最新业务数据。接入与验收见[输入引用](../../../actvero/workbench-development.zh.md#input-references)。
+扩展 API `1.2.0` 将业务选区作为固定快照插入关联会话的原生输入框。引用可删除、恢复草稿并随用户消息记录；历史内容在业务包卸载后仍可查看。快照弹窗中的长内容可滚动，对象操作放在底部。提供器启用 `objectNavigation` 时可通过 `referenceOpenLabel(objectId)` 提供本地化操作名称，未提供则使用宿主默认名称。它不自动提交或读取最新业务数据。接入与验收见[输入引用](../../../actvero/workbench-development.zh.md#input-references)。
 
 <details>
 <summary>工作台运行机制</summary>
@@ -62,6 +62,8 @@ Host 提供者通过 Cordis effect 注册元信息、可选 JSON 适配器与专
 </details>
 
 客户端服务 `ctx.capabilityHub` 打开专家、技能或连接管理器，并显示临时通知。其接口由[客户端约定](src/contracts.ts)定义。
+
+`/client/contracts` 的纯类型入口由 Client 编译器输出，Host bundle 不处理该入口。
 
 `WorkbenchProvider.activate` 在原生会话作用域内挂载作者能力，返回精确依赖摘要与可选专家指令。绑定完成后才将结果写入关联事件；失败会释放本次注册并保留原关联记录。重复激活复用当前作用域，取消关联或提供者卸载等待资源释放。恢复时摘要变化要求重新选择工作台。通过[随包专家加载器](../../../actvero/workbench-development.zh.md#expert-bundle)可复用原生 Skill、MCP 和解释器，不强制采用通用 JSON 工具。
 

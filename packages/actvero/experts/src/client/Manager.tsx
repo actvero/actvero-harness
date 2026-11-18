@@ -3,6 +3,7 @@ import { SourceTabs, catalogStyles } from '@actvero/dsh-capability-ui/client/sou
 import { expertOptions } from './selector.ts'
 import { zh, en } from './locales.ts'
 import { CatalogSkeleton } from '@actvero/dsh-capability-ui/client/loading'
+import { insertSkill } from '@actvero/dsh-capability-ui/client/selection'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -31,6 +32,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { expertCategories } from '../categories.ts'
+import { creatorSkillName } from '../creator.ts'
 import type { RemotePlan } from '../remote-contract.ts'
 import type { ExpertPackagePreview } from '../expert-package.ts'
 import { parseManifest } from '../schema.ts'
@@ -1162,19 +1164,12 @@ export function apply(ctx: Context) {
     if (text) {
       const scope = sessions.scope(result.sessionId)
       if (!scope) throw new Error('expert_session_missing')
-      const draft = ctx.conversation.input.for(scope).state.getSnapshot() as {
-        draft: string
-        draftRev: number
-        occurrences: readonly { length: number }[]
+      if (creator) insertSkill(ctx, result.sessionId, { name: creatorSkillName })
+      const { draft, draftRev, occurrences } = ctx.conversation.input.for(scope).state.getSnapshot()
+      const end = draft.length - occurrences.reduce((sum, item) => sum + item.length - 1, 0)
+      if (!scope.bail(scope, 'slash/input-insert-text', { text, span: { start: end, end, draftRev } })) {
+        throw new Error('draft_busy')
       }
-      if (creator)
-        scope.bail(scope, 'slash/input-insert-text', {
-          text: t('creatorCommand') + ' ',
-          span: { start: 0, end: 0, draftRev: draft.draftRev },
-        })
-      const current = ctx.conversation.input.for(scope).state.getSnapshot() as typeof draft
-      const end = current.draft.length - current.occurrences.reduce((sum, item) => sum + item.length - 1, 0)
-      scope.bail(scope, 'slash/input-insert-text', { text, span: { start: end, end: end, draftRev: current.draftRev } })
     }
   }
   ctx.slots.inject('actvero.capability.content', () =>

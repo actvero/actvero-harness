@@ -52,7 +52,7 @@ Workbench authors can declare first-use presentation defaults and call `workbenc
 
 The host provides public account context and a controlled model directory. The Host provider must explicitly declare `models:read`; responses contain read-only metadata without credentials or arbitrary URL proxying. `platformTimeoutMs` defaults to 30 seconds. The native `develop-workbench` and separate `workbench-frontend` Skills are bundled. Initialization creates a blank project, DESIGN.md and commands with the same toolchain’s guide and interface snapshots; frontend styling may be native, branded or custom. Compilation uses a standalone developer kit or built source toolchain; the desktop does not bundle the complete compiler. See the [development guide](../../../actvero/workbench-development.md#environment) for the toolchain, templates, installation and verification, and the [implementation tutorial](../../../actvero/workbench-implementation.md) for implementation choices, a complete persistence example and debugging by layer.
 
-Extension API `1.2.0` inserts business selections as fixed snapshots into the associated native composer. References support removal, draft restoration and native user-message persistence; history remains readable after business-package uninstall. The API does not submit messages or fetch current business data. See [input references](../../../actvero/workbench-development.md#input-references) for integration and validation.
+Extension API `1.2.0` inserts business selections as fixed snapshots into the associated native composer. References support removal, draft restoration and native user-message persistence; history remains readable after business-package uninstall. The snapshot dialog keeps long content scrollable and places the object action in its footer. Providers may supply a localized `referenceOpenLabel(objectId)` with `objectNavigation`; otherwise the host uses its default action label. The API does not submit messages or fetch current business data. See [input references](../../../actvero/workbench-development.md#input-references) for integration and validation.
 
 <details>
 <summary>Workbench runtime</summary>
@@ -62,6 +62,8 @@ Host providers register metadata, an optional JSON adapter and expert instructio
 </details>
 
 The client service `ctx.capabilityHub` opens an expert, skill or connector manager and displays transient notifications. Its interface is owned by [the client contracts](src/contracts.ts).
+
+The Client compiler emits the type-only `/client/contracts` entry; the Host bundle does not build that entry.
 
 `WorkbenchProvider.activate` mounts author capabilities in a native conversation scope and returns an exact dependency digest plus optional expert instructions. Only successful binding records the result; failure releases new contributions and keeps the prior association event. Repeated activation reuses the live scope; detachment or provider removal awaits release. A changed digest on resume requires selecting the workbench again. The [bundled expert loader](../../../actvero/workbench-development.md#expert-bundle) reuses native Skills, MCP and interpreters without requiring generic JSON tools.
 

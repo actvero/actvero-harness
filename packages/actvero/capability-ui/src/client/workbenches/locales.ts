@@ -1,7 +1,7 @@
 export const zh = {
   commandUnavailable: '此命令已不可用，请在关联工作台的对话中重新打开。',
-  referenceSnapshot: '引用时的内容快照', referenceRevision: '版本',
-  referenceOpen: '打开对象', referenceOpenFailed: '暂时无法打开。工作台可能未加载、对象已删除或无权访问；保存的快照仍可查看。',
+  referenceSnapshot: '引用时的快照',
+  referenceOpen: '打开对象', referenceOpenFailed: '暂时无法打开原内容。你仍可查看这份快照。',
   referenceInvalid: '引用内容无法读取，请移除后重新选择。',
   businessNavigation: '工作台导航',
   businessActions: '工作台操作',
@@ -161,8 +161,8 @@ export const zh = {
 
 export const en: Record<keyof typeof zh, string> = {
   commandUnavailable: 'This command is unavailable. Reopen it in a conversation associated with the workbench.',
-  referenceSnapshot: 'Content captured when referenced', referenceRevision: 'Revision',
-  referenceOpen: 'Open object', referenceOpenFailed: 'Unable to open. The workbench may be unloaded, or the object deleted or inaccessible. The saved snapshot is still available.',
+  referenceSnapshot: 'Saved reference snapshot',
+  referenceOpen: 'Open object', referenceOpenFailed: 'Unable to open the original content. The snapshot is still available.',
   referenceInvalid: 'Could not read this reference. Remove it and select the content again.',
   businessNavigation: 'Workbench navigation',
   businessActions: 'Workbench actions',

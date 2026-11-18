@@ -43,6 +43,10 @@
   padding: 0;
 }
 
+:global([data-windows-titlebar]) .root .logoRow:has([data-sidebar-brand-wordmark]) {
+  height: 60px;
+}
+
 :global([data-windows-titlebar]) .toggle {
   position: fixed;
   top: calc((var(--dsh-windows-titlebar-height) - 28px) / 2);
@@ -210,9 +214,10 @@
    right edge; the rail gives every control the same base left anchor before
    the shared entry translation is applied. macOS hiddenInset titlebar: the row
    is marked `data-window-drag` in markup (SidebarRoot), so ui-web base.css's
-   single darwin rule carries the drag over its own box below the top strip.
-   SidebarRoot renders the wordmark as a plain span there, so the
-   global interactive no-drag rule never subtracts it; the dedicated New
+   single darwin rule carries the drag over its own box — below the top strip
+   (40–100px: the strip's 52px foot with the row's -12px tuck). The brand rides
+   that box (SidebarRoot renders the wordmark as a plain span there, so the
+   global interactive no-drag rule never subtracts it); the dedicated New
    Session button below keeps the pointer and keyboard paths. Safe as a drag
    source: it precedes the sidebar's overlay slots in document order, so their
    no-drag still wins. */
@@ -282,18 +287,16 @@
 .brandMark:has([data-sidebar-brand-wordmark]) {
   flex: 0 1 auto;
   min-width: 0;
-  justify-content: flex-start;
 }
 
-.topStrip + .logoRow:has([data-sidebar-brand-wordmark]) {
-  height: 48px;
-  padding-inline-start: 8px;
+.brandIdentity:has([data-sidebar-brand-wordmark]) {
+  height: 44px;
 }
 
 .brandMark [data-sidebar-brand-wordmark] {
   display: block;
-  height: 24px;
-  max-width: min(100%, 140px);
+  height: 44px;
+  max-width: min(100%, 220px);
   object-fit: contain;
   object-position: left center;
 }

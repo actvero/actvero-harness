@@ -30,6 +30,10 @@ The detail dialog gives Summon, Export and the local-only Delete action equal-si
 
 The ACTVERO desktop does not seed a default expert. Local experts enter My experts through creation or the single-expert ZIP/JSON import flow.
 
+Create expert inserts a removable `expert-creator` skill chip and an editable request in the composer. Replace the placeholders for the area of expertise, main tasks and expected results with your own details before sending. The creation skill checks the task's dependencies. If an image generator is available in the conversation and its output can be saved as an avatar, the user can choose to generate one. Creation can continue with the default avatar.
+
+Ask the skill to update an existing expert by name or ID. For My experts it reads the current revision, saves the requested fields and checks the saved dependencies. Supplied arrays and binding maps replace their corresponding values. A stale revision rejects the edit. For a platform organization the skill uses the separately installed and authenticated `actvero` CLI to manage expert drafts, skill versions and MCP configurations. The CLI's own help supplies its schemas and command syntax.
+
 Platform details reuse preparation only when the release ID and digest match. A different release clears its preparation and resolves exact dependencies again; installed skill versions are reused after file and digest verification. Current-cache recovery discards mixed-release preparation only after verifying the account, expert envelope and same-platform expert endpoints, then fetching the selected release successfully. Invalid digests, foreign endpoints and other-account records remain rejected. Concurrent preparations share work, and account or release changes prevent stale commits. Each summon checks the selected release. Conversation snapshots retain their original release and authorization checks.
 
 A summon reuses its verified runtime only inside one Main-owned selection operation. Preparation, activation and the final Host check share the result; completion, failure, account changes and skill installation changes discard it. Later model steps still validate current grants and exact files. Local preparation reads only bound skills and skips connector discovery when the expert has no connector requirements. The latest release resolve supplies dependency and update status without repeated per-skill catalog requests.
@@ -50,7 +54,7 @@ Platform catalog cards compare the locally retained release with the latest rele
 
 #### What the model sees
 
-The Host adds the selected expert name, version, instructions and always-loaded verified skill blocks to its `actvero_expert` system-prompt variable. It exposes scoped MCP capabilities and the `expert_catalog` and `expert_create` local creation tools. The native Session projections record the immutable expert selection and scoped connector choices. Required expert connectors stay on; optional connectors can be disabled for this conversation.
+The Host adds the selected expert name, version, instructions and always-loaded verified skill blocks to its `actvero_expert` system-prompt variable. It exposes scoped MCP capabilities and the local authoring tools `expert_catalog`, `expert_create`, `expert_list`, `expert_get`, `expert_update` and `expert_check`. Expert detail results report avatar presence without returning its encoded image. The native Session projections record the immutable expert selection and scoped connector choices. Required expert connectors stay on; optional connectors can be disabled for this conversation.
 
 #### Token effect
 
