@@ -42,7 +42,7 @@ export function apply(ctx:Context){
   const connectorState=async(agent:Agent)=>request<{ added:string[];enabled:string[];ready:string[];rows:{ id:string;scope:string;name:string;description:string;required:boolean }[] }>('connector-state',{ sessionId:agent.id,snapshotId:(await selected(agent))?.snapshotId,choices:choices(agent) })
   ctx.provide('actveroExpertPolicy',{ connectors:async(agent:Agent)=>{const state=await connectorState(agent);return await selected(agent)?state.enabled:undefined} })
   ctx.effect(()=>ctx.skills.register(creatorSkill))
-  for(const tool of creationTools(request))ctx.tools.register(tool)
+  for(const tool of creationTools(request))ctx.effect(()=>ctx.tools.register(tool))
   ctx.effect(()=>ctx.skills.registerViewResolver(async(options)=>{
     const agent=ctx.agents.list().find(a=>a===options.scope);if(!agent)return undefined
     return (await runtime(agent))?.skills

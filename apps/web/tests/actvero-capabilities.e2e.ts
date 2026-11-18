@@ -1,4 +1,4 @@
-import { writeComposerDraft } from './support.ts'
+import { connectFreshWorkspaceZh, writeComposerDraft } from './support.ts'
 /** Real shipped Host and browser, with public display fixtures only; no credentials or model calls. */
 import { randomUUID } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
@@ -285,7 +285,10 @@ function version(path: string): string {
   return (JSON.parse(readFileSync(path, 'utf8')) as { version: string }).version
 }
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('ACTVERO capability browser', () => {
-  it('loads managers, retains data on failed refresh and fits official selectors', async () => {
+  it.each([
+    { name: 'prefills an editable expert request with a skill chip', scenario: 'create' },
+    { name: 'loads managers, retains data on failed refresh and fits official selectors', scenario: 'catalog' },
+  ])('$name', async ({ scenario }) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-account-composition-')))
     let host: DesktopHostProcess | undefined
     const controls = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
@@ -408,7 +411,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       const ready = await host.start()
       const browser = await chromium.launch({ channel: 'chrome' })
       try {
-        const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 1000 } })
+        const context = await browser.newContext({
+          locale: scenario === 'create' ? 'zh-CN' : 'en-US',
+          viewport: { width: 1440, height: 1000 },
+        })
         await context.addInitScript(installDisplayFixtures)
         const page = await context.newPage(),
           errors: string[] = []
@@ -416,6 +422,32 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         page.on('pageerror', e => errors.push(e.message))
         try {
           await page.goto(ready.url)
+          if (scenario === 'create') {
+            const capabilityCenter = page.getByRole('button', { name: '能力中心', exact: true })
+            await capabilityCenter.waitFor()
+            await connectFreshWorkspaceZh(page, root)
+            const input = page.locator('[data-composer-input]')
+            const prompt = '帮我创建一个【专家类型】专家，负责【主要工作】，输出【期望的结果】。'
+            for (const theme of ['light', 'dark'] as const) {
+              await page.emulateMedia({ colorScheme: theme })
+              const prefix = theme === 'dark' ? 'Keep this draft' : ''
+              await writeComposerDraft(page, input, prefix)
+              await capabilityCenter.click()
+              await page.getByRole('tab', { name: '专家', exact: true }).click()
+              const createExpert = page.getByRole('button', { name: '创建专家', exact: true })
+              if (theme === 'light') await createExpert.click()
+              else await createExpert.press('Enter')
+              const skillLabel = input.locator('[data-composer-chip="skill"]').getByText('expert-creator', { exact: true })
+              await skillLabel.waitFor()
+              const draft = `${prefix ? prefix + ' ' : ''}expert-creator ${prompt}`
+              await expect.poll(() => input.textContent()).toBe(draft)
+              await expect.poll(() => input.evaluate(el => el === document.activeElement)).toBe(true)
+              await page.keyboard.insertText('请用中文。')
+              await expect.poll(() => input.textContent()).toBe(`${draft}请用中文。`)
+            }
+            expect(errors).toEqual([])
+            return
+          }
           await page.getByRole('button', { name: 'Capability Center', exact: true }).waitFor()
           await page
             .getByRole('button', { name: 'Capability Center', exact: true })

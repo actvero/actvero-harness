@@ -1,0 +1,6 @@
+- id: skill-filesystem
+  disabled: true
+
+- insert:
+    - id: snapshot-expert-creator
+      name: '../../../packages/actvero/experts/tests/fixtures/creator-skill.ts'

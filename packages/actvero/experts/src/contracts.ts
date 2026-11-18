@@ -86,6 +86,26 @@ export interface DependencyCatalog {
   skills: DependencyOption[]
   connectors: DependencyOption[]
 }
+/** Compact local expert identity for authoring operations. */
+export interface ExpertAuthorSummary {
+  id: string
+  name: string
+  description: string
+  version: string
+  revision: number
+}
+/** One bounded page of local experts matching an authoring query. */
+export interface ExpertAuthorPage {
+  items: ExpertAuthorSummary[]
+  total: number
+}
+/** Editable local expert without inline portrait data. */
+export interface ExpertAuthorDetail {
+  manifest: Omit<ExpertManifest, 'avatar'>
+  bindings: Bindings
+  revision: number
+  hasAvatar: boolean
+}
 /** Conversation-visible identity of a selected immutable expert snapshot. */
 export interface ExpertSelection {
   snapshotId: string

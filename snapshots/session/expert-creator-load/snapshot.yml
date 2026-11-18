@@ -1,0 +1,10 @@
+version: 1
+scenario: expert-creator-load
+profile: headless
+composition: default
+recording: authored
+header:
+  class: expert-creator
+  pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: text-turn

@@ -5,8 +5,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, writeFile, rename, rm, readdir, lstat } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { SkillDefinition } from '@deepseek-ai/dsh-skill'
-import type { Expert, ExpertLock, ExpertRuntime, DependencyCatalog } from './contracts.ts'
-import { fail, parseExpert, parseManifest, parseBindings, validId } from './schema.ts'
+import type { Expert, ExpertAuthorDetail, ExpertAuthorPage, ExpertAuthorSummary, ExpertLock, ExpertRuntime, DependencyCatalog } from './contracts.ts'
+import { fail, parseExpert, parseManifest, parseBindings, patchExpert, validId } from './schema.ts'
 interface ConnectorRow {
   id: string
   name: string
@@ -38,6 +38,17 @@ const digest = (v: unknown) =>
   createHash('sha256')
     .update(typeof v === 'string' ? v : JSON.stringify(v))
     .digest('hex')
+
+function localExpertId(input: unknown): string {
+  const id = validId(input)
+  if (id.startsWith('remote-')) fail('expert_remote_readonly')
+  return id
+}
+
+function authorSummary(expert: Expert): ExpertAuthorSummary {
+  const { id, name, description, version } = expert.manifest
+  return { id, name, description, version, revision: expert.revision }
+}
 /** Hash every file in the existing installed package, never execute it or follow symlinks. */
 async function fingerprint(skill: SkillDefinition): Promise<string> {
   if (skill.resourceBase?.kind !== 'directory') return digest(skill)
@@ -124,6 +135,30 @@ export class Experts {
           this.parseStored(JSON.parse(await readFile(join(this.options.root, 'items', n), 'utf8'))),
         ),
     )
+  }
+
+  private async authorList(query: unknown = '', page: unknown = 1): Promise<ExpertAuthorPage> {
+    if (typeof query !== 'string' || query.length > 120 || typeof page !== 'number'
+      || !Number.isSafeInteger(page) || page < 1 || page > 10000) fail('expert_invalid')
+    const term = query.trim().toLowerCase()
+    const matches = (await this.list())
+      .map(authorSummary)
+      .filter(expert => [expert.id, expert.name, expert.description].some(text => text.toLowerCase().includes(term)))
+      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    return { items: matches.slice((page - 1) * 50, page * 50), total: matches.length }
+  }
+
+  private async authorGet(id: unknown): Promise<ExpertAuthorDetail> {
+    const { manifest: { avatar, ...manifest }, bindings, revision } = await this.get(localExpertId(id))
+    return { manifest, bindings, revision, hasAvatar: avatar !== '' }
+  }
+
+  private async authorUpdate(id: unknown, revision: unknown, patch: unknown): Promise<ExpertAuthorSummary> {
+    if (typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 1) fail('expert_invalid')
+    const current = await this.get(localExpertId(id))
+    if (current.revision !== revision) fail('expert_edit_conflict')
+    const next = patchExpert(current, patch)
+    return authorSummary(await this.save(next))
   }
   private async history(): Promise<string[]> {
     try {
@@ -460,6 +495,9 @@ export class Experts {
       >
     >
     | Expert['manifest']
+    | ExpertAuthorDetail
+    | ExpertAuthorPage
+    | ExpertAuthorSummary
     | void
   > {
     switch (action) {
@@ -473,6 +511,14 @@ export class Experts {
         return this.recordUse(validId(input.id))
       case 'catalog':
         return this.catalog()
+      case 'author-list':
+        return this.authorList(input.query, input.page)
+      case 'author-get':
+        return this.authorGet(input.id)
+      case 'author-update':
+        return this.authorUpdate(input.id, input.revision, input.patch)
+      case 'author-check':
+        return this.inspect(localExpertId(input.id))
       case 'create': {
         const raw = input.expert as Record<string, unknown>
         if (!raw || !raw.manifest) fail('expert_invalid')

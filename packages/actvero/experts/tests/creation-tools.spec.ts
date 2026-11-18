@@ -18,3 +18,26 @@ it('rejects malformed or oversized model inputs before touching the local gatewa
   await expect(create.execute({ configuration:'{invalid' })).rejects.toThrow()
   expect(request).not.toHaveBeenCalled()
 })
+
+it('routes model authoring tools to the closed Desktop operations', async () => {
+  const request = vi.fn(async () => ({ revision: 2 }))
+  const tools = creationTools(request)
+  const list = tools.find(tool => tool.name === 'expert_list')!
+  const get = tools.find(tool => tool.name === 'expert_get')!
+  const update = tools.find(tool => tool.name === 'expert_update')!
+  const check = tools.find(tool => tool.name === 'expert_check')!
+  await list.execute({ query: '周报', page: 2 })
+  await get.execute({ id: 'report' })
+  await expect(update.execute({ id: 'report', revision: 1, changes: '{"manifest":{"name":"项目周报"}}' })).resolves.toBe('{"revision":2}')
+  await check.execute({ id: 'report' })
+  expect(request.mock.calls).toEqual([
+    ['author-list', { query: '周报', page: 2 }],
+    ['author-get', { id: 'report' }],
+    ['author-update', { id: 'report', revision: 1, patch: { manifest: { name: '项目周报' } } }],
+    ['author-check', { id: 'report' }],
+  ])
+  request.mockClear()
+  await expect(update.execute({ id: 'report', revision: '1', changes: '{}' })).rejects.toThrow('expert_invalid')
+  await expect(get.execute({ id: '../other' })).rejects.toThrow('expert_invalid')
+  expect(request).not.toHaveBeenCalled()
+})

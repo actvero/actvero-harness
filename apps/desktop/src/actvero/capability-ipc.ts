@@ -5,7 +5,7 @@ export type CapabilityHostMessage =
  | { type:'actvero:skills:request';id:string;action:'list'|'get';input:Record<string,unknown> }
  | { type:'actvero:skills:synced';id:string;value?:unknown;error?:string }
  | { type:'actvero:experts:controlled';id:string;value?:unknown;error?:string }
- | { type:'actvero:experts:request';id:string;action:'prepare'|'resolve'|'activate'|'catalog'|'create'|'record-use'|'connector-state';input:Record<string,unknown> }
+ | { type:'actvero:experts:request';id:string;action:typeof expertActions[number];input:Record<string,unknown> }
  | { type:'actvero:mcp:request';id:string;action:'snapshot'|'call';input:Record<string,unknown> }
  | { type:'actvero:mcp:cancel';id:string }
  | { type:'actvero:llm:request';id:string;action:'resource-token';input:{ resource:string } }
@@ -15,6 +15,10 @@ export type CapabilityMainMessage =
  | { type:'actvero:experts:control';id:string;action:'select'|'selection'|'connector-state'|'connector-select';input:Record<string,unknown> }
  | { type:'actvero:skills:changed'|'actvero:mcp:changed'|'actvero:llm:changed' }
 const id=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v)
+const expertActions = [
+  'prepare', 'resolve', 'activate', 'catalog', 'create', 'record-use', 'connector-state',
+  'author-list', 'author-get', 'author-update', 'author-check',
+] as const
 function record(v:unknown):v is Record<string,unknown>{return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function bounded(v:unknown):v is Record<string,unknown>{
   if(!record(v))return false
@@ -35,7 +39,7 @@ export function isCapabilityHostMessage(value:unknown):value is CapabilityHostMe
   if(type==='actvero:workbench:request'){
     return value.action==='models'&&record(value.input)&&Object.keys(value.input).length===0
   }
-  const actions:Record<string,string[]>={ 'actvero:skills:request':['list','get'],'actvero:experts:request':['prepare','resolve','activate','catalog','create','record-use','connector-state'],'actvero:mcp:request':['snapshot','call'],'actvero:llm:request':['resource-token'] }
+  const actions:Record<string,readonly string[]>={ 'actvero:skills:request':['list','get'],'actvero:experts:request':expertActions,'actvero:mcp:request':['snapshot','call'],'actvero:llm:request':['resource-token'] }
   if(type==='actvero:llm:request'){
     const requestInput=value.input
     return record(requestInput)&&typeof requestInput.resource==='string'

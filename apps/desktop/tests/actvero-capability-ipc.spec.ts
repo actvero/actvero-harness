@@ -2,6 +2,15 @@ import { describe,it,expect } from 'vitest'
 import { isCapabilityHostMessage } from '../src/actvero/capability-ipc.ts'
 const id='11111111-1111-4111-8111-111111111111'
 describe('closed capability Host protocol',()=>{
+  it('admits expert authoring without exposing general save or remove actions', () => {
+    for (const action of ['author-list', 'author-get', 'author-update', 'author-check']) {
+      expect(isCapabilityHostMessage({ type: 'actvero:experts:request', id, action, input: {} })).toBe(true)
+    }
+    for (const action of ['save', 'remove', 'package-apply']) {
+      expect(isCapabilityHostMessage({ type: 'actvero:experts:request', id, action, input: {} })).toBe(false)
+    }
+  })
+
   it('admits only the fixed workbench catalog request and cancellation', () => {
     expect(isCapabilityHostMessage({ type: 'actvero:workbench:request', id, action: 'models', input: {} })).toBe(true)
     expect(isCapabilityHostMessage({ type: 'actvero:workbench:cancel', id })).toBe(true)
