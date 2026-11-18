@@ -8,13 +8,14 @@ import { parseManifest } from '../src/schema.ts'
 import type { SkillDefinition } from '@deepseek-ai/dsh-skill'
 import type { Expert, ExpertManifest } from '../src/contracts.ts'
 type ExpertOptions = ConstructorParameters<typeof Experts>[0]
+type FixtureSkill = Omit<SkillDefinition, 'content'> & { content: string }
 type Connector = Awaited<ReturnType<ExpertOptions['connectors']>>[number]
 interface Fixture {
   engine: Experts
   options: ExpertOptions
   root: string
   dir: string
-  def: SkillDefinition
+  def: FixtureSkill
   disable(): void
   update(): void
   account(value: string): void
@@ -25,7 +26,7 @@ async function fixture(fn:(f:Fixture)=>Promise<void>){const root=await mkdtemp(j
   const dir=join(root,'package');await mkdir(dir);await writeFile(join(dir,'SKILL.md'),'SKILL_A')
   let enabled=true,account='member-a',version='v1'
   let rows:Connector[]=[{ id:'local-notes',name:'notes',description:'Notes',ready:true,inventory:{ tools:['read'],prompts:[],resources:[] } }]
-  const def:SkillDefinition={ name:'report',description:'Report',content:'SKILL_A',provider:'actvero-skills',source:'actvero',invocation:{ modelInvocable:true,userInvocable:true },resourceBase:{ kind:'directory',path:dir } }
+  const def:FixtureSkill={ name:'report',description:'Report',content:'SKILL_A',provider:'actvero-skills',source:'actvero',invocation:{ modelInvocable:true,userInvocable:true },resourceBase:{ kind:'directory',path:dir } }
   const options:ExpertOptions={ root:join(root,'experts'),changed:()=>{},scope:()=>account,skills:{ hostList:async()=>enabled?[{ id:'local-skill',name:'report',description:'Report',versionId:version }]:[],hostGet:async(id:string,v:string)=>enabled&&id==='local-skill'&&v===version?def:undefined },connectors:async()=>rows }
   const engine=new Experts(options)
   await fn({ engine,options,root,dir,def,disable:()=>{enabled=false},update:()=>{version='v2'},account:(v:string)=>{account=v},connections:(v:Connector[])=>{rows=v} })
