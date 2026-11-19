@@ -28,6 +28,7 @@ import {
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
   IconAgentPresetOutlineMedium,
+  IconCopyOutlineMedium,
   type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -589,6 +590,7 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
   const announcedUpdates = useRef(new Set<string>())
   const [packagePlan, setPackagePlan] = useState<ExpertPackagePreview>()
   const [removeTarget, setRemoveTarget] = useState<Expert>()
+  const [creatorOpen, setCreatorOpen] = useState(false)
   const [importing, setImporting] = useState<ExpertManifest>(),
     [message] = useState('')
 
@@ -705,7 +707,12 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
       setBusy(false)
     }
   }
-  const create = () => void action(() => createWithAI(t('creatorPrompt')))
+  const create = () => { setCreatorOpen(true) }
+  const copyCreationInstructions = () => void action(async () => {
+    try { await navigator.clipboard.writeText(t('creatorHandoff')) }
+    catch { notify(t('creatorCopyFailed')); return }
+    notify(t('creatorCopied'), 'success')
+  })
   const summon = (expert: Expert, text?: string) =>
     void action(async () => {
       setSummoningId(expert.manifest.id)
@@ -920,6 +927,19 @@ function Panel({ t, useExpert, createWithAI, notify }: Props) {
           </footer>
         )}
       </div>
+      <Modal open={creatorOpen} onClose={() => { if (!busy) setCreatorOpen(false) }} title={t('create')}
+        closeLabel={t('close')} description={t('creatorHelp')} className={styles.creatorDialog}>
+        <p className={styles.creatorHint}>{t('creatorChoice')}</p>
+        <div className={styles.creatorActions}>
+          <Button variant="primary" disabled={busy} onClick={() => { void action(async () => {
+            setCreatorOpen(false)
+            await createWithAI(t('creatorPrompt'))
+          }) }}>{t('creatorHere')}</Button>
+          <Button variant="outline" disabled={busy} onClick={copyCreationInstructions}>
+            <IconCopyOutlineMedium size={16} />{t('creatorElsewhere')}
+          </Button>
+        </div>
+      </Modal>
       {selected && (
         <Dialog
           title={selected.manifest.name}

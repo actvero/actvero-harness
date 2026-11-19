@@ -447,21 +447,25 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
         setDisableTarget(undefined)
         void action.setEnabled(name, false)
       }} />
-    <Modal open={!!removeTarget} title={t('removeTitle')} closeLabel={t('close')} description={t(deleteData ? 'cleanupWarning' : 'removeHelp')}
+    <Modal open={!!removeTarget} title={t('removeTitle')} closeLabel={t('close')} className={styles.removeDialog} contentClassName={styles.removeScroll}
       onClose={() => { if (!removing) setRemoveTarget(undefined) }} footer={<>
-        <Button data-modal-autofocus disabled={removing} onClick={() => { setRemoveTarget(undefined) }}>{t('cancel')}</Button>
-        <Button disabled={removing || !!view.busy} onClick={() => {
+        <Button variant="outline" data-modal-autofocus disabled={removing} onClick={() => { setRemoveTarget(undefined) }}>{t('cancel')}</Button>
+        <Button variant="primary" className={deleteData ? styles.destructive : undefined} disabled={removing || !!view.busy} aria-busy={removing} onClick={() => {
           if (!removeTarget || removing) return
           const target = removeTarget
           setRemoving(true)
           const task = deleteData && target.bundle?.version
             ? action.removeWithData(target.id, target.bundle.version) : action.remove(target.id)
           void task.finally(() => { setRemoving(false); setRemoveTarget(undefined); setDetailSelection(undefined) })
-        }}>{t('remove')}</Button>
+        }}>{t(removing ? 'busy' : deleteData ? 'removeAndClean' : 'remove')}</Button>
       </>}>
-      <p>{removeTarget?.name}</p>
-      {removeTarget?.bundle?.version && view.cleanupProviders?.includes(removeTarget.id) && <Checkbox
-        checked={deleteData} disabled={removing} onChange={setDeleteData} label={t('cleanupLabel')} />}
+      <div className={styles.removeContent}>
+        <p className={deleteData ? styles.cleanupWarning : undefined} role={deleteData ? 'alert' : undefined}>
+          {t(deleteData ? 'cleanupWarning' : 'removeHelp', { name: removeTarget?.name ?? '' })}
+        </p>
+        {removeTarget?.bundle?.version && view.cleanupProviders?.includes(removeTarget.id) && <Checkbox
+          checked={deleteData} disabled={removing} onChange={setDeleteData} label={t('cleanupLabel')} />}
+      </div>
     </Modal>
   </section>
 }

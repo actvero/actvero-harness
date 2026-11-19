@@ -4,7 +4,7 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { checklistDocument } from '../document.ts'
 import styles from './checklist.module.css'
 
-/** Show workbench identity and saved progress without another title row in the business content.
+/** Fill the host-owned header's business region and retain resource state when the sidebar changes.
  * @param props Native resource hooks, localized labels.
  * @returns Author-rendered title and progress.
  */

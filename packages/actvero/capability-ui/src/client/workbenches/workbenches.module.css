@@ -119,3 +119,9 @@
 .developerHint { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 22px; }
 .developerActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .developerActions button { flex: 1 1 210px; height: 40px; white-space: nowrap; }
+.removeDialog { max-height: 100%; --actvero-remove-danger: color-mix(in srgb, var(--dsw-alias-state-error-primary) 90%, var(--dsw-alias-label-primary)); }
+.removeScroll { min-height: 0; overflow-y: auto; }
+.removeContent { display: flex; flex-direction: column; gap: 16px; }
+.removeContent p { margin: 0; font-size: 14px; line-height: 22px; overflow-wrap: anywhere; }
+.cleanupWarning { color: var(--actvero-remove-danger); }
+.removeDialog .destructive, .removeDialog .destructive:hover:not(:disabled) { background: var(--actvero-remove-danger); }

@@ -286,10 +286,11 @@ function version(path: string): string {
 }
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('ACTVERO capability browser', () => {
   it.each([
-    { name: 'prefills an editable expert request with a skill chip', scenario: 'create' },
+    { name: 'offers expert creation choices before prefilling a request', scenario: 'create' },
     { name: 'loads managers, retains data on failed refresh and fits official selectors', scenario: 'catalog' },
   ])('$name', async ({ scenario }) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-account-composition-')))
+    mkdirSync(join(repository, '.artifacts'), { recursive: true })
     let host: DesktopHostProcess | undefined
     const controls = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
     const control = (action: 'connector-select' | 'connector-state', input: Record<string, unknown>) =>
@@ -437,6 +438,35 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               const createExpert = page.getByRole('button', { name: '创建专家', exact: true })
               if (theme === 'light') await createExpert.click()
               else await createExpert.press('Enter')
+              const creator = page.getByRole('dialog', { name: '创建专家', exact: true })
+              await creator.getByRole('button', { name: '在 Harness 中创建', exact: true }).waitFor()
+              expect(await createExpert.isVisible()).toBe(true)
+              await page.evaluate(() => {
+                Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+                  writeText: async (text: string) => { document.documentElement.dataset.expertCreationClipboard = text },
+                } })
+              })
+              await creator.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+              const handoff = await page.evaluate(() => document.documentElement.dataset.expertCreationClipboard)
+              expect(handoff).toContain('ExpertManifest v1 JSON')
+              expect(handoff).toContain('先提问并等待我的回答')
+              expect(handoff).toContain('能力中心 → 专家 → 导入专家')
+              expect(await createExpert.isVisible()).toBe(true)
+              expect(await creator.isVisible()).toBe(true)
+              await page.evaluate(() => {
+                Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+                  writeText: async () => { throw new Error('clipboard denied') },
+                } })
+              })
+              await creator.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+              await page.getByText('复制失败，请允许剪贴板访问后重试', { exact: true }).waitFor()
+              expect(await creator.isVisible()).toBe(true)
+              await page.setViewportSize({ width: 390, height: 844 })
+              expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+              await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/expert-creator-${theme}.png`) })
+              await page.setViewportSize({ width: 1440, height: 1000 })
+              await creator.getByRole('button', { name: '在 Harness 中创建', exact: true }).click()
+              await creator.waitFor({ state: 'hidden' })
               const skillLabel = input.locator('[data-composer-chip="skill"]').getByText('expert-creator', { exact: true })
               await skillLabel.waitFor()
               const draft = `${prefix ? prefix + ' ' : ''}expert-creator ${prompt}`

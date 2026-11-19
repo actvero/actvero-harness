@@ -20,6 +20,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
   let browser: Browser | undefined
   const errors: string[] = []
   try {
+    await mkdir(join(process.cwd(), '.artifacts'), { recursive: true })
     const name = '@local/header-acceptance'
     const packages = []
     for (const kind of ['custom', 'default']) {
@@ -123,55 +124,74 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
       expect(await header.getByRole('button', { name: 'Saved by author' }).isVisible()).toBe(true)
     }
-    // Desktop chrome must not consume the author's horizontal header space.
+    // Collapsed desktop controls and the business header share the same row.
     const frame = page.locator('[data-shell-bottom]').locator('..')
-    const windowChrome = page.locator('[data-workbench-window-chrome]')
-    {
-      for (const width of [1280, 390]) {
-        await page.setViewportSize({ width, height: 844 })
-        // The frame records viewport changes through ResizeObserver and one animation frame.
-        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { resolve() }))))
-        await show('custom')
-        await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
-        await expect.poll(() => page.locator('[data-shell-leading]').count()).toBe(platform === 'darwin' ? 1 : 0)
-        await expect.poll(() => windowChrome.evaluate(element => element.getBoundingClientRect().height)).toBe(platform === 'darwin' ? 48 : 0)
-        for (const colorScheme of ['light', 'dark'] as const) {
-          await page.emulateMedia({ colorScheme })
-          const geometry = await header.evaluate((element) => {
-            const row = element.parentElement!
-            const page = row.parentElement!
-            return { left: row.getBoundingClientRect().left - page.getBoundingClientRect().left,
-              top: row.getBoundingClientRect().top - page.getBoundingClientRect().top,
-              width: row.getBoundingClientRect().width, pageWidth: page.getBoundingClientRect().width,
-              inset: Number.parseFloat(getComputedStyle(row).paddingInlineStart) }
-          })
-          expect(geometry).toEqual({ left: 0, top: platform === 'darwin' ? 48 : 0,
-            width: geometry.pageWidth, pageWidth: geometry.pageWidth, inset: 20 })
-          expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
-          expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-          const input = header.getByRole('textbox', { name: 'Find in drawing' })
-          await input.click()
-          await input.press('End')
-          await input.press('ArrowLeft')
-          expect(await input.evaluate(element => document.activeElement === element)).toBe(true)
-          await header.getByRole('button', { name: 'Saved by author' }).click()
+    const row = header.locator('..')
+    const checkHeaderGeometry = async (collapsed: boolean, fullscreen = false) => {
+      const geometry = await row.evaluate((element) => {
+        const rectangle = element.getBoundingClientRect()
+        const leading = document.querySelector('[data-shell-leading]')?.getBoundingClientRect()
+        const parent = element.parentElement!.getBoundingClientRect()
+        return { top: rectangle.top - parent.top, height: rectangle.height,
+          inset: Number.parseFloat(getComputedStyle(element).paddingInlineStart),
+          controlsShareRow: !leading || leading.top >= rectangle.top && leading.bottom <= rectangle.bottom,
+          headerClearsControls: !leading || element.querySelector('[data-workbench-header]')!.getBoundingClientRect().left >= leading.right,
         }
-      }
-      if (platform === 'darwin') {
-        await page.evaluate(() => document.documentElement.setAttribute('data-fullscreen', ''))
-        expect(await windowChrome.evaluate(element => element.getBoundingClientRect().height)).toBe(48)
-        await page.evaluate(() => document.documentElement.removeAttribute('data-fullscreen'))
-        await page.setViewportSize({ width: 1280, height: 844 })
-        await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
-        await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
-        expect(await windowChrome.isVisible()).toBe(false)
-        expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
-        await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-        await expect.poll(() => windowChrome.isVisible()).toBe(true)
-      } else {
-        expect(await windowChrome.isVisible()).toBe(false)
+      })
+      expect(geometry.top).toBe(0)
+      expect(geometry.height).toBeGreaterThanOrEqual(50)
+      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 84 : 160 : 20)
+      expect(geometry.controlsShareRow).toBe(true)
+      expect(geometry.headerClearsControls).toBe(true)
+      expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      expect(await page.locator('[data-workbench-window-chrome]').count()).toBe(0)
+    }
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 })
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { resolve() }))))
+      await show('custom')
+      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+      await expect.poll(() => page.locator('[data-shell-leading]').count()).toBe(platform === 'darwin' ? 1 : 0)
+      for (const colorScheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme })
+        await checkHeaderGeometry(true)
+        const input = header.getByRole('textbox', { name: 'Find in drawing' })
+        await input.click()
+        await input.press('End')
+        await input.press('ArrowLeft')
+        expect(await input.evaluate(element => document.activeElement === element)).toBe(true)
+        expect(await input.inputValue()).toBe('node A')
+        await header.getByRole('button', { name: 'Saved by author' }).click()
+        await page.screenshot({ animations: 'disabled', path: join(process.cwd(), `.artifacts/workbench-header-${platform}-${width}-${colorScheme}.png`) })
       }
     }
+    if (platform === 'darwin') {
+      await page.evaluate(() => document.documentElement.setAttribute('data-fullscreen', ''))
+      await checkHeaderGeometry(true, true)
+      await page.evaluate(() => document.documentElement.removeAttribute('data-fullscreen'))
+      await page.setViewportSize({ width: 1280, height: 844 })
+      const input = await header.getByRole('textbox', { name: 'Find in drawing' }).elementHandle()
+      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
+      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
+      await checkHeaderGeometry(false)
+      expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
+      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+      await checkHeaderGeometry(true)
+      expect(await page.evaluate(element => element?.isConnected, input)).toBe(true)
+    }
+    expect({ separateWindowRows: await page.locator('[data-workbench-window-chrome]').count(),
+      headerAtTop: await row.evaluate(element =>
+        element.getBoundingClientRect().top === element.parentElement!.getBoundingClientRect().top),
+      input: await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue(),
+    }).toMatchInlineSnapshot(`
+      {
+        "headerAtTop": true,
+        "input": "node A",
+        "separateWindowRows": 0,
+      }
+    `)
     await page.setViewportSize({ width: 1440, height: 900 })
     const business = page.locator('[data-workbench-main]')
     const readBinding = (id: SessionId) => {
@@ -231,6 +251,16 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     expect(await page.locator('[data-workbench-default-header]').count()).toBe(1)
     expect(await header.locator('..').getByRole('button', { name: 'Back to workbenches', exact: true }).count()).toBe(1)
     expect(await page.locator('[data-workbench-ai]:not([hidden])').count()).toBe(0)
+    const catalogReturn = page.getByRole('button', { name: 'Back to workbenches', exact: true })
+    await catalogReturn.hover()
+    await page.getByRole('tooltip', { name: 'Back to workbenches', exact: true }).waitFor()
+    expect(await catalogReturn.evaluate((button) => {
+      const box = button.getBoundingClientRect()
+      return button.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))
+    })).toBe(true)
+    await page.screenshot({ animations: 'disabled', path: join(process.cwd(), `.artifacts/workbench-default-header-${platform}.png`) })
+    await catalogReturn.click()
+    await page.getByRole('heading', { name: 'Workbenches', exact: true }).waitFor()
     expect(log.pageErrors).toEqual([])
   } catch (error) {
     const page = browser?.contexts()[0]?.pages()[0]

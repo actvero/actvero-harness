@@ -77,7 +77,8 @@ export interface WorkbenchClientContext {
 export type WorkbenchBodyProps = PropsRuntime<'actvero.workbench.body'>
 
 /** Author-rendered region after the host return control and divider, without an injected icon, title or navigation layout.
- * Never mounted in a floating preview.
+ * Shares the window-control row when the macOS sidebar is collapsed. The host owns chrome clearance;
+ * authors adapt to the available container width without adding window insets. Never mounted in a floating preview.
  */
 export type WorkbenchHeaderProps = PropsRuntime<'actvero.workbench.header'> & PropsRenderFactories
 

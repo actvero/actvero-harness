@@ -39,6 +39,8 @@ description: 为 ACTVERO Harness 创建、修改、调试和本地安装工作�
 
 使用新能力前查 `reference/api/workbench-protocol.ts` 和对应章节的最低 API 要求，Host 与 Client 共用同一份声明。AI、MCP、CLI 和远程服务都是按需能力，不要求每个工作台实现全部功能。
 
+实现顶栏时沿用 `header: Header` 注册接口，先读[顶栏](reference/guide.zh.md#header)。宿主负责左侧公共控件和窗口避让，工作台负责右侧业务内容；折叠侧栏不额外增加顶部安全行。不要为顶栏叠加窗口留白，也不在正文重复渲染同一套工作台导航。按实际容器宽度布局，并检查展开、折叠和全屏时的输入、菜单与业务状态保持。
+
 ## 安装与验收
 
 先阅读[导入和验收](reference/guide.zh.md#install)及[故障定位](reference/guide.zh.md#verify)。只操作身份已确认的目标客户端/Profile；隔离开发客户端的结果不能算作日常应用验收。

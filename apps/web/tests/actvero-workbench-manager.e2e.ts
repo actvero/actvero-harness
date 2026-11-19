@@ -29,6 +29,7 @@ function version(path: string): string {
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('Actvero workbench manager', () => {
   it.each(['local workbench management', 'platform workbench distribution', 'workbench development entry', 'workbench data cleanup'])('%s', async (scenario) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-workbench-manager-')))
+    mkdirSync(join(repository, '.artifacts'), { recursive: true })
     let host: DesktopHostProcess | undefined
     let proxy: PrefixProxy | undefined
     try {
@@ -267,22 +268,32 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           const dialog = page.getByRole('dialog', { name: '卸载工作台', exact: true })
           for (const colorScheme of ['light', 'dark'] as const) {
             await page.emulateMedia({ colorScheme })
-            await page.setViewportSize({ width: colorScheme === 'light' ? 1200 : 640, height: 800 })
+            await page.setViewportSize({ width: colorScheme === 'light' ? 1200 : 390, height: 800 })
             await remove()
-            const cleanup = dialog.getByRole('checkbox', { name: '同时清理此工作台的数据', exact: true })
+            const cleanup = dialog.getByRole('checkbox', { name: '同时删除本地数据', exact: true })
             expect(await cleanup.isChecked()).toBe(false)
+            expect(await dialog.innerText()).toContain(title)
+            expect(await dialog.getByRole('button', { name: '卸载', exact: true }).isVisible()).toBe(true)
+            await dialog.screenshot({ animations: 'disabled',
+              path: join(repository, `.artifacts/workbench-uninstall-${colorScheme}.png`) })
+            await cleanup.check()
+            expect(await dialog.getByRole('button', { name: '卸载并删除数据', exact: true }).isVisible()).toBe(true)
+            await cleanup.uncheck()
+            expect(await dialog.getByRole('alert').count()).toBe(0)
             await cleanup.check()
             await dialog.getByText(/此操作无法撤销/).waitFor()
             await page.screenshot({ animations: 'disabled', path: join(repository, `.artifacts/workbench-cleanup-${colorScheme}.png`) })
+            await dialog.screenshot({ animations: 'disabled',
+              path: join(repository, `.artifacts/workbench-uninstall-data-${colorScheme}.png`) })
             await page.keyboard.press('Escape')
             await dialog.waitFor({ state: 'hidden' })
             expect(existsSync(join(environment.dataDirectory, 'campaign.txt'))).toBe(true)
           }
           await remove()
-          const cleanup = dialog.getByRole('checkbox', { name: '同时清理此工作台的数据', exact: true })
+          const cleanup = dialog.getByRole('checkbox', { name: '同时删除本地数据', exact: true })
           expect(await cleanup.isChecked()).toBe(false)
           await cleanup.check()
-          await dialog.getByRole('button', { name: '卸载', exact: true }).click()
+          await dialog.getByRole('button', { name: '卸载并删除数据', exact: true }).click()
           await card.waitFor({ state: 'hidden', timeout: 40_000 })
           expect(existsSync(environment.dataDirectory)).toBe(false)
           expect(JSON.parse(readFileSync(join(root, 'cleanup-report.json'), 'utf8'))).toMatchObject({ dataDirectory: environment.dataDirectory })
@@ -1277,7 +1288,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         }
         await menu('卸载')
         const removeDialog = page.getByRole('dialog', { name: '卸载工作台', exact: true })
-        await removeDialog.getByText(/保留本地业务数据和历史对话/).waitFor()
+        await removeDialog.getByText(/本地数据和历史对话会保留/).waitFor()
         await removeDialog.getByRole('button', { name: '取消', exact: true }).click()
         await packaged.waitFor()
         await menu('卸载')

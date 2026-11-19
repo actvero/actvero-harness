@@ -64,18 +64,17 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
   const name = opened === 'builtin:project-checklist' ? t('sampleName') : entries.find(item => item.id === opened)?.name ?? t('title')
   const defaultHeader = <div className={styles.defaultHeader} data-workbench-default-header="">
     {opened && <WorkbenchArtwork id={opened} url={icon} size={18} />}
-    <h1>{name}</h1>
+    <Tooltip label={name} portal side="bottom"><h1>{name}</h1></Tooltip>
   </div>
   return <section className={styles.page} aria-label={name}
     data-workbench-main={!preparing && !error ? opened : undefined} data-workbench-instance={instance?.instanceId}
     data-workbench-session={chat?.sessionId}>
-    <div className={styles.windowChrome} data-workbench-window-chrome="" data-window-drag aria-hidden="true" />
     <header className={styles.pageHeader} data-window-drag>
-      {catalogButton && <>
-        <Tooltip label={t('back')}><Button size="sm" className={styles.iconButton} aria-label={t('back')}
+      {catalogButton && <div className={styles.navigation} data-workbench-navigation="">
+        <Tooltip label={t('back')} portal side="bottom"><Button size="sm" className={styles.iconButton} aria-label={t('back')}
           onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
         <span className={styles.separator} aria-hidden="true" />
-      </>}
+      </div>}
       <div className={styles.headerExtension} data-workbench-header="">
         {opened && !preparing && !error
           ? renderSlot('actvero.workbench.header', { title: name, workbench: action.context(instance?.instanceId ?? null) }, {
