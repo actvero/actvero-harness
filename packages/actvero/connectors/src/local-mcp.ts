@@ -32,6 +32,19 @@ interface Live {
   transport: Transport
   inventory: Inventory
 }
+interface AuthorView {
+  id: string
+  name: string
+  transport: CustomConfig['transport']
+  auth: CustomConfig['auth']
+  command: string
+  argumentCount: number
+  endpointOrigin: string
+  enabled: boolean
+  status: CustomView['status']
+  error?: string | undefined
+  revision: string
+}
 /** Main-process storage and browser callbacks required by local MCP connections. */
 export interface LocalOptions {
   load(): Promise<unknown>
@@ -64,6 +77,7 @@ export class LocalConnectors {
   private sessions = new Map<string, Set<string>>()
   private flights = new Map<string, Promise<void>>()
   private revisions = new Map<string, number>()
+  private authorRevisions = new WeakMap<Saved, string>()
   private connecting = new Map<string, Client>()
   private queue: Promise<unknown> = Promise.resolve()
   private drafts = new Map<string, { config: CustomConfig[]; until: number }>()
@@ -131,6 +145,50 @@ export class LocalConnectors {
    */
   async list(): Promise<CustomView[]> {
     return (await this.entries()).map(r => this.view(r))
+  }
+  private authorRevision(row: Saved): string {
+    let revision = this.authorRevisions.get(row)
+    if (!revision) {
+      revision = randomUUID()
+      this.authorRevisions.set(row, revision)
+    }
+    return revision
+  }
+  private authorView(row: Saved): AuthorView {
+    const { id, name, transport, auth, command, args, url, enabled, status, error } = this.view(row)
+    return { id, name, transport, auth, command, argumentCount: args.length,
+      endpointOrigin: url ? new URL(url).origin : '', enabled, status, error, revision: this.authorRevision(row) }
+  }
+  /** Read a saved connection and its edit revision without returning arguments or credentials.
+   * @param id Saved device-local connector identifier.
+   * @returns Configuration summary for an authoring client.
+   */
+  async authorDetails(id: string): Promise<AuthorView> { return this.authorView(await this.record(id)) }
+  /** List local connectors with edit revisions and redacted configuration summaries.
+   * @returns Device-local entries ordered as in the connector manager.
+   */
+  async authorList(): Promise<AuthorView[]> { return (await this.entries()).map(row => this.authorView(row)) }
+
+  /** Save a disabled connector or patch one reviewed revision, preserving omitted fields.
+   * @param change A validated create configuration or a patch with the reviewed revision.
+   * @returns Saved state and connection status. Existing enabled connectors reconnect.
+   */
+  async authorSave(change: { config: object } | { id: string; revision: string; patch: object }): Promise<AuthorView> {
+    const id = 'id' in change ? change.id : undefined
+    const row = await this.saveRecord(id, async (old) => {
+      if ('config' in change) return this.candidate(change.config)
+      if (!old || this.authorRevision(old) !== change.revision) return bad('connector_edit_conflict')
+      const config = normalizeConfig({ ...old.config, ...change.patch })
+      const previous = old.config
+      const destinationChanged = config.transport !== previous.transport || config.url !== previous.url
+        || config.command !== previous.command || config.auth !== previous.auth || config.clientId !== previous.clientId
+        || (config.transport === 'stdio' && (config.cwd !== previous.cwd || JSON.stringify(config.args) !== JSON.stringify(previous.args)))
+      const hasSecrets = previous.token || Object.values(previous.env).some(Boolean) || Object.values(previous.headers).some(Boolean)
+      if (destinationChanged && (hasSecrets || old.oauth)) return bad('credential_review_required')
+      if (config.auth === 'bearer' && !config.token) return bad('token_required')
+      return { config, oauth: destinationChanged ? undefined : old.oauth }
+    }, false)
+    return this.authorView(row)
   }
   /**
    * Read local connection metadata in the shared connector format.
@@ -403,10 +461,16 @@ export class LocalConnectors {
    * @returns Saved connection view with credential values redacted.
    */
   async save(input: unknown, id?: string, authDraft?: string): Promise<CustomView> {
-    const { config, oauth } = await this.candidate(input, id, authDraft)
+    return this.view(await this.saveRecord(id, () => this.candidate(input, id, authDraft), true))
+  }
+  private async saveRecord(id: string | undefined,
+    prepare: (old: Saved | undefined) => Promise<{ config: CustomConfig; oauth?: OAuthData | undefined }>,
+    enableNew: boolean,
+  ): Promise<Saved> {
     const saved = await this.mutate(async () => {
       const records = await this.entries(),
         old = id ? await this.record(id) : undefined
+      const { config, oauth } = await prepare(old)
       if (
         records.some(
           r => r.id !== id && r.config.name.toLocaleLowerCase() === config.name.toLocaleLowerCase(),
@@ -416,7 +480,7 @@ export class LocalConnectors {
       const row: Saved = {
         id: old?.id ?? 'local-' + randomUUID(),
         config,
-        enabled: old?.enabled ?? true,
+        enabled: old?.enabled ?? enableNew,
         oauth,
       }
       await this.stop(row.id)
@@ -434,7 +498,7 @@ export class LocalConnectors {
     })
     if (saved.enabled) await this.connect(saved.id)
     this.changed()
-    return this.view(saved)
+    return saved
   }
   /** Validate a credentials-free portable template without launching it.
    * @param input - imported JSON configuration.
@@ -513,6 +577,14 @@ export class LocalConnectors {
     } finally {
       await live.client.close()
     }
+  }
+  /** Test the saved configuration using Main-owned credentials and close the temporary connection.
+   * @param id Saved local connector identifier.
+   * @returns Connection test result, independent of the connector's enablement.
+   */
+  async authorTest(id: string): Promise<{ connected: boolean }> {
+    const row = await this.record(id)
+    return this.test({ ...row.config, keepSecrets: true }, id)
   }
   /**
    * Authorize a candidate OAuth connection and retain an expiring configuration-bound draft.

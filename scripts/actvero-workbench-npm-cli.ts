@@ -1,4 +1,5 @@
 /** npm command for the pinned, offline workbench compiler; never starts Harness. */
+import { localCapabilityCli } from './actvero-local-capability-cli.ts'
 import { installDevelopmentSkills } from './actvero-development-skills.ts'
 import { createReadStream, realpathSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -79,7 +80,11 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const command = args[0]
   if (!command || command === '--help') {
-    console.log('actvero-workbench create <新目录> [包名] [--template blank|plain|ai]\nactvero-workbench bind|doctor|typecheck|dev|pack|check <路径>\nactvero-workbench attach <项目目录> --connection <连接文件>\nactvero-workbench status|logs|detach <项目目录>\nactvero-workbench expert <操作> --connection <连接文件> [--file <请求.json>]\nactvero-workbench info\nactvero-workbench skills install|update [--global | <Skill目录>]\nactvero-workbench --version\n\n--global 安装到 ~/.agents/skills；更新会保留用户修改的 Skill。默认安装到当前目录的 .agents/skills。')
+    console.log('actvero-workbench create <新目录> [包名] [--template blank|plain|ai]\nactvero-workbench bind|doctor|typecheck|dev|pack|check <路径>\nactvero-workbench attach <项目目录> --connection <连接文件>\nactvero-workbench status|logs|detach <项目目录>\nactvero-workbench expert <操作> --connection <连接文件> [--file <请求.json>]\nactvero-workbench skill|mcp <操作> --connection <连接文件> [--file <请求.json>]\nactvero-workbench info\nactvero-workbench skills install|update [--global | <Skill目录>]\nactvero-workbench --version\n\n--global 安装到 ~/.agents/skills；更新会保留用户修改的 Skill。默认安装到当前目录的 .agents/skills。')
+    return
+  }
+  if (command === 'skill' || command === 'mcp') {
+    console.log(JSON.stringify(await localCapabilityCli(args), null, 2))
     return
   }
   if (args[0] === '--version') { console.log(release.version); return }

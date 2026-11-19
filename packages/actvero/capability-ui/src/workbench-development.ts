@@ -16,6 +16,8 @@ import { satisfies } from 'semver'
 import { WORKBENCH_HOST_API_VERSION } from './workbench-version.ts'
 import { isBuiltin } from 'node:module'
 import { resolveWorkbenchProtocol } from './workbench-protocol.ts'
+import { localCapabilityCommand } from './workbench-local-protocol.ts'
+import { registerLocalCapabilities } from './workbench-local-tools.ts'
 import type { WorkbenchRuntime } from './workbench-runtime.ts'
 import type { WorkbenchId, WorkbenchDevelopmentId } from './types.ts'
 
@@ -24,6 +26,7 @@ const manifestSchema = z.object({ name: z.string().regex(/^(?:@[a-z0-9._-]+\/)?[
   dsh: z.object({ actveroWorkbench: z.literal(1), actveroWorkbenchProtocol: z.unknown().optional() }) })
 const attachmentId = z.string().uuid().transform(value => value as WorkbenchDevelopmentId)
 const commandSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('local-capability'), input: localCapabilityCommand }).strict(),
   z.object({ action: z.literal('expert'), operation: z.enum(['catalog', 'create', 'author-list', 'author-get', 'author-update', 'author-check']), input: z.record(z.string(), z.unknown()) }).strict(),
   z.object({ action: z.literal('attach'), directory: z.string() }).strict(),
   z.object({ action: z.literal('apply'), id: attachmentId, path: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
@@ -48,6 +51,7 @@ declare module '@deepseek-ai/cordis' { interface Context { actveroWorkbenchDevel
 /** A private connection file authorizes local Agents; no endpoint exists before the owner exports development resources. */
 export class WorkbenchDevelopment {
   private readonly token = randomBytes(32).toString('hex')
+  private readonly localCapabilities: ReturnType<typeof registerLocalCapabilities>
   private readonly resolveTree: () => DevelopmentTree
   private get tree(): DevelopmentTree { return this.resolveTree() }
   private readonly attachments = new Map<WorkbenchDevelopmentId, Attachment>()
@@ -62,6 +66,7 @@ export class WorkbenchDevelopment {
    * @param directory Private development files directory.
    */
   constructor(private readonly ctx: Context, private readonly runtime: WorkbenchRuntime, private readonly directory: string) {
+    this.localCapabilities = registerLocalCapabilities(ctx)
     const owner = ctx.fiber.entry
     let tree: DevelopmentTree | undefined
     let previousTree = owner?.subtree, previousGroup = owner?.subgroup
@@ -129,6 +134,14 @@ export class WorkbenchDevelopment {
         request.setEncoding('utf8')
         for await (const chunk of request) { body += String(chunk); if (body.length > 1024 * 1024) throw new Error('Development request is too large') }
         const command = commandSchema.parse(JSON.parse(body))
+        if (this.closed) throw new Error('Development host is closed')
+        if (command.action === 'local-capability') {
+          if (!this.localCapabilities) throw new Error('local_capability_unavailable')
+          const value = await this.localCapabilities(command.input)
+          response.setHeader('Content-Type', 'application/json')
+          response.end(JSON.stringify({ ok: true, value }))
+          return
+        }
         const task = this.operation.then(async () => {
           if (this.closed) throw new Error('Development host is closed')
           if (command.action === 'expert') {

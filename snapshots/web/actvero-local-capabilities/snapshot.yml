@@ -1,0 +1,8 @@
+version: 1
+scenario: actvero-local-capabilities
+profile: web
+composition: web-actvero-local-capabilities
+recording: authored
+header:
+  class: web-actvero-local-capabilities
+  pin: true

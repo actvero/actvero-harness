@@ -34,6 +34,8 @@ kind: "package-reference"
 
 客户端在安装或启用状态变化后发出 `actvero/skills-changed`，供能力视图刷新。此通知不带载荷，也不追加 Session 事件。[管理器](src/client/Manager.tsx)负责事件声明。
 
+Harness 的 `local_capabilities` 工具与 CLI 共用本机安装、文件编辑和版本更新。使用方法见[本机能力管理](../../../actvero/workbench-npm.zh.md#local-capabilities)。
+
 <a id="model-experience"></a>
 
 ## 模型体验

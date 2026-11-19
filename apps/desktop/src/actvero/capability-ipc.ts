@@ -1,6 +1,9 @@
 /** Closed Main ↔ Host protocol. Credentials and arbitrary channel names are excluded. */
+import { localCapabilityCommand, type LocalCapabilityCommand } from '@actvero/dsh-capability-ui/local-capabilities'
+
 export type CapabilityHostMessage =
  | { type:'actvero:workbench:request';id:string;action:'models';input:Record<string,never> }
+ | { type:'actvero:workbench:request';id:string;action:'manage-local';input:LocalCapabilityCommand }
  | { type:'actvero:workbench:cancel';id:string }
  | { type:'actvero:skills:request';id:string;action:'list'|'get';input:Record<string,unknown> }
  | { type:'actvero:skills:synced';id:string;value?:unknown;error?:string }
@@ -37,7 +40,8 @@ export function isCapabilityHostMessage(value:unknown):value is CapabilityHostMe
   if(Object.keys(value).some(k=>!fields.includes(k)))return false
   if(type==='actvero:mcp:cancel'||type==='actvero:workbench:cancel')return true
   if(type==='actvero:workbench:request'){
-    return value.action==='models'&&record(value.input)&&Object.keys(value.input).length===0
+    if (value.action === 'manage-local') return localCapabilityCommand.safeParse(value.input).success
+    return value.action === 'models' && record(value.input) && Object.keys(value.input).length === 0
   }
   const actions:Record<string,readonly string[]>={ 'actvero:skills:request':['list','get'],'actvero:experts:request':expertActions,'actvero:mcp:request':['snapshot','call'],'actvero:llm:request':['resource-token'] }
   if(type==='actvero:llm:request'){

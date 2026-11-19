@@ -1,4 +1,5 @@
 /** Create and package local Actvero workbenches through the existing client compiler. */
+import { localCapabilityCli } from './actvero-local-capability-cli.ts'
 import { attachWorkbench, inspectDevelopment, developmentApplier, developmentRequest } from './actvero-workbench-connection.ts'
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
@@ -196,6 +197,10 @@ export async function packWorkbench(directory: string, output: string, developme
 }
 
 async function main(): Promise<void> {
+  if (process.argv[2] === 'skill' || process.argv[2] === 'mcp') {
+    console.log(JSON.stringify(await localCapabilityCli(process.argv.slice(2)), null, 2))
+    return
+  }
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' }, connection: { type: 'string' }, file: { type: 'string' } } })
   const [command, path, argument] = positionals
   if (command === 'expert' && path === 'schema') {

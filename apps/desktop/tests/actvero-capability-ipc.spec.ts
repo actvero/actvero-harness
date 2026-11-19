@@ -11,13 +11,16 @@ describe('closed capability Host protocol',()=>{
     }
   })
 
-  it('admits only the fixed workbench catalog request and cancellation', () => {
+  it('admits only declared workbench and local management commands', () => {
     expect(isCapabilityHostMessage({ type: 'actvero:workbench:request', id, action: 'models', input: {} })).toBe(true)
     expect(isCapabilityHostMessage({ type: 'actvero:workbench:cancel', id })).toBe(true)
+    expect(isCapabilityHostMessage({ type: 'actvero:workbench:request', id, action: 'manage-local', input: { operation: 'skill-list' } })).toBe(true)
     for (const value of [
       { type: 'actvero:workbench:request', id, action: 'models', input: { url: 'https://other.example' } },
       { type: 'actvero:workbench:request', id, action: 'token', input: {} },
       { type: 'actvero:workbench:cancel', id, input: {} },
+      { type: 'actvero:workbench:request', id, action: 'manage-local', input: { operation: 'mcp-remove' } },
+      { type: 'actvero:workbench:request', id, action: 'manage-local', input: { operation: 'mcp-create', config: { name: 'Test', transport: 'http', token: 'private' } } },
     ]) expect(isCapabilityHostMessage(value)).toBe(false)
   })
 

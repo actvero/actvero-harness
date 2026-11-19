@@ -36,6 +36,8 @@ The Host adapter `ctx.actveroMcp` refreshes agent-scoped registrations and repor
 
 `ctx.actveroMcp.owns(name)` identifies this service’s managed tools. Expert policy filters and restricts only those tools, preserving conversation tools registered by independent native MCP plugins, which own their authorization, isolation and disposal.
 
+The Harness `local_capabilities` tool and CLI share local connector creation, editing, testing, and enablement. See [local capability management](../../../actvero/workbench-npm.md#local-capabilities).
+
 <a id="model-experience"></a>
 
 ## Model Experience

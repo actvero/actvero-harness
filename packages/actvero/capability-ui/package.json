@@ -43,6 +43,10 @@
       "types": "./lib/typert.host.d.ts",
       "default": "./lib/typert.host.js"
     },
+    "./local-capabilities": {
+      "types": "./lib/types/workbench-local-protocol.d.ts",
+      "default": "./lib/types/workbench-local-protocol.js"
+    },
     "./platform": {
       "types": "./lib/types/workbench-platform-protocol.d.ts",
       "default": "./lib/types/workbench-platform-protocol.js"
@@ -146,6 +150,7 @@
     "lib/typert.remote-client.js",
     "lib/typert.remote-client.d.ts",
     "lib/types/workbench-platform-protocol.js",
+    "lib/types/workbench-local-protocol.js",
     "assets"
   ]
 }

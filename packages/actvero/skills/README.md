@@ -34,6 +34,8 @@ The Local skills tab also reads the native Session catalog from project `.agents
 
 The client emits `actvero/skills-changed` after installation or enablement state changes so capability views can refresh. This notification carries no payload and does not append a Session event. [The manager](src/client/Manager.tsx) owns the event declaration.
 
+The Harness `local_capabilities` tool and CLI share local installation, file editing, and version updates. See [local capability management](../../../actvero/workbench-npm.md#local-capabilities).
+
 <a id="model-experience"></a>
 
 ## Model Experience

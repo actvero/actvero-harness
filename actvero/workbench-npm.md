@@ -33,6 +33,24 @@ actvero-workbench skills install "$HOME/.codex/skills"
 
 `--global` writes to `~/.agents/skills/`; omitting a path writes to `.agents/skills/` in the current directory. Discovery differs between Agents, so copying does not establish that every Agent loaded the Skills. Supply the resulting SKILL.md path or reload Skills in the Agent when needed. The desktop version owns Skills bundled with ACTVERO.
 
+<a id="local-capabilities"></a>
+
+## Manage local Skills and MCP
+
+In a Harness conversation, ask AI to install or edit the named Skill or MCP. AI uses the built-in `local_capabilities` tool. Writes and connection tests follow the current Session's tool authorization. An external Agent uses the same operations through the connection file copied from Use another Agent in the target Harness.
+
+```sh
+actvero-workbench skill list --connection /absolute/path/connection.json
+actvero-workbench skill install /absolute/path/skill.zip --connection /absolute/path/connection.json
+actvero-workbench mcp create --connection /absolute/path/connection.json --file ./mcp-create.json
+```
+
+`skill install` accepts a directory, ZIP, or SKILL.md. Use `skill show` with `{"id":"local Skill ID"}` to read its version and file inventory. Use `skill read` with `id` and the in-package `path`. Use `skill edit` with `id`, `version`, the in-package `path`, and the complete `content` to replace one existing text file. Use `skill update` with an absolute `path` to replace the whole package. Updates retain the Skill ID and previous versions and reject stale versions. `skill enable` accepts `id` and `enabled`.
+
+An example MCP create request is `{"config":{"name":"Document service","transport":"http","url":"https://example.org/mcp"}}`. Stdio and SSE are also supported. New connections are saved disabled. Use `mcp show` for the current `revision`, then submit `id`, `revision`, and a `patch` containing only the changed fields to `mcp update`. An enabled connection reconnects after an update. `mcp test` tests and closes a temporary connection for the given `id`. `mcp enable` persists the `enabled` choice for that `id`. Enter credentials on the Harness connector page. CLI summaries omit credentials, argument values, and the full URL. To change the destination of a credentialed connection, review and edit it on the connector page.
+
+`skill help` and `mcp help` list the available commands. After a cancelled or timed-out write, use list or show to check the actual outcome before retrying. Edit directory-discovered Skills in their original directories. The `skill` command manages packages installed in Harness.
+
 ## Update, debug and deliver
 
 After upgrading the npm kit, run `actvero-workbench bind /absolute/path/project` for existing projects to refresh toolchain binding, Skills and type configuration while retaining business source and DESIGN.md. Do not copy old cache paths to another machine; install a compatible kit there and bind again.

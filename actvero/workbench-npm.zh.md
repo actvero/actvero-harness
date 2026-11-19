@@ -33,6 +33,24 @@ actvero-workbench skills install "$HOME/.codex/skills"
 
 `--global` 写入 `~/.agents/skills/`；不带路径时写入当前目录的 `.agents/skills/`。不同 Agent 的发现规则不同，复制文件不代表所有 Agent 都已加载；必要时直接提供输出目录中的 SKILL.md 路径，或在该 Agent 中重新加载技能。ACTVERO 桌面端自带的技能由桌面版本管理。
 
+<a id="local-capabilities"></a>
+
+## 管理本机 Skill 和 MCP
+
+在 Harness 对话中，直接请 AI 安装或编辑指定的 Skill 或 MCP。AI 使用内置的 `local_capabilities` 工具，写入和连接测试走当前会话的工具授权。外部 Agent 使用同一组命令，从目标 Harness 的「交给其他 Agent」取得开发连接文件。
+
+```sh
+actvero-workbench skill list --connection /absolute/path/connection.json
+actvero-workbench skill install /absolute/path/skill.zip --connection /absolute/path/connection.json
+actvero-workbench mcp create --connection /absolute/path/connection.json --file ./mcp-create.json
+```
+
+`skill install` 接受目录、ZIP 或 SKILL.md。先用 `skill show` 的请求 `{"id":"本机 Skill ID"}` 获取版本和文件清单。用 `skill read` 读取指定文本文件，传 `id` 和包内 `path`。用 `skill edit` 更新一个现有文本文件，传 `id`、`version`、包内 `path` 和完整 `content`。需要替换整个包时用 `skill update`，将 `path` 指向新包的绝对路径。更新保留 Skill ID 和旧版本，过期的版本拒绝写入。`skill enable` 接受 `id` 和 `enabled`。
+
+MCP 创建请求是 `{"config":{"name":"文档服务","transport":"http","url":"https://example.org/mcp"}}`，也支持 stdio 和 SSE。新建配置默认停用。用 `mcp show` 获取 `revision`，再用 `mcp update` 提交 `id`、`revision` 和只包含变更字段的 `patch`。已启用的连接更新后重新连接。`mcp test` 使用 `id` 测试并关闭临时连接，`mcp enable` 使用 `id` 和 `enabled` 保存启停状态。凭据在 Harness 的连接器页面输入，CLI 返回的摘要省略凭据、启动参数和完整 URL。带凭据的连接更换执行程序或地址时，请在连接器页面核对并编辑。
+
+`skill help` 和 `mcp help` 列出当前命令。写入超时或被中断时，先用 list 或 show 查询实际状态再重试。目录发现的 Skill 通过其原目录编辑，`skill` 命令管理 Harness 安装的本机包。
+
 ## 更新、调试与交付
 
 升级 npm 套件后，对已有项目执行 `actvero-workbench bind /绝对路径/项目`，刷新工具链绑定、Skill 和类型配置，保留业务源码与 DESIGN.md。不要把旧缓存路径复制到另一台机器；在目标机器安装匹配套件后重新 bind。
