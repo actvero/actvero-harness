@@ -17,7 +17,11 @@ async function fixture() {
   await mkdir(distribution)
   await writeFile(join(kit, 'scripts/actvero-workbench.client.mjs'), 'console.log("compiler fixture")\n')
   await writeFile(join(kit, 'workbench-kit.json'), JSON.stringify({ platform: process.platform, arch: process.arch, runtimeVersion: '0.2.1-rc.3' }))
-  for (const name of ['develop-workbench', 'workbench-frontend', 'expert-creator']) {
+  await mkdir(join(kit, 'node_modules/.store/dependency'), { recursive: true })
+  await writeFile(join(kit, 'node_modules/.store/dependency/package.json'), '{"name":"dependency"}')
+  await writeFile(join(kit, 'dependency-links.json'),
+    JSON.stringify([{ path: 'node_modules/dependency', target: 'node_modules/.store/dependency' }]))
+  for (const name of ['develop-workbench', 'workbench-frontend', 'expert-creator', 'local-capability-manager']) {
     const directory = join(kit, 'packages/actvero/capability-ui/assets', name)
     await mkdir(join(directory, 'reference'), { recursive: true })
     await writeFile(join(directory, 'SKILL.md'), `name: ${name}\n`)
@@ -36,6 +40,7 @@ it('shares a completed compiler across simultaneous invocations and removes temp
   const [first, second] = await Promise.all([ensureNpmWorkbenchKit(distribution, cache), ensureNpmWorkbenchKit(distribution, cache)])
   expect(first).toBe(second)
   expect(await readFile(join(first, '.npm-kit-ready'), 'utf8')).toBe(release.sha256)
+  expect(await readFile(join(first, 'node_modules/dependency/package.json'), 'utf8')).toBe('{"name":"dependency"}')
   expect(await readdir(cache)).toEqual([release.sha256])
   expect(await ensureNpmWorkbenchKit(distribution, cache)).toBe(first)
 })
@@ -49,11 +54,11 @@ it('rejects a damaged payload and a platform mismatch before creating a cache', 
   await expect(ensureNpmWorkbenchKit(distribution, cache)).rejects.toThrow('仅支持')
 })
 
-it('copies both Skills with their references and preserves an existing author Skill', async () => {
+it('copies bundled Skills with their references and preserves an existing author Skill', async () => {
   const { root, kit } = await fixture()
   const destination = join(root, 'agent skills')
   const installed = await installWorkbenchSkills(kit, destination)
-  expect(installed).toHaveLength(3)
+  expect(installed).toHaveLength(4)
   for (const path of installed) expect(await readFile(join(path, 'reference/guide.md'), 'utf8')).toBe('portable guidance\n')
   const custom = join(destination, 'develop-workbench/SKILL.md')
   await writeFile(custom, 'author instructions\n')

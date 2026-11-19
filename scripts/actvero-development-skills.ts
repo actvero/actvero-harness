@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, lstat, readFile, readdir, rename, rm, writeFile } f
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
-const names = ['develop-workbench', 'workbench-frontend', 'expert-creator'] as const
+const names = ['develop-workbench', 'workbench-frontend', 'expert-creator', 'local-capability-manager'] as const
 const marker = '.actvero-managed.json'
 const managedSchema = z.object({ owner: z.literal('actvero-development-kit'), files: z.record(z.string(), z.string()) }).strict()
 async function hashes(directory: string, prefix = ''): Promise<Record<string, string>> {
@@ -20,7 +20,7 @@ async function hashes(directory: string, prefix = ''): Promise<Record<string, st
 }
 
 /** Install all shared authoring Skills, or update only unmodified tool-managed copies.
- * @param kit Exact compiler kit containing the three Skill directories.
+ * @param kit Exact compiler kit containing the shared Skill directories.
  * @param destination Collection directory, usually ~/.agents/skills.
  * @param update True permits replacing copies carrying an unchanged management manifest; false rejects existing targets.
  * @returns Installed Skill paths after every replacement succeeds; failures restore previous directories.

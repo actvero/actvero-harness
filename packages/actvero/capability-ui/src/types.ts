@@ -6,12 +6,19 @@ import type { WorkbenchObjectId } from './workbench-reference.ts'
 
 /** One local development attachment, valid only for its exporting Host. */
 export type WorkbenchDevelopmentId = Branded<'WorkbenchDevelopmentId'>
+/** Process invocation for the CLI and Node runtime shipped by the current Desktop. */
+export interface WorkbenchCliInvocation {
+  executable: string
+  args: string[]
+  env: { ELECTRON_RUN_AS_NODE: '1' }
+}
 /** Exported files for local authoring; nullable paths indicate an unavailable optional service. */
 export interface WorkbenchDevelopmentResources {
   skillPath: string
   frontendSkillPath: string
   connectionPath: string | null
   expertSkillPath: string | null
+  cli: WorkbenchCliInvocation | null
 }
 /** Stable package-owned workbench identity. */
 export type WorkbenchId = Branded<'ActveroWorkbenchId'>

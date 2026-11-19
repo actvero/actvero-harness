@@ -4,10 +4,10 @@ import { cliCommandName, parseWorkbenchInvocation, workbenchGuide, workbenchComm
 import { printCliFailure, printCliResult, validateCliResult, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 import { installDevelopmentSkills } from './actvero-development-skills.ts'
 import { createReadStream, realpathSync } from 'node:fs'
-import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawn } from 'node:child_process'
 import { extract } from 'tar'
@@ -18,13 +18,33 @@ const releaseSchema = z.object({
   platform: z.enum(['darwin', 'linux', 'win32']), arch: z.enum(['arm64', 'x64']),
   sha256: z.string().regex(/^[a-f0-9]{64}$/u), runtimeVersion: z.string(), hostApiVersion: z.string(),
 })
+const kitPath = z.string().regex(/^[^/\\:\x00]+(?:\/[^/\\:\x00]+)*$/u).refine(value => value.split('/').every(part => part !== '.' && part !== '..'))
+const linkManifest = z.array(z.strictObject({ path: kitPath, target: kitPath }))
 
 async function releaseAt(directory: string) {
   return releaseSchema.parse(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')))
 }
 
+async function linkCompilerDependencies(staging: string, destination: string): Promise<void> {
+  let raw: string
+  try { raw = await readFile(join(staging, 'dependency-links.json'), 'utf8') }
+  catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return
+    throw error
+  }
+  for (const entry of linkManifest.parse(JSON.parse(raw))) {
+    const link = join(staging, entry.path)
+    const target = join(staging, entry.target)
+    if (!entry.path.startsWith('node_modules/') || !(await stat(target)).isDirectory()) throw new Error('开发套件的依赖链接无效。')
+    await mkdir(dirname(link), { recursive: true })
+    // Windows junctions target the final cache path so they survive the atomic directory rename.
+    if (process.platform === 'win32') await symlink(join(destination, entry.target), link, 'junction')
+    else await symlink(relative(dirname(link), target), link, 'dir')
+  }
+}
+
 /** Extract the immutable bundled compiler into a private cache, shared by concurrent invocations.
- * @param directory Installed npm package directory.
+ * @param directory Installed CLI resources containing the archive and release manifest.
  * @param cacheRoot Parent directory owned by this tool; caller chooses an isolated root in tests.
  * @returns Ready compiler directory; integrity or platform failures leave existing caches untouched.
  */
@@ -48,7 +68,7 @@ export async function ensureNpmWorkbenchKit(directory: string, cacheRoot: string
   const archive = join(directory, 'kit.tgz')
   const hash = createHash('sha256')
   for await (const bytes of createReadStream(archive)) hash.update(bytes)
-  if (hash.digest('hex') !== release.sha256) throw new Error('开发套件校验失败，请重新安装 npm 包。')
+  if (hash.digest('hex') !== release.sha256) throw new Error('开发套件校验失败，请重新安装对应版本的 Harness。')
   await mkdir(cacheRoot, { recursive: true })
   const temporary = await mkdtemp(join(resolve(cacheRoot), '.extract-'))
   try {
@@ -57,8 +77,9 @@ export async function ensureNpmWorkbenchKit(directory: string, cacheRoot: string
     const kit = z.object({ platform: z.string(), arch: z.string(), runtimeVersion: z.string() })
       .parse(JSON.parse(await readFile(join(temporary, 'workbench-kit.json'), 'utf8')))
     if (kit.platform !== release.platform || kit.arch !== release.arch || kit.runtimeVersion !== release.runtimeVersion) {
-      throw new Error('开发套件元数据与 npm 发行版本不一致。')
+      throw new Error('开发套件元数据与已安装 CLI 不一致。')
     }
+    await linkCompilerDependencies(temporary, destination)
     await writeFile(join(temporary, '.npm-kit-ready'), release.sha256)
     try { await rename(temporary, destination) } catch (error) {
       if (!(error instanceof Error && 'code' in error && ['EEXIST', 'ENOTEMPTY'].includes(String(error.code)) && await ready())) throw error
@@ -67,7 +88,7 @@ export async function ensureNpmWorkbenchKit(directory: string, cacheRoot: string
   } finally { await rm(temporary, { recursive: true, force: true }) }
 }
 
-/** Copy the three shared authoring Skills without replacing existing user instructions.
+/** Copy the bundled authoring Skills without replacing existing user instructions.
  * @param kit Verified compiler directory.
  * @param destination Agent Skill collection directory, not an individual Skill path.
  * @returns Installed Skill paths.

@@ -11,12 +11,12 @@ description: 为 ACTVERO Harness 创建、修改、调试和本地安装工作�
 
 1. 沿用对话中已明确的需求；只追问缺少的关键业务目标或最小流程。范围不明时先只读检查，不创建业务代码或安装包。修复已有工作台时保留包名、数据和未提交修改，不重建项目、不重复确认已获授权的工作。
 2. 加载 `reference/environment.json`，阅读指南的[开发环境](reference/guide.zh.md#environment)、[创建和打包](reference/guide.zh.md#create)、[包格式](reference/guide.zh.md#format)。其他章节按下表读取，无需一次读完整本手册。路径相对于本 Skill 的资源目录，不能假设当前目录就是 Skill 或源码仓库。
-3. 核对独立开发套件或已构建源码工具链的位置及目标客户端/Profile。已有项目先查 `.actvero/toolchain.json`；缺失且上下文无法确定时询问套件位置。客户端内的 Skill 不包含完整编译器。独立套件无需 Harness 源码或 pnpm，不要求 GitHub 账号；不擅自克隆源码、安装其他运行时或改宿主配置。
+3. 核对目标客户端/Profile。在安装版里调用 `workbench_cli_info`，用返回的 executable、args 和本次进程的 env 运行随应用安装的 CLI。外部 Agent 使用交接说明中的同一份调用参数。源码开发环境可以继续使用已绑定工具链。
 4. `environment.json` 记录参考文档的 DSH 基线、工作台 API 版本与来源，不证明目标桌面已更新。包的 `engines.dsh` 与 `protocol.hostApi` 分别检查；不能改版本声明绕过不兼容。指南中标为“源码仓库”的路径不是随 Skill 安装的文件。
 
 ## 实现与调试
 
-使用 [npm 发行版](reference/npm.zh.md)时，先运行 `actvero-workbench info` 获取已校验的工具链目录与版本，再用 `actvero-workbench create` 或 `bind`。Skill 安装只复制规范；当前 Agent 是否发现它需要单独确认。
+按[内置 CLI 说明](reference/npm.zh.md)运行 `info` 获取已校验的工具链目录与版本，再用 `create` 或 `bind`。首次编译所需的文件随 Harness 安装，CLI 校验后解压到本机缓存。
 
 通过 `actvero-workbench schema show <命令>` 查实参数、结果与回查方式，`example show <命令>` 获取请求样例。自动化命令使用 `--json`。写入结果未知时，按返回的 recovery 回查。联调时使用 `schema show dev` 区分生成归档、加载运行时和发布客户端。
 
@@ -24,7 +24,7 @@ description: 为 ACTVERO Harness 创建、修改、调试和本地安装工作�
 
 首次实现或架构不明时，读[实施手册](reference/implementation.zh.md#choose)：按数据与 AI 需求选方案，先打通一个业务操作。需要原生持久化时，跟随[完整示例](reference/implementation.zh.md#counter)连接 Host、Client 与资源更新；它是接入练习，不替代用户业务。接口或组件不确定时查[查找方法](reference/implementation.zh.md#lookup)，遇到问题按[分层排障](reference/implementation.zh.md#debug)收集证据。
 
-在项目目录使用 `npm run doctor`、`npm run typecheck` 和相关业务测试。已提供 Harness 开发连接文件时，先执行 `actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json`，随后 `npm run dev` 自动构建并加载到此 Profile。`actvero-workbench status /项目目录` 和 `logs /项目目录` 返回部署记录，`detach /项目目录` 结束覆盖并恢复正式安装版本。未连接时 dev 仅构建。读取 `.actvero/diagnostics.json`，分别确认构建、Host 加载和 Client 发布；`runtime: loaded` 仍需在真实界面验证业务。更新等待关联对话空闲，失败保留或恢复上次可用实现；无法确认恢复时停止操作并查看诊断。CLI 不启动或重启 Harness。正式交付仍使用版本化打包与安装。工具链移动后按 README 执行 `bind`。
+使用已安装 CLI 的 `doctor <项目目录>`、`typecheck <项目目录>` 和相关业务测试。已提供 Harness 开发连接文件时，先执行 `actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json`，随后用 `dev <项目目录>` 自动构建并加载到此 Profile。`actvero-workbench status /项目目录` 和 `logs /项目目录` 返回部署记录，`detach /项目目录` 结束覆盖并恢复正式安装版本。未连接时 dev 仅构建。读取 `.actvero/diagnostics.json`，分别确认构建、Host 加载和 Client 发布；`runtime: loaded` 仍需在真实界面验证业务。更新等待关联对话空闲，失败保留或恢复上次可用实现；无法确认恢复时停止操作并查看诊断。CLI 不启动或重启 Harness。正式交付仍使用版本化打包与安装。工具链移动后按 README 执行 `bind`。
 
 开启 `ai: true` 的工作台自动贡献一个随包专家，用户可从任意会话召唤。不要另外创建个人专家副本，不强制选择或切换文件工作区。可用 `expertEntry` 提供简介和头像，设为 false 隐藏入口。实例数据、对话文件目录与固定业务对象分别处理；沿用传入 sessionId 与 object，预览和完整界面指向相同业务对象。停用和卸载撤下专家入口，默认保留业务数据与历史。
 

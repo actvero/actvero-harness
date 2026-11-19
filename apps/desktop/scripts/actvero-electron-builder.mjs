@@ -17,6 +17,7 @@ export function createActveroElectronBuilderConfig(product, directory, env = pro
   const paths = resolveDesktopTargetBuildPaths(env)
   const platform = env.DSH_DESKTOP_TARGET_PLATFORM ?? process.platform
   const arch = env.DSH_DESKTOP_TARGET_ARCH ?? process.arch
+  const compiler = env.ACTVERO_WORKBENCH_CLI_PAYLOAD
   const runtimeVersion = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8')).version
   const assertRuntime = async () => { const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js'); await verifyDesktopRuntime(paths.dsh, runtimeVersion, { platform, arch }) }
   return {
@@ -33,8 +34,10 @@ export function createActveroElectronBuilderConfig(product, directory, env = pro
       '**/node_modules/@deepseek-ai/libreoffice-kit/**/*',
       `**/node_modules/@deepseek-ai/libreoffice-kit-${platform}-${arch}/**/*`],
     extraResources: [{ from: paths.runtime, to: 'runtime' }, { from: join(directory, 'icon.png'), to: 'icon.png' },
+      ...(compiler ? [{ from: compiler, to: 'actvero-workbench' }] : []),
       ...(platform === 'win32' ? [{ from: join(directory, 'tray.ico'), to: 'tray.ico' }] : [])],
     beforePack: async context => {
+      if (!compiler) throw new Error('ACTVERO package: missing embedded workbench CLI; run actvero:package')
       const bundled = JSON.parse(readFileSync(join(appRoot, 'lib/actvero-build-product.json'), 'utf8'))
       if (JSON.stringify(bundled) !== JSON.stringify(product)) throw new Error('ACTVERO package: desktop bundle does not match the selected configuration; rebuild it')
       await assertRuntime()

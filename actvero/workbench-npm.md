@@ -1,26 +1,14 @@
-# Workbench npm developer kit
+# Workbench CLI installed with Harness
 
 English | [中文](workbench-npm.zh.md)
 
-For developers and Agents building workbenches for an installed ACTVERO desktop. This package supplies scaffolding, pinned compiler tools, API declarations, development commands and three shared Skills (develop-workbench, workbench-frontend and expert-creator) without requiring Harness source. This preview supports macOS Apple Silicon and requires Node 22.19 or 24 and later; other operating systems and architectures are outside this distribution.
+Installing ACTVERO Harness supplies the local CLI, workbench compiler kit and authoring Skills. Developers and Agents can scaffold, package and test workbenches and manage local Skills, MCP connections and experts on the target Harness.
 
-## Install and create
+## Find and launch the CLI
 
-```sh
-npm install -g @actvero/workbench-development-kit@preview
-actvero-workbench --version
-actvero-workbench info
-actvero-workbench create ./my-workbench @local/my-workbench
-cd ./my-workbench
-npm run doctor
-npm run typecheck
-npm run build
-npm run check
-```
+In a Harness conversation, call `workbench_cli_info`. An external Agent gets the invocation and private development connection file from the Hand off to another Agent action in the workbench or expert creation dialog. Launch the returned executable, append the subcommand to its fixed args, and apply env to that process only. The examples below use actvero-workbench to stand for this invocation prefix.
 
-Read the generated project's AGENTS.md, DESIGN.md and .agents/skills/develop-workbench/SKILL.md before implementing confirmed requirements. create defaults to a blank template; append `--template plain` or `--template ai` for examples. dist/*.tgz is the business package imported into the desktop, not this npm developer kit.
-
-The first command needing the compiler verifies and extracts the bundled kit.tgz into `~/.cache/actvero-workbench/`; it neither downloads another toolchain nor runs a postinstall script. info reports its location, DSH baseline and workbench API version. Set `ACTVERO_WORKBENCH_CACHE_DIR` to override the cache parent. The npm version and running desktop must still meet their respective compatibility requirements.
+The first compiler command verifies and extracts the kit.tgz shipped with the application into `~/.cache/actvero-workbench/`. Use `info` to see the cache path, DSH baseline and workbench API version. Run `create` for a new project or `bind` for an existing one. Build and check with the built-in CLI's `pack` and `check` subcommands.
 
 ## Command help and automation
 
@@ -36,7 +24,7 @@ actvero-workbench mcp create --connection ./connection.json --file ./request.jso
 
 Add `--json` to an execution command for a single JSON result line on stdout. Success has `ok=true` and returns data in `result`. Failures exit with code 1 and return `error.code`, `error.message`, and `error.outcome`, with `recovery` and field-level `issues` where applicable. When `outcome=unknown`, read back the current state before retrying. Help and schema commands print their reference directly. The `dev` command streams build status as JSON lines.
 
-`skill install` writes into the target Harness Skill library. `skills install` copies the kit's three authoring Skills into an Agent Skill directory. The running target Harness owns the private connection file. Export a new file after it restarts.
+`skill install` writes into the target Harness Skill library. `skills install` copies the kit's four bundled Skills into an Agent Skill directory. The running target Harness owns the private connection file. Export a new file after it restarts.
 
 ## Install Skills for an Agent
 
@@ -69,12 +57,12 @@ An example MCP create request is `{"config":{"name":"Document service","transpor
 
 ## Update, debug and deliver
 
-After upgrading the npm kit, run `actvero-workbench bind /absolute/path/project` for existing projects to refresh toolchain binding, Skills and type configuration while retaining business source and DESIGN.md. Do not copy old cache paths to another machine; install a compatible kit there and bind again.
+After upgrading Harness, run `actvero-workbench bind /absolute/path/project` for existing projects to refresh toolchain binding, Skills and type configuration while retaining business source and DESIGN.md. Do not copy old cache paths to another machine; install a compatible kit there and bind again.
 
 `npm run dev` builds automatically. Attach once with `actvero-workbench attach /project --connection /connection.json` to load development overlays in that Harness. Without an attachment it only builds. `status`, `logs` and `detach` inspect or release the overlay. See the [development guide](workbench-development.md#create) for build, loading and business verification.
 
-Uninstalling the global npm package preserves projects, copied Skills and caches; retain caches still bound by projects. Use info to locate a cache, rebind projects to the new kit, then remove unused old directories. This kit does not automatically upload, publish or call paid models.
+Uninstalling Harness preserves projects, copied Skills and caches; retain caches still bound by projects. Use info to locate a cache, rebind projects to the new kit, then remove unused old directories. This kit does not automatically upload, publish or call paid models.
 
-## Maintainer packaging
+## Desktop delivery
 
-After building the source checkout, run `pnpm run actvero:workbench-npm /absolute/path/new-distribution-directory`. actvero/workbench-npm.json owns the name, version and dist-tag; the command only prepares a directory. Inspect npm pack's file list, install the actual npm archive into an isolated prefix, and verify creation, compilation, packaging and Skill installation before publishing.
+ACTVERO Desktop packaging copies the CLI and the platform-matched compiler kit into application resources. Package verification uses the installed runtime to read a schema and create and package a workbench in an isolated directory. The CLI upgrades with Harness.

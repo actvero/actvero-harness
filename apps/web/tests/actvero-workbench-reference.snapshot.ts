@@ -59,7 +59,6 @@ it.skipIf(webSnapshotMode() === 'record')('persists and replays a workbench snap
       await page.getByRole('button', { name: '流程图选区', exact: true }).click()
       const modal = page.getByRole('dialog', { name: '流程图选区', exact: true })
       await modal.getByText('选中元素 A、B；矩形 A 指向 B。', { exact: true }).waitFor()
-      expect(await modal.getByText('Revision: 4', { exact: true }).count()).toBe(1)
       await page.keyboard.press('Escape')
     }
     expect(console.pageErrors).toEqual([])

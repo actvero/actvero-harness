@@ -470,12 +470,34 @@ describe('workbench runtime', () => {
     expect(ctx.skills.renderContent(skill).replaceAll(skill.resourceBase.path, '<developer-skill>')).toMatchSnapshot()
     const frontend = await ctx.skills.get('workbench-frontend')
     expect(frontend?.source).toBe('bundled')
+    const manager = await ctx.skills.get('local-capability-manager')
+    expect(manager?.source).toBe('bundled')
+    expect(manager?.content).toContain('local_capabilities')
     expect(frontend?.resourceBase?.kind).toBe('directory')
     if (frontend?.resourceBase?.kind !== 'directory') throw new Error('Missing packaged frontend guidance')
     expect(ctx.skills.renderContent(frontend).replaceAll(frontend.resourceBase.path, '<frontend-skill>')).toMatchSnapshot()
     await workbenches.dispose()
     expect(await ctx.skills.get('develop-workbench')).toBeUndefined()
     expect(await ctx.skills.get('workbench-frontend')).toBeUndefined()
+    expect(await ctx.skills.get('local-capability-manager')).toBeUndefined()
+  })
+
+  it('shares the installed CLI invocation between the native tool and the external handoff', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'actvero-cli-entry-'))
+    onTestFinished(() => rm(root, { recursive: true, force: true }))
+    const entry = join(root, 'installed cli.mjs')
+    await writeFile(entry, '')
+    vi.stubEnv('ACTVERO_WORKBENCH_CLI_ENTRY', entry)
+    try {
+      const { ctx, runtime } = await harness()
+      const invocation = { executable: process.execPath, args: ['--expose-internals', entry], env: { ELECTRON_RUN_AS_NODE: '1' } }
+      expect((await runtime.developmentResources()).cli).toEqual(invocation)
+      const result = await ctx.tools.execute({
+        name: 'workbench_cli_info', arguments: {}, callId: ToolCallId('cli-entry'), signal: new AbortController().signal,
+      })
+      expect(result.isError).toBe(false)
+      expect(JSON.stringify(result)).toContain('installed cli.mjs')
+    } finally { vi.unstubAllEnvs() }
   })
 
   it('denies undeclared platform access and withdraws access with its loaded provider', async () => {

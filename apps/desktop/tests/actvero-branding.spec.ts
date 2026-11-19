@@ -69,7 +69,10 @@ describe('ACTVERO build variants', () => {
   })
   it.each(['darwin', 'win32'])('assembles %s test installers without the official identity or update/signing service', async (platform) => {
     const root = fixture(), branding = await prepareProductBranding(root)
-    const packed = createActveroElectronBuilderConfig(branding.product, branding.directory, { DSH_DESKTOP_TARGET_PLATFORM: platform, DSH_DESKTOP_TARGET_ARCH: 'x64' })
+    const cli = join(branding.directory, 'verified-cli')
+    const packed = createActveroElectronBuilderConfig(branding.product, branding.directory, {
+      DSH_DESKTOP_TARGET_PLATFORM: platform, DSH_DESKTOP_TARGET_ARCH: 'x64', ACTVERO_WORKBENCH_CLI_PAYLOAD: cli,
+    })
     expect(packed.appId).toBe('com.actvero.desktop')
     expect(packed.extraMetadata.version).toBe(branding.assembly.config.product.version)
     expect(packed.extraMetadata).not.toHaveProperty('dshMandatoryUpdatePolicy')
@@ -83,6 +86,7 @@ describe('ACTVERO build variants', () => {
     const tray = packed.extraResources.find(value => value.to === 'tray.ico')
     expect(!!tray).toBe(platform === 'win32')
     expect(packed.nsis.deleteAppDataOnUninstall).toBe(false)
+    expect(packed.extraResources).toContainEqual({ from: cli, to: 'actvero-workbench' })
     expect(packed.asarUnpack).toContain('**/node_modules/@deepseek-ai/libreoffice-kit/**/*')
   })
   it('keeps official baseline copy unchanged and localizes the native product name', () => {

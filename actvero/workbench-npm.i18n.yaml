@@ -2,24 +2,24 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write actvero/workbench-npm.md
-/workbench-npm-developer-kit:
-  en: b84a9f4772c2133b
-  zh: f18700394f3b72a3
-/workbench-npm-developer-kit/install-and-create:
-  en: 95c66d69d57efbc0
-  zh: 522a18af6398cbcf
-/workbench-npm-developer-kit/command-help-and-automation:
-  en: 68997a98042bc291
-  zh: d4017ff9e1b75516
-/workbench-npm-developer-kit/install-skills-for-an-agent:
+/workbench-cli-installed-with-harness:
+  en: 81be4cdba8b56f61
+  zh: 6164d890642f9344
+/workbench-cli-installed-with-harness/find-and-launch-the-cli:
+  en: 383919ec9b4453a7
+  zh: 7ea0a794180bab3e
+/workbench-cli-installed-with-harness/command-help-and-automation:
+  en: 1a5abf89b199e938
+  zh: 1407b848eaf26d3b
+/workbench-cli-installed-with-harness/install-skills-for-an-agent:
   en: c1d6fc76f5f4b7de
-  zh: 682b7e19638424ce
-/workbench-npm-developer-kit/manage-local-skills-and-mcp:
+  zh: 4cc1c1df7b33d10e
+/workbench-cli-installed-with-harness/manage-local-skills-and-mcp:
   en: 447dbe045d391e80
   zh: ff3de69f80708b5b
-/workbench-npm-developer-kit/update-debug-and-deliver:
-  en: fdd74722e3b9033c
-  zh: d06feb400df5f098
-/workbench-npm-developer-kit/maintainer-packaging:
-  en: 4f89e11f5764e0ac
-  zh: e79ac26a856906ee
+/workbench-cli-installed-with-harness/update-debug-and-deliver:
+  en: 6b5633934dcfd1d1
+  zh: 77fbccf409fe4ad9
+/workbench-cli-installed-with-harness/desktop-delivery:
+  en: 9dd617449617ea87
+  zh: 2359e2681f320ce9

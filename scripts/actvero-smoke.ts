@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
 import ts from 'typescript'
 import { desktopNodeEnvironment } from '../apps/desktop/src/node-environment.ts'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { resolveDesktopTargetBuildPaths } from '../apps/desktop/scripts/desktop-build-paths.mjs'
 import { readDesktopRuntime, verifyDesktopRuntime } from '../apps/desktop/src/runtime-tree.ts'
 import { smokePreparedRuntime } from '../apps/desktop/scripts/smoke-prepared-runtime.ts'
@@ -34,6 +34,30 @@ async function verifyMainImports(archive: string, executable: string): Promise<v
   process.stdout.write(stdout)
 }
 
+async function verifyEmbeddedWorkbenchCli(resources: string, executable: string): Promise<void> {
+  const directory = mkdtempSync(join(realpathSync.native(tmpdir()), 'actv-cli-'))
+  try {
+    const entry = join(resources, 'actvero-workbench', 'bin', 'actvero-workbench.mjs')
+    const env = desktopNodeEnvironment(executable, undefined, {
+      ...process.env, NODE_OPTIONS: '', NODE_PATH: '', ACTVERO_WORKBENCH_CACHE_DIR: join(directory, 'compiler'),
+    })
+    const command = async (...args: string[]) => {
+      const { stdout } = await promisify(execFile)(executable, ['--expose-internals', entry, ...args], {
+        cwd: directory, timeout: 90_000, windowsHide: true, env,
+      })
+      return JSON.parse(stdout)
+    }
+    const schema = await command('schema', 'show', 'mcp.create')
+    if (schema.command !== 'mcp.create') throw new Error('ACTVERO package: invalid embedded workbench CLI schema')
+    const project = resolve(directory, 'fixture')
+    const draft = await command('create', project, '@local/installer-fixture', '--json')
+    if (!draft.ok || draft.result.directory !== project) throw new Error('ACTVERO package: embedded workbench template failed')
+    const pack = await command('pack', project, '--json')
+    if (!pack.ok || pack.result.name !== '@local/installer-fixture') throw new Error('ACTVERO package: embedded workbench compiler failed')
+    console.log('ACTVERO package: verified installed CLI and offline compiler')
+  } finally { rmSync(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }) }
+}
+
 async function main(): Promise<void> {
   const directory = process.env.ACTVERO_BRANDING_DIRECTORY
   if (!directory) throw new Error('ACTVERO smoke: run through actvero:package')
@@ -53,6 +77,7 @@ async function main(): Promise<void> {
     const executable = platform === 'win32' ? join(smokeApplication, `${product.displayName}.exe`)
       : join(smokeApplication, 'MacOS', product.displayName)
     await verifyMainImports(join(resources, 'app.asar'), executable)
+    await verifyEmbeddedWorkbenchCli(resources, executable)
     const paths = resolveDesktopTargetBuildPaths()
     const descriptor = await verifyDesktopRuntime(paths.dsh, readDesktopRuntime(paths.dsh).release.version, { platform, arch })
     await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)

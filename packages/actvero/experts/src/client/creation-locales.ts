@@ -1,6 +1,6 @@
 /** Localized entry and portable instructions for designing an expert outside Harness. */
 export const creatorZh = {
-  creatorResources: '专家创建 Skill：{skillPath}\n本机 Harness 开发连接：{connectionPath}\n可使用 actvero-workbench expert 操作直接创建、读取、更新和检查目标 Harness 中的本机专家。',
+  creatorResources: '专家创建 Skill：{skillPath}\n本机 Harness 开发连接：{connectionPath}\n随 Harness 安装的 CLI 调用：{cliInvocation}\n使用其中的 executable、args 和单次进程 env，追加 expert 操作直接创建、读取、更新和检查目标 Harness 中的本机专家。',
   creatorHelp: '告诉 AI 你的工作场景，一起确定专家的职责和工作方法。',
   creatorChoice: '在 Harness 中开始，或复制创建说明交给其他 Agent。',
   creatorHere: '在 Harness 中创建',
@@ -15,7 +15,7 @@ export const creatorZh = {
 }
 
 export const creatorEn: Record<keyof typeof creatorZh, string> = {
-  creatorResources: 'Expert creation Skill: {skillPath}\nLocal Harness development connection: {connectionPath}\nUse actvero-workbench expert operations to create, read, update and check local experts in this Harness.',
+  creatorResources: 'Expert creation Skill: {skillPath}\nLocal Harness development connection: {connectionPath}\nCLI installed with Harness: {cliInvocation}\nUse the executable, args and per-process env, then append expert operations to create, read, update and check local experts in this Harness.',
   creatorHelp: 'Tell AI about your work and define the expert’s responsibilities and methods together.',
   creatorChoice: 'Start in Harness or copy the creation instructions for another Agent.',
   creatorHere: 'Create in Harness',

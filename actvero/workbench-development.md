@@ -36,9 +36,9 @@ Prefer a standalone developer kit matching the target Harness baseline. It inclu
 
 Maintainers run `pnpm run build:artifacts` in a checkout with locked dependencies, then `pnpm run actvero:workbench-kit /absolute/path/new-kit` to export into a nonexistent directory. Developers receive the complete kit and read its README.md; do not copy only the compiler entrypoint or run npm install inside the kit. Install additional business dependencies in the project and declare them according to the package format. The source-based `pnpm run actvero:workbench` remains available and requires that checkout to be built.
 
-Reuse confirmed goals; clarify the minimum flow before creating an unspecified business. Check the kit and installation client separately: development commands do not establish the target desktop's capabilities, and an isolated Profile does not validate the everyday application. The desktop does not yet bundle the complete compiler kit; obtain a kit or built source checkout when the toolchain is missing.
+Reuse confirmed goals; clarify the minimum flow before creating an unspecified business. Check the kit and installation client separately: development commands do not establish the target desktop's capabilities, and an isolated Profile does not validate the everyday application. The desktop installer includes the compiler kit for its architecture.
 
-The npm distribution provides the `actvero-workbench` command and installable Skills; see the [npm developer kit](workbench-npm.md) for installation, caching and upgrades.
+See the [CLI installed with Harness](workbench-npm.md) for the terminal invocation and bundled Skills.
 
 <a id="native-development"></a>
 
@@ -48,14 +48,14 @@ When the workbench plugin loads in the ACTVERO desktop, it registers `develop-wo
 
 1. Open Workbenches → Create a workbench → Create in Harness. The client selects the cordis development preset and fills a draft; the user adds requirements and sends it. It does not execute a task automatically.
 2. The agent loads develop-workbench with the native skill tool and reads environment.json and the guide relative to the returned resource directory. If the skill is missing, check whether the workbench plugin is loaded; if skill or file tools are absent, check the conversation's development preset. Mentioning a skill in a prompt does not establish that it loaded.
-3. Identify the business directory and local toolchain. A new project can use an extracted standalone kit path; an existing project reads .actvero/toolchain.json. Follow Create and package and the native file/Shell permissions. The installed desktop does not replace Node or the developer kit.
+3. Choose the project directory. In an installed Harness, call `workbench_cli_info` and run the returned executable with its args and env. Source development can use an already-bound kit. File and shell operations use native permissions.
 4. After producing a .tgz, follow Import and verify for the selected Profile. Native plugin_manager availability depends on that Profile and preset; otherwise import through the management page. Check installation, restart requirements, loading and business results separately.
 
 <a id="create"></a>
 
 ## Create and package
 
-The manager's Create a workbench dialog offers two actions. Create in Harness opens unsent instructions using the native development preset. Use another Agent copies instructions and ordinary file paths exported by the Host, with a transient notification. Those files include their relative references, so external Agents do not need to read an application archive. Exported guidance is not a compiler; obtain the developer kit described above. Neither action sends a task or installs a package automatically.
+The manager's Create a workbench dialog offers two actions. Create in Harness opens unsent instructions using the native development preset. Use another Agent copies instructions and ordinary file paths exported by the Host, with a transient notification. Those files include their relative references, so external Agents do not need to read an application archive. The handoff includes the invocation of the installed CLI. Neither action sends a task or installs a package automatically.
 
 Create a project from the kit root. The destination must not exist; the optional second argument supplies a stable package name. Otherwise creation derives and saves one from the initial path; preserve it after relocation.
 

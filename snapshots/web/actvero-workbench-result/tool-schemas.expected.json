@@ -332,6 +332,40 @@
       }
     },
     {
+      "name": "local_capabilities",
+      "description": "Manage local Harness Skills and custom MCP connections using the same operations as actvero-workbench. List or show before changing an existing item. Use the current Skill version or MCP revision when updating. Only install or change what the user requested. New MCP configurations are saved disabled. Enter credentials in the connector manager.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "skill-list",
+              "skill-show",
+              "skill-read",
+              "skill-install",
+              "skill-update",
+              "skill-edit",
+              "skill-enable",
+              "mcp-list",
+              "mcp-show",
+              "mcp-create",
+              "mcp-update",
+              "mcp-test",
+              "mcp-enable"
+            ]
+          },
+          "input_json": {
+            "type": "string",
+            "description": "JSON object. show/test: {id}; skill-read: {id,path} from the file inventory; skill-install: {path} for an absolute folder, ZIP or SKILL.md; skill-update: {id,version,path}; skill-edit: {id,version,path,content}; enable: {id,enabled}; mcp-create: {config:{name,transport,command,args,cwd,url,auth,clientId}}; mcp-update: {id,revision,patch}."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      }
+    },
+    {
       "name": "present",
       "description": "Declare existing files as final deliverables for the user. Use it when the user needs a separate file, especially Office documents, spreadsheets, and slide decks; prefer your final response when that suffices. The user opens the current files; their contents are not copied.",
       "parameters": {

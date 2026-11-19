@@ -1121,7 +1121,10 @@ export function apply(ctx: Context) {
             try {
               const result = await ctx.remote.actveroWorkbench.developmentResources()
               if (!result.ok) throw result.error
-              return ctx.locale.bind('actvero.experts')('creatorResources', { skillPath: result.value.expertSkillPath ?? '', connectionPath: result.value.connectionPath ?? '' })
+              return ctx.locale.bind('actvero.experts')('creatorResources', {
+                skillPath: result.value.expertSkillPath ?? '', connectionPath: result.value.connectionPath ?? '',
+                cliInvocation: JSON.stringify(result.value.cli ?? null),
+              })
             } catch (error) { ctx.logger.warn('Unable to export expert creation resources: %s', error); throw error }
           },
           createWithAI: async (text: string) => {

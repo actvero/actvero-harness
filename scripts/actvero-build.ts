@@ -1,11 +1,13 @@
 /** Build or package an ACTVERO variant through the official runtime preparation stages. */
 import { spawn } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { assertActveroBaseline } from './actvero-baseline.ts'
 import { join, resolve } from 'node:path'
 import { prepareProductBranding } from '../apps/desktop/scripts/actvero-branding.ts'
 import { pnpmInvocation } from './pnpm-invocation.ts'
 import { packageTarget, desktopElectronBuilderEnvironment } from '../apps/desktop/scripts/package-target.ts'
 import { requireDesktopToolchain } from '../apps/desktop/scripts/desktop-toolchain-preflight.ts'
+import { prepareWorkbenchCli } from './actvero-workbench-npm.ts'
 import { assertActveroOutputAvailable, exportActveroRelease, prepareActveroBuildConfiguration, resolveActveroBuildRequest } from './actvero-package.ts'
 
 /**
@@ -46,6 +48,7 @@ async function main(): Promise<void> {
   if (target) {
     console.log(`ACTVERO package: target=${target.name}; format=${request.directory ? 'directory' : request.formats.join(',')}; output=${request.output ?? 'internal build directory'}`)
     await requireDesktopToolchain(target.platform)
+    if (target.arch !== process.arch) throw new Error(`ACTVERO package: 工作台编译器含原生依赖，请在 ${target.arch} Node 下安装锁定依赖并运行此打包命令。`)
   }
   if (request.check) return
   const environment = { ...process.env, ACTVERO_PRODUCT_CONFIG: configPath,
@@ -63,11 +66,16 @@ async function main(): Promise<void> {
     targetEnvironment, undefined)
   }
   else await run(['--dir', 'apps/desktop', 'run', 'bundle'], targetEnvironment, root)
-  await run(['exec', 'electron-builder', '--config', 'actvero.electron-builder.config.mjs',
-    target.builderPlatform, ...request.formats.map(format => format === 'exe' ? 'nsis' : format),
-    target.builderArch, '--publish', 'never', ...(request.directory ? ['--dir'] : [])],
-  targetEnvironment, join(root, 'apps/desktop'))
-  await run(['exec', 'tsx', 'scripts/actvero-smoke.ts'], targetEnvironment, root)
+  const cli = await mkdtemp(join(branding.directory, '.workbench-cli-'))
+  try {
+    const payload = await prepareWorkbenchCli(join(cli, 'payload'))
+    const packageEnvironment = { ...targetEnvironment, ACTVERO_WORKBENCH_CLI_PAYLOAD: payload.path }
+    const builder = ['exec', 'electron-builder', '--config', 'actvero.electron-builder.config.mjs',
+      target.builderPlatform, ...request.formats.map(format => format === 'exe' ? 'nsis' : format),
+      target.builderArch, '--publish', 'never', ...(request.directory ? ['--dir'] : [])]
+    await run(builder, packageEnvironment, join(root, 'apps/desktop'))
+    await run(['exec', 'tsx', 'scripts/actvero-smoke.ts'], packageEnvironment, root)
+  } finally { await rm(cli, { recursive: true, force: true }) }
   const artifacts = join(branding.directory, 'artifacts', `${target.platform}-${target.arch}`)
   if (request.directory) console.log(`ACTVERO package: unpacked application at ${artifacts}`)
   else {

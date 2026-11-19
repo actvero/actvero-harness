@@ -10,6 +10,7 @@ import { workbenchDomain } from './workbench-storage.ts'
 import { checklistProvider } from './checklist.ts'
 import { WorkbenchMaintenance } from './workbench-maintenance.ts'
 import { WorkbenchDevelopment } from './workbench-development.ts'
+import { registerWorkbenchCliDiscovery } from './workbench-cli.ts'
 import { join } from 'node:path'
 import { WorkbenchPlatformAccess } from './workbench-platform.ts'
 
@@ -47,6 +48,7 @@ export const Config: z<Config> = z.object({
  * @returns Completion when the runtime and any explicitly enabled example are ready.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
+  registerWorkbenchCliDiscovery(ctx)
   ctx.inject(['skills'], (child) => {
     let provider!: FileSystemSkillProvider
     child.skills.registerProvider((control) => {

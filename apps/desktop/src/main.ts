@@ -475,7 +475,9 @@ async function main(): Promise<void> {
   const backend = new DesktopBackendController((onFailure) => {
     const hostInspectPort = developmentHostInspectPort(development)
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), ACTVERO_DESKTOP: actveroEnabled ? '1' : '0' }, onFailure,
+      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), ACTVERO_DESKTOP: actveroEnabled ? '1' : '0',
+        ACTVERO_WORKBENCH_CLI_ENTRY: actveroEnabled && app.isPackaged
+          ? join(process.resourcesPath, 'actvero-workbench', 'bin', 'actvero-workbench.mjs') : undefined }, onFailure,
       primaryRuntime,
       resources, (next) => { platformView.setSession(next) },
       message=>actveroCapabilities?.receive(message), ()=>actveroCapabilities?.close())

@@ -134,11 +134,11 @@ export const workbenchCommands: Readonly<Record<string, Entry>> = {
     example: { arguments: [] }, success: '返回已校验的套件目录。首次调用可能解压工具链缓存。',
   },
   version: {
-    summary: '查看 npm 套件版本。', effect: 'read', output: z.strictObject({ version: z.string() }),
+    summary: '查看已安装 CLI 版本。', effect: 'read', output: z.strictObject({ version: z.string() }),
     example: { arguments: [] }, success: '返回已安装的套件版本。',
   },
   'skills.install': {
-    summary: '复制套件自带的三份开发 Skill 到其他 Agent 的技能目录。', effect: 'local_files', args: ['[directory]'],
+    summary: '复制随套件交付的 Skill 到其他 Agent 的技能目录。', effect: 'local_files', args: ['[directory]'],
     flags: { global: { type: 'boolean', description: '写入 ~/.agents/skills。与 directory 互斥。' } },
     output: z.strictObject({ installed: z.array(path) }), example: { arguments: ['--global'] },
     success: '返回已复制的路径。省略目标时写入当前项目 .agents/skills。已有同名目录时拒绝覆盖。',

@@ -2,7 +2,7 @@
 import { cp, mkdir, readFile, readdir, realpath, stat, symlink, writeFile } from 'node:fs/promises'
 import { readFileSync, realpathSync } from 'node:fs'
 import { createRequire, isBuiltin } from 'node:module'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
 import { build } from 'tsdown'
@@ -40,14 +40,16 @@ function packageDirectory(name: string, from: string): string {
 
 /** Export into a new directory; native compiler dependencies match this machine's platform and architecture.
  * @param destination New kit directory, never an existing project or source checkout.
+ * @param portableLinks Record relative dependency links for the installed CLI to materialize.
  * @returns Absolute kit location and the exact runtime baseline.
  */
-export async function exportWorkbenchKit(destination: string): Promise<{ path: string; runtimeVersion: string }> {
+export async function exportWorkbenchKit(destination: string, portableLinks = false): Promise<{ path: string; runtimeVersion: string }> {
   const output = resolve(destination)
   await mkdir(dirname(output), { recursive: true })
   await mkdir(output)
   const baseline = z.object({ version: z.string() }).parse(JSON.parse(await readFile(join(repository, 'actvero/upstream.lock.json'), 'utf8')))
   const copied = new Map<string, string>()
+  const links = new Map<string, string>()
   const copyDependency = async (source: string): Promise<string> => {
     source = await realpath(source)
     const found = copied.get(source)
@@ -58,7 +60,7 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
     const key = createHash('sha256').update(relative(repository, source)).digest('hex').slice(0, 16)
     const target = join(output, 'node_modules/.store', key)
     copied.set(source, target)
-    await cp(source, target, { recursive: true, dereference: true, filter: file => !relative(source, file).split('/').includes('node_modules') })
+    await cp(source, target, { recursive: true, dereference: true, filter: file => !relative(source, file).split(sep).includes('node_modules') })
     const names = new Set([...Object.keys(manifest.dependencies ?? {}), ...Object.keys(manifest.optionalDependencies ?? {}),
       ...Object.keys(manifest.peerDependencies ?? {})])
     for (const name of names) {
@@ -73,6 +75,11 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
   }
   const linkDependency = async (name: string, target: string, modules: string) => {
     const link = join(modules, name)
+    if (portableLinks) {
+      const path = relative(output, link)
+      if (!links.has(path)) links.set(path, relative(output, target))
+      return
+    }
     await mkdir(dirname(link), { recursive: true })
     if (!ts.sys.fileExists(join(link, 'package.json'))) await symlink(relative(dirname(link), target), link, 'dir')
   }
@@ -116,12 +123,12 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
     }
   }
   for (const name of imports) {
-    if (ts.sys.fileExists(join(output, 'node_modules', name, 'package.json'))) continue
+    if (links.has(join('node_modules', name)) || ts.sys.fileExists(join(output, 'node_modules', name, 'package.json'))) continue
     let source: string
     try { source = packageDirectory(name, repository) } catch (_notDirectDependency) { continue }
     await linkDependency(name, await copyDependency(source), join(output, 'node_modules'))
   }
-  for (const skill of ['develop-workbench', 'workbench-frontend']) {
+  for (const skill of ['develop-workbench', 'workbench-frontend', 'local-capability-manager']) {
     await cp(join(repository, 'packages/actvero/capability-ui/assets', skill), join(output, 'packages/actvero/capability-ui/assets', skill), { recursive: true })
   }
   const expertSkill = join(output, 'packages/actvero/capability-ui/assets/expert-creator')
@@ -133,6 +140,10 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
   const environment = { schemaVersion: 1, runtimeVersion: baseline.version,
     platform: process.platform, arch: process.arch, node: process.versions.node }
   await writeFile(join(output, 'workbench-kit.json'), JSON.stringify(environment, null, 2) + '\n')
+  if (portableLinks) {
+    const rows = [...links].map(([path, target]) => ({ path: path.replaceAll('\\', '/'), target: target.replaceAll('\\', '/') }))
+    await writeFile(join(output, 'dependency-links.json'), JSON.stringify(rows) + '\n')
+  }
   await writeFile(join(output, 'package.json'), JSON.stringify({ name: '@actvero/workbench-development-kit', version: baseline.version, private: true, type: 'module' }, null, 2) + '\n')
   await build({ entry: { 'actvero-workbench.client': join(repository, 'scripts/actvero-workbench.client.ts') }, outDir: join(output, 'scripts'),
     format: 'esm', platform: 'node', target: 'node22', fixedExtension: true, config: false, clean: false, dts: false, sourcemap: false,

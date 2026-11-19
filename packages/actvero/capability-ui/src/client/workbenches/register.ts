@@ -560,7 +560,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         ctx.capabilityHub.notify(t('developResourcesFailed'))
         return
       }
-      const instructions = `${t('developPrompt')}\n\n${t('developResources', { ...resources.value })}`
+      const { skillPath, frontendSkillPath, connectionPath, cli } = resources.value
+      const instructions = `${t('developPrompt')}\n\n${t('developResources', {
+        skillPath, frontendSkillPath, connectionPath, cliInvocation: JSON.stringify(cli ?? null),
+      })}`
       try { await navigator.clipboard.writeText(instructions) }
       catch (error) {
         ctx.logger.warn('Unable to copy workbench development instructions: %s', error)

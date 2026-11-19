@@ -22,6 +22,7 @@ import { prepareWorkbenchData } from './workbench-lifecycle.ts'
 import { WorkbenchDisplay } from './workbench-display.ts'
 import { workbenchAIEnabled, workbenchJsonStorage } from './workbench-provider.ts'
 import { resolveWorkbenchProtocol } from './workbench-protocol.ts'
+import { installedWorkbenchCli } from './workbench-cli.ts'
 import type { WorkbenchActionRequest, WorkbenchBinding, WorkbenchBindRequest, WorkbenchDocument, WorkbenchId, WorkbenchDevelopmentResources,
   WorkbenchDisplayChannelId, WorkbenchDisplayCommand, WorkbenchDisplayRequest, WorkbenchDisplayRequestId, WorkbenchDisplayResult,
   WorkbenchEnvironment, WorkbenchInstanceId, WorkbenchRuntimeEntry, WorkbenchExpertEntry, WorkbenchSelection, WorkbenchTarget, WorkbenchObjectTarget } from './types.ts'
@@ -369,7 +370,8 @@ export class WorkbenchRuntime extends TypertRemoteService {
             await mkdir(join(target, 'expert-creator'), { recursive: true })
             await writeFile(expertSkillPath, `---\nname: ${authoring.skill.name}\ndescription: ${JSON.stringify(authoring.skill.description)}\n---\n\n${authoring.skill.content}`)
           }
-          return { skillPath: join(target, 'develop-workbench/SKILL.md'), frontendSkillPath: join(target, 'workbench-frontend/SKILL.md'), connectionPath, expertSkillPath }
+          return { skillPath: join(target, 'develop-workbench/SKILL.md'), frontendSkillPath: join(target, 'workbench-frontend/SKILL.md'),
+            connectionPath, expertSkillPath, cli: installedWorkbenchCli() }
         } catch (error) {
           await rm(target, { recursive: true, force: true })
           throw error
