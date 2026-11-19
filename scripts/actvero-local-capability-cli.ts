@@ -1,35 +1,32 @@
-/** Parse local management commands without initializing the workbench compiler. */
-import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import { parseArgs } from 'node:util'
-import { z } from 'zod'
-import { localCapabilityCommand, localCapabilityOperations } from '../packages/actvero/capability-ui/src/workbench-local-protocol.ts'
+/** Local authoring commands use the same contract as their offline help. */
+import { isAbsolute, resolve } from 'node:path'
+import { localCapabilityCommand } from '../packages/actvero/capability-ui/src/workbench-local-protocol.ts'
+import { parseWorkbenchInvocation } from './actvero-workbench-command-guide.ts'
+import { parseCliInput, readCliJson, validateCliResult, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 import { developmentRequest } from './actvero-workbench-connection.ts'
 
-/** Run a local Skill or MCP command against the selected Harness connection.
- * @param args CLI arguments beginning with skill or mcp.
- * @returns Desktop result to print as JSON. Validation and failed operations reject.
+/** Run a local Skill, MCP or Expert command against the selected Harness connection.
+ * @param args CLI arguments beginning with skill, mcp or expert.
+ * @returns Desktop result validated against the selected command's output schema.
  */
 export async function localCapabilityCli(args: string[]): Promise<unknown> {
-  const { positionals, values } = parseArgs({ args, allowPositionals: true, options: {
-    connection: { type: 'string' }, file: { type: 'string' },
-  } })
-  const [group, action, source] = positionals
-  if (positionals.length === 2 && action === 'help' && !values.file && !values.connection) {
-    return { operations: localCapabilityOperations.filter(operation => operation.startsWith(group + '-')),
-      usage: 'actvero-workbench skill|mcp <操作> --connection <连接文件> [--file <请求.json>]',
-      install: 'actvero-workbench skill install <目录、ZIP 或 SKILL.md> --connection <连接文件>' }
+  const { name, entry, values, positionals } = parseWorkbenchInvocation(args)
+  if (!entry.input || typeof values.connection !== 'string') {
+    throw new WorkbenchCliError('invalid_arguments', '此命令需要 Harness 开发连接文件。', 'not_applied')
   }
-  if (!values.connection || !action || positionals.length > 3 || (source && (action !== 'install' || group !== 'skill' || values.file))) {
-    throw new Error('请运行 actvero-workbench skill help 或 actvero-workbench mcp help 查看用法。')
+  const source = positionals[0]
+  const input = parseCliInput(entry.input, typeof values.file === 'string' ? await readCliJson(values.file, 'request')
+    : source ? { path: resolve(source) } : {})
+  const [group, operation] = name.split('.')
+  const command = group === 'expert' ? { action: 'expert', operation, input } : localRequest(group + '-' + operation, input)
+  const value = await developmentRequest(values.connection, command, undefined, { readOnly: entry.effect === 'read', recovery: entry.recovery })
+  return validateCliResult(entry.output, value, entry.effect === 'read', entry.recovery)
+}
+
+function localRequest(operation: string, payload: unknown) {
+  const input = parseCliInput(localCapabilityCommand, { ...payload as object, operation })
+  if ((input.operation === 'skill-install' || input.operation === 'skill-update') && !isAbsolute(input.path)) {
+    throw new WorkbenchCliError('absolute_path_required', '请求 JSON 的 path 必须是本机绝对路径。', 'not_applied')
   }
-  let input: Record<string, unknown> = {}
-  if (values.file) {
-    const data = await readFile(values.file, 'utf8')
-    if (data.length > 950_000) throw new Error('请求 JSON 超过大小限制。')
-    input = z.record(z.string(), z.unknown()).parse(JSON.parse(data))
-  }
-  const operation = group + '-' + action
-  const command = localCapabilityCommand.parse({ ...input, ...(source ? { path: resolve(source) } : {}), operation })
-  return developmentRequest(values.connection, { action: 'local-capability', input: command }, AbortSignal.timeout(125_000))
+  return { action: 'local-capability', input }
 }

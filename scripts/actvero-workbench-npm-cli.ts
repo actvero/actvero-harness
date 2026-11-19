@@ -1,5 +1,7 @@
 /** npm command for the pinned, offline workbench compiler; never starts Harness. */
 import { localCapabilityCli } from './actvero-local-capability-cli.ts'
+import { cliCommandName, parseWorkbenchInvocation, workbenchGuide, workbenchCommands } from './actvero-workbench-command-guide.ts'
+import { printCliFailure, printCliResult, validateCliResult, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 import { installDevelopmentSkills } from './actvero-development-skills.ts'
 import { createReadStream, realpathSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -74,32 +76,31 @@ export async function installWorkbenchSkills(kit: string, destination: string): 
   return installDevelopmentSkills(kit, destination)
 }
 
-async function main(): Promise<void> {
+async function main(args: string[]): Promise<void> {
+  const guide = workbenchGuide(args)
+  if (guide !== undefined) { console.log(guide); return }
+  const { name, entry, machine, values, positionals } = parseWorkbenchInvocation(args)
+  if (entry.input) {
+    printCliResult(name, await localCapabilityCli(args), machine)
+    return
+  }
   const directory = fileURLToPath(new URL('../', import.meta.url))
   const release = await releaseAt(directory)
-  const args = process.argv.slice(2)
-  const command = args[0]
-  if (!command || command === '--help') {
-    console.log('actvero-workbench create <新目录> [包名] [--template blank|plain|ai]\nactvero-workbench bind|doctor|typecheck|dev|pack|check <路径>\nactvero-workbench attach <项目目录> --connection <连接文件>\nactvero-workbench status|logs|detach <项目目录>\nactvero-workbench expert <操作> --connection <连接文件> [--file <请求.json>]\nactvero-workbench skill|mcp <操作> --connection <连接文件> [--file <请求.json>]\nactvero-workbench info\nactvero-workbench skills install|update [--global | <Skill目录>]\nactvero-workbench --version\n\n--global 安装到 ~/.agents/skills；更新会保留用户修改的 Skill。默认安装到当前目录的 .agents/skills。')
+  if (name === 'version') {
+    printCliResult(name, { version: release.version }, machine, release.version)
     return
   }
-  if (command === 'skill' || command === 'mcp') {
-    console.log(JSON.stringify(await localCapabilityCli(args), null, 2))
-    return
-  }
-  if (args[0] === '--version') { console.log(release.version); return }
   const kit = await ensureNpmWorkbenchKit(directory, process.env['ACTVERO_WORKBENCH_CACHE_DIR'] ?? join(homedir(), '.cache/actvero-workbench'))
-  if (args[0] === 'info' && args.length === 1) {
-    console.log(JSON.stringify({ ...release, directory: kit, skills: join(kit, 'packages/actvero/capability-ui/assets') }, null, 2))
+  const print = (result: unknown) => printCliResult(name, validateCliResult(entry.output, result, false, entry.recovery), machine)
+  if (name === 'info') {
+    print({ ...release, directory: kit, skills: join(kit, 'packages/actvero/capability-ui/assets') })
     return
   }
-  if (args[0] === 'skills') {
-    if (!['install', 'update'].includes(args[1] ?? '') || args.length > 3 || args[2]?.startsWith('--') && args[2] !== '--global') throw new Error('用法：actvero-workbench skills install|update [--global | <Skill目录>]')
-    const destination = args[2] === '--global' ? join(homedir(), '.agents/skills') : resolve(args[2] ?? '.agents/skills')
-    console.log(JSON.stringify({ installed: await installDevelopmentSkills(kit, destination, args[1] === 'update') }, null, 2))
+  if (name === 'skills.install' || name === 'skills.update') {
+    const destination = values.global ? join(homedir(), '.agents/skills') : resolve(positionals[0] ?? '.agents/skills')
+    print({ installed: await installDevelopmentSkills(kit, destination, name === 'skills.update') })
     return
   }
-  if (!['create', 'bind', 'doctor', 'typecheck', 'dev', 'pack', 'check', 'attach', 'detach', 'status', 'logs', 'expert'].includes(command)) throw new Error('未知命令，请运行 actvero-workbench --help。')
   const child = spawn(process.execPath, [join(kit, 'scripts/actvero-workbench.client.mjs'), ...args], { stdio: 'inherit', shell: false })
   const interrupt = () => { child.kill('SIGINT') }
   const terminate = () => { child.kill('SIGTERM') }
@@ -108,11 +109,17 @@ async function main(): Promise<void> {
   try {
     await new Promise<void>((resolveChild, reject) => {
       child.once('error', reject)
-      child.once('close', (code) => { process.exitCode = code ?? 1; resolveChild() })
+      child.once('close', (code) => {
+        if (code === null && machine) { reject(new WorkbenchCliError('compiler_interrupted', '工作台执行进程已中断。', 'unknown')); return }
+        process.exitCode = code ?? 1
+        resolveChild()
+      })
     })
   } finally { process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', terminate) }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  main().catch((error: unknown) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1 })
+  const args = process.argv.slice(2)
+  const name = cliCommandName(args)
+  main(args).catch((error: unknown) => printCliFailure(error, name, args.includes('--json'), workbenchCommands[name]?.recovery))
 }

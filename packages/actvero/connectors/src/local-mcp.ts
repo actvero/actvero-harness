@@ -178,8 +178,14 @@ export class LocalConnectors {
     const row = await this.saveRecord(id, async (old) => {
       if ('config' in change) return this.candidate(change.config)
       if (!old || this.authorRevision(old) !== change.revision) return bad('connector_edit_conflict')
-      const config = normalizeConfig({ ...old.config, ...change.patch })
       const previous = old.config
+      const candidate = { ...previous, ...change.patch }
+      const incompatible = candidate.transport === 'stdio' ? ['url', 'clientId'] : ['command', 'args', 'cwd']
+      if (incompatible.some(field => Object.hasOwn(change.patch, field))
+        || (candidate.transport === 'stdio' && candidate.auth !== 'none' && Object.hasOwn(change.patch, 'auth'))) {
+        return bad('connector_incompatible_fields')
+      }
+      const config = normalizeConfig(candidate)
       const destinationChanged = config.transport !== previous.transport || config.url !== previous.url
         || config.command !== previous.command || config.auth !== previous.auth || config.clientId !== previous.clientId
         || (config.transport === 'stdio' && (config.cwd !== previous.cwd || JSON.stringify(config.args) !== JSON.stringify(previous.args)))

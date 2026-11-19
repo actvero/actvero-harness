@@ -70,7 +70,7 @@ export const creatorSkill:SkillRegistration = {
 
 ## 外部 Agent 的本机操作
 
-当前环境没有 expert_* 工具时，使用目标 Harness 导出的开发连接文件和 actvero-workbench CLI。先运行 actvero-workbench --help，核对当前命令。使用 actvero-workbench expert <操作> --connection <连接文件> --file <请求 JSON 文件>；操作包括 catalog、author-list、author-get、create、author-update、author-check。请求字段与原生工具相同的后端操作一致：create 使用 {"expert":{"manifest":{},"bindings":{}}}，读取和检查使用 {"id":"准确 ID"}，更新先读取 revision，再提交 {"id":"准确 ID","revision":读取的版本号,"patch":{"manifest":{},"bindings":{}}}，patch 只包含需要修改的字段。不要把平台 CLI 当成本机专家存储。连接失效时请用户从目标客户端重新复制开发说明；不能执行时交付配置草稿并说明尚未保存。
+当前环境没有 expert_* 工具时，使用目标 Harness 导出的开发连接文件和 actvero-workbench CLI。运行 actvero-workbench expert --help 查看命令。用 schema show expert.create 或 schema show expert.author-update 查看请求与结果，用 example show 获取实际 JSON 示例。运行命令时提交 --connection、相应的 --file 和 --json。修改前用 author-get 读取 revision；保存后回读并用 author-check 检查依赖。返回 outcome=unknown 时，先按 recovery 回查。连接失效时请用户从目标客户端重新导出；无法执行时交付配置草稿并说明尚未保存。
 
 ## 平台专家、技能和 MCP
 

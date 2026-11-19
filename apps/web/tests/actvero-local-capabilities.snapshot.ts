@@ -13,7 +13,8 @@ import { fixtureUserPrompts, launchWebScaffold, recordFixture, webSnapshotMode }
 const directory = fileURLToPath(new URL('../../../snapshots/web/actvero-local-capabilities', import.meta.url))
 const fixture = join(directory, 'session.v4.jsonl')
 const provider = 'actvero-local-capabilities-fixture'
-const inventory = [{ id: 'local-737533df-d1a0-4144-870d-e217b3ed6e50', name: 'decision-notes', enabled: true, version: '1.0.0' }]
+const inventory = [{ id: 'local-737533df-d1a0-4144-870d-e217b3ed6e50', name: 'decision-notes',
+  description: 'Write decision notes', enabled: true, version: '1.0.0' }]
 
 class InventoryAdapter extends LlmAdapter {
   private calls = 0

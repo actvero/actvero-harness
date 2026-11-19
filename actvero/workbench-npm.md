@@ -22,6 +22,22 @@ Read the generated project's AGENTS.md, DESIGN.md and .agents/skills/develop-wor
 
 The first command needing the compiler verifies and extracts the bundled kit.tgz into `~/.cache/actvero-workbench/`; it neither downloads another toolchain nor runs a postinstall script. info reports its location, DSH baseline and workbench API version. Set `ACTVERO_WORKBENCH_CACHE_DIR` to override the cache parent. The npm version and running desktop must still meet their respective compatibility requirements.
 
+## Command help and automation
+
+Use command-level `--help` for usage, `schema list` to discover commands, and `schema show` for flags, input validation, results, success conditions, and recovery. Help, schemas, and request examples work offline. Replace example connections, IDs, versions, paths, and URLs with your own values. Before running this MCP example, export a development connection from the target Harness and fill in the actual connector configuration.
+
+```sh
+actvero-workbench mcp create --help
+actvero-workbench schema list
+actvero-workbench schema show mcp.create
+actvero-workbench example show mcp.create > ./request.json
+actvero-workbench mcp create --connection ./connection.json --file ./request.json --json
+```
+
+Add `--json` to an execution command for a single JSON result line on stdout. Success has `ok=true` and returns data in `result`. Failures exit with code 1 and return `error.code`, `error.message`, and `error.outcome`, with `recovery` and field-level `issues` where applicable. When `outcome=unknown`, read back the current state before retrying. Help and schema commands print their reference directly. The `dev` command streams build status as JSON lines.
+
+`skill install` writes into the target Harness Skill library. `skills install` copies the kit's three authoring Skills into an Agent Skill directory. The running target Harness owns the private connection file. Export a new file after it restarts.
+
 ## Install Skills for an Agent
 
 New projects include the two workbench Skills. Shared installation also includes expert creation. Install into the shared directory or an Agent-specific directory below; existing names are preserved. After upgrading the kit, use `actvero-workbench skills update --global` to replace only unchanged tool-managed copies. User-authored files remain intact.

@@ -22,6 +22,22 @@ npm run check
 
 首次需要编译器的命令会校验并解压包内 kit.tgz 到 `~/.cache/actvero-workbench/`；不会下载第二份工具链，也不执行安装后脚本。info 返回实际目录、DSH 基线与工作台 API 版本。可用 `ACTVERO_WORKBENCH_CACHE_DIR` 指定缓存父目录。npm 安装的版本与运行中的桌面端仍需满足各自兼容性要求。
 
+## 查命令与自动化
+
+从命令级 `--help` 查看用法，用 `schema list` 发现命令，用 `schema show` 查看参数、请求校验、结果字段、成功条件和回查方式。帮助、schema 和请求示例可离线读取。将示例的连接文件、ID、版本、路径和服务地址替换成本次操作的值。运行以下 MCP 示例前，先从目标 Harness 导出开发连接，并在请求文件中填写实际连接。
+
+```sh
+actvero-workbench mcp create --help
+actvero-workbench schema list
+actvero-workbench schema show mcp.create
+actvero-workbench example show mcp.create > ./request.json
+actvero-workbench mcp create --connection ./connection.json --file ./request.json --json
+```
+
+执行命令时加 `--json`，标准输出返回一行 JSON。成功时 `ok=true`，命令的返回数据在 `result` 中。失败退出码为 1，`error` 中包含 `code`、`message`、`outcome`，适用时包含 `recovery` 和字段级 `issues`。收到 `outcome=unknown` 时，先回查实际状态再决定是否重试。帮助和 schema 直接输出说明，`dev` 持续按行输出构建状态。
+
+`skill install` 写入目标 Harness 的本机技能库。`skills install` 将本套件自带的三份开发 Skill 复制到指定 Agent 的技能目录。使用私有开发连接访问目标 Harness，连接文件由当前运行实例签发，重启后重新导出。
+
 ## 为 Agent 安装 Skill
 
 新建项目携带工作台开发和前端两份 Skill。共享安装同时提供专家创建 Skill。使用下面一条命令安装到共享目录或指定 Agent 目录；同名 Skill 已存在时拒绝覆盖。升级套件后使用 `actvero-workbench skills update --global`，仅替换本工具管理且未被修改的副本，保留用户自己的文件。

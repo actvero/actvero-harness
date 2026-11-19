@@ -1,13 +1,12 @@
 /** Create and package local Actvero workbenches through the existing client compiler. */
 import { localCapabilityCli } from './actvero-local-capability-cli.ts'
-import { attachWorkbench, inspectDevelopment, developmentApplier, developmentRequest } from './actvero-workbench-connection.ts'
+import { attachWorkbench, inspectDevelopment, developmentApplier } from './actvero-workbench-connection.ts'
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
-import { parseArgs } from 'node:util'
 import { create, list } from 'tar'
 import { build } from 'tsdown'
 import semver from 'semver'
@@ -15,6 +14,8 @@ import { z } from 'zod'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
 import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
 import { resolveWorkbenchProtocol } from '../packages/actvero/capability-ui/src/workbench-protocol.ts'
+import { cliCommandName, parseWorkbenchInvocation, workbenchGuide, workbenchCommands } from './actvero-workbench-command-guide.ts'
+import { printCliFailure, printCliResult, validateCliResult, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 import { watchWorkbench } from './actvero-workbench-dev.ts'
 import { bindWorkbenchProject, initializeWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
 
@@ -135,9 +136,11 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
 /** Compile a template project and emit an npm-compatible archive; no install or publication occurs.
  * @param directory Editable template project containing src/index.ts and src/client/index.ts.
  * @param output Directory receiving the versioned .tgz.
+ * @param development Include development sourcemaps.
+ * @param quiet Keep stdout reserved for machine-readable results.
  * @returns Absolute path of the validated archive.
  */
-export async function packWorkbench(directory: string, output: string, development = false): Promise<string> {
+export async function packWorkbench(directory: string, output: string, development = false, quiet = development): Promise<string> {
   directory = resolve(directory)
   output = resolve(output)
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
@@ -151,7 +154,7 @@ export async function packWorkbench(directory: string, output: string, developme
     await mkdir(lib, { recursive: true })
     // Reuse the host/client compiler, including shared React, CSS Modules and image imports.
     for (const config of clientBundle(directory, ['src/index.ts'])({})) {
-      await build({ ...config, cwd: directory, outDir: lib, config: false, logLevel: development ? 'silent' : 'info', tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: development,
+      await build({ ...config, cwd: directory, outDir: lib, config: false, logLevel: quiet ? 'silent' : 'info', tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: development,
         inputOptions: async (options, format, context) => {
           const configured = typeof config.inputOptions === 'function'
             ? await config.inputOptions(options, format, context) ?? options : { ...options, ...config.inputOptions }
@@ -196,65 +199,74 @@ export async function packWorkbench(directory: string, output: string, developme
   }
 }
 
-async function main(): Promise<void> {
-  if (process.argv[2] === 'skill' || process.argv[2] === 'mcp') {
-    console.log(JSON.stringify(await localCapabilityCli(process.argv.slice(2)), null, 2))
+async function main(args: string[]): Promise<void> {
+  const guide = workbenchGuide(args)
+  if (guide !== undefined) { console.log(guide); return }
+  const { name, entry, values, machine, positionals } = parseWorkbenchInvocation(args)
+  if (entry.input) {
+    printCliResult(name, await localCapabilityCli(args), machine)
     return
   }
-  const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' }, connection: { type: 'string' }, file: { type: 'string' } } })
-  const [command, path, argument] = positionals
-  if (command === 'expert' && path === 'schema') {
-    console.log(JSON.stringify({ catalog: {}, 'author-list': { query: 'optional search', page: 1 }, 'author-get': { id: 'expert ID' }, create: { expert: { manifest: 'ExpertManifest v1', bindings: { skills: {}, connectors: {} } } }, 'author-update': { id: 'expert ID', revision: 1, patch: { manifest: {}, bindings: {} } }, 'author-check': { id: 'expert ID' } }, null, 2))
-    return
-  }
-  if (!path || positionals.length > 3) throw new Error('用法：workbench create <新目录> [包名] [--template blank|plain|ai] | bind <项目目录> | doctor <项目目录> | typecheck <项目目录> | pack <项目目录> [输出目录] | check <归档.tgz>')
-  if (command === 'attach' && values.connection) {
-    console.log(JSON.stringify(await attachWorkbench(path, values.connection), null, 2))
-  } else if ((command === 'status' || command === 'logs' || command === 'detach') && argument === undefined) {
-    console.log(JSON.stringify(await inspectDevelopment(path, command === 'detach' ? 'detach' : 'status'), null, 2))
-  } else if (command === 'expert' && values.connection) {
-    const input: unknown = values.file ? JSON.parse(await readFile(values.file, 'utf8')) : {}
-    console.log(JSON.stringify(await developmentRequest(values.connection, { action: 'expert', operation: path, input }), null, 2))
-  } else if (command === 'create') {
-    const kind = z.enum(['blank', 'plain', 'ai']).parse(values.template ?? 'blank')
-    await createWorkbench(path, argument, kind)
-    console.log(`已创建工作台开发目录：${resolve(path)}`)
-  } else if (values.template !== undefined) {
-    throw new Error('--template 仅用于 create。')
-  } else if (command === 'pack') {
-    const archive = await packWorkbench(path, argument ?? join(path, 'dist'))
-    console.log(JSON.stringify({ path: archive, ...await checkWorkbench(archive) }, null, 2))
-  } else if (command === 'dev' && argument === undefined) {
-    const abort = new AbortController()
-    const stop = () => { abort.abort() }
-    process.once('SIGINT', stop)
-    process.once('SIGTERM', stop)
-    try {
-      await watchWorkbench(resolve(path), async () => {
-        const archive = await packWorkbench(path, join(path, 'dist'), true)
-        return { path: archive, ...await checkWorkbench(archive) }
-      }, abort.signal, await developmentApplier(resolve(path)))
-    } finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop) }
-  } else if (command === 'check' && argument === undefined) {
-    console.log(JSON.stringify(await checkWorkbench(path), null, 2))
-  } else if (command === 'doctor' && argument === undefined) {
-    console.log(JSON.stringify(await doctorWorkbench(path), null, 2))
-  } else if (command === 'typecheck' && argument === undefined) {
-    await typecheckWorkbench(resolve(path), repository)
-    console.log('工作台 TypeScript 检查通过。')
-  } else if (command === 'bind' && argument === undefined) {
-    await doctorWorkbench(path)
-    await bindWorkbenchProject(resolve(path), repository)
-    console.log('已更新本地工具链绑定、类型配置和开发规范；业务代码与 DESIGN.md 保持不变。')
-  } else {
-    throw new Error('未知命令，请使用 create、bind、doctor、typecheck、dev、pack 或 check。')
+  const [path = '', argument] = positionals
+  const print = (result: unknown, message?: string) =>
+    printCliResult(name, validateCliResult(entry.output, result, entry.effect === 'read', entry.recovery), machine, message)
+
+  switch (name) {
+    case 'attach':
+      print(await attachWorkbench(path, String(values.connection)))
+      return
+    case 'status':
+    case 'logs':
+    case 'detach':
+      print(await inspectDevelopment(path, name === 'detach' ? 'detach' : 'status'))
+      return
+    case 'create': {
+      const kind = z.enum(['blank', 'plain', 'ai']).parse(values.template ?? 'blank')
+      await createWorkbench(path, argument, kind)
+      print({ directory: resolve(path) }, `已创建工作台开发目录：${resolve(path)}`)
+      return
+    }
+    case 'pack': {
+      const archive = await packWorkbench(path, argument ?? join(path, 'dist'), false, machine)
+      print({ path: archive, ...await checkWorkbench(archive) })
+      return
+    }
+    case 'dev': {
+      const abort = new AbortController()
+      const stop = () => { abort.abort() }
+      process.once('SIGINT', stop)
+      process.once('SIGTERM', stop)
+      try {
+        await watchWorkbench(resolve(path), async () => {
+          const archive = await packWorkbench(path, join(path, 'dist'), true)
+          return { path: archive, ...await checkWorkbench(archive) }
+        }, abort.signal, await developmentApplier(resolve(path)))
+      } finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop) }
+      return
+    }
+    case 'check':
+      print(await checkWorkbench(path))
+      return
+    case 'doctor':
+      print(await doctorWorkbench(path))
+      return
+    case 'typecheck':
+      await typecheckWorkbench(resolve(path), repository)
+      print({ checked: true }, '工作台 TypeScript 检查通过。')
+      return
+    case 'bind':
+      await doctorWorkbench(path)
+      await bindWorkbenchProject(resolve(path), repository)
+      print({ directory: resolve(path) }, '已更新项目的工具链绑定、类型配置和开发说明。')
+      return
+    default:
+      throw new WorkbenchCliError('npm_wrapper_required', '请用 npm 套件的 actvero-workbench 命令。', 'not_applied')
   }
 }
 
 // Node resolves the module URL physically, including macOS /var and directory symlinks.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  main().catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : String(error))
-    process.exitCode = 1
-  })
+  const args = process.argv.slice(2)
+  const name = cliCommandName(args)
+  main(args).catch((error: unknown) => printCliFailure(error, name, args.includes('--json'), workbenchCommands[name]?.recovery))
 }

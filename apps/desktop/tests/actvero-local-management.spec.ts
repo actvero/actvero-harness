@@ -61,6 +61,8 @@ it('saves a disabled MCP, tests it independently, and rejects edits based on sta
   expect(row).not.toHaveProperty('args')
   expect(await run({ operation: 'mcp-test', id: row.id })).toEqual({ connected: true })
   expect(await local.snapshot()).toEqual([])
+  await expect(run({ operation: 'mcp-update', id: row.id, revision: row.revision, patch: { url: 'https://example.org/mcp' } }))
+    .rejects.toThrow('connector_incompatible_fields')
   const edit = { operation: 'mcp-update', id: row.id, revision: row.revision, patch: { name: 'Updated MCP' } }
   expect(await run(edit)).toMatchObject({ name: 'Updated MCP', enabled: false })
   await expect(run(edit)).rejects.toThrow('connector_edit_conflict')

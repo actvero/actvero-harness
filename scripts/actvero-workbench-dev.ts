@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { watch } from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 
 /** Observe edits until cancellation; an attached runtime reports activation separately from artifact creation.
  * @param directory Author-owned project directory.
@@ -37,10 +38,12 @@ export async function watchWorkbench(
         pending = false
         generation++
         await publish({ phase: 'building' })
+        let stage: 'build' | 'apply' = 'build'
         try {
           const artifact = await build()
           await publish({ phase: 'built', artifact, runtime: apply ? 'applying' : 'not-verified' })
           if (apply) {
+            stage = 'apply'
             for (;;) {
               const result = z.discriminatedUnion('application', [
                 z.object({ application: z.literal('busy') }),
@@ -53,7 +56,9 @@ export async function watchWorkbench(
           }
         } catch (error) {
           if (signal.aborted) break
-          await publish({ phase: 'failed', diagnostic: error instanceof Error ? error.message : String(error) })
+          await publish({ phase: 'failed', stage, diagnostic: error instanceof Error ? error.message : String(error),
+            code: error instanceof WorkbenchCliError ? error.code : stage + '_failed',
+            outcome: error instanceof WorkbenchCliError ? error.outcome : 'unknown' })
         }
       }
     })().catch(fail).finally(() => { running = undefined })
