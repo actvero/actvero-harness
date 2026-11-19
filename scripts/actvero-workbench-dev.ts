@@ -1,15 +1,19 @@
 /** Serialized watch builds and machine-readable diagnostics for external development Agents. */
+import { setTimeout as delay } from 'node:timers/promises'
+import { z } from 'zod'
 import { watch } from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-/** Observe edits until cancellation; a successful build reports an artifact, never claims runtime activation.
+/** Observe edits until cancellation; an attached runtime reports activation separately from artifact creation.
  * @param directory Author-owned project directory.
  * @param build Build and validate one archive, returning its absolute path and content digest.
  * @param signal Stops observation and waits for an already-started build.
+ * @param apply Optional connected Harness activation; busy responses wait for the active task to finish.
  */
 export async function watchWorkbench(
   directory: string, build: () => Promise<{ path: string; sha256: string }>, signal: AbortSignal,
+  apply?: (artifact: { path: string; sha256: string }, signal: AbortSignal) => Promise<unknown>,
 ): Promise<void> {
   await mkdir(join(directory, '.actvero'), { recursive: true })
   let generation = 0
@@ -35,8 +39,20 @@ export async function watchWorkbench(
         await publish({ phase: 'building' })
         try {
           const artifact = await build()
-          await publish({ phase: 'built', artifact, runtime: 'not-verified' })
+          await publish({ phase: 'built', artifact, runtime: apply ? 'applying' : 'not-verified' })
+          if (apply) {
+            for (;;) {
+              const result = z.discriminatedUnion('application', [
+                z.object({ application: z.literal('busy') }),
+                z.object({ application: z.literal('applied'), runtime: z.literal('loaded'), client: z.literal('published') }),
+              ]).parse(await apply(artifact, signal))
+              if (result.application === 'applied') { await publish({ phase: 'built', artifact, runtime: result.runtime, client: result.client }); break }
+              await publish({ phase: 'built', artifact, runtime: 'waiting-for-idle' })
+              await delay(500, undefined, { signal })
+            }
+          }
         } catch (error) {
+          if (signal.aborted) break
           await publish({ phase: 'failed', diagnostic: error instanceof Error ? error.message : String(error) })
         }
       }

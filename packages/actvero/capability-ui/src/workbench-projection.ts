@@ -25,9 +25,10 @@ const eventSchema = z.discriminatedUnion('schemaVersion', [
 
 /** Native replay and wire projection; absence and explicit unlink both expose null. */
 export const workbenchProjection = {
-  key: 'actveroWorkbench', stateVersion: 2, stateSchema: selectionSchema,
+  key: 'actveroWorkbench', stateVersion: 3, stateSchema: selectionSchema,
   init: () => null,
   apply: (previous, event) => {
+    if (event.type === 'actvero/expert' && event.data.selection !== null) return null
     if (event.type !== 'actvero/workbench') return previous
     return eventSchema.parse(event.data).selection
   },

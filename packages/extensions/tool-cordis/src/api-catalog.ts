@@ -82,6 +82,38 @@ export interface TypeApiEntry {
 /** Every harness `ctx.<key>` service, sorted by key. */
 export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
+    key: 'actveroExpertPolicy',
+    summary: 'Ordinary expert selection and connector intent supplied by its owning plugin.',
+    description: 'Ordinary expert selection and connector intent supplied by its owning plugin.',
+    methods: [
+      {
+        signature: 'selection(agent: Agent): Promise<ConversationExpertSelection | null>',
+        description: 'Resolve the effective selection, including inherited parent experts.',
+        parameters: [{ name: 'agent', description: 'Conversation whose expert source is changing.' }],
+        returns: 'Exact recorded selection, or null for ordinary mode.',
+      },
+      {
+        signature: 'connectors(agent: Agent): Promise<readonly string[] | undefined>',
+        description: 'Resolve configured connector intent for a conversation.',
+        parameters: [{ name: 'agent', description: 'Conversation requesting tools.' }],
+        returns: 'Allowed connector IDs, or undefined when no expert restricts the default view.',
+      },
+    ],
+  },
+  {
+    key: 'actveroWorkbenchDevelopment',
+    summary: 'A private connection file authorizes local Agents; no endpoint exists before the owner exports development resources.',
+    description: 'A private connection file authorizes local Agents; no endpoint exists before the owner exports development resources.',
+    methods: [
+      {
+        signature: 'connection(): Promise<string>',
+        description: 'Start a loopback-only endpoint and publish a mode-0600 connection file.',
+        parameters: [],
+        returns: 'Absolute connection file for the CLI; its token expires when this Host exits.',
+      },
+    ],
+  },
+  {
     key: 'actveroWorkbenchMaintenance',
     summary: 'Uses the same installer as ordinary removal, with explicit consent to data destruction.',
     description: 'Uses the same installer as ordinary removal, with explicit consent to data destruction.',
@@ -142,7 +174,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Client acknowledgement, or a structured failure. Mounted UI does not imply external business services are ready.',
       },
       {
-        signature: '@Remote async developmentResources(): Promise<{ skillPath: string; frontendSkillPath: string }>',
+        signature: '@Remote async startAuthoring(request: { sessionId?: SessionId }): Promise<{ sessionId: SessionId }>',
+        description: 'Prepare an independent creation conversation, reusing only an ordinary blank draft.',
+        parameters: [{ name: 'request', description: 'Optional foreground conversation; its active expert and started history remain intact in a separate conversation.' }],
+        returns: 'New or reusable blank conversation with the Cordis preset and no expert source. No message is sent.',
+      },
+      {
+        signature: '@Remote async developmentResources(): Promise<WorkbenchDevelopmentResources>',
         description: 'Export bundled guidance to ordinary files readable by external Agents on this Host.',
         parameters: [],
         returns: 'Absolute skill entrypoints, including all relative guide and API references.',
@@ -152,6 +190,24 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'List providers with a managed runtime, including those with author-owned storage.',
         parameters: [],
         returns: 'Runtime-ready provider metadata, independent of UI-only cards.',
+      },
+      {
+        signature: '@Remote experts(): WorkbenchExpertEntry[]',
+        description: 'List conversational entries owned by loaded providers; withdrawal immediately removes them.',
+        parameters: [],
+        returns: 'Read-only expert metadata; listing never creates data, a workspace or a conversation.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *followExperts(signal: AbortSignal): AsyncIterable<WorkbenchExpertEntry[]>',
+        description: 'Observe loaded expert entries, including installation, disablement and withdrawal.',
+        parameters: [{ name: 'signal', description: 'Client lifetime.' }],
+        returns: 'Initial catalog and changed catalogs; no business instances are allocated.',
+      },
+      {
+        signature: '@Remote async selectExpert(request: { id: WorkbenchId; sessionId?: SessionId }): Promise<WorkbenchBinding>',
+        description: 'Select a contributed expert in an existing idle conversation, or create an unbound conversation.',
+        parameters: [{ name: 'request', description: 'Loaded provider and optional conversation; its filesystem workspace is preserved.' }],
+        returns: 'Durable workbench association after capabilities are prepared.',
       },
       {
         signature: '@Remote async open(id: WorkbenchId): Promise<WorkbenchDocument>',
@@ -191,9 +247,39 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding>',
-        description: 'Bind an idle existing conversation or create one in the managed files directory.',
+        description: 'Bind an idle conversation or create one without assigning a filesystem workspace.',
         parameters: [{ name: 'request', description: 'Business instance and optional existing conversation.' }],
         returns: 'Conversation identity and the durably recorded environment.',
+      },
+      {
+        signature: 'developmentIdle(id: WorkbenchId): boolean',
+        description: 'Check whether developer replacement can proceed without interrupting a conversation or business operation.',
+        parameters: [{ name: 'id', description: 'Workbench package being replaced.' }],
+        returns: 'False while the provider has an operation or a bound conversation is running.',
+      },
+      {
+        signature: 'async releaseSuperseded(agent: Agent): Promise<void>',
+        description: 'Release capabilities after another expert source has committed its selection under Agent maintenance.',
+        parameters: [{ name: 'agent', description: 'Idle reserved conversation; callers retain the ordinary selection if cleanup fails and must report the failure.' }],
+        returns: 'Completion after superseded workbench resources stop; a remaining binding is left intact.',
+      },
+      {
+        signature: 'developmentDiagnostics(id: WorkbenchId): DevelopmentDiagnostic[]',
+        description: 'Read bounded failure diagnostics from conversations currently associated with this developer workbench.',
+        parameters: [{ name: 'id', description: 'Workbench being debugged.' }],
+        returns: 'Up to twenty recent failures per retained conversation; without successful conversation message contents.',
+      },
+      {
+        signature: 'async replaceDevelopment<T>(id: WorkbenchId, work: () => Promise<T>): Promise<{ busy: true } | { busy: false; value: T }>',
+        description: 'Reserve all bound idle Agents and reject concurrent business calls during a developer replacement.',
+        parameters: [{ name: 'id', description: 'Provider being replaced.' }, { name: 'work', description: 'Loader replacement and rollback, including refreshDevelopmentBindings before success.' }],
+        returns: 'Busy without mutation, or the completed replacement result. Reservations release on failure too.',
+      },
+      {
+        signature: 'async refreshDevelopmentBindings(id: WorkbenchId): Promise<void>',
+        description: 'Capture the loaded development generation for reserved conversations without changing their workspace or business object.',
+        parameters: [{ name: 'id', description: 'Provider owned by the current replaceDevelopment operation.' }],
+        returns: 'Completion after every reserved conversation has its exact new capabilities recorded; failures require caller rollback.',
       },
       {
         signature: '@Remote async detach(request: { sessionId: SessionId }): Promise<WorkbenchBinding>',
@@ -5333,6 +5419,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ContinuableCreateSpec {\n    readonly seed?: readonly SessionEvent[];\n}',
   },
   {
+    name: 'ConversationExpertSelection',
+    declaration: 'export interface ConversationExpertSelection {\n    snapshotId: string;\n    id: string;\n    name: string;\n    avatar: string;\n    version: string;\n}',
+  },
+  {
     name: 'CordisDynamicPackageId',
     declaration: 'export type CordisDynamicPackageId = Branded<\'CordisDynamicPackageId\'>;',
   },
@@ -8869,6 +8959,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface WorkbenchCustomProvider extends WorkbenchProviderBase {\n    storage?: WorkbenchJsonStorage;\n}',
   },
   {
+    name: 'WorkbenchDevelopmentResources',
+    declaration: 'export interface WorkbenchDevelopmentResources {\n    skillPath: string;\n    frontendSkillPath: string;\n    connectionPath: string | null;\n    expertSkillPath: string | null;\n}',
+  },
+  {
     name: 'WorkbenchDisplayChannelId',
     declaration: 'export type WorkbenchDisplayChannelId = Branded<\'WorkbenchDisplayChannelId\'>;',
   },
@@ -8890,7 +8984,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchDisplayState',
-    declaration: 'export interface WorkbenchDisplayState {\n    id: WorkbenchId | null;\n    instanceId: WorkbenchInstanceId | null;\n    sessionId: SessionId | null;\n    mode: \'business\' | \'conversation\' | \'other\';\n    aiVisible: boolean;\n    previewVisible: boolean;\n    sidebar: \'expanded\' | \'collapsed\';\n}',
+    declaration: 'export interface WorkbenchDisplayState {\n    id: WorkbenchId | null;\n    instanceId: WorkbenchInstanceId | null;\n    sessionId: SessionId | null;\n    object?: WorkbenchObject;\n    mode: \'business\' | \'conversation\' | \'other\';\n    aiVisible: boolean;\n    previewVisible: boolean;\n    sidebar: \'expanded\' | \'collapsed\';\n}',
   },
   {
     name: 'WorkbenchDocument',
@@ -8903,6 +8997,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkbenchExpert',
     declaration: 'export interface WorkbenchExpert {\n    name: string;\n    version: string;\n    instructions: string;\n}',
+  },
+  {
+    name: 'WorkbenchExpertEntry',
+    declaration: 'export interface WorkbenchExpertEntry {\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    workbenchName: string;\n    description: string;\n    avatar: string;\n}',
   },
   {
     name: 'WorkbenchId',
@@ -8970,7 +9068,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'WorkbenchProviderBase',
-    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    lifecycle?: WorkbenchLifecycle;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{\n        label: string;\n    }>;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
+    declaration: 'export interface WorkbenchProviderBase {\n    protocol?: WorkbenchProtocol;\n    lifecycle?: WorkbenchLifecycle;\n    id: WorkbenchId;\n    name: string;\n    version: string;\n    resourcesDirectory?: string;\n    ai?: boolean;\n    platform?: readonly \'models:read\'[];\n    expert?: WorkbenchExpert;\n    expertEntry?: false | {\n        name?: string;\n        version?: string;\n        description?: string;\n        avatar?: string;\n    };\n    resolveObject?(id: WorkbenchObjectId, environment: WorkbenchEnvironment, signal: AbortSignal): Promise<{\n        label: string;\n    }>;\n    prepare?(context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<void>;\n    activate?(ctx: Context, context: WorkbenchRuntimeContext, signal: AbortSignal): Promise<WorkbenchActivation>;\n}',
   },
   {
     name: 'WorkbenchRemovalResult',

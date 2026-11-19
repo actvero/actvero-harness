@@ -20,6 +20,9 @@
     },
     {
       "path": "../../core/tools/tsconfig.json"
+    },
+    {
+      "path": "../capability-ui/tsconfig.host.json"
     }
   ],
   "exclude": [

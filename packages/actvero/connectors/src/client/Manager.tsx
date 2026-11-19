@@ -1,7 +1,6 @@
-import { SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
+import { CapabilityIdentity, SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
 import type { CustomView } from '../local-config.ts'
 import { zh, en } from './locales.ts'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CatalogSkeleton } from '@actvero/dsh-capability-ui/client/loading'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -61,11 +60,11 @@ function errorText(error: unknown, t: PropsLocale<'actvero.connectors'>['t']): s
 
 function ConnectorIcon({ item, large = false }: { item: Connector; large?: boolean }) {
   const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [item.icon])
+  useEffect(() =>{  setFailed(false) }, [item.icon])
   return (
     <span className={large ? styles.largeIcon : styles.icon}>
       {!failed && item.icon && /^data:image\/(png|jpeg|webp);base64,/.test(item.icon) ? (
-        <img src={item.icon} alt="" onError={() => setFailed(true)} />
+        <img src={item.icon} alt="" onError={() =>{  setFailed(true) }} />
       ) : (
         <IconLinkOutlineMedium size={large ? 36 : 22} />
       )}
@@ -73,7 +72,6 @@ function ConnectorIcon({ item, large = false }: { item: Connector; large?: boole
   )
 }
 function Panel({
-  renderSlot,
   t,
   notify,
   useSessions,
@@ -132,7 +130,7 @@ function Panel({
         }).catch(() => {})
     }
   }, [])
-  useEffect(() => window.actveroConnectors?.subscribe(() => setRevision(n => n + 1)), [])
+  useEffect(() => window.actveroConnectors?.subscribe(() =>{  setRevision(n => n + 1) }), [])
   useEffect(() => {
     let current = true
     setLoading(true)
@@ -259,7 +257,7 @@ function Panel({
   }
   return (
     <section className={styles.page}>
-      {customOpen && <CustomMcp t={t} initialItem={customItem} startInForm onClose={() => setCustomOpen(false)} />}
+      {customOpen && <CustomMcp t={t} initialItem={customItem} startInForm onClose={() =>{  setCustomOpen(false) }} />}
       <header className={styles.header}>
         <div className={styles.searchTools}>
           <Input
@@ -302,7 +300,7 @@ function Panel({
         {error && !selected && (
           <div role="alert" className={styles.notice}>
             <span>{error}</span>
-            <Button onClick={() => setRevision(n => n + 1)}>{t('retryAction')}</Button>
+            <Button onClick={() =>{  setRevision(n => n + 1) }}>{t('retryAction')}</Button>
           </div>
         )}
         {loading && <CatalogSkeleton label={t('loading')} />}
@@ -478,7 +476,7 @@ function Panel({
         )}
         {source === 'platform' && (data?.total ?? 0) > (data?.page_size ?? 20) && (
           <footer className={styles.pagination}>
-            <Button disabled={page === 1 || loading} onClick={() => setPage(n => n - 1)}>
+            <Button disabled={page === 1 || loading} onClick={() =>{  setPage(n => n - 1) }}>
               {t('previous')}
             </Button>
             <span>
@@ -486,7 +484,7 @@ function Panel({
             </span>
             <Button
               disabled={!data || page * data.page_size >= data.total || loading}
-              onClick={() => setPage(n => n + 1)}
+              onClick={() =>{  setPage(n => n + 1) }}
             >
               {t('next')}
             </Button>
@@ -526,25 +524,8 @@ function Panel({
               <IconCloseOutlineMedium size={20} />
             </Button>
             <div className={styles.hero}>
-              <div className={styles.connectionVisual} aria-hidden="true">
-                <span className={styles.brandIcon}>
-                  {renderSlot(
-                    'actvero.connector.brand.mark',
-                    { size: 48 },
-                    { fallback: <IconLinkOutlineMedium size={48} /> },
-                  )}
-                </span>
-                <span className={styles.linkDots}>
-                  <i />
-                  <i />
-                  <i />
-                </span>
-                <ConnectorIcon item={selected} large />
-              </div>
-              <h2>
-                {t('connect')} {selected.display_name}
-              </h2>
-              <p>{selected.description}</p>
+              <ConnectorIcon item={selected} large />
+              <div><CapabilityIdentity name={selected.display_name} /><p>{selected.description}</p></div>
             </div>
             {error && (
               <div className={styles.notice} role="alert">
@@ -609,11 +590,11 @@ function Panel({
                           autoComplete="off"
                           required
                           value={values[field.key] ?? ''}
-                          onChange={e =>
+                          onChange={(e) =>{
                             setValues({
                               ...values,
                               [field.key]: e.target.value,
-                            })
+                            }) }
                           }
                         />
                       </label>
@@ -703,12 +684,11 @@ function Panel({
                 </div>
               </>
             )}
-            {selected.examples.length === 0 && <p className={styles.exampleHint}>{t('noExamples')}</p>}
             {['personal', 'oauth'].includes(selected.auth_mode) && (
               <div className={styles.disconnect}>
                 <Button
                   disabled={busy}
-                  onClick={() => setDisconnectTarget(selected)}
+                  onClick={() =>{  setDisconnectTarget(selected) }}
                 >
                   {t('disconnect')}
                 </Button>
@@ -719,7 +699,7 @@ function Panel({
       </Modal>
       <ConfirmDialog closeLabel={t('close')} open={!!removeTarget} title={t('cmRemoveTitle')} description={t('cmRemoveHint')}
         resourceName={removeTarget?.name ?? ''} cancelLabel={t('cmCancel')} confirmLabel={t(busy ? 'cmBusy' : 'cmRemove')}
-        pending={busy} onCancel={() => setRemoveTarget(undefined)} onConfirm={() => void run(async () => {
+        pending={busy} onCancel={() =>{  setRemoveTarget(undefined) }} onConfirm={() => void run(async () => {
           if (!removeTarget) return
           await request('localRemove', { id: removeTarget.id })
           setRemoveTarget(undefined)
@@ -727,7 +707,7 @@ function Panel({
         })} />
       <ConfirmDialog closeLabel={t('close')} open={!!disconnectTarget} title={t('disconnect')} description={t('confirm')}
         resourceName={disconnectTarget?.name ?? ''} cancelLabel={t('cmCancel')} confirmLabel={t(busy ? 'cmBusy' : 'disconnect')}
-        pending={busy} onCancel={() => setDisconnectTarget(undefined)} onConfirm={() => void run(async () => {
+        pending={busy} onCancel={() =>{  setDisconnectTarget(undefined) }} onConfirm={() => void run(async () => {
           if (!disconnectTarget) return
           await request('disconnect', { id: disconnectTarget.id })
           setDisconnectTarget(undefined)
@@ -750,15 +730,15 @@ export function apply(ctx: Context) {
         inject: () => ({
           ensureConversation: async () => {
             // Host and Client share the Cordis property name; use the public Client face here.
-            const sessions = ctx.sessions as ISessions
+            const sessions = ctx.sessions
             const state = sessions.list.getSnapshot()
             const id = Object.values(state.byId).find(s => (s.retainedBy.mainView ?? 0) > 0)?.id
             if (!id || !state.byId[id]?.cwd) throw new Error('workspace_required')
             return id
           },
-          openConversation: () => ctx.layout.selectPanel(null),
+          openConversation: () =>{  ctx.layout.selectPanel(null) },
           append: (sessionId: string, text: string) => {
-            const scope = (ctx.sessions as ISessions).scope(sessionId as SessionId)
+            const scope = (ctx.sessions).scope(sessionId as SessionId)
             if (!scope) throw new Error('session_unavailable')
             {
               const state = ctx.conversation.input.for(scope).state.getSnapshot()

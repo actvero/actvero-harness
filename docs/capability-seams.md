@@ -8,11 +8,14 @@ A service can be a core spine service, a swappable capability seam, a bundle/com
 ```mermaid
 flowchart LR
   pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
+  svc_actveroWorkbenchDevelopment["ctx.actveroWorkbenchDevelopment<br/>Actvero local development"]
+  svc_actveroExpertPolicy["ctx.actveroExpertPolicy<br/>Actvero expert selection"]
+  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
+  pkg__actvero_dsh_connectors["@actvero/dsh-connectors"]
   svc_actveroWorkbenchMaintenance["ctx.actveroWorkbenchMaintenance<br/>Actvero workbench removal"]
   svc_actveroWorkbenchPlatform["ctx.actveroWorkbenchPlatform<br/>Actvero workbench platform metadata"]
   pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
   svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
-  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
   svc_cotTranslation["ctx.cotTranslation<br/>Reasoning translation Remote"]
@@ -301,9 +304,12 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg__actvero_dsh_capability_ui --> svc_actveroExpertPolicy
+  pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchDevelopment
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchMaintenance
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchPlatform
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchRuntime
+  pkg__actvero_dsh_experts --> svc_actveroExpertPolicy
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
@@ -462,6 +468,8 @@ flowchart LR
   pkg_working_directory --> svc_workingDirectory
   pkg_workspace --> svc_workspaceRegistry
   pkg_workspace_changes --> svc_workspaceChanges
+  svc_actveroExpertPolicy --> pkg__actvero_dsh_capability_ui
+  svc_actveroExpertPolicy --> pkg__actvero_dsh_connectors
   svc_agentDefaultModel --> pkg_api_session_controller
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
@@ -623,6 +631,8 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.actveroWorkbenchDevelopment` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Loads profile-local development overlays, reports diagnostics and restores the installed implementation. |
+| `ctx.actveroExpertPolicy` | `seam` | `@actvero/dsh-capability-ui` | `@actvero/dsh-experts` | `@actvero/dsh-capability-ui`, `@actvero/dsh-connectors` | - | Resolves recorded ordinary expert selection and connector intent when switching conversation capabilities. |
 | `ctx.actveroWorkbenchMaintenance` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Runs owner-confirmed business-data cleanup and delegates exact-version package removal to the native installer. |
 | `ctx.actveroWorkbenchPlatform` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Reads declared model metadata through Electron Main without exposing credentials or arbitrary authenticated URLs. |
 | `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | Resolves configured interpreter and package paths; Host consumers and the model tool share successful preparation and await disposal. |

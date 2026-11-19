@@ -1,5 +1,6 @@
 /** Offline compiler extraction, concurrent cache ownership and non-destructive Skill installation. */
-import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises'
+import { installDevelopmentSkills } from './actvero-development-skills.ts'
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, rename, symlink, lstat } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -16,7 +17,7 @@ async function fixture() {
   await mkdir(distribution)
   await writeFile(join(kit, 'scripts/actvero-workbench.client.mjs'), 'console.log("compiler fixture")\n')
   await writeFile(join(kit, 'workbench-kit.json'), JSON.stringify({ platform: process.platform, arch: process.arch, runtimeVersion: '0.2.1-rc.3' }))
-  for (const name of ['develop-workbench', 'workbench-frontend']) {
+  for (const name of ['develop-workbench', 'workbench-frontend', 'expert-creator']) {
     const directory = join(kit, 'packages/actvero/capability-ui/assets', name)
     await mkdir(join(directory, 'reference'), { recursive: true })
     await writeFile(join(directory, 'SKILL.md'), `name: ${name}\n`)
@@ -52,10 +53,37 @@ it('copies both Skills with their references and preserves an existing author Sk
   const { root, kit } = await fixture()
   const destination = join(root, 'agent skills')
   const installed = await installWorkbenchSkills(kit, destination)
-  expect(installed).toHaveLength(2)
+  expect(installed).toHaveLength(3)
   for (const path of installed) expect(await readFile(join(path, 'reference/guide.md'), 'utf8')).toBe('portable guidance\n')
   const custom = join(destination, 'develop-workbench/SKILL.md')
   await writeFile(custom, 'author instructions\n')
   await expect(installWorkbenchSkills(kit, destination)).rejects.toThrow('已存在')
   expect(await readFile(custom, 'utf8')).toBe('author instructions\n')
+})
+
+
+it('updates managed copies together and preserves any author modification', async () => {
+  const { root, kit } = await fixture()
+  const destination = join(root, 'global skills')
+  await installDevelopmentSkills(kit, destination)
+  await writeFile(join(kit, 'packages/actvero/capability-ui/assets/develop-workbench/SKILL.md'), 'updated guidance\n')
+  await installDevelopmentSkills(kit, destination, true)
+  expect(await readFile(join(destination, 'develop-workbench/SKILL.md'), 'utf8')).toBe('updated guidance\n')
+  await writeFile(join(destination, 'expert-creator/SKILL.md'), 'my instructions\n')
+  await expect(installDevelopmentSkills(kit, destination, true)).rejects.toThrow('已被修改')
+  expect(await readFile(join(destination, 'expert-creator/SKILL.md'), 'utf8')).toBe('my instructions\n')
+})
+
+
+it('preserves a managed Skill that the user replaced with a directory link', async () => {
+  const { root, kit } = await fixture()
+  const destination = join(root, 'skills')
+  await installDevelopmentSkills(kit, destination)
+  const original = join(destination, 'expert-creator')
+  const linked = join(root, 'my-expert-creator')
+  await rename(original, linked)
+  await symlink(linked, original, process.platform === 'win32' ? 'junction' : 'dir')
+  await expect(installDevelopmentSkills(kit, destination, true)).rejects.toThrow('user-owned link')
+  expect((await lstat(original)).isSymbolicLink()).toBe(true)
+  expect(await readFile(join(linked, 'SKILL.md'), 'utf8')).toContain('expert-creator')
 })

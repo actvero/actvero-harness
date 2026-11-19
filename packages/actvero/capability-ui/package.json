@@ -74,7 +74,8 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-storage-domain": "workspace:*",
     "@deepseek-ai/dsh-scope": "workspace:*",
-    "@deepseek-ai/dsh-skill-filesystem": "workspace:*"
+    "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
@@ -119,13 +120,17 @@
     "@deepseek-ai/dsh-client-test-runtime": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
     "@deepseek-ai/dsh-client-ui-tool": "workspace:*",
-    "@deepseek-ai/dsh-client-store": "workspace:*"
+    "@deepseek-ai/dsh-client-store": "workspace:*",
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
+    "@deepseek-ai/dsh-client-modules": "workspace:*"
   },
   "dependencies": {
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "zod": "4.4.3",
-    "semver": "^7.8.5"
+    "semver": "^7.8.5",
+    "tar": "^7.5.22",
+    "es-module-lexer": "2.1.0"
   },
   "scripts": {
     "bundle": "tsdown"

@@ -68,6 +68,10 @@ export const creatorSkill:SkillRegistration = {
 - 写入成功后用 expert_get 回读，再用 expert_check 核对依赖。最终说明实际保存的专家、能完成的工作、头像与依赖状态，并给出一个可直接试用的任务。保存、依赖就绪、实际试跑的结果分别表述，不把保存成功说成试用通过。
 - 用户指出问题时，收集不符合预期的输入和输出，对照目标修订相关部分。需要什么证据才能确认改善，就检查什么；不要只改形容词或继续增加无关能力。
 
+## 外部 Agent 的本机操作
+
+当前环境没有 expert_* 工具时，使用目标 Harness 导出的开发连接文件和 actvero-workbench CLI。先运行 actvero-workbench --help，核对当前命令。使用 actvero-workbench expert <操作> --connection <连接文件> --file <请求 JSON 文件>；操作包括 catalog、author-list、author-get、create、author-update、author-check。请求字段与原生工具相同的后端操作一致：create 使用 {"expert":{"manifest":{},"bindings":{}}}，读取和检查使用 {"id":"准确 ID"}，更新先读取 revision，再提交 {"id":"准确 ID","revision":读取的版本号,"patch":{"manifest":{},"bindings":{}}}，patch 只包含需要修改的字段。不要把平台 CLI 当成本机专家存储。连接失效时请用户从目标客户端重新复制开发说明；不能执行时交付配置草稿并说明尚未保存。
+
 ## 平台专家、技能和 MCP
 
 使用会话中的终端运行独立的 actvero CLI。先运行 actvero --version。已有 actvero-management 技能时可加载其操作说明，也可用 actvero guide list、actvero guide show <topic> 和 actvero schema show <name> 查询当前安装版本的帮助。CLI 未安装或此对话无法运行时，继续准备可审查的草稿和命令，说明还缺哪个执行条件。

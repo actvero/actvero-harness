@@ -87,3 +87,4 @@
 @media(prefers-reduced-motion:reduce) {
   .input,.select select,.segmented button,.server,.json { transition:none; }
 }
+.header .headerIdentity {margin-bottom:0;}

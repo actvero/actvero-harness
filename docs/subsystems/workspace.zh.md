@@ -178,6 +178,45 @@ interface SessionActivity {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxactveroexpertpolicy--expertselectionpolicy"></a>
+
+### `ctx.actveroExpertPolicy` — `ExpertSelectionPolicy`
+
+Ordinary expert selection and connector intent supplied by its owning plugin.
+
+```ts cordis-catalog
+/** Resolve the effective selection, including inherited parent experts.
+ * @param agent Conversation whose expert source is changing.
+ * @returns Exact recorded selection, or null for ordinary mode.
+ */
+selection(agent: Agent): Promise<ConversationExpertSelection | null>
+
+/** Resolve configured connector intent for a conversation.
+ * @param agent Conversation requesting tools.
+ * @returns Allowed connector IDs, or undefined when no expert restricts the default view.
+ */
+connectors(agent: Agent): Promise<readonly string[] | undefined>
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/actvero/capability-ui/src/workbench-expert-policy.ts`](../../packages/actvero/capability-ui/src/workbench-expert-policy.ts)
+
+<a id="ctxactveroworkbenchdevelopment--workbenchdevelopment"></a>
+
+### `ctx.actveroWorkbenchDevelopment` — `WorkbenchDevelopment`
+
+A private connection file authorizes local Agents; no endpoint exists before the owner exports development resources.
+
+```ts cordis-catalog
+/** Start a loopback-only endpoint and publish a mode-0600 connection file.
+ * @returns Absolute connection file for the CLI; its token expires when this Host exits.
+ */
+connection(): Promise<string>
+```
+
+Source: [`packages/actvero/capability-ui/src/workbench-development.ts`](../../packages/actvero/capability-ui/src/workbench-development.ts)
+
 <a id="ctxactveroworkbenchmaintenance--workbenchmaintenance"></a>
 
 ### `ctx.actveroWorkbenchMaintenance` — `WorkbenchMaintenance`
@@ -252,15 +291,38 @@ register(provider: WorkbenchProvider): () => Promise<void>
  */
 present(request: WorkbenchDisplayRequest | null, signal: AbortSignal): Promise<WorkbenchDisplayResult>
 
+/** Prepare an independent creation conversation, reusing only an ordinary blank draft.
+ * @param request Optional foreground conversation; its active expert and started history remain intact in a separate conversation.
+ * @returns New or reusable blank conversation with the Cordis preset and no expert source. No message is sent.
+ */
+@Remote async startAuthoring(request: { sessionId?: SessionId }): Promise<{ sessionId: SessionId }>
+
 /** Export bundled guidance to ordinary files readable by external Agents on this Host.
  * @returns Absolute skill entrypoints, including all relative guide and API references.
  */
-@Remote async developmentResources(): Promise<{ skillPath: string; frontendSkillPath: string }>
+@Remote async developmentResources(): Promise<WorkbenchDevelopmentResources>
 
 /** List providers with a managed runtime, including those with author-owned storage.
  * @returns Runtime-ready provider metadata, independent of UI-only cards.
  */
 @Remote list(): WorkbenchRuntimeEntry[]
+
+/** List conversational entries owned by loaded providers; withdrawal immediately removes them.
+ * @returns Read-only expert metadata; listing never creates data, a workspace or a conversation.
+ */
+@Remote experts(): WorkbenchExpertEntry[]
+
+/** Observe loaded expert entries, including installation, disablement and withdrawal.
+ * @param signal Client lifetime.
+ * @returns Initial catalog and changed catalogs; no business instances are allocated.
+ */
+@Remote({ mode: 'stream' }) async *followExperts(signal: AbortSignal): AsyncIterable<WorkbenchExpertEntry[]>
+
+/** Select a contributed expert in an existing idle conversation, or create an unbound conversation.
+ * @param request Loaded provider and optional conversation; its filesystem workspace is preserved.
+ * @returns Durable workbench association after capabilities are prepared.
+ */
+@Remote async selectExpert(request: { id: WorkbenchId; sessionId?: SessionId }): Promise<WorkbenchBinding>
 
 /** Resolve the provider's local default instance without creating a conversation.
  * @param id Installed provider identity.
@@ -299,11 +361,42 @@ platformAccess(request: WorkbenchTarget): string
  */
 @Remote async action(request: WorkbenchActionRequest): Promise<WorkbenchDocument>
 
-/** Bind an idle existing conversation or create one in the managed files directory.
+/** Bind an idle conversation or create one without assigning a filesystem workspace.
  * @param request Business instance and optional existing conversation.
  * @returns Conversation identity and the durably recorded environment.
  */
 @Remote async bind(request: WorkbenchBindRequest): Promise<WorkbenchBinding>
+
+/** Check whether developer replacement can proceed without interrupting a conversation or business operation.
+ * @param id Workbench package being replaced.
+ * @returns False while the provider has an operation or a bound conversation is running.
+ */
+developmentIdle(id: WorkbenchId): boolean
+
+/** Release capabilities after another expert source has committed its selection under Agent maintenance.
+ * @param agent Idle reserved conversation; callers retain the ordinary selection if cleanup fails and must report the failure.
+ * @returns Completion after superseded workbench resources stop; a remaining binding is left intact.
+ */
+async releaseSuperseded(agent: Agent): Promise<void>
+
+/** Read bounded failure diagnostics from conversations currently associated with this developer workbench.
+ * @param id Workbench being debugged.
+ * @returns Up to twenty recent failures per retained conversation; without successful conversation message contents.
+ */
+developmentDiagnostics(id: WorkbenchId): DevelopmentDiagnostic[]
+
+/** Reserve all bound idle Agents and reject concurrent business calls during a developer replacement.
+ * @param id Provider being replaced.
+ * @param work Loader replacement and rollback, including refreshDevelopmentBindings before success.
+ * @returns Busy without mutation, or the completed replacement result. Reservations release on failure too.
+ */
+async replaceDevelopment<T>(id: WorkbenchId, work: () => Promise<T>): Promise<{ busy: true } | { busy: false; value: T }>
+
+/** Capture the loaded development generation for reserved conversations without changing their workspace or business object.
+ * @param id Provider owned by the current replaceDevelopment operation.
+ * @returns Completion after every reserved conversation has its exact new capabilities recorded; failures require caller rollback.
+ */
+async refreshDevelopmentBindings(id: WorkbenchId): Promise<void>
 
 /** Stop using a workbench without deleting business data or conversation history.
  * @param request Conversation to unlink; running turns are governed by native maintenance admission.
@@ -327,7 +420,7 @@ platformAccess(request: WorkbenchTarget): string
 async prepareRemoval(id: WorkbenchId, version: string): Promise<{ cleanup(): Promise<void>; complete(): void }>
 ```
 
-Types: [SessionId](core.zh.md)
+Types: [Agent](core.zh.md) · [SessionId](core.zh.md)
 
 Source: [`packages/actvero/capability-ui/src/workbench-runtime.ts`](../../packages/actvero/capability-ui/src/workbench-runtime.ts)
 

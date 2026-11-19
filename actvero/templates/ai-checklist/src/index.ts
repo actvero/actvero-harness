@@ -20,12 +20,12 @@ export const inject = ['actveroWorkbenchRuntime']
 /** Register business behavior until this package is unloaded.
  * @param ctx Native plugin lifetime.
  */
-export function apply(ctx: Context): void {
+export async function apply(ctx: Context): Promise<void> {
   const resourcesDirectory = fileURLToPath(new URL('../assets/', import.meta.url))
   const expert = new WorkbenchExpertBundle({ directory: resourcesDirectory })
   const provider: WorkbenchCustomProvider = {
     id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
-    resourcesDirectory, ai: true, platform: ['models:read'],
+    resourcesDirectory, ai: true, platform: ['models:read'], expertEntry: await expert.entry(),
     async resolveObject(id, environment, signal) {
       signal.throwIfAborted()
       const document = ctx.actveroWorkbenchRuntime.read(environment)

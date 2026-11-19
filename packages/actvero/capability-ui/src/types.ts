@@ -4,6 +4,15 @@ import type { TypertResource } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchObjectId } from './workbench-reference.ts'
 
+/** One local development attachment, valid only for its exporting Host. */
+export type WorkbenchDevelopmentId = Branded<'WorkbenchDevelopmentId'>
+/** Exported files for local authoring; nullable paths indicate an unavailable optional service. */
+export interface WorkbenchDevelopmentResources {
+  skillPath: string
+  frontendSkillPath: string
+  connectionPath: string | null
+  expertSkillPath: string | null
+}
 /** Stable package-owned workbench identity. */
 export type WorkbenchId = Branded<'ActveroWorkbenchId'>
 /** Host-created business data instance, independent of its conversations. */
@@ -20,6 +29,23 @@ export interface WorkbenchPlatformModel { id: WorkbenchModelId; name: string; de
 export interface WorkbenchModelCatalog { scope: WorkbenchPlatformScopeId; models: WorkbenchPlatformModel[] }
 /** Optional instructions packaged with a workbench; no model configuration is required. */
 export interface WorkbenchExpert { name: string; version: string; instructions: string }
+/** Read-only expert contributed by a loaded workbench; never copied into the personal expert store. */
+export interface WorkbenchExpertEntry {
+  id: WorkbenchId
+  name: string
+  version: string
+  workbenchName: string
+  description: string
+  avatar: string
+}
+/** Exact ordinary expert snapshot selected for a conversation. */
+export interface ConversationExpertSelection {
+  snapshotId: string
+  id: string
+  name: string
+  avatar: string
+  version: string
+}
 /** Whole-instance selection persisted by schemaVersion 1 records. */
 export interface WorkbenchLegacySelection {
   id: WorkbenchId
@@ -81,6 +107,8 @@ export interface WorkbenchRuntimeEntry { id: WorkbenchId; name: string; version:
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Exact ordinary expert snapshot; selecting one replaces a workbench expert. Null clears only the ordinary expert. */
+    'actvero/expert': { schemaVersion: 1; selection: ConversationExpertSelection | null }
     /** Exact workbench environment for subsequent turns. Null explicitly unlinks it; forks retain the recorded association. */
     'actvero/workbench': { schemaVersion: 1; selection: WorkbenchLegacySelection | null }
       | { schemaVersion: 2; selection: WorkbenchSelection & { object: WorkbenchObject } }
@@ -88,7 +116,7 @@ declare module '@deepseek-ai/dsh-session/types' {
 }
 declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap { actveroWorkbench: WorkbenchSelection | null }
-  interface SessionProjectionMap { actveroWorkbench: WorkbenchSelection | null }
+  interface SessionProjectionMap { actveroWorkbench: WorkbenchSelection | null; actveroExpert: { hasSelection: boolean } }
 }
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertResourceMap {
@@ -100,6 +128,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workbench/command': { status: 'unavailable' }
     /** The linked provider is unavailable or no longer matches its selected version. */
     'workbench/unavailable': Record<string, never>
+    /** A bound conversation is running; retry the selection after its current turn. */
+    'workbench/busy': Record<string, never>
     /** The business instance does not exist. */
     'workbench/not-found': Record<string, never>
     /** Another write committed; reread the document before submitting a new action. */

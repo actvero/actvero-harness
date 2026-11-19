@@ -245,8 +245,8 @@ export function createWorkbenchManagement(
     async setEnabled(this: void, name: string, enabled: boolean) {
       return run(name, () => remote.setBundleEnabled(name, enabled))
     },
-    async remove(name: string) {
-      await run(name, () => remote.removeBundle(name))
+    async remove(name: string, version?: string) {
+      await run(name, () => remote.removeBundle(name, version))
     },
   }
 }

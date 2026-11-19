@@ -32,3 +32,33 @@ it('serializes edits and replaces failed diagnostics after recovery without clai
   await writeFile(join(directory, 'input.txt'), 'after-stop')
   expect(build).toHaveBeenCalledTimes(count)
 })
+
+it('waits for the attached Harness to become idle and reports its activation acknowledgement', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actvero-dev-attached-'))
+  const controller = new AbortController()
+  let admit = false
+  const apply = vi.fn(async (_artifact: { path: string; sha256: string }, _signal: AbortSignal) =>
+    admit ? { application: 'applied', runtime: 'loaded', client: 'published' } : { application: 'busy' })
+  const build = vi.fn(async () => ({ path: '/artifact.tgz', sha256: 'attached-build' }))
+  const watching = watchWorkbench(directory, build, controller.signal, apply)
+  onTestFinished(async () => { controller.abort(); await watching; await rm(directory, { recursive: true, force: true }) })
+  const diagnostics = async (): Promise<unknown> => JSON.parse(await readFile(join(directory, '.actvero/diagnostics.json'), 'utf8'))
+  await vi.waitFor(async () => { expect(await diagnostics()).toMatchObject({ phase: 'built', runtime: 'waiting-for-idle' }) })
+  admit = true
+  await vi.waitFor(async () => { expect(await diagnostics()).toMatchObject({ phase: 'built', runtime: 'loaded', client: 'published' }) }, { timeout: 3000 })
+  expect(apply).toHaveBeenCalledWith({ path: '/artifact.tgz', sha256: 'attached-build' }, controller.signal)
+  expect(apply.mock.calls.length).toBeGreaterThanOrEqual(2)
+})
+
+it('rejects an applied response without a loaded runtime acknowledgement', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actvero-dev-invalid-ack-'))
+  const controller = new AbortController()
+  const watching = watchWorkbench(directory, async () => ({ path: '/artifact.tgz', sha256: 'invalid-ack' }), controller.signal,
+    async () => ({ application: 'applied', runtime: 'not-verified', client: 'published' }))
+  onTestFinished(async () => { controller.abort(); await watching; await rm(directory, { recursive: true, force: true }) })
+  await vi.waitFor(async () => {
+    const diagnostic: unknown = JSON.parse(await readFile(join(directory, '.actvero/diagnostics.json'), 'utf8'))
+    expect(diagnostic).toMatchObject({ phase: 'failed' })
+    expect(diagnostic).not.toHaveProperty('runtime', 'loaded')
+  })
+})

@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import { build } from 'tsdown'
 import ts from 'typescript'
 import { z } from 'zod'
+import { creatorSkill } from '../packages/actvero/experts/src/creator.ts'
 import { generateWorkbenchSkillReference } from './actvero-workbench-skill.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
@@ -123,6 +124,9 @@ export async function exportWorkbenchKit(destination: string): Promise<{ path: s
   for (const skill of ['develop-workbench', 'workbench-frontend']) {
     await cp(join(repository, 'packages/actvero/capability-ui/assets', skill), join(output, 'packages/actvero/capability-ui/assets', skill), { recursive: true })
   }
+  const expertSkill = join(output, 'packages/actvero/capability-ui/assets/expert-creator')
+  await mkdir(expertSkill, { recursive: true })
+  await writeFile(join(expertSkill, 'SKILL.md'), `---\nname: ${creatorSkill.name}\ndescription: ${JSON.stringify(creatorSkill.description)}\n---\n\n${creatorSkill.content}`)
   generateWorkbenchSkillReference(
     join(output, 'packages/actvero/capability-ui/assets/develop-workbench/reference'), 'standalone-kit',
   )

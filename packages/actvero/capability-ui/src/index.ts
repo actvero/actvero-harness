@@ -9,9 +9,12 @@ import { WorkbenchRuntime, type WorkbenchRuntimeConfig } from './workbench-runti
 import { workbenchDomain } from './workbench-storage.ts'
 import { checklistProvider } from './checklist.ts'
 import { WorkbenchMaintenance } from './workbench-maintenance.ts'
+import { WorkbenchDevelopment } from './workbench-development.ts'
+import { join } from 'node:path'
 import { WorkbenchPlatformAccess } from './workbench-platform.ts'
 
 export type * from './types.ts'
+export type { ExpertSelectionPolicy } from './workbench-expert-policy.ts'
 export type * from './workbench-provider.ts'
 export type { WorkbenchLifecycle } from './workbench-lifecycle.ts'
 export type { WorkbenchObjectId } from './workbench-reference.ts'
@@ -21,6 +24,7 @@ export { workbenchResultMetadata, workbenchResultText } from './workbench-result
 export type { WorkbenchProtocol } from './workbench-protocol.ts'
 export { WorkbenchPlatformAccess } from './workbench-platform.ts'
 export { WorkbenchRuntime } from './workbench-runtime.ts'
+export type { WorkbenchDevelopment } from './workbench-development.ts'
 export { WorkbenchMaintenance } from './workbench-maintenance.ts'
 /** Services required by business storage and native conversation integration. */
 export const inject = ['agents', 'sessionController', 'sessionProjections', 'tools', 'systemPrompt', 'storageDomain', 'typert', 'remoteAccess', 'workspaceRegistry']
@@ -59,6 +63,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     // Keep storage available until runtime calls and provider scopes have stopped.
     yield () => domain.close()
     const runtime = new WorkbenchRuntime(ctx, domain, config)
+    ctx.inject(['loader', 'clientModules'], (child) => { new WorkbenchDevelopment(child, runtime, join(config.dataDirectory, '.development')) })
     ctx.inject(['pluginManager'], (child) => { new WorkbenchMaintenance(child, runtime, child.pluginManager) })
     new WorkbenchPlatformAccess(ctx, runtime, config.platformTimeoutMs)
     if (config.exampleWorkbench) yield runtime.register(checklistProvider)

@@ -48,3 +48,13 @@ it.each([
   Object.assign(event, { data })
   expect(() => ctx.sessionProjections.restore({}, [event], SessionLogOffset(0), session.header, session.inheritedEventCount)).toThrow()
 })
+
+
+it('replays the latest explicit expert source without mixing workbench and ordinary experts', async () => {
+  const { ctx, session } = await fixture()
+  session.append('actvero/workbench', { schemaVersion: 1, selection })
+  session.append('actvero/expert', { schemaVersion: 1, selection: { snapshotId: 'f0000000-0000-4000-8000-000000000002', id: 'report', name: '报告专家', avatar: '', version: '1.0.0' } })
+  expect(ctx.sessionProjections.stateOf(session, 'actveroWorkbench')).toBeNull()
+  session.append('actvero/workbench', { schemaVersion: 1, selection })
+  expect(ctx.sessionProjections.stateOf(session, 'actveroWorkbench')).toEqual(selection)
+})

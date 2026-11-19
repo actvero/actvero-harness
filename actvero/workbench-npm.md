@@ -2,7 +2,7 @@
 
 English | [中文](workbench-npm.zh.md)
 
-For developers and Agents building workbenches for an installed ACTVERO desktop. This package supplies scaffolding, pinned compiler tools, API declarations and two Skills without requiring Harness source. This preview supports macOS Apple Silicon and requires Node 22.19 or 24 and later; other operating systems and architectures are outside this distribution.
+For developers and Agents building workbenches for an installed ACTVERO desktop. This package supplies scaffolding, pinned compiler tools, API declarations, development commands and three shared Skills (develop-workbench, workbench-frontend and expert-creator) without requiring Harness source. This preview supports macOS Apple Silicon and requires Node 22.19 or 24 and later; other operating systems and architectures are outside this distribution.
 
 ## Install and create
 
@@ -24,7 +24,7 @@ The first command needing the compiler verifies and extracts the bundled kit.tgz
 
 ## Install Skills for an Agent
 
-New projects already include both Skills. Use one of these commands for a shared or Agent-specific directory. Existing Skills with the same names are not overwritten; back up and move old directories before updating.
+New projects include the two workbench Skills. Shared installation also includes expert creation. Install into the shared directory or an Agent-specific directory below; existing names are preserved. After upgrading the kit, use `actvero-workbench skills update --global` to replace only unchanged tool-managed copies. User-authored files remain intact.
 
 ```sh
 actvero-workbench skills install --global
@@ -37,7 +37,7 @@ actvero-workbench skills install "$HOME/.codex/skills"
 
 After upgrading the npm kit, run `actvero-workbench bind /absolute/path/project` for existing projects to refresh toolchain binding, Skills and type configuration while retaining business source and DESIGN.md. Do not copy old cache paths to another machine; install a compatible kit there and bind again.
 
-`npm run dev` watches, checks and packages the project; it does not install, reload or launch the desktop. Read `.actvero/diagnostics.json` for the current build result, then import into the target desktop and verify the business flow. Record installation, view loading and business acceptance separately.
+`npm run dev` builds automatically. Attach once with `actvero-workbench attach /project --connection /connection.json` to load development overlays in that Harness. Without an attachment it only builds. `status`, `logs` and `detach` inspect or release the overlay. See the [development guide](workbench-development.md#create) for build, loading and business verification.
 
 Uninstalling the global npm package preserves projects, copied Skills and caches; retain caches still bound by projects. Use info to locate a cache, rebind projects to the new kit, then remove unused old directories. This kit does not automatically upload, publish or call paid models.
 

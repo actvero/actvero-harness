@@ -23210,7 +23210,7 @@
         "packages/actvero/experts/src/projection.ts#ConnectorChoice"
       ],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:17"
+        "packages/actvero/experts/src/projection.ts:14"
       ]
     },
     {
@@ -23504,7 +23504,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchLegacySelection"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:24"
+        "packages/actvero/capability-ui/src/types.ts:50"
       ]
     },
     {
@@ -24082,8 +24082,8 @@
         "packages/workflow/workflow/src/types.ts#WorkflowRunId"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:10",
-        "packages/actvero/capability-ui/src/types.ts:8",
+        "packages/actvero/capability-ui/src/types.ts:17",
+        "packages/actvero/capability-ui/src/types.ts:19",
         "packages/actvero/capability-ui/src/workbench-reference.ts:12",
         "packages/api/session-controller/src/types.ts:413",
         "packages/attachment/attachment/src/brand.ts:6",
@@ -24233,7 +24233,7 @@
       "digest": "544357ce88ef43f1bc5f43bc8e3edb7ffe3244f32a6663009bea873ce50da8d8",
       "names": [],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:22"
+        "packages/actvero/experts/src/projection.ts:19"
       ]
     },
     {
@@ -24425,7 +24425,7 @@
       "digest": "5f3c1ff1b0b8c6d60370ba6ea9c0abb361ab5b9f15631999e42462796c1c6d77",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:85"
+        "packages/actvero/capability-ui/src/types.ts:113"
       ]
     },
     {
@@ -24544,7 +24544,7 @@
       "digest": "686726790492ab6007ee40959a6cb6dd61c85540584d56d7b64b2a4f832fd4a9",
       "names": [],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:86"
+        "packages/actvero/capability-ui/src/types.ts:114"
       ]
     },
     {
@@ -24860,7 +24860,7 @@
       "digest": "7d684c5585cdbcf0cc34e85c2b548e1c342fcb27e38705ae5869ec3e315b0fcc",
       "names": [],
       "sources": [
-        "packages/actvero/experts/src/projection.ts:9"
+        "packages/actvero/capability-ui/src/types.ts:111"
       ]
     },
     {
@@ -25370,10 +25370,10 @@
     {
       "digest": "9f961323f301e52dd4a04be8b19b21ff284787f309859761fd7836f8d9c03dee",
       "names": [
-        "packages/actvero/experts/src/contracts.ts#ExpertSelection"
+        "packages/actvero/capability-ui/src/types.ts#ConversationExpertSelection"
       ],
       "sources": [
-        "packages/actvero/experts/src/contracts.ts:90"
+        "packages/actvero/capability-ui/src/types.ts:42"
       ]
     },
     {
@@ -25461,7 +25461,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchExpert"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:22"
+        "packages/actvero/capability-ui/src/types.ts:31"
       ]
     },
     {
@@ -25862,7 +25862,7 @@
         "packages/actvero/capability-ui/src/types.ts#WorkbenchObject"
       ],
       "sources": [
-        "packages/actvero/capability-ui/src/types.ts:34"
+        "packages/actvero/capability-ui/src/types.ts:60"
       ]
     },
     {

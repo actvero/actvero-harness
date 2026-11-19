@@ -37,6 +37,8 @@ export interface WorkbenchProviderBase {
   /** Fixed platform reads requested by this package; omission denies platform access. */
   platform?: readonly 'models:read'[]
   expert?: WorkbenchExpert
+  /** Expert catalog presentation. AI-enabled providers expose their expert by default; false hides the conversational entry. */
+  expertEntry?: false | { name?: string; version?: string; description?: string; avatar?: string }
   /** Resolve an existing author-owned object before binding and every model step; never create a replacement.
    * @param id Stable object identity in this instance.
    * @param environment Managed instance paths, without ambient UI selection.

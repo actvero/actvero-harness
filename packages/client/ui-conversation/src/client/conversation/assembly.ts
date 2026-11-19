@@ -195,6 +195,7 @@ export class UiConversation extends Service {
   readonly userText: UserTextRegistry
   private readonly bindings = new WeakMapWithValues<SessionBinding, BindingRecord>()
   private readonly images: HistoricalImageCache
+  private readonly workspaceModes = new Map<SessionId, { count: number; store: SnapshotStore<boolean> }>()
 
   /**
    * @param ctx - owning Client context.
@@ -230,6 +231,34 @@ export class UiConversation extends Service {
         for (const record of [...this.bindings.values]) this.drop(record, true)
       }
     }, 'ui-conversation assembly')
+  }
+
+  /** Permit a Session composer without registered Workspace membership.
+   * @param sessionId Session owned by the granting presentation plugin.
+   * @returns Idempotent release; the final release restores the Workspace prerequisite. Host permissions and directories stay unchanged.
+   */
+  allowWithoutWorkspace(sessionId: SessionId): () => void {
+    const mode = this.workspaceMode(sessionId)
+    mode.count++
+    if (mode.count === 1) mode.store.set(true)
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      if (--mode.count === 0) mode.store.set(false)
+    }
+  }
+
+  /** Observe whether an owning plugin permits workspace-free presentation.
+   * @param sessionId Session whose composer is rendered.
+   * @returns Identity-stable presentation source; an absent grant reads false.
+   */
+  workspaceOptionalFor(sessionId: SessionId): ObservableSnapshot<boolean> { return this.workspaceMode(sessionId).store }
+
+  private workspaceMode(sessionId: SessionId) {
+    let mode = this.workspaceModes.get(sessionId)
+    if (!mode) { mode = { count: 0, store: createSnapshotStore(false) }; this.workspaceModes.set(sessionId, mode) }
+    return mode
   }
 
   /**

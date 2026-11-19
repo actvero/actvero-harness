@@ -119,7 +119,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:204',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:217',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -148,7 +148,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:199',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:212',
   },
   {
     key: 'actvero.workbench.body',
@@ -178,6 +178,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
       'WorkbenchObject',
+      'WorkbenchObjectId',
       'WorkbenchObjectLocation',
       'WorkbenchReferenceInput',
     ],
@@ -202,7 +203,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.body\', () => ctx.slots.register(\n      { name: \'actvero.workbench.body\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:197',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:210',
   },
   {
     key: 'actvero.workbench.chat',
@@ -272,6 +273,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'WorkbenchInstanceId',
       'WorkbenchModelCatalog',
       'WorkbenchObject',
+      'WorkbenchObjectId',
       'WorkbenchObjectLocation',
       'WorkbenchReferenceInput',
     ],
@@ -295,7 +297,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.header\', () => ctx.slots.register(\n      { name: \'actvero.workbench.header\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:195',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:208',
   },
   {
     key: 'conversation.approval.detail',
@@ -1474,7 +1476,6 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'conversation.composer.bar\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
-      '@actvero/dsh-capability-ui WorkbenchBadge id \'actvero-selected-workbench\'',
       '@actvero/dsh-experts ExpertBadge id \'actvero-selected-expert\'',
     ],
     replaceRisk: 'none',
@@ -3834,7 +3835,6 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       '@actvero/dsh-capability-ui CapabilityToast id \'actvero-capability-toast\'',
       '@actvero/dsh-capability-ui DraftPreview id \'actvero.workbench.reference-preview\'',
-      '@actvero/dsh-experts WorkspacePicker id \'actvero-expert-workspace\'',
       '@actvero/dsh-experts PreparationOverlay id \'actvero-expert-preparation\'',
       'client-ui-chat QuotaNoticeHost id \'chat.quota-notice\'',
       'client-ui-plugin-manager PluginRefreshToast id \'plugin-manager.refresh-toast\'',

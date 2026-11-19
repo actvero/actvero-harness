@@ -10,11 +10,14 @@
 ```mermaid
 flowchart LR
   pkg__actvero_dsh_capability_ui["@actvero/dsh-capability-ui"]
+  svc_actveroWorkbenchDevelopment["ctx.actveroWorkbenchDevelopment<br/>Actvero local development"]
+  svc_actveroExpertPolicy["ctx.actveroExpertPolicy<br/>Actvero expert selection"]
+  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
+  pkg__actvero_dsh_connectors["@actvero/dsh-connectors"]
   svc_actveroWorkbenchMaintenance["ctx.actveroWorkbenchMaintenance<br/>Actvero workbench removal"]
   svc_actveroWorkbenchPlatform["ctx.actveroWorkbenchPlatform<br/>Actvero workbench platform metadata"]
   pkg_tool_workspace_dependencies["tool-workspace-dependencies"]
   svc_workspaceDependencies["ctx.workspaceDependencies<br/>Native runtime preparation"]
-  pkg__actvero_dsh_experts["@actvero/dsh-experts"]
   svc_actveroWorkbenchRuntime["ctx.actveroWorkbenchRuntime<br/>Actvero local workbench runtime"]
   pkg_experimental_client_ui_cot_translation["experimental-client-ui-cot-translation"]
   svc_cotTranslation["ctx.cotTranslation<br/>Reasoning translation Remote"]
@@ -303,9 +306,12 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg__actvero_dsh_capability_ui --> svc_actveroExpertPolicy
+  pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchDevelopment
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchMaintenance
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchPlatform
   pkg__actvero_dsh_capability_ui --> svc_actveroWorkbenchRuntime
+  pkg__actvero_dsh_experts --> svc_actveroExpertPolicy
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
@@ -464,6 +470,8 @@ flowchart LR
   pkg_working_directory --> svc_workingDirectory
   pkg_workspace --> svc_workspaceRegistry
   pkg_workspace_changes --> svc_workspaceChanges
+  svc_actveroExpertPolicy --> pkg__actvero_dsh_capability_ui
+  svc_actveroExpertPolicy --> pkg__actvero_dsh_connectors
   svc_agentDefaultModel --> pkg_api_session_controller
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
@@ -625,6 +633,8 @@ flowchart LR
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.actveroWorkbenchDevelopment` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 加载当前 Profile 的临时开发覆盖，报告诊断并恢复正式安装的实现。 |
+| `ctx.actveroExpertPolicy` | `seam` | `@actvero/dsh-capability-ui` | `@actvero/dsh-experts` | `@actvero/dsh-capability-ui`, `@actvero/dsh-connectors` | - | 切换会话能力时，解析已记录的普通专家选择与连接器启用意图。 |
 | `ctx.actveroWorkbenchMaintenance` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 执行经所有者确认的业务数据清理，并委托原生安装器卸载指定版本的软件包。 |
 | `ctx.actveroWorkbenchPlatform` | `service` | `@actvero/dsh-capability-ui` | - | - | - | 通过 Electron Main 读取工作台声明的模型元数据，不暴露凭据或提供任意地址的鉴权代理。 |
 | `ctx.workspaceDependencies` | `service` | [`tool-workspace-dependencies`](../packages/skill/tool-workspace-dependencies) | - | `@actvero/dsh-experts` | - | 解析配置的解释器与包目录；Host 消费方与模型工具共用成功的准备结果，并等待释放。 |

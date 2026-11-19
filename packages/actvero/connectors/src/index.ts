@@ -1,3 +1,4 @@
+import type {} from '@actvero/dsh-capability-ui'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
@@ -7,7 +8,6 @@ export const name = 'actvero-connectors'
 export const inject = ['tools', 'agents']
 declare module '@deepseek-ai/cordis' { interface Context {
   actveroMcp: { refresh():Promise<void>; names(sessionId:string):string[]; ids(sessionId:string):string[]; owns(name:string):boolean }
-  actveroExpertPolicy: { connectors(agent:import('@deepseek-ai/dsh-agent').Agent):Promise<readonly string[]|undefined> }
 }}
 type Snapshot = { id: string; inventory: Inventory; sessions: string[] }[]
 export function apply(ctx: Context) {
@@ -210,10 +210,10 @@ export function apply(ctx: Context) {
             registrations.set(key, {
               signature,
               agent,
-              dispose: () => off.forEach(fn => fn()),
+              dispose: () =>{  off.forEach((fn) =>{  fn() }) },
             })
           } catch (error) {
-            off.forEach(fn => fn())
+            off.forEach((fn) =>{  fn() })
             throw error
           }
         }

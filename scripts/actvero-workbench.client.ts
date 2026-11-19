@@ -1,4 +1,5 @@
 /** Create and package local Actvero workbenches through the existing client compiler. */
+import { attachWorkbench, inspectDevelopment, developmentApplier, developmentRequest } from './actvero-workbench-connection.ts'
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -195,10 +196,21 @@ export async function packWorkbench(directory: string, output: string, developme
 }
 
 async function main(): Promise<void> {
-  const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' } } })
+  const { values, positionals } = parseArgs({ allowPositionals: true, options: { template: { type: 'string' }, connection: { type: 'string' }, file: { type: 'string' } } })
   const [command, path, argument] = positionals
+  if (command === 'expert' && path === 'schema') {
+    console.log(JSON.stringify({ catalog: {}, 'author-list': { query: 'optional search', page: 1 }, 'author-get': { id: 'expert ID' }, create: { expert: { manifest: 'ExpertManifest v1', bindings: { skills: {}, connectors: {} } } }, 'author-update': { id: 'expert ID', revision: 1, patch: { manifest: {}, bindings: {} } }, 'author-check': { id: 'expert ID' } }, null, 2))
+    return
+  }
   if (!path || positionals.length > 3) throw new Error('用法：workbench create <新目录> [包名] [--template blank|plain|ai] | bind <项目目录> | doctor <项目目录> | typecheck <项目目录> | pack <项目目录> [输出目录] | check <归档.tgz>')
-  if (command === 'create') {
+  if (command === 'attach' && values.connection) {
+    console.log(JSON.stringify(await attachWorkbench(path, values.connection), null, 2))
+  } else if ((command === 'status' || command === 'logs' || command === 'detach') && argument === undefined) {
+    console.log(JSON.stringify(await inspectDevelopment(path, command === 'detach' ? 'detach' : 'status'), null, 2))
+  } else if (command === 'expert' && values.connection) {
+    const input: unknown = values.file ? JSON.parse(await readFile(values.file, 'utf8')) : {}
+    console.log(JSON.stringify(await developmentRequest(values.connection, { action: 'expert', operation: path, input }), null, 2))
+  } else if (command === 'create') {
     const kind = z.enum(['blank', 'plain', 'ai']).parse(values.template ?? 'blank')
     await createWorkbench(path, argument, kind)
     console.log(`已创建工作台开发目录：${resolve(path)}`)
@@ -216,7 +228,7 @@ async function main(): Promise<void> {
       await watchWorkbench(resolve(path), async () => {
         const archive = await packWorkbench(path, join(path, 'dist'), true)
         return { path: archive, ...await checkWorkbench(archive) }
-      }, abort.signal)
+      }, abort.signal, await developmentApplier(resolve(path)))
     } finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop) }
   } else if (command === 'check' && argument === undefined) {
     console.log(JSON.stringify(await checkWorkbench(path), null, 2))

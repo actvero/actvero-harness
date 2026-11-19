@@ -16,7 +16,9 @@
     "src/checklist-data.ts"
   ],
   "references": [
-    { "path": "../../boot/plugin-manager/tsconfig.json" },
+    {
+      "path": "../../boot/plugin-manager/tsconfig.json"
+    },
     {
       "path": "../../../vendor/cordis/tsconfig.json"
     },
@@ -61,6 +63,12 @@
     },
     {
       "path": "../../skill/skill/tsconfig.json"
+    },
+    {
+      "path": "../../../vendor/loader/tsconfig.json"
+    },
+    {
+      "path": "../../client/modules/tsconfig.json"
     }
   ],
   "exclude": [

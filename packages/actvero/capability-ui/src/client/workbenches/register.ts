@@ -1,3 +1,4 @@
+import { prepareCreation } from '../selection.ts'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { Context } from '@deepseek-ai/cordis'
 import { workbenchArchiveSource, type AccountSnapshot, type PublishedWorkbench, type PublishedWorkbenchCatalog } from '@actvero/dsh-client-account/protocol'
@@ -19,15 +20,13 @@ import checklistReviewPreview from './assets/project-checklist-review.png'
 import checklistCompletedPreview from './assets/project-checklist-completed.png'
 import checklistDarkPreview from './assets/project-checklist-dark.png'
 import { Manager } from './Manager.tsx'
-import { OpenWorkbench, BusinessContent, WorkbenchChat, WorkbenchBadge, WorkbenchUtilities, type ConversationWorkbenchActions } from './RuntimeView.tsx'
+import { OpenWorkbench, BusinessContent, WorkbenchChat, WorkbenchUtilities, type ConversationWorkbenchActions } from './RuntimeView.tsx'
 import { connectWorkbenchDisplay, waitForWorkbenchView } from './presentation.ts'
 import { WorkbenchClientRuntime } from './runtime.ts'
 import { workbenchResource } from './resource.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { publishedWorkbenchAction } from './platform.ts'
 import { Navigation } from './Navigation.tsx'
-import { workbenchIconUrl } from './catalog.ts'
-import { IconChecklistOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import { en, zh } from './locales.ts'
 import { WorkbenchToolbar } from './Toolbar.tsx'
 import { registerWorkbenchReferences } from './references.tsx'
@@ -137,6 +136,21 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   const providers = await ctx.remote.actveroWorkbench.list()
   if (!providers.ok) throw providers.error
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }))
+  ctx.effect(() => {
+    const grants = new Map<SessionId, () => void>()
+    const refresh = () => {
+      const rows = ctx.sessions.list.getSnapshot().byId
+      for (const [id, release] of grants) if (!rows[id]) { release(); grants.delete(id) }
+      for (const row of Object.values(rows)) {
+        if (!grants.has(row.id) && (row.projectionValues?.actveroWorkbench || row.projectionValues?.actveroExpert?.hasSelection)) {
+          grants.set(row.id, ctx.uiConversation.allowWithoutWorkspace(row.id))
+        }
+      }
+    }
+    const unsubscribe = ctx.sessions.list.subscribe(refresh)
+    refresh()
+    return () => { unsubscribe(); for (const release of grants.values()) release() }
+  })
   const t = ctx.locale.bind(namespace)
   const examples: ActveroWorkbench[] = providers.value.some(entry => entry.id === 'builtin:project-checklist') ? [{
     id: 'builtin:project-checklist', name: t('sampleName'), description: t('sampleDescription'), category: 'office', version: '1.0.0',
@@ -413,6 +427,14 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   const conversationTargets = new Map<string, NonNullable<Parameters<ActveroWorkbenchRegistry['register']>[2]>['conversationTarget']>()
   const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
+    async summonExpert(id, sessionId) {
+      const error = await checkAccess(id)
+      if (error) throw new RemoteError('workbench/unavailable', t(error), {})
+      const result = await ctx.remote.actveroWorkbench.selectExpert({ id: id as WorkbenchId, ...(sessionId ? { sessionId } : {}) })
+      if (!result.ok) throw result.error
+      await ctx.sessions.refresh()
+      return result.value.sessionId
+    },
     async openObject(target) {
       const captured = { ...target }
       const entry = view.entries.find(item => item.id === captured.workbenchId)
@@ -520,7 +542,10 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       })
     },
     startDevelopment() {
-      ctx.uiWorkspace.startSession(undefined, { agentPreset: 'cordis', prompt: t('developPrompt'), whenDraftExists: 'append' })
+      void (async () => {
+        const foreground = Object.values(ctx.sessions.list.getSnapshot().byId).find(item => (item.retainedBy.mainView ?? 0) > 0)?.id
+        await prepareCreation(ctx, { name: 'develop-workbench' }, t('developPrompt'), foreground)
+      })().catch((error: unknown) => { ctx.logger.warn('Unable to prepare development conversation: %s', error); failed() })
     },
     async copyDevelopmentInstructions() {
       let resources: Awaited<ReturnType<typeof ctx.remote.actveroWorkbench.developmentResources>>
@@ -535,7 +560,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
         ctx.capabilityHub.notify(t('developResourcesFailed'))
         return
       }
-      const instructions = `${t('developPrompt')}\n\n${t('developResources', resources.value)}`
+      const instructions = `${t('developPrompt')}\n\n${t('developResources', { ...resources.value })}`
       try { await navigator.clipboard.writeText(instructions) }
       catch (error) {
         ctx.logger.warn('Unable to copy workbench development instructions: %s', error)
@@ -848,31 +873,8 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     },
     failed,
   })
-  ctx.slots.inject('conversation.input.left', () => ctx.slots.register({ name: 'conversation.input.left',
-    id: 'actvero-selected-workbench', locale: namespace, order: 30,
-    inject: sessionId => ({ action: conversationAction(sessionId), hooks: { view: source } }),
-  }, WorkbenchBadge))
   ctx.slots.inject('conversation.session.header.resident-utilities', () => ctx.slots.register({ name: 'conversation.session.header.resident-utilities',
     id: 'actvero-workbench-views', locale: namespace, order: -10, inject: sessionId => ({ action: conversationAction(sessionId), hooks: { view: source } }),
   }, WorkbenchUtilities))
-  ctx.effect(() => ctx.commandUi.register({ name: 'workbench', section: 'add', label: () => t('title'),
-    description: () => t('choose'), icon: WorkbenchIcon, available: () => true,
-    ui: { kind: 'popupSelect', searchLabels: () => ({ placeholder: t('search'), empty: t('empty'), noResults: t('empty') }),
-      options: async (_session, signal) => {
-        const result = await ctx.remote.actveroWorkbench.list()
-        signal.throwIfAborted()
-        if (!result.ok) throw result.error
-        return result.value.filter(item => item.aiEnabled && view.entries.some(entry => entry.id === item.id))
-          .map(item => ({ id: item.id, label: item.name,
-            icon: item.id === 'builtin:project-checklist' ? IconChecklistOutlineMedium : WorkbenchIcon,
-            avatar: { src: workbenchIconUrl(view, item.id), fallback: item.name.slice(0, 1) },
-          }))
-      },
-      onSelect: async (option, session) => {
-        const error = await checkAccess(option.id)
-        if (error) { ctx.capabilityHub.notify(t(error)); return }
-        await runtime.select(option.id, session.sessionId)
-      },
-    },
-  }))
+
 }

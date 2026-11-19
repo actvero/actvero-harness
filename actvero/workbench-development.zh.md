@@ -79,7 +79,9 @@ npm run dev
 
 命令使用 `.actvero/toolchain.json` 记录的本机套件或源码目录；此文件和生成的 tsconfig.json 不提交。目录移动后运行 `node scripts/workbench.mjs bind /绝对路径/工具链`，刷新编译配置、`.agents/skills/` 下的 Skill 和接口快照；业务代码、README.md、AGENTS.md、DESIGN.md 保留。AGENTS.md 要求 Agent 明确读取规范，不假设所有 Agent 产品会自动发现 Skill。
 
-`npm run dev` 监听项目变更，串行检查、构建和校验，开发包包含源码映射。Agent 读取 `.actvero/diagnostics.json`：`building` 表示进行中，`failed` 包含诊断，`built` 包含归档路径和 SHA-256。失败不会把旧产物报告为新构建；`runtime: not-verified` 表示尚未核实客户端加载。此命令不自动安装、重载或启动 Harness；仍按下文核验真实安装和业务。Ctrl+C 停止监听并等待已经开始的构建结束。
+`npm run dev` 监听项目变更，串行检查、构建和校验，开发包包含源码映射。未连接 Harness 时仅构建；已连接时自动发布临时开发覆盖，支持同版本连续更新，不修改正式安装版本。Agent 读取 `.actvero/diagnostics.json`，分别核对构建、Host 加载与 Client 发布，真实界面和业务仍需另行验证。失败不会把旧产物报告为新构建。Ctrl+C 停止监听并等待已经开始的构建结束；结束覆盖另用 detach。
+
+在目标 Harness 的“制作工作台 → 交给其他 Agent”中复制开发资料，获得当前版本的 Skill 和私有开发连接文件。使用 `actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json` 连接一次，随后运行 dev；`actvero-workbench status /项目目录` 和 `logs /项目目录` 读取加载结果与近期诊断，`detach /项目目录` 撤销开发覆盖并恢复正式安装版本。开发连接仅在本机当前 Host 生命周期内有效，不提交到项目；CLI 不启动或重启 Harness。更新等待关联会话空闲，失败恢复上次可用实现；恢复失败时停止调试并检查日志，不声称已回退。数据迁移仍由作者负责，使用隔离开发 Profile 验证迁移。
 
 `check` 复用客户端导入预检，并检查格式版本、版本声明、非空入口文件以及重复、越界和链接路径。它不执行工作台代码，不能证明业务功能正常。客户端还会在安装时执行当前运行版本的兼容性检查；开发命令不会跳过这一步。
 
@@ -105,7 +107,7 @@ Agent 先发现当前目标提供的安装工具并读取参数。目标若提�
 
 ## 包格式
 
-工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.8.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
+工作台扩展 API 与 DSH 运行时版本分别检查：当前扩展 API 为 `1.9.0`，声明格式为 `schemaVersion: 1`。模板将 `protocol` 放在 workbench.json；新增 Host 提供者时也传入 `protocol: metadata.protocol`，Client 继续读取相同元信息。旧包省略声明时，统一按原始 API `^1.0.0` 解析，不随宿主升级自动接受新 API。格式无效、未知字段、未支持的声明版本或不兼容的 API 范围会在注册前拒绝。doctor、pack、check 和客户端导入预检检查兼容性；实际 Host/Client 注册仍各自校验，归档检查不能替代真实加载。
 
 格式标识为 `dsh.actveroWorkbench: 1`。交付物使用 npm 兼容 `.tgz`，内容位于 `package/` 目录；包大小不超过 8 MiB，解压内容不超过 32 MiB。稳定身份由 npm 包名承担，业务名称与版本在运行时注册时分别读取 `workbench.json` 和 `package.json`。
 
@@ -309,7 +311,7 @@ export function apply(ctx: Context): void {
 
 组件收到 `workbench` 上下文，包含业务实例、关联会话、运行目录查询、AI 是否启用、原生资源地址、打开对话、执行业务操作和读取公开账户信息的方法。`account()` 未登录时返回空，已登录时只返回用户及组织标识和名称；这些公开字段不是凭据。`models()` 通过下述受控通道读取平台模型元信息。`conversation()` 按需创建或恢复当前关联对话，`action()` 携带最新修订号保存。注册组件时可向 `register(descriptor, component, { locale: namespace })` 传入已注册的本包语言命名空间，由宿主注入类型化 `t` 并响应语言切换。组件通过原生 `useResource` 读取数据，按自身容器宽度适配业务界面。悬浮预览使用 960 × 640 的业务视口等比缩小，禁用内部交互和滚动；编辑时进入工作台。
 
-Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器让多条关联对话共享其 JSON；自定义存储中的项目划分由作者决定，可按下述接口为对话关联具体业务对象。普通「新会话」不自动继承工作台；工作台内部「新建工作台对话」关联同一实例。恢复已有对话时读取日志中的关联和专家版本；收起浮窗不取消关联，取消使用不删除清单。新建关联对话在文件根目录的 `.sessions/<instanceId>` 创建或复用以工作台命名的工作区，与业务数据目录分开，不要求用户选择文件夹。现有对话的目录保持原样。
+Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器让多条关联对话共享其 JSON；自定义存储中的项目划分由作者决定，可按下述接口为对话关联具体业务对象。普通「新会话」不自动继承工作台；工作台内部「新建工作台对话」关联同一实例。恢复已有对话时读取日志中的关联和专家版本；收起浮窗不取消关联，取消使用不删除清单。新建关联对话不要求文件工作区；在现有会话召唤随包专家时保留原目录与历史，业务数据继续保存在稳定的工作台实例中。
 
 可运行参考为[内置清单提供者](../packages/actvero/capability-ui/src/checklist.ts)及其[客户端](../packages/actvero/capability-ui/src/client/workbenches/Example.tsx)。验收时分别检查首次默认展开 AI、对话默认预览、两种浮窗独立收起及刷新恢复、标题菜单切换关联对话与各自草稿、同一清单的手动与工具修改、并发冲突、重新打开会话、取消关联和窄窗口。安装和界面验收不替代真实模型及组织服务验证。
 
@@ -330,6 +332,8 @@ Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器�
 ## 随包专家、Skill、MCP 与 CLI
 
 本节面向需要为工作台配置 AI 行为的作者。宿主提供原生对话、模型选择、日志和会话作用域；作者决定业务工具、文件格式与操作方式。工作台可只设置 `ai: true` 使用普通 AI，也可设置 `expert` 提供简单指令。需要完整依赖时使用 `@actvero/dsh-experts/workbench` 导出的 `WorkbenchExpertBundle`，无需创建或召唤普通专家记录。
+
+API 1.9 将每个已加载且启用 AI 的提供者作为只读随包专家显示在“我的专家”和原生专家选择器中。`expertEntry` 提供名称、版本、简介和头像，设为 false 隐藏入口。召唤后直接在目标对话启用工作台能力，不要求另选文件工作区，也不复制个人专家记录。停用和卸载撤下入口，普通卸载保留数据与历史。后续回合使用最近明确选择的普通专家或工作台专家。业务对象按会话绑定，与文件目录独立。
 
 将原始资源放在源码根目录的 `assets/`。`pack` 保留该目录并沿用安装包大小与路径校验；`src/` 中的原始文件不会自动复制。下面的 Host 入口适用于编译输出位于 `lib/index.js` 的包，客户端继续按相同标识注册业务组件。
 

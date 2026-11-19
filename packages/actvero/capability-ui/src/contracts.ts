@@ -133,6 +133,12 @@ export interface ActveroWorkbench {
 
 /** Client registry of installed workbenches with a ready business view. */
 export interface ActveroWorkbenchRegistry {
+  /** Summon a package-owned expert after checking its installed platform access.
+   * @param id Loaded workbench identifier.
+   * @param sessionId Existing idle conversation; omission creates one without assigning a workspace.
+   * @returns Bound conversation identity; access or activation failures reject without navigating.
+   */
+  summonExpert(id: string, sessionId?: SessionId): Promise<SessionId>
   /** Open a recorded business object without rebinding or submitting the originating conversation.
    * @param target Fixed provider, instance, object and historical revision.
    * @returns Resolves after the destination view is mounted; missing providers/objects reject and history remains readable.

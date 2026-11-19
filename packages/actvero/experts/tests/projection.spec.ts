@@ -3,6 +3,15 @@ import SessionStore,{ SessionId,SessionLogOffset } from '@deepseek-ai/dsh-sessio
 import Projections from '@deepseek-ai/dsh-session-projection'
 import { expect,it,onTestFinished } from 'vitest'
 import { expertProjection } from '../src/projection.ts'
+
+it('keeps explicit selection intent after cancellation without publishing expert metadata', () => {
+  const selection = { snapshotId: 'snapshot', id: 'expert', name: 'Expert', avatar: 'portrait', version: '1.0.0' }
+  for (const value of [selection, null]) {
+    expect(expertProjection.wire.view({ hasSelection: true, selection: value, started: false })).toEqual({ hasSelection: true })
+  }
+  expect(expertProjection.wire.view({ hasSelection: false, selection: null, started: false })).toEqual({ hasSelection: false })
+  expect(expertProjection.wire.viewSchema.safeParse({ hasSelection: true, selection }).success).toBe(false)
+})
 const choice={ snapshotId:'f0000000-0000-4000-8000-000000000001',id:'expert-local',name:'Designer',avatar:'',version:'1.0.0' }
 it('restores exact selection through native log replay, checkpoints and forks',async()=>{
   const ctx=new Context();onTestFinished(()=>ctx.fiber.dispose())
@@ -41,4 +50,15 @@ it('keeps an accepted imported portrait in the durable selection', async () => {
   const avatar = 'data:image/png;base64,' + 'A'.repeat(300_000)
   session.append('actvero/expert', { schemaVersion: 1, selection: { ...choice, avatar } })
   expect(ctx.sessionProjections.stateOf(session, 'actveroExpert')?.selection?.avatar).toBe(avatar)
+})
+
+
+it('clears ordinary expertise when a workbench expert is selected', async () => {
+  const ctx = new Context(); onTestFinished(() => ctx.fiber.dispose())
+  await ctx.plugin(SessionStore); await ctx.plugin(Projections); ctx.sessionProjections.register(expertProjection)
+  const session = ctx.sessions.create(SessionId('workbench-source'))
+  session.append('actvero/expert', { schemaVersion: 1, selection: choice })
+  session.append('actvero/workbench', { schemaVersion: 1, selection: { id: 'test:board' as import('@actvero/dsh-capability-ui/types').WorkbenchId,
+    instanceId: 'f0000000-0000-4000-8000-000000000003' as import('@actvero/dsh-capability-ui/types').WorkbenchInstanceId, name: '看板', version: '1', expert: null } })
+  expect(ctx.sessionProjections.stateOf(session, 'actveroExpert')?.selection).toBeNull()
 })

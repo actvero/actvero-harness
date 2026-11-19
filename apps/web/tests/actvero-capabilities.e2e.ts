@@ -77,8 +77,8 @@ function installDisplayFixtures(): void {
   const listeners = new Set<() => void>(),
     expertListeners = new Set<() => void>()
   window.addEventListener('actvero-fixture-expert-refresh', () => {
-    expertRefresh = new Promise(resolve => window.addEventListener('actvero-fixture-expert-refresh-done', () => resolve(), { once: true }))
-    expertListeners.forEach(fn => fn())
+    expertRefresh = new Promise((resolve) =>{  window.addEventListener('actvero-fixture-expert-refresh-done', () =>{  resolve() }, { once: true }) })
+    expertListeners.forEach((fn) =>{  fn() })
   })
   let fail = '',
     delay = false,
@@ -101,15 +101,15 @@ function installDisplayFixtures(): void {
   })
   window.addEventListener('actvero-fixture-refresh', () => {
     delay = true
-    listeners.forEach(fn => fn())
+    listeners.forEach((fn) =>{  fn() })
   })
   window.addEventListener('actvero-fixture-fail', () => {
     fail = 'network'
-    listeners.forEach(fn => fn())
+    listeners.forEach((fn) =>{  fn() })
   })
   window.addEventListener('actvero-fixture-storage', () => {
     fail = 'secure_storage_invalid'
-    listeners.forEach(fn => fn())
+    listeners.forEach((fn) =>{  fn() })
   })
   // The fixtures live in this test's browser context, never in application code.
   Object.assign(window, {
@@ -213,7 +213,7 @@ function installDisplayFixtures(): void {
             document.documentElement.dataset.expertRemoteSummons = String(++remoteSummons)
             document.documentElement.dataset.expertSummonedRelease = String(input.releaseProof)
           }
-          expertListeners.forEach(fn => fn())
+          expertListeners.forEach((fn) =>{  fn() })
           return { sessionId: input?.sessionId }
         }
         if (action === 'selection')
@@ -418,9 +418,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         })
         await context.addInitScript(installDisplayFixtures)
         const page = await context.newPage(),
-          errors: string[] = []
+          errors: string[] = [], messages: string[] = []
         page.setDefaultTimeout(10000)
         page.on('pageerror', e => errors.push(e.message))
+        page.on('console', (message) => { if (['error', 'warning'].includes(message.type())) messages.push(message.text().split('\n')[0] ?? '') })
         try {
           await page.goto(ready.url)
           if (scenario === 'create') {
@@ -447,10 +448,16 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
                 } })
               })
               await creator.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+              await expect.poll(() => page.evaluate(() => document.documentElement.dataset.expertCreationClipboard),
+                { timeout: 10000 }).toBeTruthy()
               const handoff = await page.evaluate(() => document.documentElement.dataset.expertCreationClipboard)
               expect(handoff).toContain('ExpertManifest v1 JSON')
               expect(handoff).toContain('先提问并等待我的回答')
               expect(handoff).toContain('能力中心 → 专家 → 导入专家')
+              const skillPath = handoff?.match(/专家创建 Skill：([^\n]+)/u)?.[1]
+              expect(skillPath).toBeTruthy()
+              expect(readFileSync(skillPath!, 'utf8')).toContain('name: expert-creator')
+              expect(handoff).toContain('connection.json')
               expect(await createExpert.isVisible()).toBe(true)
               expect(await creator.isVisible()).toBe(true)
               await page.evaluate(() => {
@@ -982,7 +989,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             animations: 'disabled',
             path: join(repository, '.artifacts', 'actvero-capabilities-failure.png'),
           })
-          console.log({ errors, body: (await page.locator('body').innerText()).slice(0, 4000) })
+          console.log({ errors, messages, body: (await page.locator('body').innerText()).slice(0, 4000) })
           throw error
         }
       } finally {

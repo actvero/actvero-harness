@@ -27,7 +27,9 @@ Resolve relative paths mentioned by this skill against the base directory before
 
 首次实现或架构不明时，读[实施手册](reference/implementation.zh.md#choose)：按数据与 AI 需求选方案，先打通一个业务操作。需要原生持久化时，跟随[完整示例](reference/implementation.zh.md#counter)连接 Host、Client 与资源更新；它是接入练习，不替代用户业务。接口或组件不确定时查[查找方法](reference/implementation.zh.md#lookup)，遇到问题按[分层排障](reference/implementation.zh.md#debug)收集证据。
 
-在项目目录使用 \`npm run doctor\`、\`npm run typecheck\`、相关业务测试、\`npm run build\` 和 \`npm run check\`。持续开发用 \`npm run dev\`，从 \`.actvero/diagnostics.json\` 读取状态、错误和实际包路径；\`built\` 仅证明包检查通过，\`runtime: not-verified\` 表示客户端尚未验证。监听不自动安装、重载或启动 Harness。工具链移动后按 README 执行 \`bind\`，保留业务代码与设计文件。
+在项目目录使用 \`npm run doctor\`、\`npm run typecheck\` 和相关业务测试。已提供 Harness 开发连接文件时，先执行 \`actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json\`，随后 \`npm run dev\` 自动构建并加载到此 Profile。\`actvero-workbench status /项目目录\` 和 \`logs /项目目录\` 返回部署记录，\`detach /项目目录\` 结束覆盖并恢复正式安装版本。未连接时 dev 仅构建。读取 \`.actvero/diagnostics.json\`，分别确认构建、Host 加载和 Client 发布；\`runtime: loaded\` 仍需在真实界面验证业务。更新等待关联对话空闲，失败保留或恢复上次可用实现；无法确认恢复时停止操作并查看诊断。CLI 不启动或重启 Harness。正式交付仍使用版本化打包与安装。工具链移动后按 README 执行 \`bind\`。
+
+开启 \`ai: true\` 的工作台自动贡献一个随包专家，用户可从任意会话召唤。不要另外创建个人专家副本，不强制选择或切换文件工作区。可用 \`expertEntry\` 提供简介和头像，设为 false 隐藏入口。实例数据、对话文件目录与固定业务对象分别处理；沿用传入 sessionId 与 object，预览和完整界面指向相同业务对象。停用和卸载撤下专家入口，默认保留业务数据与历史。
 
 按任务选读以下章节，再查对应真实接口；不要凭 API 名称猜参数。\`reference/api/\` 是只读接口副本，不能作为 SDK 安装。
 
@@ -43,6 +45,8 @@ Resolve relative paths mentioned by this skill against the base directory before
 | 账号、模型目录与组织参数 | [身份与模型](reference/guide.zh.md#platform)、[运行配置](reference/guide.zh.md#runtime-config) | \`reference/api/client.ts\`、\`reference/api/types.ts\`；目录读取不代表图片、视频生成已接通，不暴露登录凭据 |
 
 使用新能力前查 \`reference/api/workbench-protocol.ts\` 和对应章节的最低 API 要求，Host 与 Client 共用同一份声明。AI、MCP、CLI 和远程服务都是按需能力，不要求每个工作台实现全部功能。
+
+实现顶栏时沿用 \`header: Header\` 注册接口，先读[顶栏](reference/guide.zh.md#header)。宿主负责左侧公共控件和窗口避让，工作台负责右侧业务内容；折叠侧栏不额外增加顶部安全行。不要为顶栏叠加窗口留白，也不在正文重复渲染同一套工作台导航。按实际容器宽度布局，并检查展开、折叠和全屏时的输入、菜单与业务状态保持。
 
 ## 安装与验收
 
@@ -101,7 +105,7 @@ DESIGN.md 写明实际采用的方式、复用的组件、关键页面和例外�
 
 表单和列表在窄容器优先纵向排列；名称可截断，正文可换行，操作保留可点击面积。长中文、英文、路径和错误信息不能造成单字竖排、控件裁切或整页横向溢出。预览是缩小查看，不能依赖预览内完成精细操作；需要操作时保留进入完整工作台的宿主入口。
 
-顶栏由工作台的 Header 完整渲染；宿主只保留公共返回与窗口控制。不预设面包屑、图标、名称或下拉导航，按业务选择布局与控件；复用原生组件不等于强制套用固定顶栏模板。
+顶栏左侧由宿主安排窗口、侧栏和返回工作台列表等公共控件；分隔线右侧由工作台的 Header 完整渲染。macOS 折叠侧栏时，两部分共用一行，宿主负责横向避让窗口控件；Header 不再自行预留顶部安全行或按整个窗口定位。按实际容器宽度适配，宽度不足时允许业务内容重排；不要缩小公共按钮或覆盖左侧控件。不预设面包屑、图标、名称或下拉导航，按业务选择布局与控件；复用原生组件不等于强制套用固定顶栏模板。
 
 定义首次、空数据、加载、失败、禁用和成功状态。加载时保留可用内容，错误就近说明恢复办法；普通切换不额外堆叠成功通知。菜单、弹窗使用宿主的定位、焦点与 Escape 行为；触屏和键盘不依赖 hover 才能发现必要操作。
 

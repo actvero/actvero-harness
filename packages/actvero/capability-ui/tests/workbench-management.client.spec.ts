@@ -76,8 +76,8 @@ it.each(['activeConversation', 'sessionStateUnavailable'] as const)('retains ins
   expect(latest()).toMatchObject({ bundles: [bundle], busy: null, notice })
   beforeChange.mockResolvedValue(null)
   remote.removeBundle.mockResolvedValue({ ok: true, value: { application: 'applied', changed: true, stage: 'remove', target: bundle.name } })
-  await actions.remove(bundle.name)
-  expect(remote.removeBundle).toHaveBeenCalledOnce()
+  await actions.remove(bundle.name, bundle.version)
+  expect(remote.removeBundle).toHaveBeenCalledExactlyOnceWith(bundle.name, bundle.version)
   expect(latest().notice).toBeNull()
 })
 

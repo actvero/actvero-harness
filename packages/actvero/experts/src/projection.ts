@@ -4,14 +4,11 @@ import type { ExpertSelection } from './contracts.ts'
 import { z } from 'zod'
 import { normalizeExpertSelectionAvatar } from './avatar.ts'
 export interface ExpertProjection { hasSelection:boolean;selection:ExpertSelection|null;started:boolean }
-declare module '@deepseek-ai/dsh-session/types' {interface SessionEventMap {
-  /** Exact expert snapshot chosen for this session. Null clears the selection; resume and forks retain the recorded snapshot rather than adopting a newer release. */
-  'actvero/expert':{ schemaVersion:1;selection:ExpertSelection|null }
-}}
 declare module '@deepseek-ai/dsh-session-projection/types' {interface SessionProjectionStateMap { actveroExpert:ExpertProjection }}
-const selection=z.object({ snapshotId:z.string().uuid(),id:z.string().min(1).max(128),name:z.string().min(1).max(200),avatar:z.string().transform(normalizeExpertSelectionAvatar),version:z.string().min(1).max(100) }).strict().nullable()
+const selection=z.object({ snapshotId:z.string().uuid(),id:z.string().min(1).max(128),name:z.string().min(1).max(200),
+  avatar:z.string().transform(normalizeExpertSelectionAvatar),version:z.string().min(1).max(100) }).strict().nullable()
 const state=z.object({ hasSelection:z.boolean(),selection,started:z.boolean() }).strict()
-export const expertProjection={ key:'actveroExpert',stateSchema:state,init:()=>({ hasSelection:false,selection:null,started:false }),apply:(previous,event)=>{if(event.type==='actvero/expert'){if(event.data.schemaVersion!==1)throw new Error('expert_snapshot_invalid');return { ...previous,hasSelection:true,selection:selection.parse(event.data.selection) }}if(['turn/start','user/message','assistant/message'].includes(event.type)&&!previous.started)return { ...previous,started:true };return previous},stateVersion:1 } satisfies ProjectionDefinition<'actveroExpert',ExpertProjection>
+export const expertProjection={ key:'actveroExpert',stateSchema:state,wire:{ viewSchema:z.object({ hasSelection:z.boolean() }).strict(),view:(value:ExpertProjection)=>({ hasSelection:value.hasSelection }) },init:()=>({ hasSelection:false,selection:null,started:false }),apply:(previous,event)=>{if(event.type==='actvero/workbench'&&event.data.selection!==null)return { ...previous,hasSelection:true,selection:null };if(event.type==='actvero/expert'){if(event.data.schemaVersion!==1)throw new Error('expert_snapshot_invalid');return { ...previous,hasSelection:true,selection:selection.parse(event.data.selection) }}if(['turn/start','user/message','assistant/message'].includes(event.type)&&!previous.started)return { ...previous,started:true };return previous},stateVersion:2 } satisfies ProjectionDefinition<'actveroExpert',ExpertProjection>
 
 /** Conversation intent is separate from availability; scopes prevent account/tenant reuse. */
 export interface ConnectorChoice { scope:string;id:string;enabled:boolean }

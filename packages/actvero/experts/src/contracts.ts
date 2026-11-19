@@ -1,5 +1,6 @@
 import type { RemoteSnapshot } from './remote-types.ts'
 import type { SkillDefinition } from '@deepseek-ai/dsh-skill'
+export type { ConversationExpertSelection as ExpertSelection } from '@actvero/dsh-capability-ui/types'
 /** Local expert categories accepted by the manifest validator. */
 export type ExpertCategory =
   | 'office'
@@ -105,14 +106,6 @@ export interface ExpertAuthorDetail {
   bindings: Bindings
   revision: number
   hasAvatar: boolean
-}
-/** Conversation-visible identity of a selected immutable expert snapshot. */
-export interface ExpertSelection {
-  snapshotId: string
-  id: string
-  name: string
-  avatar: string
-  version: string
 }
 /** Renderer requests and change notifications for Main-owned expert operations. */
 export interface ExpertsBridge {

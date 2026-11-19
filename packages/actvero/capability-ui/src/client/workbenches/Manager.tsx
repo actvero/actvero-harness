@@ -1,3 +1,4 @@
+import { CapabilityIdentity } from '../CapabilityIdentity.tsx'
 import { useEffect, useRef, useState } from 'react'
 import {
   Button,
@@ -195,7 +196,7 @@ function Details({ entry, source, actions, initialPreview, onClose, t }: Locale 
     <Modal open headless title={entry.name} onClose={onClose} className={styles.detail}>
       <div className={styles.detailContent}>
         <header className={styles.detailHeader}>
-          <div className={styles.detailName}><Mark url={entry.iconUrl} /><h2>{entry.name}</h2></div>
+          <div className={styles.detailName}><Mark url={entry.iconUrl} /><CapabilityIdentity name={entry.name} version={t('versionPrefix') + entry.version} className={styles.detailIdentity} /></div>
           <Button variant="ghost" onClick={onClose} aria-label={t('close')}><IconCloseOutlineMedium size={18} /></Button>
         </header>
         <div className={styles.detailLayout}>
@@ -222,7 +223,6 @@ function Details({ entry, source, actions, initialPreview, onClose, t }: Locale 
           </section>
           <section className={styles.detailSummary} aria-label={t('about')}>
             <div className={styles.detailMetadata}>
-              <span aria-label={`${t('version')} ${entry.version}`}>{t('versionPrefix')}{entry.version}</span>
               <span>{t(source)}</span>
               {entry.author && <span>{entry.author}</span>}
             </div>
@@ -455,7 +455,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
           const target = removeTarget
           setRemoving(true)
           const task = deleteData && target.bundle?.version
-            ? action.removeWithData(target.id, target.bundle.version) : action.remove(target.id)
+            ? action.removeWithData(target.id, target.bundle.version) : action.remove(target.id, target.bundle?.version)
           void task.finally(() => { setRemoving(false); setRemoveTarget(undefined); setDetailSelection(undefined) })
         }}>{t(removing ? 'busy' : deleteData ? 'removeAndClean' : 'remove')}</Button>
       </>}>

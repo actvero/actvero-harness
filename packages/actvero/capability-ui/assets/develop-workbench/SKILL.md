@@ -22,7 +22,9 @@ description: 为 ACTVERO Harness 创建、修改、调试和本地安装工作�
 
 首次实现或架构不明时，读[实施手册](reference/implementation.zh.md#choose)：按数据与 AI 需求选方案，先打通一个业务操作。需要原生持久化时，跟随[完整示例](reference/implementation.zh.md#counter)连接 Host、Client 与资源更新；它是接入练习，不替代用户业务。接口或组件不确定时查[查找方法](reference/implementation.zh.md#lookup)，遇到问题按[分层排障](reference/implementation.zh.md#debug)收集证据。
 
-在项目目录使用 `npm run doctor`、`npm run typecheck`、相关业务测试、`npm run build` 和 `npm run check`。持续开发用 `npm run dev`，从 `.actvero/diagnostics.json` 读取状态、错误和实际包路径；`built` 仅证明包检查通过，`runtime: not-verified` 表示客户端尚未验证。监听不自动安装、重载或启动 Harness。工具链移动后按 README 执行 `bind`，保留业务代码与设计文件。
+在项目目录使用 `npm run doctor`、`npm run typecheck` 和相关业务测试。已提供 Harness 开发连接文件时，先执行 `actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json`，随后 `npm run dev` 自动构建并加载到此 Profile。`actvero-workbench status /项目目录` 和 `logs /项目目录` 返回部署记录，`detach /项目目录` 结束覆盖并恢复正式安装版本。未连接时 dev 仅构建。读取 `.actvero/diagnostics.json`，分别确认构建、Host 加载和 Client 发布；`runtime: loaded` 仍需在真实界面验证业务。更新等待关联对话空闲，失败保留或恢复上次可用实现；无法确认恢复时停止操作并查看诊断。CLI 不启动或重启 Harness。正式交付仍使用版本化打包与安装。工具链移动后按 README 执行 `bind`。
+
+开启 `ai: true` 的工作台自动贡献一个随包专家，用户可从任意会话召唤。不要另外创建个人专家副本，不强制选择或切换文件工作区。可用 `expertEntry` 提供简介和头像，设为 false 隐藏入口。实例数据、对话文件目录与固定业务对象分别处理；沿用传入 sessionId 与 object，预览和完整界面指向相同业务对象。停用和卸载撤下专家入口，默认保留业务数据与历史。
 
 按任务选读以下章节，再查对应真实接口；不要凭 API 名称猜参数。`reference/api/` 是只读接口副本，不能作为 SDK 安装。
 

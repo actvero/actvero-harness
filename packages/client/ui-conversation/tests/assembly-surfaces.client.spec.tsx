@@ -102,6 +102,20 @@ async function bench(opts?: { blank?: boolean }) {
 }
 
 describe('resident composer', () => {
+  it('keeps workspace-free presentation until every owning grant is released', async () => {
+    const runtime = await bench({ blank: true })
+    try {
+      const source = runtime.ctx.uiConversation.workspaceOptionalFor(SID)
+      const releaseA = runtime.ctx.uiConversation.allowWithoutWorkspace(SID)
+      const releaseB = runtime.ctx.uiConversation.allowWithoutWorkspace(SID)
+      expect(source.getSnapshot()).toBe(true)
+      releaseA()
+      releaseA()
+      expect(source.getSnapshot()).toBe(true)
+      releaseB()
+      expect(source.getSnapshot()).toBe(false)
+    } finally { await runtime.dispose() }
+  })
   it('renders the locked view state while no session exists at all', async () => {
     const runtime = await SlotTestRuntime.create()
     provideWorkspaceNavigation(runtime)

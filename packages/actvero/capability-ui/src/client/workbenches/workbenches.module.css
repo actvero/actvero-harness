@@ -125,3 +125,4 @@
 .removeContent p { margin: 0; font-size: 14px; line-height: 22px; overflow-wrap: anywhere; }
 .cleanupWarning { color: var(--actvero-remove-danger); }
 .removeDialog .destructive, .removeDialog .destructive:hover:not(:disabled) { background: var(--actvero-remove-danger); }
+.detailName .detailIdentity {margin-bottom:0;}

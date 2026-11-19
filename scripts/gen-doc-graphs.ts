@@ -108,6 +108,15 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'actveroWorkbenchDevelopment', pkg: '@actvero/dsh-capability-ui', title: 'Actvero local development',
+    mode: 'service', note: 'Loads profile-local development overlays, reports diagnostics and restores the installed implementation.',
+  },
+  {
+    key: 'actveroExpertPolicy', pkg: '@actvero/dsh-capability-ui', title: 'Actvero expert selection',
+    mode: 'seam', implementations: ['@actvero/dsh-experts'], consumers: ['@actvero/dsh-capability-ui', '@actvero/dsh-connectors'],
+    note: 'Resolves recorded ordinary expert selection and connector intent when switching conversation capabilities.',
+  },
+  {
     key: 'actveroWorkbenchMaintenance', pkg: '@actvero/dsh-capability-ui', title: 'Actvero workbench removal',
     mode: 'service', note: 'Runs owner-confirmed business-data cleanup and delegates exact-version package removal to the native installer.',
   },

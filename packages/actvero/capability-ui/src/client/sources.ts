@@ -2,3 +2,4 @@
 export { SourceTabs } from './SourceTabs.tsx'
 /** Shared catalog spacing and controls used by experts and workbenches. */
 export { default as catalogStyles } from './catalog.module.css'
+export { CapabilityIdentity } from './CapabilityIdentity.tsx'

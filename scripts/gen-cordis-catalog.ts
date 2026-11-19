@@ -145,6 +145,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   workflowEngine: 'workflow.md',
   webhookRuntime: 'webhook.md',
   actveroWorkbenchRuntime: 'workspace.md',
+  actveroWorkbenchDevelopment: 'workspace.md',
+  actveroExpertPolicy: 'workspace.md',
   actveroWorkbenchPlatform: 'workspace.md',
   actveroWorkbenchMaintenance: 'workspace.md',
   workspaceRegistry: 'workspace.md',
@@ -178,7 +180,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   capabilityHub: 'client-side capability navigation and notifications — packages/actvero/capability-ui/README.md owns the API',
   actveroWorkbenches: 'client-side interface registry provided as an object — packages/actvero/capability-ui/README.md owns the API',
   actveroMcp: 'interface-typed Host adapter provided as an object, not a service class; refreshes session-scoped MCP registrations — packages/actvero/connectors/README.md owns the API',
-  actveroExpertPolicy: 'interface-typed Host adapter provided as an object, not a service class; resolves expert connector permissions — packages/actvero/experts/README.md owns the API',
+  actveroExpertAuthoring: 'Main-owned local expert maintenance relay provided as an object — packages/actvero/experts/README.md owns the API',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',
@@ -881,6 +883,10 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  ConversationExpertSelection: 'Recorded expert selection is owned by packages/actvero/experts/README.md and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchDevelopmentResources: 'Local development files are owned by actvero/workbench-development.md#create and packages/actvero/capability-ui/src/types.ts',
+  WorkbenchExpertEntry: 'Contributed expert metadata is owned by actvero/workbench-development.md#expert-bundle and packages/actvero/capability-ui/src/types.ts',
+  DevelopmentDiagnostic: 'Bounded local runtime diagnostics are owned by actvero/workbench-development.md#create and packages/actvero/capability-ui/src/workbench-runtime.ts',
   WorkbenchModelCatalog: 'Actvero platform metadata is owned by actvero/workbench-development.md#platform and packages/actvero/capability-ui/src/types.ts',
   WorkspaceDependencies: 'Native runtime paths are owned by packages/skill/tool-workspace-dependencies/README.md and src/index.ts',
   WorkbenchDisplayCommand: 'Actvero display protocol is owned by actvero/workbench-development.md#display and packages/actvero/capability-ui/src/types.ts',

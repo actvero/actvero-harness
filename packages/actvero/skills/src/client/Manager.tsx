@@ -1,10 +1,9 @@
-import { SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
+import { SourceTabs, CapabilityIdentity } from '@actvero/dsh-capability-ui/client/sources'
 import { nativeSkills, insertSkill, type NativeSkill } from '@actvero/dsh-capability-ui/client/selection'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { zh, en } from './locales.ts'
-import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import { CatalogSkeleton, DetailLoading } from '@actvero/dsh-capability-ui/client/loading'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -74,11 +73,11 @@ function errorText(error: unknown, t: T) {
 }
 function Avatar({ item, large = false }: { item: Skill; large?: boolean }) {
   const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [item.icon?.image])
+  useEffect(() =>{  setFailed(false) }, [item.icon?.image])
   return (
     <span className={large ? styles.largeIcon : styles.icon}>
       {!failed && /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.icon?.image ?? '') ? (
-        <img src={item.icon.image} alt="" onError={() => setFailed(true)} />
+        <img src={item.icon.image} alt="" onError={() =>{  setFailed(true) }} />
       ) : (
         <IconSkillOutlineMedium size={large ? 32 : 20} />
       )}
@@ -177,7 +176,7 @@ function Panel({
       setQuery(q.trim())
       setPage(1)
     }, 180)
-    return () => clearTimeout(timer)
+    return () =>{  clearTimeout(timer) }
   }, [q])
   useEffect(() => {
     if (mode === 'installed') {
@@ -235,7 +234,7 @@ function Panel({
       .finally(() => {
         if (!abort.signal.aborted) setDirectoryLoading(false)
       })
-    return () => abort.abort()
+    return () =>{  abort.abort() }
   }, [mode, sessionId, revision])
   const discovered = directory.filter(skill => !local.items.some(row => row.skill.name === skill.name))
   const directoryRows =
@@ -367,14 +366,14 @@ function Panel({
           placeholder={t(mode === 'installed' ? 'searchInstalled' : 'search')}
           aria-label={t(mode === 'installed' ? 'searchInstalled' : 'search')}
           value={q}
-          onChange={e => setQ(e.target.value)}
+          onChange={(e) =>{  setQ(e.target.value) }}
         />
         {mode === 'installed' && (
-          <Button variant="outline" onClick={() => setRevision(v => v + 1)}>
+          <Button variant="outline" onClick={() =>{  setRevision(v => v + 1) }}>
             {t('refresh')}
           </Button>
         )}
-        <Button variant="outline" onClick={() => setImportOpen(true)}>
+        <Button variant="outline" onClick={() =>{  setImportOpen(true) }}>
           <IconPlusOutlineMedium />
           {t('addLocal')}
         </Button>
@@ -394,7 +393,7 @@ function Panel({
         {directoryError && mode === 'installed' && (
           <div className={styles.notice} role="alert">
             {directoryError}
-            {sessionId && <Button onClick={() => setRevision(v => v + 1)}>{t('retry')}</Button>}
+            {sessionId && <Button onClick={() =>{  setRevision(v => v + 1) }}>{t('retry')}</Button>}
           </div>
         )}
         {mode === 'catalog' ? (
@@ -429,7 +428,7 @@ function Panel({
         {error && (
           <div role="alert" className={styles.notice}>
             {error}
-            <Button onClick={() => setRevision(v => v + 1)}>{t('retry')}</Button>
+            <Button onClick={() =>{  setRevision(v => v + 1) }}>{t('retry')}</Button>
           </div>
         )}
         {local.checkFailed && (
@@ -481,7 +480,7 @@ function Panel({
                       label={`${t('view')} ${item.display_name}`}
                       disabled={busy}
                       items={skillMenu(record)}
-                      onSelect={id => selectSkillMenu(item, id)}
+                      onSelect={(id) =>{  selectSkillMenu(item, id) }}
                     />
                     {mode === 'installed' && record ? (
                       <div className={styles.cardAction}>
@@ -536,17 +535,16 @@ function Panel({
                     { id: 'view', label: t('view') },
                     { id: 'use', label: t('use') },
                   ]}
-                  onSelect={id =>
-                    id === 'view'
-                      ? setSelectedDirectory(skill)
-                      : void useNative(skill).catch(e => notify(errorText(e, t)))
+                  onSelect={(id) =>{
+                    if (id === 'view') setSelectedDirectory(skill)
+                    else void useNative(skill).catch((e) =>{ notify(errorText(e, t)) }) }
                   }
                 />
                 <Button
                   className={styles.cardAction}
                   title={t('use')}
                   aria-label={`${t('use')} ${skill.name}`}
-                  onClick={() => void useNative(skill).catch(e => notify(errorText(e, t)))}
+                  onClick={() => void useNative(skill).catch((e) =>{  notify(errorText(e, t)) })}
                 >
                   <IconNewChatOutlineMedium />
                 </Button>
@@ -569,13 +567,13 @@ function Panel({
         )}
         {mode === 'catalog' && catalog && catalog.total > 20 && (
           <div className={styles.pagination}>
-            <Button disabled={page === 1 || loading} onClick={() => setPage(v => v - 1)}>
+            <Button disabled={page === 1 || loading} onClick={() =>{  setPage(v => v - 1) }}>
               {t('previous')}
             </Button>
             <span>
               {page} / {Math.max(1, Math.ceil(catalog.total / 20))}
             </span>
-            <Button disabled={page * 20 >= catalog.total || loading} onClick={() => setPage(v => v + 1)}>
+            <Button disabled={page * 20 >= catalog.total || loading} onClick={() =>{  setPage(v => v + 1) }}>
               {t('next')}
             </Button>
           </div>
@@ -584,7 +582,7 @@ function Panel({
       {importOpen && (
         <ImportSkill
           t={t}
-          onClose={() => setImportOpen(false)}
+          onClose={() =>{  setImportOpen(false) }}
           onDone={() => {
             setImportOpen(false)
             notify(t('importSuccess'), 'success')
@@ -637,14 +635,14 @@ function Panel({
                       onClick={() =>
                         void useNative(selectedDirectory)
                           .then(close)
-                          .catch(e => setDetailError(errorText(e, t)))
+                          .catch((e) =>{  setDetailError(errorText(e, t)) })
                       }
                     >
                       <IconNewChatOutlineMedium />
                       {t('use')}
                     </Button>
                     {selectedDirectory.path && (
-                      <Button onClick={() => previewNative(selectedDirectory)}>{t('previewFile')}</Button>
+                      <Button onClick={() =>{  previewNative(selectedDirectory) }}>{t('previewFile')}</Button>
                     )}
                   </div>
                 </div>
@@ -664,13 +662,7 @@ function Panel({
                 <div className={styles.hero}>
                   <Avatar item={selected} large />
                   <div>
-                    <h2>{selected.display_name || selected.name}</h2>
-                    {selected.current_version.version && (
-                      <span className={styles.subtitle}>
-                        {t('version')} {t('versionPrefix')}
-                        {selected.current_version.version}
-                      </span>
-                    )}
+                    <CapabilityIdentity name={selected.display_name || selected.name} version={selected.current_version.version ? t('versionPrefix') + selected.current_version.version : undefined} />
                     <div className={styles.actions}>
                       {!installed ? (
                         <Button
@@ -734,7 +726,7 @@ function Panel({
       <ConfirmDialog closeLabel={t('close')} open={!!removeTarget} title={t('confirmRemove')} description={t('removeHelp')}
         resourceName={removeTarget?.display_name ?? ''} cancelLabel={t('cancel')}
         confirmLabel={t(working ? 'busy' : 'remove')} pending={working}
-        onCancel={() => setRemoveTarget(undefined)} onConfirm={() => void remove()} />
+        onCancel={() =>{  setRemoveTarget(undefined) }} onConfirm={() => void remove()} />
     </section>
   )
 }
@@ -758,7 +750,7 @@ export const inject = [
   'sidebarRight',
 ]
 export function apply(ctx: Context) {
-  ctx.effect(() => window.actveroSkills?.subscribe(() => ctx.emit('actvero/skills-changed')) ?? (() => {}))
+  ctx.effect(() => window.actveroSkills?.subscribe(() =>{  ctx.emit('actvero/skills-changed') }) ?? (() => {}))
   ctx.effect(() => ctx.locale.register('actvero.skills', { zh, en }))
   ctx.slots.inject('actvero.capability.content', () =>
     ctx.slots.register(
@@ -769,7 +761,7 @@ export function apply(ctx: Context) {
         inject: () => ({
           listNative: (id: SessionId, signal: AbortSignal) => nativeSkills(ctx, id, signal),
           previewNative: (skill: NativeSkill) => {
-            const sessions = ctx.sessions as ISessions,
+            const sessions = ctx.sessions,
               rows = sessions.list.getSnapshot().byId,
               current = Object.values(rows).find(s => (s.retainedBy?.mainView ?? 0) > 0)
             if (current && skill.path) {
@@ -778,7 +770,7 @@ export function apply(ctx: Context) {
             }
           },
           useNative: async (skill: NativeSkill) => {
-            const sessions = ctx.sessions as ISessions,
+            const sessions = ctx.sessions,
               id = Object.values(sessions.list.getSnapshot().byId).find(s => (s.retainedBy?.mainView ?? 0) > 0)?.id
             if (!id) throw new Error('workspace_required')
             const entry = (await nativeSkills(ctx, id)).find(row => row.name === skill.name)
@@ -786,7 +778,7 @@ export function apply(ctx: Context) {
             insertSkill(ctx, id, entry)
           },
           useSkill: async (item: Skill) => {
-            const sessions = ctx.sessions as ISessions,
+            const sessions = ctx.sessions,
               id = Object.values(sessions.list.getSnapshot().byId).find(s => (s.retainedBy?.mainView ?? 0) > 0)?.id
             if (!id) throw new Error('workspace_required')
             const state = await request<LocalState>('state'),

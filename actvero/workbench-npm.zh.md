@@ -2,7 +2,7 @@
 
 [English](workbench-npm.md) | 中文
 
-面向使用已安装 ACTVERO 桌面端的工作台开发者与 Agent。此包提供脚手架、固定版本的编译工具、接口声明和两份 Skill；开发不需要 Harness 源码。当前预览包支持 macOS Apple Silicon，需要 Node 22.19 或 24 及以上版本；其他系统与架构不在本次发行范围内。
+面向使用已安装 ACTVERO 桌面端的工作台开发者与 Agent。此包提供脚手架、固定版本的编译工具、接口声明、联调命令及三份共享 Skill：develop-workbench、workbench-frontend 和 expert-creator；开发不需要 Harness 源码。当前预览包支持 macOS Apple Silicon，需要 Node 22.19 或 24 及以上版本；其他系统与架构不在本次发行范围内。
 
 ## 安装与创建
 
@@ -24,7 +24,7 @@ npm run check
 
 ## 为 Agent 安装 Skill
 
-新建项目已自动携带两份 Skill。需要共享或指定 Agent 目录时运行下面一条命令；同名 Skill 已存在会拒绝覆盖，更新前先备份并移走旧目录。
+新建项目携带工作台开发和前端两份 Skill。共享安装同时提供专家创建 Skill。使用下面一条命令安装到共享目录或指定 Agent 目录；同名 Skill 已存在时拒绝覆盖。升级套件后使用 `actvero-workbench skills update --global`，仅替换本工具管理且未被修改的副本，保留用户自己的文件。
 
 ```sh
 actvero-workbench skills install --global
@@ -37,7 +37,7 @@ actvero-workbench skills install "$HOME/.codex/skills"
 
 升级 npm 套件后，对已有项目执行 `actvero-workbench bind /绝对路径/项目`，刷新工具链绑定、Skill 和类型配置，保留业务源码与 DESIGN.md。不要把旧缓存路径复制到另一台机器；在目标机器安装匹配套件后重新 bind。
 
-`npm run dev` 监听项目并重新检查、打包；它不自动安装、重载或启动桌面端。通过 `.actvero/diagnostics.json` 查看本次构建结果，再在目标桌面端导入并验证真实业务。安装成功、视图加载与业务验收分别记录。
+`npm run dev` 自动构建。先运行 `actvero-workbench attach /项目目录 --connection /连接文件`，即可在目标 Harness 中加载临时开发覆盖；未连接时仅构建。通过 status、logs 和 detach 检查或结束覆盖。构建、加载与业务验收参见[开发指南](workbench-development.zh.md#create)。
 
 卸载全局 npm 包不会删除项目、已复制的 Skill 或缓存；仍被项目绑定的缓存需要保留。可用 info 获取缓存位置，在项目迁移到新版套件后再清理不用的旧目录。此套件不自动上传、发布或调用付费模型。
 

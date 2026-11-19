@@ -69,6 +69,14 @@ export class WorkbenchExpertBundle {
     }
   }
 
+  /** Read catalog presentation without preparing skills, MCP connections or interpreters.
+   * @returns Validated package-owned expert metadata for WorkbenchProvider.expertEntry.
+   */
+  async entry(): Promise<{ name: string; version: string; description: string; avatar: string }> {
+    const manifest = parseManifest(JSON.parse(await readFile(join(this.options.directory, 'expert.json'), 'utf8')))
+    return { name: manifest.name, version: manifest.version, description: manifest.description, avatar: manifest.avatar }
+  }
+
   /** Mount a bundle through WorkbenchProvider.activate; the runtime owns rollback and quiescent disposal.
    * @param ctx Conversation-scoped context supplied by the workbench runtime.
    * @param environment Business paths and associated Session.

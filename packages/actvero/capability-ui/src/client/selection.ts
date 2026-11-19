@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type {} from '@actvero/dsh-capability-ui/remote'
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 
 /** One skill returned by the effective Session catalog. */
 export interface NativeSkill {
@@ -20,7 +22,37 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap {
     /** Retains the Session until native skill discovery settles. */
     actveroSkillCatalog: unknown
+    /** Retains the creation draft until its Skill reference and editable prompt are inserted. */
+    actveroCreation: true
   }
+}
+
+/** Prepare an editable creation draft with one native Skill reference; no message is sent.
+ * @param ctx Client services for authoring, Session retention, navigation and composer editing.
+ * @param skill User-invoked creation Skill.
+ * @param prompt Editable request appended after the Skill reference.
+ * @param foreground Optional conversation whose blank ordinary draft may be reused.
+ * @returns The opened creation conversation identity.
+ */
+export async function prepareCreation(ctx: Context, skill: { name: string }, prompt: string, foreground?: SessionId): Promise<SessionId> {
+  const result = await ctx.remote.actveroWorkbench.startAuthoring(foreground ? { sessionId: foreground } : {})
+  if (!result.ok) throw result.error
+  const sessionId = result.value.sessionId
+  await ctx.sessions.refresh()
+  return ctx.sessions.using(sessionId, { source: 'actveroCreation' }, (reference) => {
+    ctx.uiWorkspace.openSession(sessionId)
+    const scope = reference.binding.ctx
+    const input = ctx.conversation.input.for(scope)
+    if (!input.state.getSnapshot().occurrences.some(item => item.source === 'skill' && item.ref === `/${skill.name}` && !item.invalid)) {
+      insertSkill(ctx, sessionId, skill)
+    }
+    const { draft, draftRev, occurrences } = input.state.getSnapshot()
+    const end = draft.length - occurrences.reduce((sum, item) => sum + item.length - 1, 0)
+    const text = (/\s$/.test(draft) ? '' : ' ') + prompt
+    if (!scope.bail(scope, 'slash/input-insert-text', { text, span: { start: end, end, draftRev } })) throw new Error('draft_busy')
+    requestAnimationFrame(() => { input.focus() })
+    return sessionId
+  })
 }
 
 /**

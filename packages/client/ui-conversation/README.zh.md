@@ -64,6 +64,8 @@ Queue 预览启用空白折叠和文档边缘 trim，保留 emoji，并使用 CS
 
 共享图片插槽属性将展示选择与持久化引用分开：`thumbnail` 请求完整缩放的附件列表缩略图，`compact` 请求裁剪的图片方块。每张图片可通过可选的 `label` 提供无障碍展示名称；加载和缓存标识仍使用原始附件引用。`MessageImagesContentInput` 为 root 作用域的 `conversation.images.content` Factory 增加可选的完整 `MessageImageLabels`。消息、工具及 Factory 输入显式携带视图提供的授权 `loadImage` 回调；读取和 URL 缓存仍由资源所有者负责。[ui-attachment](../ui-attachment/README.zh.md) 提供该 Factory，负责渲染与灯箱。
 
+展示插件可调用 `ctx.uiConversation.allowWithoutWorkspace(sessionId)`，让专家管理的会话在未关联工作区时仍可编辑。插件持有该会话的释放函数，并在退出时释放；最后一个授权释放后恢复工作区前置要求。此接口仅改变界面，保留模型阻断、文件目录与 Host 权限校验。
+
 composer 将 `conversation.input.left` 的内容放在权限与计划控件之间。控件组的尺寸、内容、可见性或字体加载状态变化后，测量展开状态下的控件组。若无法排在同一行，控制栏缩小左侧控件之间的间距，并设置 `--dsh-composer-permission-label-display: none`。若空间仍不足，再设置 `--dsh-composer-model-text-display: none` 和 `--dsh-composer-model-icon-display: block`。模型位的默认值分别为 `block` 和 `none`。若连图标也放不下，控制栏可以换行。
 
 上下文占用率入口遵循[统计控件圆角规则](../../../docs/ui-radius.zh.md#radius-scale)。

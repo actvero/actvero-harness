@@ -139,6 +139,7 @@ function mount(
     nestedSubagent?: boolean
     /** A composer block another plugin raised for this session. */
     composerBlock?: { reason: string }
+    workspaceOptional?: boolean
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
     /** Persisted ids of unpinned View tabs. */
@@ -361,6 +362,7 @@ function mount(
       ...allowAllAccess,
       useProjection: (() => undefined),
       useComposerBlock: select => select(options.composerBlock),
+      useWorkspaceOptional: select => select(options.workspaceOptional ?? false),
       useInput,
       inputActions,
       renderSlot,
@@ -428,6 +430,15 @@ describe('Hero chrome', () => {
 })
 
 describe('ConversationRoot resident composer', () => {
+  it('permits a granted workspace-free Session while preserving model blockers', () => {
+    const b = mount(sessionSnapshotOf({ blank: true }), [], undefined, { summaryBlank: true, workspaceOptional: true })
+    expect(b.view.getByRole('textbox').getAttribute('aria-disabled')).toBeNull()
+    b.view.unmount()
+    const blocked = mount(sessionSnapshotOf({ blank: true }), [], undefined,
+      { summaryBlank: true, workspaceOptional: true, composerBlock: { reason: 'select a model first' } })
+    expect(blocked.view.getByRole('textbox').getAttribute('data-placeholder')).toBe('select a model first')
+    expect(blocked.view.getByRole('textbox').getAttribute('aria-disabled')).toBe('true')
+  })
   it('keeps global header navigation without selecting a Session', () => {
     const b = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined })
     expect(b.view.container.querySelector('header')).not.toBeNull()
