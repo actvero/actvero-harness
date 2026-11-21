@@ -41,6 +41,10 @@ Keep a distribution's `id` and `applicationId` stable across upgrades. Different
 
 Private local product configurations and artwork can live under `.actvero-builder/products/<id>/`, with profiles under `.actvero-builder/presets/`; Git ignores that directory. Share these files separately with a build operator. The installer embeds the selected public defaults and artwork, so never put secrets in them.
 
+Use the [Harness build skill](../../.agents/skills/harness-build/SKILL.md) to agree on branding, assistant identity, and installer targets. Run `pnpm run actvero:build-kit -- list` to find presets. The command also creates, validates, imports, and exports configuration ZIPs and runs the complete installer build for a selected preset. Git ignores the kit directory, `.actvero-builder/kits/`. The skill documents the format, commands, and verification steps.
+
+`assistant.identityPrompt` is optional public assistant identity text. Packaging embeds it in the desktop product, and the desktop Host uses it for the `harness:identity` section only. Omitting it or providing blank text selects the default identity.
+
 <a id="commands"></a>
 
 ## Commands

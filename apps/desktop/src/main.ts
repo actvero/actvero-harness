@@ -475,6 +475,7 @@ async function main(): Promise<void> {
     const hostInspectPort = developmentHostInspectPort(development)
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
       hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), ACTVERO_DESKTOP: actveroEnabled ? '1' : '0',
+        ACTVERO_ASSISTANT_IDENTITY: buildProduct?.assistantIdentity,
         ACTVERO_EXPERT_CREATOR_DIR: actveroEnabled && app.isPackaged
           ? join(process.resourcesPath, 'actvero-skills', 'expert-creator') : undefined,
         ACTVERO_WORKBENCH_CLI_ENTRY: actveroEnabled && app.isPackaged

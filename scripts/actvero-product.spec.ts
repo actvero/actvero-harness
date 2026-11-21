@@ -33,6 +33,13 @@ describe('ACTVERO build configuration', () => {
     expect(child.stdout).toContain('configuration-only')
     expect(child.stderr).not.toContain('unsettled top-level await')
   })
+  it('preserves a nonempty assistant identity verbatim and omits empty overrides', () => {
+    const identityPrompt = '你是示例助手。\n用于团队协作。'
+    expect(validateProductConfig({ ...config(), assistant: { identityPrompt } }).assistant).toEqual({ identityPrompt })
+    expect(validateProductConfig({ ...config(), assistant: { identityPrompt: '  ' } }).assistant).toBeUndefined()
+    expect(() => validateProductConfig({ ...config(), assistant: { identityPrompt: 'x'.repeat(2001) } })).toThrow('identityPrompt')
+  })
+
   it('accepts a configured deployment path without requiring an issuer', () => {
     const input = config()
     input.platform = { defaultUrl: 'https://example.com/platform/' }

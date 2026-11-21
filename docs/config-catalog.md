@@ -15,7 +15,7 @@ Each package entry labels its data with three identifiers: `inject` lists the se
 ## `@actvero/dsh-capability-ui`
 
 - `inject`: `agents` · `sessionController` · `sessionProjections` · `tools` · `systemPrompt` · `storageDomain` · `typert` · `remoteAccess` · `workspaceRegistry`
-- `source`: [`packages/actvero/capability-ui/src/index.ts:32`](../packages/actvero/capability-ui/src/index.ts)
+- `source`: [`packages/actvero/capability-ui/src/index.ts:33`](../packages/actvero/capability-ui/src/index.ts)
 
 ```ts config-catalog
 /** Deployment-owned managed files location. */
@@ -3593,8 +3593,10 @@ export interface Config {
 ```ts config-catalog
 /** Plugin config: the deployment-authored fragment of the system prompt (see {@link Config.personaPrefix} for its contract). */
 export interface Config {
-  /** Include the fixed DeepSeek Harness identity before the deployment persona (default true). */
+  /** Include the Harness identity before the deployment persona (default true). */
   includeHarnessIdentity?: boolean
+  /** Literal replacement for the Harness identity when provided; omission preserves the default. */
+  harnessIdentity?: string
   /** Include optional runtime-context snapshots in model history (default true); required context remains. */
   includeRuntimeContext?: boolean
   /**

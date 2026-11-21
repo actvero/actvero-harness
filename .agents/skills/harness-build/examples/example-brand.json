@@ -1,0 +1,12 @@
+{
+  "id": "example-brand-0-1-0",
+  "product": {
+    "id": "example-brand",
+    "applicationId": "com.example.harness",
+    "displayName": "Example Harness",
+    "version": "0.1.0"
+  },
+  "platform": { "defaultUrl": "https://example.org" },
+  "assistant": { "identityPrompt": "你是示例公司的办公协同助手。" },
+  "targets": ["mac-arm64", "win-x64"]
+}
