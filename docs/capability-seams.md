@@ -631,7 +631,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.actveroWorkbenchDevelopment` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Loads profile-local development overlays, reports diagnostics and restores the installed implementation. |
+| `ctx.actveroWorkbenchDevelopment` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Authenticates local Agent requests and applies one verified workbench version to its profile. |
 | `ctx.actveroExpertPolicy` | `seam` | `@actvero/dsh-capability-ui` | `@actvero/dsh-experts` | `@actvero/dsh-capability-ui`, `@actvero/dsh-connectors` | - | Resolves recorded ordinary expert selection and connector intent when switching conversation capabilities. |
 | `ctx.actveroWorkbenchMaintenance` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Runs owner-confirmed business-data cleanup and delegates exact-version package removal to the native installer. |
 | `ctx.actveroWorkbenchPlatform` | `service` | `@actvero/dsh-capability-ui` | - | - | - | Reads declared model metadata through Electron Main without exposing credentials or arbitrary authenticated URLs. |

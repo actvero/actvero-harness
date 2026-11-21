@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { create } from 'tar'
 import { expect, it, onTestFinished, vi } from 'vitest'
-import { readWorkbenchPackage } from '../src/client/workbenches/archive.ts'
+import { readWorkbenchPackage } from '../src/workbench-archive.ts'
 import { createWorkbenchManagement, type WorkbenchManagement } from '../src/client/workbenches/management.ts'
 import { WORKBENCH_HOST_API_VERSION, WorkbenchHostCompatibilityError } from '../src/workbench-protocol.ts'
 

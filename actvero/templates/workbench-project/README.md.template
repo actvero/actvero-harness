@@ -24,7 +24,7 @@ doctor 检查入口、包声明与基线，并提示设计待确认项；typeche
 
 使用独立开发套件或已构建的 ACTVERO 源码工具链。.actvero/toolchain.json 记录本机位置，tsconfig.json 引用该目录，二者不提交。套件移动或换机器后使用 `node scripts/workbench.mjs bind /绝对路径/工具链` 重新绑定，再执行 doctor；业务代码不受影响。独立套件需要匹配的操作系统、CPU 架构和 Node 版本，不需要 Harness 源码。
 
-`npm run dev` 监听改动并串行构建。先用 `actvero-workbench attach /项目目录 --connection /连接文件` 连接目标 Harness 后，构建结果自动加载为开发覆盖；未连接时仅构建。`.actvero/diagnostics.json` 分别记录构建、Host 加载和 Client 发布，业务仍需实际试用。使用 `actvero-workbench status /项目目录`、`logs /项目目录` 查看结果，`detach /项目目录` 结束覆盖。正式交付仍按下述流程打包安装。
+准备好交付时，用随 Harness 安装的 CLI 运行 `actvero-workbench update <项目目录> --connection <连接文件> --json`。已有安装时保持包名并提高版本。CLI 成功后，从原入口打开新版，验证主要业务。回查用 `actvero-workbench status <包名> --connection <连接文件> --json`。
 
 包检查通过后，用目标客户端实际提供的本地安装工具，或“工作台 → 我的工作台 → 导入工作台”安装命令输出的包。只有实际安装、加载并验证业务界面后才算交付；重启要求、版本替换、数据保留和故障定位见随项目的开发 Skill。
 

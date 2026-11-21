@@ -19,19 +19,23 @@ Resolve relative paths mentioned by this skill against the base directory before
 3. 核对目标客户端/Profile。在安装版里调用 \`workbench_cli_info\`，用返回的 executable、args 和本次进程的 env 运行随应用安装的 CLI。外部 Agent 使用交接说明中的同一份调用参数。源码开发环境可以继续使用已绑定工具链。
 4. \`environment.json\` 记录参考文档的 DSH 基线、工作台 API 版本与来源，不证明目标桌面已更新。包的 \`engines.dsh\` 与 \`protocol.hostApi\` 分别检查；不能改版本声明绕过不兼容。指南中标为“源码仓库”的路径不是随 Skill 安装的文件。
 
+需要确认业务目标、选项或范围时，优先用当前会话的提问工具。Harness 用 \`ask_user_question\`，其他 Agent 按其实际提供的工具与参数操作。选项简短并允许补充，案例和资料用自由输入。没有提问工具时，在聊天里简短询问并等待答复。
+
 ## 实现与调试
 
 按[内置 CLI 说明](reference/npm.zh.md)运行 \`info\` 获取已校验的工具链目录与版本，再用 \`create\` 或 \`bind\`。首次编译所需的文件随 Harness 安装，CLI 校验后解压到本机缓存。
 
-通过 \`actvero-workbench schema show <命令>\` 查实参数、结果与回查方式，\`example show <命令>\` 获取请求样例。自动化命令使用 \`--json\`。写入结果未知时，按返回的 recovery 回查。联调时使用 \`schema show dev\` 区分生成归档、加载运行时和发布客户端。
+通过 \`actvero-workbench schema show <命令>\` 查实参数、结果与回查方式，\`example show <命令>\` 获取请求样例。自动化命令使用 \`--json\`。写入结果未知时，按返回的 recovery 回查。
 
 新项目按指南运行 \`create\`，默认空白模板；仅需要示例时选 \`plain\` 或 \`ai\`。读取生成项目的 README.md、AGENTS.md 和 DESIGN.md，写明最小业务流程、首次入口、存储和验收点。已有项目直接修改。界面开发加载 \`workbench-frontend\` Skill，业务允许原生、品牌或自定义设计。
 
 首次实现或架构不明时，读[实施手册](reference/implementation.zh.md#choose)：按数据与 AI 需求选方案，先打通一个业务操作。需要原生持久化时，跟随[完整示例](reference/implementation.zh.md#counter)连接 Host、Client 与资源更新；它是接入练习，不替代用户业务。接口或组件不确定时查[查找方法](reference/implementation.zh.md#lookup)，遇到问题按[分层排障](reference/implementation.zh.md#debug)收集证据。
 
-使用已安装 CLI 的 \`doctor <项目目录>\`、\`typecheck <项目目录>\` 和相关业务测试。已提供 Harness 开发连接文件时，先执行 \`actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json\`，随后用 \`dev <项目目录>\` 自动构建并加载到此 Profile。\`actvero-workbench status /项目目录\` 和 \`logs /项目目录\` 返回部署记录，\`detach /项目目录\` 结束覆盖并恢复正式安装版本。未连接时 dev 仅构建。读取 \`.actvero/diagnostics.json\`，分别确认构建、Host 加载和 Client 发布；\`runtime: loaded\` 仍需在真实界面验证业务。更新等待关联对话空闲，失败保留或恢复上次可用实现；无法确认恢复时停止操作并查看诊断。CLI 不启动或重启 Harness。正式交付仍使用版本化打包与安装。工具链移动后按 README 执行 \`bind\`。
+使用已安装 CLI 的 \`doctor <项目目录>\`、\`typecheck <项目目录>\` 和相关业务测试。按「安装与验收」在开发完成后一次应用改动。
 
-开启 \`ai: true\` 的工作台自动贡献一个随包专家，用户可从任意会话召唤。不要另外创建个人专家副本，不强制选择或切换文件工作区。可用 \`expertEntry\` 提供简介和头像，设为 false 隐藏入口。实例数据、对话文件目录与固定业务对象分别处理；沿用传入 sessionId 与 object，预览和完整界面指向相同业务对象。停用和卸载撤下专家入口，默认保留业务数据与历史。
+开启 \`ai: true\` 的工作台自动贡献一个随包专家，用户可从任意会话召唤。不要另外创建个人专家副本，不强制选择或切换文件工作区。仅在需求明确只允许从工作台内打开 AI 时，将 \`expertEntry\` 设为 false。实例数据、对话文件目录与固定业务对象分别处理。沿用传入 sessionId 与 object，预览和完整界面指向相同业务对象。停用和卸载撤下专家入口，默认保留业务数据与历史。
+
+对外提供随包专家时，按[随包专家资料](reference/guide.zh.md#expert-bundle)补齐可见名称、版本和简介。简介用一两句话说明用户可以让它做什么及拿到什么。为工作台提供方形包图标，让专家沿用同一图标。使用 \`WorkbenchExpertBundle\` 时，将 \`await bundle.entry()\` 接入 \`expertEntry\`，并用真实任务定义指令、业务对象范围及按需依赖。先按业务操作验收工具，再在「我的专家」、专家选择器和召唤后的输入框回看身份。
 
 按任务选读以下章节，再查对应真实接口；不要凭 API 名称猜参数。\`reference/api/\` 是只读接口副本，不能作为 SDK 安装。
 
@@ -54,7 +58,10 @@ Resolve relative paths mentioned by this skill against the base directory before
 
 先阅读[导入和验收](reference/guide.zh.md#install)及[故障定位](reference/guide.zh.md#verify)。只操作身份已确认的目标客户端/Profile；隔离开发客户端的结果不能算作日常应用验收。
 
-- 发现当前可用工具并读取参数。原生 \`plugin_manager\` 可用时，先 \`list_bundles\` 核对目标，再用 \`install_bundle\` 安装校验后的绝对路径 \`.tgz\`，沿用原生授权。不要捏造安装工具。
+- 提供了目标 Harness 的开发连接文件时，使用已安装 CLI 的 \`status <包名> --connection <连接文件> --json\` 查询安装版本。首次安装直接使用项目版本。更新已安装工作台时保留包名并提高版本。
+- 完成自测后运行 \`actvero-workbench update <项目目录> --connection <连接文件> --json\`。一次构建、校验、安装并即时应用。工作台有任务在运行时等任务结束再提交。
+- 只有返回 \`application: applied\`、\`runtime: loaded\`、\`client: published\` 才报告加载成功。打开原入口验证版本和主要业务。失败或中断时用 \`status\` 回查，确认实际版本后再重试。
+- 目标连接不可用或用户只需要安装包时，用 \`pack\` 和 \`check\` 交付 \`.tgz\`。通过目标客户端的「我的工作台」导入时，按原生安装结果验收。
 - 更新保留包名、提高版本，使用支持版本替换的工具或管理页“更多 → 更新版本”；不以卸载重装绕过检查，不删除数据解决错误。
 - 分别核对 \`application\` 安装结果与实际加载。\`applied\` 后继续查看界面；\`restart-required\` 只代表待重启；\`failed\`、\`cancelled\`、\`overridden\` 不算成功。未知结果先查询，避免重复操作。
 - 不关闭或重启当前承载本轮任务的应用。需要重启时，任务结束后请用户使用“立即重启”或“Harness → 重启 Harness”；目标外的隔离客户端按已有授权使用正常重启流程。

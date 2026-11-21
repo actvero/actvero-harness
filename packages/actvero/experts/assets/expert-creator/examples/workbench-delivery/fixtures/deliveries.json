@@ -1,0 +1,20 @@
+{
+  "deliveries": [
+    {
+      "id": "A-01",
+      "status": "pending",
+      "dueDate": "2026-11-18"
+    },
+    {
+      "id": "A-02",
+      "status": "ready",
+      "dueDate": "2026-11-22"
+    },
+    {
+      "id": "A-03",
+      "status": "delivered",
+      "dueDate": "2026-11-19",
+      "evidence": "review-03.pdf"
+    }
+  ]
+}

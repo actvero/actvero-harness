@@ -47,6 +47,8 @@ pnpm dsh plugin --profile web remove @deepseek-ai/dsh-experimental-auto-review
 
 Auto 在每个受支持调用的 body 执行前审查一次，包括每个已开始的 PTC `tools.*` inner call。它按实际效果分类：普通项目内操作和精确清理本 Session 创建的对象属于 low，直接允许；不可逆删除既有对象、生产操作、外部写入和安全控制变更属于 medium，需要当前 human 或直接父级明确授权动作、目标与范围。跨信任边界泄露敏感信息属于 high，始终拒绝。效果不明确和授权冲突未解决时拒绝。选择 Auto 会设置 `ask` 审批策略，因此被拒绝调用会请求用户审批，获批后才执行；审批被拒绝或取消时 body 不执行。进程内委派 child 固定 `never` 策略，其拒绝是最终结果。Reviewer 响应不合法和技术失败会以具体错误使调用失败，且从不执行。
 
+审查服务不可用时，工具卡片显示本次操作未执行。同一轮后续调用保留错误并暂停向审查服务发请求。用户可以发新消息重试审查，或自行在权限菜单切换到「工作区内修改」后继续。
+
 最终拒绝使用普通工具卡片。折叠行标识 Auto review；展开输出说明 body 未执行，并显示可选理由。[Web 权限包](../../client/ui-permission-presets/README.zh.md)拥有选择器交互，[工具 UI](../../client/ui-tool/README.zh.md)拥有理由展示。
 
 -----
@@ -98,7 +100,7 @@ Reviewer 使用最新 `request/header.config` 的 provider 与模型，并沿用
 
 #### 模型看到什么
 
-在 `ask` 审批策略下，模型只看到审批结果，例如 `the user rejected tool "<name>"`，或获批调用的普通结果。最终拒绝消息为 `Auto review rejected tool "<name>"; its body was not executed`。Reviewer 失败消息为 `Auto review of tool "<name>" failed; its body was not executed: <error>`。普通原生错误渲染在每条消息前加 `Error: `。PTC 使用既有 inner-call 异常与 catch 行为；被捕获的拒绝不强制外层 `run_code` 失败。可选原始理由是面向用户的持久结构化错误详情，绝不进入主模型内容。风险、reviewer prompt、reasoning 与原始响应都不持久化。
+在 `ask` 审批策略下，模型只看到审批结果，例如 `the user rejected tool "<name>"`，或获批调用的普通结果。最终拒绝消息为 `Auto review rejected tool "<name>"; its body was not executed`。服务不可用时，工具返回 `AUTO_REVIEW_UNAVAILABLE` 和恢复方式。其他评审错误返回 `Auto review of tool "<name>" failed; its body was not executed: <error>`。普通原生错误渲染在每条消息前加 `Error: `。PTC 使用既有 inner-call 异常与 catch 行为；被捕获的拒绝不强制外层 `run_code` 失败。可选原始理由是面向用户的持久结构化错误详情，绝不进入主模型内容。风险、reviewer prompt、reasoning 与原始响应都不持久化。
 
 #### Token 影响
 

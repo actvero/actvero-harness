@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync,
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { chromium } from 'playwright'
 import { create } from 'tar'
 import type { PublishedWorkbench, WorkbenchArchiveSource } from '@actvero/dsh-client-account/protocol'
@@ -27,7 +27,7 @@ function version(path: string): string {
 }
 
 describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))('Actvero workbench manager', () => {
-  it.each(['local workbench management', 'platform workbench distribution', 'workbench development entry', 'workbench data cleanup'])('%s', async (scenario) => {
+  it.each(['local workbench management', 'platform workbench distribution', 'workbench development entry', 'workbench data cleanup', 'one-shot workbench delivery'])('%s', async (scenario) => {
     const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'actvero-workbench-manager-')))
     mkdirSync(join(repository, '.artifacts'), { recursive: true })
     let host: DesktopHostProcess | undefined
@@ -247,6 +247,63 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           await page.goto(browserUrl(next.url))
           await openManager()
         }
+        if (scenario === 'one-shot workbench delivery') {
+          const source = join(root, 'delivery-source')
+          const name = '@local/delivery-checklist'
+          const cliArgs = (...args: string[]) => ['--import', 'tsx/esm', developerCommand, ...args]
+          const cliOptions = { cwd: repository, encoding: 'utf8', timeout: 60_000 } as const
+          const run = (...args: string[]) => execFileSync(process.execPath, cliArgs(...args), cliOptions)
+          run('create', source, name, '--template', 'ai')
+          await page.goto(browserUrl(ready.url))
+          await openManager()
+          await page.getByRole('button', { name: '制作工作台', exact: true }).click()
+          await page.evaluate(() => {
+            Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } })
+          })
+          await page.getByRole('button', { name: '交给其他 Agent', exact: true }).click()
+          await page.getByRole('alert').filter({ hasText: '已复制开发说明' }).waitFor()
+          await page.keyboard.press('Escape')
+          await page.getByRole('dialog', { name: '制作工作台', exact: true }).waitFor({ state: 'hidden' })
+          const connection = ['--connection', join(home, 'actvero-workbench-data/.development/connection.json'), '--json']
+          const update = () => JSON.parse(run('update', source, ...connection))
+          expect(update()).toMatchObject({ ok: true, result: { previousVersion: null, version: '1.0.0', application: 'applied', client: 'published' } })
+          const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'AI 项目清单', exact: true }) })
+          await card.getByRole('button', { name: '打开', exact: true }).click()
+          await page.getByRole('heading', { name: '交付检查', exact: true }).waitFor()
+          await page.getByRole('textbox', { name: '输入待办事项' }).fill('保留这条任务')
+          await page.getByRole('button', { name: '添加任务', exact: true }).click()
+          await page.getByText('保留这条任务', { exact: true }).waitFor()
+          const manifest = join(source, 'package.json')
+          writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('"version": "1.0.0"', '"version": "1.1.0"'))
+          const locale = join(source, 'src/client/locales.ts')
+          writeFileSync(locale, readFileSync(locale, 'utf8').replace("'交付检查'", "'新版交付检查'"))
+          expect(update()).toMatchObject({ ok: true, result: { previousVersion: '1.0.0', version: '1.1.0', runtime: 'loaded', client: 'published' } })
+          await openManager()
+          await card.getByRole('button', { name: '打开', exact: true }).click()
+          await page.getByRole('heading', { name: '新版交付检查', exact: true }).waitFor()
+          await page.getByText('保留这条任务', { exact: true }).waitFor()
+          expect(JSON.parse(run('status', name, ...connection))).toMatchObject({
+            ok: true, result: { installedVersion: '1.1.0', clientPublished: true, pendingRestart: false },
+          })
+          writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('"version": "1.1.0"', '"version": "1.2.0"'))
+          const hostEntry = join(source, 'src/index.ts')
+          writeFileSync(hostEntry, readFileSync(hostEntry, 'utf8').replace(
+            'export async function apply(ctx: Context): Promise<void> {',
+            'export async function apply(ctx: Context): Promise<void> {\n  throw new Error("Rejected fixture update")',
+          ))
+          const failure = spawnSync(process.execPath, cliArgs('update', source, ...connection), cliOptions)
+          expect(failure.error).toBeUndefined()
+          expect(failure.status).toBe(1)
+          expect(JSON.parse(failure.stdout)).toMatchObject({ ok: false, error: { code: 'update_failed', outcome: 'not_applied' } })
+          expect(JSON.parse(run('status', name, ...connection))).toMatchObject({
+            ok: true, result: { installedVersion: '1.1.0', clientPublished: true, pendingRestart: false },
+          })
+          await openManager()
+          await card.getByRole('button', { name: '打开', exact: true }).click()
+          await page.getByRole('heading', { name: '新版交付检查', exact: true }).waitFor()
+          await page.getByText('保留这条任务', { exact: true }).waitFor()
+          return
+        }
         if (scenario === 'workbench data cleanup') {
           await page.goto(browserUrl(ready.url))
           await openManager()
@@ -333,7 +390,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             const copied = page.getByRole('alert').filter({ hasText: '已复制开发说明，粘贴给其他 Agent 即可' })
             await copied.waitFor()
             const instructions = await page.evaluate(() => document.documentElement.dataset.workbenchInstructions)
-            expect(instructions).toContain('actvero-workbench attach')
+            expect(instructions).toContain('update <项目目录> --connection')
             expect(instructions).toContain('connection.json')
             expect(instructions).toContain('develop-workbench/SKILL.md')
             expect(instructions).toContain('workbench-frontend/SKILL.md')
@@ -1329,7 +1386,10 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         execFileSync(process.execPath, ['--import', 'tsx/esm', developerCommand, 'create', aiDevelopment, '--template', 'ai', '@local/ai-checklist'], { cwd: repository })
         const extensionEntry = join(aiDevelopment, 'src/client/index.ts')
         const extensionMetadata = join(aiDevelopment, 'workbench.json')
+        const hostEntry = join(aiDevelopment, 'src/index.ts')
         writeFileSync(extensionMetadata, readFileSync(extensionMetadata, 'utf8').replace('^1.2.0', '^1.3.0'))
+        writeFileSync(hostEntry, readFileSync(hostEntry, 'utf8')
+          .replace('expertEntry: await expert.entry()', 'expertEntry: { name: (await expert.entry()).name }'))
         writeFileSync(extensionEntry, readFileSync(extensionEntry, 'utf8').replace('header: Header', `header: Header,
           settings: { label: () => '清单偏好', component: ({ close }) => createElement('section', null,
             createElement('h2', null, '清单偏好'), createElement('p', null, '工作台安装级设置示例'),
@@ -1351,6 +1411,14 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         const hasArtwork = (images: Element[], url: string) => images.some(image => image instanceof HTMLImageElement
           && image.getAttribute('src') === url && image.complete && image.naturalWidth > 0)
         await expect.poll(() => aiCard.locator('img').evaluateAll(hasArtwork, packageIconUrl)).toBe(true)
+        await page.getByRole('button', { name: '能力中心', exact: true }).click()
+        await page.getByRole('tab', { name: '专家', exact: true }).click()
+        await page.getByRole('tab', { name: '我的专家', exact: true }).click()
+        const expertCard = page.getByRole('button', { name: '项目清单助手', exact: true })
+        const workbenchDescription = JSON.parse(readFileSync(extensionMetadata, 'utf8')).description
+        await expertCard.getByText(workbenchDescription, { exact: true }).waitFor()
+        await expect.poll(() => expertCard.locator('img').evaluateAll(hasArtwork, packageIconUrl)).toBe(true)
+        await openManager()
         await aiCard.getByRole('button', { name: '查看预览 · AI 项目清单 · 1', exact: true }).click()
         await expect.poll(() => page.getByRole('dialog').locator('img').evaluateAll(hasArtwork, packageIconUrl)).toBe(true)
         await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click()
@@ -1407,7 +1475,9 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         await page.reload()
         await page.locator('[data-composer-input][contenteditable="true"]').waitFor()
         expect(await page.locator('[data-composer-chip="actvero-workbench-reference"]').count()).toBe(0)
-        await page.locator('[data-expert-badge]').waitFor()
+        const expertBadge = page.locator('[data-expert-badge]')
+        await expertBadge.waitFor()
+        await expect.poll(() => expertBadge.locator('img').evaluateAll(hasArtwork, packageIconUrl)).toBe(true)
         const floatingControl = page.getByRole('button', { name: '悬浮工作台', exact: true })
         await expect.poll(() => floatingControl.locator('img').evaluateAll(hasArtwork, packageIconUrl)).toBe(true)
         await page.getByRole('button', { name: '添加文件或调用指令', exact: true }).click()

@@ -1,8 +1,7 @@
 import { Loader } from '@deepseek-ai/cordis-plugin-loader'
 import { ClientModuleRegistry } from '@deepseek-ai/dsh-client-modules'
 import { developmentRequest } from '../../../../scripts/actvero-workbench-connection.ts'
-import { create as tarCreate } from 'tar'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 /** Native scopes, durable business state and concurrent workbench actions. */
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -22,7 +21,7 @@ import Typert from '@deepseek-ai/dsh-typert-registry'
 import RemoteAccess from '@deepseek-ai/dsh-api-remote-access'
 import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -456,8 +455,14 @@ describe('workbench runtime', () => {
   it('discovers the bundled developer skill when the native registry becomes available', async () => {
     const { ctx, workbenches } = await harness()
     await ctx.plugin(Skills)
+    const expertDirectory = fileURLToPath(new URL('../../experts/assets/expert-creator/', import.meta.url))
+    ctx.provide('actveroExpertAuthoring', { run: async () => undefined, directory: expertDirectory, skill: { name: 'expert-creator', description: '', content: '' } })
     const skill = await ctx.skills.get('develop-workbench')
     const resources = await ctx.actveroWorkbenchRuntime.developmentResources()
+    if (!resources.expertSkillPath) throw new Error('Missing expert authoring skill')
+    for (const path of ['SKILL.md', 'references/tools.md', 'scripts/check-import.mjs', 'examples/release-notes/release-notes-1.0.0.zip']) {
+      expect(await readFile(join(resources.expertSkillPath, '..', path))).toEqual(await readFile(join(expertDirectory, path)))
+    }
     expect(await readFile(resources.skillPath, 'utf8')).toContain('name: develop-workbench')
     expect(await readFile(resources.frontendSkillPath, 'utf8')).toContain('name: workbench-frontend')
     expect(skill?.source).toBe('bundled')
@@ -880,86 +885,18 @@ it('contributes an expert without allocating a workspace and preserves an existi
   expect(agent.session.snapshotEvents().filter(event => event.type === 'turn/start')).toHaveLength(1)
 })
 
-it('loads successive development archives through the native Loader and restores the last working generation after failure', async () => {
-  const { ctx, runtime, directory, loop, workbenches } = await harness(undefined, false, true)
-  expect(workbenches.entry?.subtree).toBeUndefined()
-  const development = ctx.actveroWorkbenchDevelopment
-  expect(development).toBeDefined()
-  const project = join(directory, 'author')
-  await mkdir(project)
-  const manifest = { name: '@local/development-test', version: '1.0.0', type: 'module', engines: { dsh: '0.2.1-rc.3' },
-    exports: { '.': './index.js', './client': './client.js' },
-    dsh: { actveroWorkbench: 1, client: { platform: 'web' } } }
-  await writeFile(join(project, 'package.json'), JSON.stringify(manifest))
-  const connection = await development.connection()
-  expect(workbenches.entry?.subtree).toBeUndefined()
-  const packageId = manifest.name as WorkbenchId
-  const archive = async (label: string, broken = false, uiOnly = false) => {
-    const output = join(project, label)
-    const folder = join(output, 'package')
-    await mkdir(folder, { recursive: true })
-    await writeFile(join(folder, 'package.json'), JSON.stringify(manifest))
-    await writeFile(join(folder, 'client.js'), `window.__ModuleLoader__.load({id:'${manifest.name}',factory:()=>({apply(){}})})`)
-    await writeFile(join(folder, 'index.js'), broken ? 'export function apply(){throw new Error("broken build")}' : uiOnly ? 'export function apply(){}' :
-      `export const inject=['actveroWorkbenchRuntime'];export function apply(ctx){ctx.effect(()=>ctx.actveroWorkbenchRuntime.register({id:'${manifest.name}',name:'${label}',version:'1.0.0',ai:true,expert:{name:'项目专家',version:'1.0.0',instructions:'${label}'},storage:{initial:()=>'{"cards":[]}',reduce:json=>json,actionHelp:'Read cards'}}))}`)
-    const path = join(project, label + '.tgz')
-    await tarCreate({ cwd: output, file: path, gzip: true }, ['package'])
-    const { createHash } = await import('node:crypto')
-    return { path, sha256: createHash('sha256').update(await readFile(path)).digest('hex') }
-  }
-  await archive('installed')
-  await mkdir(join(directory, 'node_modules/@local'), { recursive: true })
-  await symlink(join(project, 'installed/package'), join(directory, 'node_modules', manifest.name), 'dir')
-  const installedRow = await ctx.loader.create({ name: pathToFileURL(join(project, 'installed/package/index.js')).href })
-  await ctx.loader.await()
-  await ctx.loader.resolve(installedRow).fiber?.await()
-  expect(runtime.experts()[0]?.workbenchName).toBe('installed')
-  const attachment = await developmentRequest(connection, { action: 'attach', directory: project }) as { id: string }
+it('authenticates one-shot delivery queries and reports an unavailable installer', async () => {
+  const { ctx, directory, workbenches } = await harness(undefined, false, true)
+  const connection = await ctx.actveroWorkbenchDevelopment.connection()
   const descriptor = JSON.parse(await readFile(connection, 'utf8')) as { url: string }
-  expect((await fetch(descriptor.url, { method: 'POST', headers: { Authorization: 'Bearer invalid' }, body: '{}' })).status).toBe(403)
-  const first = await archive('first')
-  const installedEntry = ctx.loader.resolve(installedRow)
-  const persistedOptions = installedEntry.options
-  expect(await developmentRequest(connection, { action: 'apply', id: attachment.id, ...first })).toMatchObject({ application: 'applied', runtime: 'loaded' })
-  expect(installedEntry.options).not.toBe(persistedOptions)
-  expect(persistedOptions.disabled).toBeUndefined()
-  expect(installedEntry.parent.data).toContain(persistedOptions)
-  await vi.waitFor(() => { expect(ctx.clientModules.clientPath(manifest.name)).toBeDefined() })
-  const document = await runtime.open(packageId)
-  const agent = await loop.create(SessionId('development-conversation'), {}, { cwd: project })
-  await runtime.selectExpert({ id: packageId, sessionId: agent.id })
-  const second = await archive('second')
-  let release!: () => void
-  const active = agent.runMaintenance(() => new Promise<void>((resolve) => { release = resolve }))
-  try {
-    expect(await developmentRequest(connection, { action: 'apply', id: attachment.id, ...second })).toEqual({ application: 'busy' })
-    expect(runtime.experts()[0]?.workbenchName).toBe('first')
-  } finally { release(); await active }
-  await developmentRequest(connection, { action: 'apply', id: attachment.id, ...second })
-  expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.expert?.instructions).toBe('second')
-  expect(agent.session.header.cwd).toBe(project)
-  expect((await runtime.open(packageId)).instanceId).toBe(document.instanceId)
-  await expect(developmentRequest(connection, { action: 'apply', id: attachment.id, ...await archive('broken', true) })).rejects.toThrow('failed to activate')
-  expect(runtime.experts()[0]?.workbenchName).toBe('second')
-  expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.expert?.instructions).toBe('second')
-  expect((await runtime.open(packageId)).json).toBe(document.json)
-  await developmentRequest(connection, { action: 'detach', id: attachment.id })
-  expect(runtime.experts()[0]?.workbenchName).toBe('installed')
-  expect(ctx.loader.resolve(installedRow).disabled).toBe(false)
-  expect(installedEntry.options).toBe(persistedOptions)
-  expect(ctx.sessionProjections.stateOf(agent.session, 'actveroWorkbench')?.expert?.instructions).toBe('installed')
-  await runtime.detach({ sessionId: agent.id })
-  const uiAttachment = await developmentRequest(connection, { action: 'attach', directory: project }) as { id: string }
-  expect(await developmentRequest(connection, { action: 'apply', id: uiAttachment.id, ...await archive('ui-only', false, true) }))
-    .toMatchObject({ application: 'applied', runtime: 'loaded', client: 'published' })
-  expect(runtime.experts()).toEqual([])
-  await developmentRequest(connection, { action: 'detach', id: uiAttachment.id })
-  expect(runtime.experts()[0]?.workbenchName).toBe('installed')
+  const command = { action: 'workbench-status', name: '@local/deployment-test' }
+  expect((await fetch(descriptor.url, { method: 'POST', headers: { Authorization: 'Bearer invalid' }, body: JSON.stringify(command) })).status).toBe(403)
+  await expect(developmentRequest(connection, command, undefined, { readOnly: true })).rejects.toMatchObject({
+    code: 'installer_unavailable', outcome: 'not_applied',
+  })
   await workbenches.dispose()
   expect(await readdir(join(directory, 'files/.development'))).toEqual([])
-  expect(workbenches.entry?.subtree).toBeUndefined()
 })
-
 
 it('keeps a business conversation intact when starting a creation draft', async () => {
   const { ctx, runtime } = await harness()

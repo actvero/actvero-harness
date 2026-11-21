@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "skills": [{"key": "release-brief", "source": "local", "path": "skills/release-brief"}],
+  "connectors": [{"key": "github-repos", "source": "local", "path": "connectors/github-repos.json"}]
+}

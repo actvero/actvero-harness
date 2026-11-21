@@ -97,15 +97,17 @@
     "react-dom": "^18.2.0",
     "@deepseek-ai/dsh-client-ui-commands": "workspace:*",
     "@actvero/dsh-connectors": "workspace:~",
-    "@actvero/dsh-skills": "workspace:~",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
     "@deepseek-ai/dsh-scope": "workspace:*",
     "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
-    "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*"
+    "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*",
+    "@deepseek-ai/dsh-fs": "workspace:*",
+    "@deepseek-ai/dsh-working-directory": "workspace:*"
   },
   "dependencies": {
+    "@actvero/dsh-skills": "workspace:~",
     "zod": "^4.4.3"
   },
   "scripts": {

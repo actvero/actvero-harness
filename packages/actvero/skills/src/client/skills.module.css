@@ -1,12 +1,5 @@
 .page { display: contents; color: var(--dsw-alias-label-primary); }
-.header { grid-column:2; grid-row:1; display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0; min-height:36px; }
-.header button { flex:none; white-space:nowrap; gap:6px; height:32px; padding-inline:10px; border-radius:10px; font-size:13px; }
-.header button svg { flex:none; }
-.search { flex:0 1 220px; width:220px; min-width:80px; height:32px; box-sizing:border-box; padding-inline:12px; border-radius:10px; background:var(--dsw-alias-interactive-bg-hover); border:1px solid transparent; transition:background-color 120ms,border-color 120ms; }
-.search:hover { border-color:var(--dsw-alias-border-l4); }
-.search:focus-within { border-color:var(--dsw-alias-border-l3); }
-.search input { width:100%; font-size:13px; }
-.search input::placeholder { color:var(--dsw-alias-label-tertiary); }
+.header { grid-column:2; grid-row:1; min-height:36px; }
 .content { grid-column:1 / -1; grid-row:2; min-width:0; container-type:inline-size; }
 .categories { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 24px; }
 .categories button { height:32px; font-size:13px; border-radius:9px; color:var(--dsw-alias-label-secondary); padding-inline:12px; }
@@ -60,9 +53,9 @@ button.cardAction { width:30px; color:var(--dsw-alias-label-secondary); backgrou
 .page button:focus-visible,.body button:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary); outline-offset:-2px; }
 @container (max-width:860px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @container (max-width:550px) { .grid { grid-template-columns:minmax(0,1fr); } }
-@media (max-width:900px) { .header { grid-column:1; grid-row:2; justify-content:flex-start; flex-wrap:wrap; } .content { grid-row:3; } .search { flex:1; } }
+@media (max-width:900px) { .header { grid-column:1; grid-row:2; justify-content:flex-start; flex-wrap:wrap; } .content { grid-row:3; } .header .search { flex:1; } }
 @media (max-width:600px) { .modal { width:calc(100vw - 24px); } .body { padding-inline:20px; } .hero { gap:14px; } .hero h2 { font-size:20px; } .largeIcon { width:56px; height:56px; } }
-@media (prefers-reduced-motion:reduce) { .card,.search { transition:none; } }
+@media (prefers-reduced-motion:reduce) { .card { transition:none; } }
 
 
 .icon { width:36px; height:36px; border-radius:11px; background:color-mix(in srgb,var(--dsw-alias-label-primary) 4%,transparent); }

@@ -109,7 +109,7 @@ const GROUP_ORDER = [
 const SERVICE_ROLES: ServiceRole[] = [
   {
     key: 'actveroWorkbenchDevelopment', pkg: '@actvero/dsh-capability-ui', title: 'Actvero local development',
-    mode: 'service', note: 'Loads profile-local development overlays, reports diagnostics and restores the installed implementation.',
+    mode: 'service', note: 'Authenticates local Agent requests and applies one verified workbench version to its profile.',
   },
   {
     key: 'actveroExpertPolicy', pkg: '@actvero/dsh-capability-ui', title: 'Actvero expert selection',

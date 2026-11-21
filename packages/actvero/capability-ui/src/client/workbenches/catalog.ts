@@ -24,6 +24,24 @@ export function workbenchIconUrl(view: Pick<WorkbenchView, 'entries' | 'remember
     ?? view.remembered.find(entry => entry.id === id)?.iconUrl
 }
 
+function workbenchDescription(entry: ActveroWorkbench | undefined, bundle: BundleInfo | undefined, resolveText: ResolveText): string {
+  return entry?.description?.trim() || bundle?.meta?.workbench?.description?.trim()
+    || (bundle?.meta?.description && resolveText(bundle.meta.description).trim()) || bundle?.description?.trim() || ''
+}
+
+/** Read the workbench card's description and artwork for its contributed expert.
+ * @param view Installed metadata and current or retained Client descriptors.
+ * @param id Stable workbench package identity.
+ * @param resolveText Current locale's package text resolver.
+ * @returns Card text and its public icon URL, if available.
+ */
+export function workbenchCatalogIdentity(view: Pick<WorkbenchView, 'entries' | 'remembered' | 'bundles'>, id: string,
+  resolveText: ResolveText): Pick<ActveroWorkbench, 'description' | 'iconUrl'> {
+  const entry = view.entries.find(item => item.id === id) ?? view.remembered.find(item => item.id === id)
+  const bundle = view.bundles.find(item => item.installed && item.name === id)
+  return { description: workbenchDescription(entry, bundle, resolveText), iconUrl: workbenchIconUrl(view, id) }
+}
+
 /** Build cards from the installed catalog without hiding disabled or failed bundles.
  * @param view Installed inventory and live panel registrations.
  * @param resolveText Current locale's package text resolver.
@@ -40,14 +58,14 @@ export function workbenchCatalog(view: Pick<WorkbenchView, 'entries' | 'remember
     const entry: ActveroWorkbench = remembered ?? {
       id: bundle.name,
       name: packageCard?.name ?? (bundle.meta?.title ? resolveText(bundle.meta.title) : bundle.name),
-      description: packageCard?.description ?? (bundle.meta?.description ? resolveText(bundle.meta.description) : bundle.description ?? ''),
+      description: '',
       version: bundle.version ?? '',
       ...(bundle.meta?.icon ? { iconUrl: bundle.meta.icon } : {}),
     }
     const iconUrl = workbenchIconUrl(view, bundle.name)
     const restart = bundle.restartRequired || view.restart.includes(bundle.name)
       || (live && (!bundle.enabled || live.version !== bundle.version))
-    return { ...entry, ...(iconUrl ? { iconUrl } : {}),
+    return { ...entry, description: workbenchDescription(remembered, bundle, resolveText), ...(iconUrl ? { iconUrl } : {}),
       ...(packageCard?.previewUrls ? { previewUrls: packageCard.previewUrls } : {}), version: bundle.version ?? entry.version, bundle,
       ...(live ? { runningVersion: live.version } : {}),
       state: restart ? 'restartState' : bundle.error ? 'failedState' : !bundle.enabled ? 'disabledState' : live ? 'ready' : 'unloadedState',

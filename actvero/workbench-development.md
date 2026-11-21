@@ -66,7 +66,6 @@ npm run doctor
 npm run typecheck
 npm run build
 npm run check
-npm run dev
 ```
 
 The blank template is the default. Append `--template plain` or `--template ai` when a checklist example is useful. The source-based entry remains `pnpm run actvero:workbench create`.
@@ -79,9 +78,9 @@ The generated directory includes README.md, AGENTS.md, DESIGN.md, commands, type
 
 Commands use the local kit or checkout in .actvero/toolchain.json; that file and generated tsconfig.json remain uncommitted. After relocation, run `node scripts/workbench.mjs bind /absolute/path/toolchain` to refresh compiler configuration, Skills under .agents/skills and API references. Business code, README.md, AGENTS.md and DESIGN.md are preserved. AGENTS.md requires explicit reading rather than assuming every Agent product discovers Skills automatically.
 
-`npm run dev` watches project changes and serializes checks and archive builds with source maps. Without a Harness connection it only builds; an attached project automatically publishes a temporary development overlay, including repeated same-version builds, without modifying the installed release. Read `.actvero/diagnostics.json` to distinguish build, Host loading and Client publication. Verify the real interface and business flow separately. Ctrl+C stops observation and waits for the current build; detach separately to release the overlay.
+Use `doctor`, `typecheck` and `pack` for local checks. When a batch of changes is ready, get a private connection file from Make workbench > Use another Agent in the target Harness. Run `actvero-workbench update /absolute/project --connection /absolute/connection.json --json` for the first install. For an installed workbench, keep the package name and increase `package.json.version` before running the same command.
 
-In the target Harness, use Make workbench > Use another Agent to export version-matched Skills and a private connection file. Run `actvero-workbench attach /absolute/project --connection /absolute/connection.json` once, then dev. `actvero-workbench status /project` and `logs /project` report loading and recent diagnostics; `detach /project` withdraws the overlay and restores the installed version. The connection is local and expires with this Host; keep it out of version control. The CLI never launches or restarts Harness. Updates wait for bound conversations to become idle. Failed loading restores the previous implementation; failed restoration stops development and requires log inspection. Authors own data migrations and verify them in an isolated development Profile.
+`update` builds, validates, installs and applies one version. When it returns `application: applied`, `runtime: loaded` and `client: published`, open the workbench from its usual entry and verify the main workflow. Wait for active workbench tasks to finish before applying an update. After an error or interruption, run `actvero-workbench status <package-name> --connection <connection-file> --json` to check the installed version and Client publication. The connection file is valid only for the local Harness process that issued it.
 
 `check` reuses desktop import preflight and checks the format marker, version declarations, nonempty entry files, and duplicate, escaping, or linked paths. It does not execute workbench code or establish business acceptance. Installation also checks compatibility with the current runtime; the development command does not bypass this check.
 
@@ -333,7 +332,9 @@ Verify separate conversations and drafts for two objects, multiple conversations
 
 This section is for authors configuring workbench AI behavior. The host provides native conversations, model selection, logging and conversation scopes; authors choose business tools, file formats and operations. Set only `ai: true` for ordinary AI, or `expert` for simple instructions. For complete dependencies, use `WorkbenchExpertBundle` from `@actvero/dsh-experts/workbench` without creating or summoning an ordinary expert record.
 
-API 1.9 exposes one read-only expert for each loaded AI-enabled provider in My experts and the native expert picker. `expertEntry` supplies its catalog description and portrait; false hides the entry. Selecting it binds the provider capabilities to the addressed conversation without choosing another workspace or creating a personal expert copy. Disablement and uninstall withdraw the entry while ordinary removal retains data and history. The latest explicit ordinary-expert or workbench selection owns subsequent turns. Use conversation-owned object bindings for business targets, independently of filesystem directories.
+API 1.9 exposes one read-only expert for each loaded AI-enabled provider in My experts and the native expert picker. `expertEntry` can supply the name, version and an expert-specific description. Set it to false to hide the entry. An empty expert description inherits the workbench description. The workbench package icon is also the expert portrait. An existing `expertEntry.avatar` provides a portrait when the workbench has no icon. Selecting it binds the provider capabilities to the addressed conversation without choosing another workspace or creating a personal expert copy. Disablement and uninstall withdraw the entry while ordinary removal retains data and history. The latest explicit ordinary-expert or workbench selection owns subsequent turns. Use conversation-owned object bindings for business targets, independently of filesystem directories.
+
+Prepare a recognizable name, exact version and a brief description that says what the expert does, what it accepts and what it delivers. Use `dsh.actveroWorkbenchIcon` for the shared square package icon in the format and size defined under [Package format](#format). Write actionable instructions for business object reads, questions, writes and result checks, with only the Skills and MCP dependencies the work requires. After installation, summon it from My experts and check the card, picker, composer and a real business operation.
 
 Put raw resources in the source root's `assets/`. `pack` preserves that directory under the existing package size and path checks; raw files under `src/` are not copied automatically. The Host entry below assumes compilation to `lib/index.js`; the Client continues to register its business component under the same identity.
 
@@ -346,11 +347,12 @@ import manifest from '../package.json'
 import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx: Context): void {
+export async function apply(ctx: Context): Promise<void> {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
+  const expertEntry = await bundle.entry()
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
     id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
-    resourcesDirectory: resources, ai: true, activate: bundle.activate,
+    resourcesDirectory: resources, ai: true, expertEntry, activate: bundle.activate,
   }))
 }
 ```

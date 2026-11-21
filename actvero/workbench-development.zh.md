@@ -49,7 +49,7 @@ ACTVERO 桌面端加载工作台插件后，将 `develop-workbench` 和 `workben
 1. 打开「工作台 → 制作工作台 → 在 Harness 中创建」。客户端选择 `cordis` 开发预设并填入草稿，用户补充需求后发送；不会自动执行任务。
 2. Agent 用原生 `skill` 工具加载 `develop-workbench`，以返回的资源目录为基准读取 environment.json 和指南。若技能缺失，先检查工作台插件是否加载；若没有技能或文件工具，检查当前对话是否使用开发预设，不把提示词里写了技能名当作已加载。
 3. 确定业务目录。在安装版调用 `workbench_cli_info`，用返回的 executable、args 和 env 运行内置 CLI。源码开发环境可使用已绑定的编译套件。文件与 Shell 操作遵循原生权限。
-4. 生成 `.tgz` 后按「导入和验收」安装到指定 Profile。原生 `plugin_manager` 是否可用取决于当前 Profile 和预设；不可用时通过管理页导入。实际安装、重启要求、工作台加载与业务结果分别核对。
+4. 完成业务验证后，用内置 CLI 的 `update` 应用到目标 Profile，再打开工作台验证。需要交付安装包时按「导入和验收」操作。
 
 <a id="create"></a>
 
@@ -66,7 +66,6 @@ npm run doctor
 npm run typecheck
 npm run build
 npm run check
-npm run dev
 ```
 
 默认空白模板；需要参考清单时在 create 命令末尾加 `--template plain` 或 `--template ai`。源码方式对应入口仍是 `pnpm run actvero:workbench create`。
@@ -79,9 +78,9 @@ npm run dev
 
 命令使用 `.actvero/toolchain.json` 记录的本机套件或源码目录；此文件和生成的 tsconfig.json 不提交。目录移动后运行 `node scripts/workbench.mjs bind /绝对路径/工具链`，刷新编译配置、`.agents/skills/` 下的 Skill 和接口快照；业务代码、README.md、AGENTS.md、DESIGN.md 保留。AGENTS.md 要求 Agent 明确读取规范，不假设所有 Agent 产品会自动发现 Skill。
 
-`npm run dev` 监听项目变更，串行检查、构建和校验，开发包包含源码映射。未连接 Harness 时仅构建；已连接时自动发布临时开发覆盖，支持同版本连续更新，不修改正式安装版本。Agent 读取 `.actvero/diagnostics.json`，分别核对构建、Host 加载与 Client 发布，真实界面和业务仍需另行验证。失败不会把旧产物报告为新构建。Ctrl+C 停止监听并等待已经开始的构建结束；结束覆盖另用 detach。
+开发过程中可以用 `doctor`、`typecheck` 和 `pack` 在本地检查。完成一批改动后，在目标 Harness 的「制作工作台 → 交给其他 Agent」取得私有连接文件。首次交付运行 `actvero-workbench update /绝对路径/项目 --connection /绝对路径/connection.json --json`。已有安装时保持包名并先提高 `package.json.version`，再运行同一命令。
 
-在目标 Harness 的“制作工作台 → 交给其他 Agent”中复制开发资料，获得当前版本的 Skill 和私有开发连接文件。使用 `actvero-workbench attach /绝对路径/项目 --connection /绝对路径/connection.json` 连接一次，随后运行 dev；`actvero-workbench status /项目目录` 和 `logs /项目目录` 读取加载结果与近期诊断，`detach /项目目录` 撤销开发覆盖并恢复正式安装版本。开发连接仅在本机当前 Host 生命周期内有效，不提交到项目；CLI 不启动或重启 Harness。更新等待关联会话空闲，失败恢复上次可用实现；恢复失败时停止调试并检查日志，不声称已回退。数据迁移仍由作者负责，使用隔离开发 Profile 验证迁移。
+`update` 一次构建、校验、安装并即时应用。收到 `application: applied`、`runtime: loaded` 和 `client: published` 后，在原入口打开新版，验证主要业务操作。工作台忙时等任务结束再更新。失败或中断时先用 `actvero-workbench status <包名> --connection <连接文件> --json` 查询，确认已安装版本和前端发布状态。连接文件仅在签发它的本机 Harness 进程内有效。
 
 `check` 复用客户端导入预检，并检查格式版本、版本声明、非空入口文件以及重复、越界和链接路径。它不执行工作台代码，不能证明业务功能正常。客户端还会在安装时执行当前运行版本的兼容性检查；开发命令不会跳过这一步。
 
@@ -333,7 +332,9 @@ Host 为每个工作台保留一个稳定的默认运行实例。JSON 适配器�
 
 本节面向需要为工作台配置 AI 行为的作者。宿主提供原生对话、模型选择、日志和会话作用域；作者决定业务工具、文件格式与操作方式。工作台可只设置 `ai: true` 使用普通 AI，也可设置 `expert` 提供简单指令。需要完整依赖时使用 `@actvero/dsh-experts/workbench` 导出的 `WorkbenchExpertBundle`，无需创建或召唤普通专家记录。
 
-API 1.9 将每个已加载且启用 AI 的提供者作为只读随包专家显示在“我的专家”和原生专家选择器中。`expertEntry` 提供名称、版本、简介和头像，设为 false 隐藏入口。召唤后直接在目标对话启用工作台能力，不要求另选文件工作区，也不复制个人专家记录。停用和卸载撤下入口，普通卸载保留数据与历史。后续回合使用最近明确选择的普通专家或工作台专家。业务对象按会话绑定，与文件目录独立。
+API 1.9 将每个已加载且启用 AI 的提供者作为只读随包专家显示在“我的专家”和原生专家选择器中。`expertEntry` 可提供名称、版本和专门的专家简介，设为 false 隐藏入口。专家简介为空时沿用工作台简介。工作台包图标同时用作专家头像，已有的 `expertEntry.avatar` 可为缺少工作台图标的包提供头像。召唤后直接在目标对话启用工作台能力，不要求另选文件工作区，也不复制个人专家记录。停用和卸载撤下入口，普通卸载保留数据与历史。后续回合使用最近明确选择的普通专家或工作台专家。业务对象按会话绑定，与文件目录独立。
+
+为随包专家准备用户可识别的名称、准确版本和一两句简介，说明它能完成什么操作、处理哪些输入、交付什么。用 `dsh.actveroWorkbenchIcon` 指向与工作台统一的方形包图标，格式和尺寸见[包格式](#format)。把指令写成可执行的业务步骤，明确何时读取业务对象、何时提问或写入、怎样验收结果，并只声明真实需要的 Skill 和 MCP。安装后从「我的专家」召唤，检查列表、选择器、输入框及真实业务操作。
 
 将原始资源放在源码根目录的 `assets/`。`pack` 保留该目录并沿用安装包大小与路径校验；`src/` 中的原始文件不会自动复制。下面的 Host 入口适用于编译输出位于 `lib/index.js` 的包，客户端继续按相同标识注册业务组件。
 
@@ -346,11 +347,12 @@ import manifest from '../package.json'
 import metadata from '../workbench.json'
 const resources = fileURLToPath(new URL('../assets/', import.meta.url))
 export const inject = ['actveroWorkbenchRuntime']
-export function apply(ctx: Context): void {
+export async function apply(ctx: Context): Promise<void> {
   const bundle = new WorkbenchExpertBundle({ directory: resources })
+  const expertEntry = await bundle.entry()
   ctx.effect(() => ctx.actveroWorkbenchRuntime.register({
     id: manifest.name as WorkbenchId, name: metadata.name, version: manifest.version, protocol: metadata.protocol,
-    resourcesDirectory: resources, ai: true, activate: bundle.activate,
+    resourcesDirectory: resources, ai: true, expertEntry, activate: bundle.activate,
   }))
 }
 ```

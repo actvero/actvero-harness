@@ -540,6 +540,26 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult> {
+    return this.install(spec, options)
+  }
+
+  /** Install a verified local package and require live activation, restoring the previous installation on failure.
+   * @param spec Immutable local archive supplied by the trusted owner of this operation.
+   * @param options Exact install or replacement expectation for the target package.
+   * @param verify Check the active contributions after the profile is reconciled, including after rollback.
+   * @returns The installation outcome and whether recovery could not be confirmed.
+   */
+  async installLiveBundle(spec: string, options: InstallBundleOptions, verify: (phase: 'apply' | 'restore') => Promise<void>):
+  Promise<ChangeResult & { recoveryFailed: boolean }> {
+    const live = { verify, recoveryFailed: false }
+    const result = await this.install(spec, options, live)
+    return { ...result, recoveryFailed: live.recoveryFailed }
+  }
+
+  private install(spec: string, options?: InstallBundleOptions, live?: {
+    verify: (phase: 'apply' | 'restore') => Promise<void>
+    recoveryFailed: boolean
+  }): Promise<ChangeResult> {
     const requestId = options?.requestId
     const control: InstallControl = { abort: new AbortController(), phase: 'installing', result: Promise.resolve(null) }
     const stopped = (): boolean => control.abort.signal.aborted || this.abort.signal.aborted
@@ -547,8 +567,9 @@ export class PluginManager extends TypertRemoteService {
     const announce = (phase: PluginInstallProgress['phase'], attempt?: PluginInstallProgress['attempt']): void => {
       if (requestId !== undefined) this.ownerContext.emit('plugin-manager/install-state', { requestId, phase, ...attempt === undefined ? {} : { attempt } })
     }
-    const result = this.change(async (result) => {
+    const operation = async (result: ChangeResult) => {
       if (spec.trim() === '' || spec.startsWith('-')) throw new ManagementFailure('invalid-spec')
+      if (live && this.ownerContext.get('hmr') === undefined) throw new ManagementFailure('stop-profile')
       if (stopped()) throw new InstallCancelledError()
       const before = readProfileManifest('dsh', this.profile.dir).dependencies ?? {}
       const known = specPackageName(spec, before, this.profile.dir)
@@ -664,9 +685,15 @@ export class PluginManager extends TypertRemoteService {
         this.installedFrom.set(name, used)
       } catch (error) {
         // pnpm has exited by now, so the files it rewrote go back as they were.
-        await this.restoreFiles(files)
-        await replacement?.restore()
-        await replacement?.dispose()
+        try {
+          await this.restoreFiles(files)
+          await replacement?.restore()
+        } catch (recovery) {
+          if (live) live.recoveryFailed = true
+          throw new AggregateError([error, recovery], 'Package installation failed and recovery could not be confirmed')
+        } finally {
+          await replacement?.dispose()
+        }
         throw error
       }
       control.phase = 'applying'
@@ -675,6 +702,30 @@ export class PluginManager extends TypertRemoteService {
       if (version !== undefined) result.version = version
       result.target = name
       result.stage = 'enable'
+      if (live) {
+        try {
+          await this.selectBundle(name, true)
+          const reload = await this.publishAndReload(this.bundleRows(name).map(row => row.id))
+          if (reload.restartReason !== undefined) throw new Error(`Immediate activation is unavailable: ${reload.restartReason}`)
+          await live.verify('apply')
+          Object.assign(result, reload)
+        } catch (error) {
+          try {
+            await this.restoreFiles(files)
+            await replacement?.restore()
+            const reload = await this.publishAndReload()
+            if (reload.restartReason !== undefined) throw new Error(`Previous loaded configuration could not be restored: ${reload.restartReason}`)
+            await live.verify('restore')
+          } catch (recovery) {
+            live.recoveryFailed = true
+            throw new AggregateError([error, recovery], 'Immediate activation failed and recovery could not be confirmed')
+          }
+          throw error
+        } finally {
+          await replacement?.dispose()
+        }
+        return
+      }
       if (replacement !== undefined) this.replacements.add(name)
       try { return await this.configure(async () => {
         if (options?.enabled !== false) await this.selectBundle(name, true)
@@ -688,7 +739,11 @@ export class PluginManager extends TypertRemoteService {
         const selected = bundleSelection(readProfileManifest('dsh', this.profile.dir)).includes(name)
         Object.assign(result, await this.publishAndReload(selected ? this.bundleRows(name).map(row => row.id) : []))
       }) } finally { await replacement?.dispose() }
-    }, { stage: 'install', target: spec, enabled: options?.enabled !== false }, 'install')
+    }
+    const result = this.change(
+      result => live ? this.configure(() => operation(result)) : operation(result),
+      { stage: 'install', target: spec, enabled: options?.enabled !== false }, 'install',
+    )
     control.result = result
     return result.finally(() => { if (requestId !== undefined) this.installs.delete(requestId) })
   }

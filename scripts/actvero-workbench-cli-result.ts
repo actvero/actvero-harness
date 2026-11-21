@@ -24,10 +24,10 @@ export class WorkbenchCliError extends Error {
 
 /** Read a JSON document with separate file and syntax diagnostics.
  * @param path Local path supplied to the command.
- * @param kind Whether the file contains a request, connection or project attachment.
+ * @param kind Whether the file contains a request or a connection.
  * @returns The decoded value, before command-specific validation.
  */
-export async function readCliJson(path: string, kind: 'request' | 'connection' | 'attachment'): Promise<unknown> {
+export async function readCliJson(path: string, kind: 'request' | 'connection'): Promise<unknown> {
   let raw: string
   try { raw = await readFile(path, 'utf8') }
   catch (error) {

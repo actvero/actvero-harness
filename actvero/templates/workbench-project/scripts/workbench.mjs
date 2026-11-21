@@ -9,8 +9,8 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 async function main() {
   const [command, argument, ...extra] = process.argv.slice(2)
-  if (!['doctor', 'typecheck', 'pack', 'check', 'bind', 'dev'].includes(command) || extra.length || (argument && !['check', 'bind'].includes(command))) {
-    throw new Error('用法：node scripts/workbench.mjs doctor|typecheck|pack|check|dev [包路径]，或 bind <ACTVERO 开发套件或源码目录>。')
+  if (!['doctor', 'typecheck', 'pack', 'check', 'bind'].includes(command) || extra.length || (argument && !['check', 'bind'].includes(command))) {
+    throw new Error('用法：node scripts/workbench.mjs doctor|typecheck|pack|check [包路径]，或 bind <ACTVERO 开发套件或源码目录>。')
   }
   let repository
   if (command === 'bind') {

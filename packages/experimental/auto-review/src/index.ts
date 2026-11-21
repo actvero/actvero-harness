@@ -14,6 +14,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-instructions'
 import {
   BlockAssembler,
+  LlmError,
   type ContentBlock,
   type GenerateOptions,
   type MessageSource,
@@ -100,6 +101,7 @@ interface PendingAction {
 }
 
 interface ReviewSnapshot {
+  readonly turn: number
   readonly provider: string
   readonly model: string
   readonly cwd: string
@@ -510,6 +512,7 @@ function snapshotAutoReview(agent: Agent, exec: ToolExecution, cwd: string): Rev
     // oxlint-disable-next-line typescript/no-non-null-assertion
     : ptcAction(exec, currentPtcStart!, visibleParentKeys)
   return deepFreeze({
+    turn: currentStep.turn,
     provider: header.config.provider,
     model: header.config.model,
     cwd,
@@ -584,6 +587,13 @@ function parseDecision(text: string): AutoReviewDecision {
   throw new Error('auto-review: reviewer output does not match the risk/decision protocol')
 }
 
+const unavailableCodes = new Set(['PROVIDER_ERROR', 'AUTH', 'RATE_LIMIT', 'TIMEOUT', 'NO_ADAPTER', 'NETWORK'])
+
+interface ReviewOutage {
+  turn: number
+  error: LlmError
+}
+
 /** Consume zero or more reasoning blocks, one JSON text block, and one terminal stop. */
 async function readDecision(stream: AsyncIterable<StreamChunk>): Promise<AutoReviewDecision> {
   const assembler = new BlockAssembler()
@@ -595,6 +605,9 @@ async function readDecision(stream: AsyncIterable<StreamChunk>): Promise<AutoRev
       finished = true
       if (chunk.reason.kind === 'error' || chunk.reason.kind === 'aborted') {
         const { code, message } = chunk.reason.failure
+        if (chunk.reason.kind === 'error' && unavailableCodes.has(code)) {
+          throw new LlmError('Review service unavailable', code)
+        }
         throw new Error(`auto-review: reviewer ended with ${chunk.reason.kind} ${code}: ${message}`)
       }
       if (chunk.reason.kind !== 'stop') {
@@ -617,9 +630,12 @@ async function classifyRisk(
   agent: Agent,
   exec: ToolExecution,
   signal: AbortSignal,
+  outages: WeakMap<Agent, ReviewOutage>,
 ): Promise<AutoReviewDecision> {
   const cwd = await ctx.workingDirectory.ensure(agent, signal)
   const snapshot = snapshotAutoReview(agent, exec, cwd)
+  const outage = outages.get(agent)
+  if (outage?.turn === snapshot.turn) throw outage.error
   // This review prompt is sent only through ctx.llm.stream and never enters a Session log.
   const options: GenerateOptions = deepFreeze({
     provider: snapshot.provider,
@@ -632,7 +648,14 @@ async function classifyRisk(
     temperature: 0,
     signal,
   })
-  return readDecision(ctx.llm.stream(options))
+  try {
+    return await readDecision(ctx.llm.stream(options))
+  } catch (error) {
+    if (!signal.aborted && error instanceof LlmError && unavailableCodes.has(error.code)) {
+      outages.set(agent, { turn: snapshot.turn, error })
+    }
+    throw error
+  }
 }
 
 /** Materialize the fixed model-facing final Auto denial plus optional UI detail. */
@@ -665,6 +688,13 @@ function askUser(exec: ToolExecution, reason?: string): PreToolDecision {
 
 /** Materialize a reviewer failure as its own error rather than a denial. */
 function failed(exec: ToolExecution, error: unknown): PreToolDecision {
+  if (error instanceof LlmError && unavailableCodes.has(error.code)) {
+    return {
+      kind: 'deny',
+      reason: `Auto review unavailable (${error.code}). Tool "${exec.name}" was not executed. Stop tool calls for this turn. Tell the user they can send a new message to retry, or select workspace-write in the permission menu before continuing.`,
+      info: { name: 'AutoReviewUnavailableError', code: 'AUTO_REVIEW_UNAVAILABLE' },
+    }
+  }
   const message = error instanceof Error ? error.message : String(error)
   return {
     kind: 'deny',
@@ -679,6 +709,7 @@ export function apply(ctx: Context): void {
   let accepting = true
   const active = new Set<Promise<void>>()
   const lifecycle = new AbortController()
+  const outages = new WeakMap<Agent, ReviewOutage>()
 
   ctx.effect(function* () {
     const stopListener = ctx.on('tools/pre-execute', async (exec, next): Promise<PreToolDecision> => {
@@ -697,7 +728,7 @@ export function apply(ctx: Context): void {
       active.add(completed.promise)
       try {
         const signal = AbortSignal.any([exec.signal, lifecycle.signal])
-        const review = await classifyRisk(ctx, agent, exec, signal).then(
+        const review = await classifyRisk(ctx, agent, exec, signal, outages).then(
           decision => ({ ok: true as const, decision }),
           (error: unknown) => ({ ok: false as const, error }),
         )

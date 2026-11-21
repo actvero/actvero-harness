@@ -19,10 +19,10 @@ export type ToolRowVariant = 'search' | 'read' | 'bash' | 'write' | 'edit' | 'co
 export type ToolRowState = 'preparing' | 'running' | 'ok' | 'error' | 'stopped'
 
 /** Locale-neutral structured fact consumed only by the user-facing Tool row. */
-export interface AutoReviewDenial {
+export type AutoReviewDenial = {
   /** Raw persisted reviewer reason; display normalization happens at render time. */
   reason: string | null
-}
+} | { unavailable: true }
 
 type ToolTitleKey = Extract<LocaleKeysOf<'conversation'>, `tool.title.${string}` | 'ask.rowTitle' | 'todo.rowTitle'>
 
@@ -165,6 +165,7 @@ export interface ToolRowModel {
 function deriveAutoReviewDenial(block: ToolCallBlock): AutoReviewDenial | null {
   if (!('kind' in block) || !block.isError) return null
   const error = block.error
+  if (error?.name === 'AutoReviewUnavailableError' && error.code === 'AUTO_REVIEW_UNAVAILABLE') return { unavailable: true }
   if (error?.name !== 'AutoReviewDeniedError' || error.code !== 'AUTO_REVIEW_DENIED') return null
   // A durable record reaches this renderer without a type check on `reason`, so
   // a non-string value degrades to the no-reason copy exactly as a missing one.

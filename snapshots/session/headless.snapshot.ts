@@ -496,6 +496,9 @@ const WORKTREE_CHECKOUT_FILTER = "printf 'FILTERED CHECKOUT CONTENT\\n'"
 const WORKTREE_CHECKOUT_ATTRIBUTES = 'tracked.txt filter=dsh-snapshot-checkout\n'
 
 const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
+  async 'expert-creator'(cwd) {
+    await cp(join(repoRoot, 'packages/actvero/experts/assets/expert-creator'), join(cwd, 'expert-creator'), { recursive: true })
+  },
   async 'windows-acl-skill'(cwd) {
     const target = join(cwd, '.dsh', 'skills', 'diagnose-windows-sandbox-acl', 'SKILL.md')
     await mkdir(dirname(target), { recursive: true })

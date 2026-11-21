@@ -3,6 +3,10 @@ scenario: expert-creator-load
 profile: headless
 composition: default
 recording: authored
+environment:
+  ACTVERO_EXPERT_CREATOR_DIR: expert-creator
+workspace:
+  setup: expert-creator
 header:
   class: expert-creator
   pin: true

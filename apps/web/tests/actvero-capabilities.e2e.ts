@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
-import { chromium } from 'playwright'
+import { chromium, type Locator } from 'playwright'
 import { DesktopHostProcess } from '../../desktop/src/host-process.ts'
 import { DesktopProjectManager } from '../../desktop/src/project-manager.ts'
 import { resolveDesktopPaths } from '../../desktop/src/paths.ts'
@@ -330,6 +330,8 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
       }
       vi.stubEnv('DSH_HOME', home)
       vi.stubEnv('DSH_TELEMETRY_MODE', 'DISABLED')
+      const clientVersion = version(join(repository, 'apps/desktop/package.json'))
+      vi.stubEnv('DSH_CLIENT_VERSION', clientVersion)
       const project = prepareDevelopmentProject({
         projectDir: join(root, 'project'),
         cliDir: join(repository, 'apps/cli'),
@@ -337,7 +339,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
         dependencyDir: join(repository, 'node_modules/.pnpm/node_modules'),
         release: {
           schemaVersion: 1,
-          version: version(join(repository, 'apps/desktop/package.json')),
+          version: clientVersion,
           pnpmVersion: version(join(repository, 'apps/desktop/node_modules/pnpm/package.json')),
           nodeVersion: process.versions.node,
           hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
@@ -430,13 +432,31 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await connectFreshWorkspaceZh(page, root)
             const input = page.locator('[data-composer-input]')
             const prompt = '帮我创建一个【专家类型】专家，负责【主要工作】，输出【期望的结果】。'
+            const checkToolbarAction = async (button: Locator, border: 'none' | 'solid') => {
+              await button.waitFor()
+              expect(await button.locator('svg').count()).toBe(0)
+              expect(await button.evaluate((el) => {
+                const style = getComputedStyle(el)
+                return {
+                  border: style.borderTopStyle,
+                  filled: style.backgroundColor !== 'rgba(0, 0, 0, 0)',
+                  height: el.getBoundingClientRect().height,
+                }
+              })).toEqual({ border, filled: border === 'none', height: 32 })
+            }
             for (const theme of ['light', 'dark'] as const) {
               await page.emulateMedia({ colorScheme: theme })
               const prefix = theme === 'dark' ? 'Keep this draft' : ''
               await writeComposerDraft(page, input, prefix)
               await capabilityCenter.click()
+              await page.getByRole('tab', { name: '技能', exact: true }).click()
+              await checkToolbarAction(page.getByRole('button', { name: '添加技能', exact: true }), 'none')
+              await page.getByRole('tab', { name: '连接器', exact: true }).click()
+              await checkToolbarAction(page.getByRole('button', { name: '自定义 MCP', exact: true }), 'none')
               await page.getByRole('tab', { name: '专家', exact: true }).click()
               const createExpert = page.getByRole('button', { name: '创建专家', exact: true })
+              await checkToolbarAction(page.getByRole('button', { name: '导入专家', exact: true }), 'solid')
+              await checkToolbarAction(createExpert, 'none')
               if (theme === 'light') await createExpert.click()
               else await createExpert.press('Enter')
               const creator = page.getByRole('dialog', { name: '创建专家', exact: true })
@@ -605,7 +625,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
               'Fixture expert',
               'button',
               'Summon expert Fixture expert',
-              ['View', 'Export', 'Delete'],
+              ['Details', 'Export', 'Delete'],
               `actvero-expert-menu-${theme}`,
             )
             await checkRemoval('Fixture expert','Delete','expertRemovals',`actvero-expert-confirmation-${theme}`)

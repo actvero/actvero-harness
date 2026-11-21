@@ -34,6 +34,7 @@ export function createActveroElectronBuilderConfig(product, directory, env = pro
       '**/node_modules/@deepseek-ai/libreoffice-kit/**/*',
       `**/node_modules/@deepseek-ai/libreoffice-kit-${platform}-${arch}/**/*`],
     extraResources: [{ from: paths.runtime, to: 'runtime' }, { from: join(directory, 'icon.png'), to: 'icon.png' },
+      { from: join(appRoot, '../../packages/actvero/experts/assets/expert-creator'), to: 'actvero-skills/expert-creator' },
       ...(compiler ? [{ from: compiler, to: 'actvero-workbench' }] : []),
       ...(platform === 'win32' ? [{ from: join(directory, 'tray.ico'), to: 'tray.ico' }] : [])],
     beforePack: async context => {

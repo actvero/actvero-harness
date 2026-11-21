@@ -22,7 +22,7 @@ actvero-workbench example show mcp.create > ./request.json
 actvero-workbench mcp create --connection ./connection.json --file ./request.json --json
 ```
 
-Add `--json` to an execution command for a single JSON result line on stdout. Success has `ok=true` and returns data in `result`. Failures exit with code 1 and return `error.code`, `error.message`, and `error.outcome`, with `recovery` and field-level `issues` where applicable. When `outcome=unknown`, read back the current state before retrying. Help and schema commands print their reference directly. The `dev` command streams build status as JSON lines.
+Add `--json` to an execution command for a single JSON result line on stdout. Success has `ok=true` and returns data in `result`. Failures exit with code 1 and return `error.code`, `error.message`, and `error.outcome`, with `recovery` and field-level `issues` where applicable. When `outcome=unknown`, read back the current state before retrying. Help and schema commands print their reference directly.
 
 `skill install` writes into the target Harness Skill library. `skills install` copies the kit's four bundled Skills into an Agent Skill directory. The running target Harness owns the private connection file. Export a new file after it restarts.
 
@@ -59,7 +59,7 @@ An example MCP create request is `{"config":{"name":"Document service","transpor
 
 After upgrading Harness, run `actvero-workbench bind /absolute/path/project` for existing projects to refresh toolchain binding, Skills and type configuration while retaining business source and DESIGN.md. Do not copy old cache paths to another machine; install a compatible kit there and bind again.
 
-`npm run dev` builds automatically. Attach once with `actvero-workbench attach /project --connection /connection.json` to load development overlays in that Harness. Without an attachment it only builds. `status`, `logs` and `detach` inspect or release the overlay. See the [development guide](workbench-development.md#create) for build, loading and business verification.
+`actvero-workbench update <project> --connection <connection-file> --json` builds, validates and installs one version. For an installed workbench, keep its package name and increase its version. Success means the new version loaded and its Client bundle was published. To check the result, run `actvero-workbench status <package-name> --connection <connection-file> --json`. A successfully applied version opens without a desktop import or restart. Use `pack` and `check` for standalone archives. See the [development guide](workbench-development.md#create) for business verification.
 
 Uninstalling Harness preserves projects, copied Skills and caches; retain caches still bound by projects. Use info to locate a cache, rebind projects to the new kit, then remove unused old directories. This kit does not automatically upload, publish or call paid models.
 

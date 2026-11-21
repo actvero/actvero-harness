@@ -28,6 +28,9 @@ export function localizeAutoReviewDenial(
   denial: AutoReviewDenial,
   t: TranslateNS<'conversation'>,
 ): AutoReviewDenialPresentation {
+  if ('unavailable' in denial) {
+    return { summary: t('tool.autoReviewUnavailable'), output: t('tool.autoReviewRecovery') }
+  }
   const reason = normalizeAutoReviewReason(denial.reason) ?? t('tool.autoReviewReasonFallback')
   return {
     summary: t('tool.autoReviewRejected'),

@@ -13,6 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@actvero/dsh-capability-ui/client/contracts'
+import type { WorkbenchExpertEntry } from '@actvero/dsh-capability-ui/types'
 import type { PopupSelectSpec } from '@deepseek-ai/dsh-client-ui-commands/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -23,7 +24,6 @@ import {
   Modal,
   ActionMenu as CardMenu,
   ConfirmDialog,
-  IconPlusOutlineMedium,
   IconCloseOutlineMedium,
   IconSearchOutlineMedium,
   IconAgentPresetOutlineMedium,
@@ -32,7 +32,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { expertCategories } from '../categories.ts'
-import { creatorSkillName } from '../creator.ts'
+import { creatorSkillName } from '../creator-name.ts'
 import type { RemotePlan } from '../remote-contract.ts'
 import type { ExpertPackagePreview } from '../expert-package.ts'
 import { parseManifest } from '../schema.ts'
@@ -101,10 +101,11 @@ const errorText = (e: unknown, t: T) => {
 }
 
 function Avatar({ expert }: { expert: Pick<ExpertManifest, 'avatar' | 'name'> }) {
+  const [failed, setFailed] = useState<string>()
   return (
     <span className={styles.avatar}>
-      {expert.avatar ? (
-        <img src={expert.avatar} alt="" />
+      {expert.avatar && expert.avatar !== failed ? (
+        <img src={expert.avatar} alt="" onError={() => { setFailed(expert.avatar) }} />
       ) : (
         <span>{expert.name.slice(0, 1) || <IconAgentPresetOutlineMedium size={22} />}</span>
       )}
@@ -715,8 +716,7 @@ function Panel({ t, useExpert, createWithAI, loadLocalExperts, ctxResources, wat
         >
           {t('import')}
         </Button>
-        <Button variant="outline" disabled={busy} onClick={create}>
-          <IconPlusOutlineMedium />
+        <Button variant="primary" disabled={busy} onClick={create}>
           {t('create')}
         </Button>
       </header>
@@ -791,7 +791,7 @@ function Panel({ t, useExpert, createWithAI, loadLocalExperts, ctxResources, wat
                 <div className={styles.cardActions}>
                   <CardMenu
                     className={styles.more}
-                    label={`${t('view')} ${expert.manifest.name}`}
+                    label={`${t('expertOptions')} · ${expert.manifest.name}`}
                     disabled={busy}
                     items={expertMenu(expert)}
                     onSelect={(id) =>{  selectExpertMenu(expert, id) }}
@@ -817,8 +817,7 @@ function Panel({ t, useExpert, createWithAI, loadLocalExperts, ctxResources, wat
             {!items.length && !q && source === 'local' && (
               <>
                 <p>{t('emptyHelp')}</p>
-                <Button variant="outline" disabled={busy} onClick={create}>
-                  <IconPlusOutlineMedium />
+                <Button variant="primary" disabled={busy} onClick={create}>
                   {t('create')}
                 </Button>
               </>
@@ -1069,6 +1068,12 @@ export function apply(ctx: Context) {
     contributionListeners.add(listener)
     return () => { contributionListeners.delete(listener) }
   }
+  const contributedChanged = () => {
+    for (const listener of contributionListeners) listener()
+    publish()
+  }
+  ctx.effect(() => ctx.actveroWorkbenches.subscribeCatalog(contributedChanged))
+  let contributedCatalog: readonly WorkbenchExpertEntry[] = []
   ctx.effect(() => {
     const abort = new AbortController()
     const watching = (async () => {
@@ -1077,8 +1082,8 @@ export function apply(ctx: Context) {
         const next = JSON.stringify(catalog)
         if (next === previous) continue
         previous = next
-        for (const listener of contributionListeners) listener()
-        publish()
+        contributedCatalog = catalog
+        contributedChanged()
       }
     })().catch((error: unknown) => {
       if (!abort.signal.aborted) ctx.logger.warn('Workbench expert catalog is unavailable: %s', error)
@@ -1088,12 +1093,15 @@ export function apply(ctx: Context) {
   const loadContributed = async (): Promise<Expert[]> => {
     const result = await ctx.remote.actveroWorkbench.experts()
     if (!result.ok) { ctx.logger.warn('Workbench expert catalog query failed: %s', result.error); throw result.error }
-    return result.value.map(entry => ({
-      manifest: { schemaVersion: 1, id: 'workbench:' + entry.id, name: entry.name, version: entry.version,
-        description: entry.description, avatar: entry.avatar, category: 'general', tags: [], instructions: '',
-        conversationStarters: [], skills: [], connectors: [] },
-      bindings: { skills: {}, connectors: {} }, revision: 0, workbench: { id: entry.id, name: entry.workbenchName },
-    }))
+    return result.value.map((entry) => {
+      const identity = ctx.actveroWorkbenches.catalogIdentity(entry.id)
+      return {
+        manifest: { schemaVersion: 1, id: 'workbench:' + entry.id, name: entry.name, version: entry.version,
+          description: entry.description.trim() || identity.description, avatar: identity.iconUrl || entry.avatar,
+          category: 'general', tags: [], instructions: '', conversationStarters: [], skills: [], connectors: [] },
+        bindings: { skills: {}, connectors: {} }, revision: 0, workbench: { id: entry.id, name: entry.workbenchName },
+      }
+    })
   }
   const catalogExperts = async (action: 'list' | 'recent'): Promise<Expert[]> => {
     const [ordinary, contributed] = await Promise.allSettled([req<Expert[]>(action), loadContributed()])
@@ -1104,8 +1112,13 @@ export function apply(ctx: Context) {
   }
   const currentSelection = async (sessionId: string): Promise<ExpertSelection | null> => {
     const binding = sessions.list.getSnapshot().byId[sessionId as SessionId]?.projectionValues?.actveroWorkbench
-    if (binding) return { snapshotId: binding.instanceId, id: 'workbench:' + binding.id,
-      name: binding.expert?.name ?? binding.name, version: binding.expert?.version ?? binding.version, avatar: '' }
+    if (binding) {
+      const identity = ctx.actveroWorkbenches.catalogIdentity(binding.id)
+      const avatar = identity.iconUrl || contributedCatalog.find(entry => entry.id === binding.id)?.avatar || ''
+      return { snapshotId: binding.instanceId, id: 'workbench:' + binding.id,
+        name: binding.expert?.name ?? binding.name, version: binding.expert?.version ?? binding.version,
+        avatar: normalizeExpertSelectionAvatar(avatar) }
+    }
     return window.actveroExperts ? req<ExpertSelection | null>('selection', { sessionId }) : null
   }
   ctx.slots.inject('actvero.capability.content', () =>
@@ -1200,7 +1213,7 @@ export function apply(ctx: Context) {
               .then(async (value) => {
                 if (!live) return
                 choice = value
-                if (value && !value.avatar) {
+                if (value && !value.avatar && !value.id.startsWith('workbench:')) {
                   try {
                     const expert = await req<Expert>('get', { id: value.id })
                     if (!live) return

@@ -1,4 +1,4 @@
-import { CapabilityIdentity, SourceTabs } from '@actvero/dsh-capability-ui/client/sources'
+import { CapabilityIdentity, SourceTabs, catalogStyles } from '@actvero/dsh-capability-ui/client/sources'
 import type { CustomView } from '../local-config.ts'
 import { zh, en } from './locales.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -258,31 +258,27 @@ function Panel({
   return (
     <section className={styles.page}>
       {customOpen && <CustomMcp t={t} initialItem={customItem} startInForm onClose={() =>{  setCustomOpen(false) }} />}
-      <header className={styles.header}>
-        <div className={styles.searchTools}>
-          <Input
-            className={styles.search}
-            icon={<IconSearchOutlineMedium />}
-            aria-label={t('search')}
-            placeholder={t('search')}
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value)
-              setPage(1)
-            }}
-          />
-          <Button
-            className={styles.customButton}
-            variant="outline"
-            onClick={() => {
-              setCustomItem(undefined)
-              setCustomOpen(true)
-            }}
-          >
-            <IconPlusOutlineMedium />
-            {t('customMcp')}
-          </Button>
-        </div>
+      <header className={`${catalogStyles.toolbar} ${styles.header}`}>
+        <Input
+          className={`${catalogStyles.search} ${styles.search}`}
+          icon={<IconSearchOutlineMedium />}
+          aria-label={t('search')}
+          placeholder={t('search')}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setPage(1)
+          }}
+        />
+        <Button
+          variant="primary"
+          onClick={() => {
+            setCustomItem(undefined)
+            setCustomOpen(true)
+          }}
+        >
+          {t('customMcp')}
+        </Button>
       </header>
       <div className={styles.content}>
         <SourceTabs
@@ -455,13 +451,12 @@ function Panel({
             <IconLinkOutlineMedium size={32} />
             <h2>{t(q ? 'noResults' : 'cmEmpty')}</h2>
             {!q && (
-              <Button
+              <Button variant="primary"
                 onClick={() => {
                   setCustomItem(undefined)
                   setCustomOpen(true)
                 }}
               >
-                <IconPlusOutlineMedium />
                 {t('cmAdd')}
               </Button>
             )}

@@ -1,10 +1,10 @@
 /** The npm command reference supplies executable requests and stable failure handling. */
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, vi } from 'vitest'
 import { parseWorkbenchInvocation, workbenchCommands, workbenchGuide } from './actvero-workbench-command-guide.ts'
-import { developmentApplier, developmentRequest } from './actvero-workbench-connection.ts'
+import { developmentRequest } from './actvero-workbench-connection.ts'
 
 it('validates every documented command example with the actual parser', () => {
   for (const [name, entry] of Object.entries(workbenchCommands)) {
@@ -25,24 +25,12 @@ it('validates every documented command example with the actual parser', () => {
   expect(() => parseWorkbenchInvocation(['doctor', '.', '--file', 'request.json'])).toThrow('Unknown option')
 })
 
-it('sends only the digest and archive path from a completed build to the strict development endpoint', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'actvero-cli-build-request-'))
-  try {
-    const connection = join(root, 'connection.json')
-    const id = '8597702e-5112-4b34-a289-6e48fa8b4cf0'
-    await writeFile(connection, JSON.stringify({ schemaVersion: 1, url: 'http://127.0.0.1:1/', token: 'a'.repeat(64) }), { mode: 0o600 })
-    await mkdir(join(root, '.actvero'))
-    await writeFile(join(root, '.actvero/development.json'), JSON.stringify({ connection, id }), { mode: 0o600 })
-    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true, value: { application: 'busy' } }))
-    vi.stubGlobal('fetch', request)
-    const artifact = { path: join(root, 'artifact.tgz'), sha256: 'a'.repeat(64), name: '@local/workbench', bytes: 2 }
-    const apply = await developmentApplier(root)
-    expect(await apply?.(artifact, new AbortController().signal)).toEqual({ application: 'busy' })
-    const requestBody = request.mock.calls[0]?.[1]?.body
-    expect(typeof requestBody === 'string' && JSON.parse(requestBody)).toEqual({ action: 'apply', id, path: artifact.path, sha256: artifact.sha256 })
-  } finally {
-    vi.unstubAllGlobals()
-    await rm(root, { recursive: true, force: true })
+it('offers one-shot update and version readback through the connection', () => {
+  expect(parseWorkbenchInvocation(['update', './workbench', '--connection', 'connection.json']).name).toBe('update')
+  expect(parseWorkbenchInvocation(['status', '@local/workbench', '--connection', 'connection.json']).name).toBe('status')
+  expect(() => parseWorkbenchInvocation(['update', './workbench'])).toThrow('参数')
+  for (const obsolete of ['attach', 'dev', 'logs', 'detach']) {
+    expect(() => parseWorkbenchInvocation([obsolete, './workbench'])).toThrow()
   }
 })
 
@@ -66,6 +54,7 @@ it('distinguishes rejected requests from writes that lost their confirmation', a
       .mockRejectedValueOnce(new TypeError('fetch failed'))
       .mockResolvedValueOnce(new Response(undefined, { status: 403 }))
       .mockResolvedValueOnce(Response.json({ ok: true }))
+      .mockResolvedValueOnce(Response.json({ ok: false, code: 'update_failed', diagnostic: 'Previous version restored', outcome: 'not_applied' }, { status: 400 }))
     vi.stubGlobal('fetch', request)
     await expect(developmentRequest(connection, command, undefined, options))
       .rejects.toMatchObject({ code: 'local_changes', outcome: 'not_applied', recovery: options.recovery })
@@ -75,7 +64,9 @@ it('distinguishes rejected requests from writes that lost their confirmation', a
       .rejects.toMatchObject({ code: 'connection_denied', outcome: 'not_applied' })
     await expect(developmentRequest(connection, command, undefined, options))
       .rejects.toMatchObject({ code: 'invalid_response', outcome: 'unknown' })
-    expect(request).toHaveBeenCalledTimes(4)
+    await expect(developmentRequest(connection, { action: 'workbench-update' }, undefined, options))
+      .rejects.toMatchObject({ code: 'update_failed', message: 'Previous version restored', outcome: 'not_applied' })
+    expect(request).toHaveBeenCalledTimes(5)
   } finally {
     vi.unstubAllGlobals()
     await rm(root, { recursive: true, force: true })

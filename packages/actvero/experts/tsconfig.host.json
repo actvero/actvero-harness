@@ -59,6 +59,12 @@
     },
     {
       "path": "../capability-ui/tsconfig.host.json"
+    },
+    {
+      "path": "../../fs/fs/tsconfig.json"
+    },
+    {
+      "path": "../../session/working-directory/tsconfig.json"
     }
   ],
   "exclude": [

@@ -133,6 +133,16 @@ export interface ActveroWorkbench {
 
 /** Client registry of installed workbenches with a ready business view. */
 export interface ActveroWorkbenchRegistry {
+  /** Read the public icon and description shown on a workbench's card.
+   * @param id Installed workbench identifier.
+   * @returns Available presentation metadata, including retained Client registration and package metadata.
+   */
+  catalogIdentity(id: string): Pick<ActveroWorkbench, 'description' | 'iconUrl'>
+  /** Subscribe to changes in workbench card metadata.
+   * @param listener Called when the installed inventory or Client registrations change.
+   * @returns Disposer for this subscription.
+   */
+  subscribeCatalog(listener: () => void): () => void
   /** Summon a package-owned expert after checking its installed platform access.
    * @param id Loaded workbench identifier.
    * @param sessionId Existing idle conversation; omission creates one without assigning a workspace.

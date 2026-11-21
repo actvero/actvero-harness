@@ -40,7 +40,7 @@ export async function initializeWorkbenchProject(directory: string, repository: 
   await writeFile(join(directory, 'package.json'), JSON.stringify({ ...manifest, scripts: {
     doctor: 'node scripts/workbench.mjs doctor', typecheck: 'node scripts/workbench.mjs typecheck',
     build: 'node scripts/workbench.mjs pack', pack: 'node scripts/workbench.mjs pack',
-    check: 'node scripts/workbench.mjs check', dev: 'node scripts/workbench.mjs dev',
+    check: 'node scripts/workbench.mjs check',
   } }, null, 2) + '\n')
   await bindWorkbenchProject(directory, repository, template)
 }

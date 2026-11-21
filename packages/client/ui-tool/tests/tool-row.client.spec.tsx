@@ -285,6 +285,16 @@ describe('tool-call-model', () => {
     expect(toolRowModel('bash', running()).autoReviewDenial).toBeNull()
   })
 
+  it('shows a reviewer outage with a user-controlled recovery action', () => {
+    const failure = toolRowModel('expert_create', result({
+      isError: true, error: { name: 'AutoReviewUnavailableError', code: 'AUTO_REVIEW_UNAVAILABLE' },
+    })).autoReviewDenial
+    expect(failure).toEqual({ unavailable: true })
+    expect(localizeAutoReviewDenial(failure!, t)).toEqual({
+      summary: '审查服务不可用 · 工具未执行', output: '发送「重试」可重新审查，也可在权限菜单选择「工作区内修改」后继续',
+    })
+  })
+
   it('normalizes Auto-review reasons only for localized display and falls back when blank', () => {
     expect(normalizeAutoReviewReason('  first\r\n\nsecond\u2028\u2029third  ')).toBe('first second third')
     expect(normalizeAutoReviewReason(' \r\n\u2028 ')).toBeNull()

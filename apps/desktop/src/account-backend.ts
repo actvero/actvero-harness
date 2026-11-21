@@ -80,7 +80,7 @@ export interface DesktopAccountBackend {
  * Connect native account operations to the standard authenticated Web backend.
  * @param origin - Host Web origin.
  * @param invoke - validated unary RPC caller.
- * @param cookies - Electron session cookie reader.
+ * @param cookies - supplies the shell-owned cookie for this Host.
  * @returns account operations; watch callers own their subscriptions.
  */
 export function desktopAccountBackend(origin: string, invoke: AccountInvoke, cookies: () => Promise<string>): DesktopAccountBackend {

@@ -981,6 +981,37 @@ describe('native review request', () => {
     expect(probe.runs()).toBe(0)
     expect(adapter.requests).toHaveLength(cases.length)
   })
+  it('reports an unavailable reviewer, suppresses retries in that turn and reviews a new turn', async () => {
+    const { ctx, adapter } = await harness([
+      [{ type: 'finish', reason: { kind: 'error', failure: { code: 'PROVIDER_ERROR', message: 'private provider detail' } } }],
+      decisionChunks('{"risk":"low","decision":"allow"}'),
+    ])
+    const probe = registerProbe(ctx)
+    const { session, agent } = autoSession(ctx, 'service-outage')
+    appendHeader(session, [{ name: 'probe', description: 'probe', parameters: { type: 'object' } }])
+    async function run(turn: number, step: number) {
+      const callId = ToolCallId(`probe-${turn}-${step}`)
+      appendAssistant(session, [{ type: 'tool-call', id: callId, name: 'probe', arguments: '{}' }], turn, step)
+      appendNativeCall(session, callId, 'probe', '{}', turn, step)
+      return ctx.tools.execute({ signal: new AbortController().signal, callId, name: 'probe', arguments: {}, agent })
+    }
+    for (const step of [1, 2]) {
+      const result = await run(1, step)
+      expect(result).toMatchObject({ isError: true, error: { info: { code: 'AUTO_REVIEW_UNAVAILABLE' } } })
+      if (result.isError) {
+        expect(result.error.message).toContain('was not executed')
+        expect(result.error.message).not.toContain('private provider detail')
+      }
+    }
+    expect(probe.runs()).toBe(0)
+    expect(adapter.requests).toHaveLength(1)
+    expect(ctx.permissionPresets.current(session)).toBe(AUTO_PRESET)
+    appendUser(session, '重试', { kind: 'user' })
+    expect((await run(2, 1)).isError).toBe(false)
+    expect(adapter.requests).toHaveLength(2)
+    expect(probe.runs()).toBe(1)
+  })
+
   it('reports a non-Error reviewer failure by its string value', async () => {
     const { ctx } = await harness([])
     const probe = registerProbe(ctx)

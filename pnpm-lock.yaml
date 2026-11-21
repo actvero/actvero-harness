@@ -1255,9 +1255,6 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
-      es-module-lexer:
-        specifier: 2.1.0
-        version: 2.1.0
       semver:
         specifier: ^7.8.5
         version: 7.8.5
@@ -1464,6 +1461,9 @@ importers:
 
   packages/actvero/experts:
     dependencies:
+      '@actvero/dsh-skills':
+        specifier: workspace:~
+        version: link:../skills
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1474,9 +1474,6 @@ importers:
       '@actvero/dsh-connectors':
         specifier: workspace:~
         version: link:../connectors
-      '@actvero/dsh-skills':
-        specifier: workspace:~
-        version: link:../skills
       '@deepseek-ai/cordis':
         specifier: workspace:~
         version: link:../../../vendor/cordis
@@ -1519,6 +1516,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-workspace':
         specifier: workspace:*
         version: link:../../client/ui-workspace
+      '@deepseek-ai/dsh-fs':
+        specifier: workspace:*
+        version: link:../../fs/fs
       '@deepseek-ai/dsh-mcp-client':
         specifier: workspace:*
         version: link:../../mcp/mcp-client
@@ -1546,6 +1546,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: workspace:*
         version: link:../../core/tools
+      '@deepseek-ai/dsh-working-directory':
+        specifier: workspace:*
+        version: link:../../session/working-directory
       '@deepseek-ai/dsh-workspace':
         specifier: workspace:*
         version: link:../../workspace/workspace

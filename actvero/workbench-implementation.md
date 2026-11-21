@@ -187,7 +187,7 @@ Install business dependencies in the workbench project, retain the lockfile, and
 
 ## 4. Debug the failing layer
 
-Reproduce one failure at a time. Record package ID/version, target client/Profile, reproduction steps, expected and actual results, and the first relevant error. Read `.actvero/diagnostics.json` for watcher results; an old archive timestamp or old UI does not establish that a new build succeeded.
+Reproduce one failure at a time. Record the package name and version, target client/Profile, steps, and expected and actual results. Read the `update --json` diagnostic, then use `status` to check the installed version and Client publication in the target Harness.
 
 | Symptom | Check first | Next action |
 |---|---|---|

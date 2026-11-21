@@ -5,7 +5,7 @@ import { localCapabilityCommand } from '../packages/actvero/capability-ui/src/wo
 import { expertCliInputs, expertCliOutputs } from './actvero-expert-cli-schema.ts'
 import { cliFailureSchema, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 
-type Effect = 'read' | 'local_files' | 'harness_write' | 'connection_test' | 'watch'
+type Effect = 'read' | 'local_files' | 'harness_write' | 'connection_test'
 type Flag = { type: 'string' | 'boolean'; required?: boolean; description: string; choices?: readonly string[] }
 interface Entry {
   summary: string
@@ -30,10 +30,9 @@ const requestFile = { type: 'string', description: 'UTF-8 JSON 请求文件。�
 const fileArgs = ['--connection', './connection.json', '--file', './request.json']
 const readArgs = ['--connection', './connection.json']
 const checked = { name: z.string(), bytes: z.number().int().nonnegative(), sha256 }
-const build = z.looseObject({ sha256, outcome: z.string(), diagnostic: z.string().optional() })
-const developmentStatus = z.looseObject({
-  name: z.string(), directory: path, loaded: z.boolean(), blocked: z.boolean(), builds: z.array(build),
-  runtimeErrors: z.array(z.looseObject({ sessionId: z.string(), kind: z.enum(['tool', 'turn']), code: z.string(), message: z.string() })),
+/** Installed version and whether its Client graph is currently published. */
+export const workbenchStatusSchema = z.strictObject({
+  name: z.string(), installedVersion: z.string().nullable(), clientPublished: z.boolean(), pendingRestart: z.boolean(),
 })
 const skillState = { id: z.string(), name: z.string(), version: z.string(), enabled: z.boolean() }
 const skillSummary = z.looseObject({ ...skillState, description: z.string() })
@@ -42,12 +41,6 @@ const mcpSummary = z.looseObject({
   ...enabling.shape, name: z.string(), transport: z.enum(['stdio', 'http', 'sse']), auth: z.enum(['none', 'bearer', 'headers', 'oauth']),
   command: z.string(), argumentCount: z.number().int().nonnegative(), endpointOrigin: z.string(),
   status: z.enum(['disabled', 'connecting', 'connected', 'authorization_required', 'error']), error: z.string().optional(), revision: z.string(),
-})
-const developmentEvent = z.looseObject({
-  schemaVersion: z.literal(1), generation: z.number().int().positive(), phase: z.enum(['building', 'built', 'failed']),
-  artifact: z.looseObject({ ...checked, path }).optional(), diagnostic: z.string().optional(),
-  stage: z.enum(['build', 'apply']).optional(), code: z.string().optional(), outcome: z.enum(['not_applied', 'unknown']).optional(),
-  runtime: z.enum(['not-verified', 'applying', 'waiting-for-idle', 'loaded']).optional(), client: z.literal('published').optional(),
 })
 const localInputs = new Map<string, z.ZodType>(localCapabilityCommand.options.map((option) => {
   const { operation, ...fields } = option.shape
@@ -72,7 +65,7 @@ function remote(name: string, summary: string, effect: Effect, output: z.ZodType
 const skillRetry = '用 skill list 或 skill show 核对本机安装状态。编辑冲突时，从 show 重新读取版本，再读取文件并核对内容。'
 const mcpRetry = '用 mcp list 或 mcp show 核对本机配置。更新冲突时，重新读取 revision 并核对要修改的字段。'
 const expertRetry = '用 expert author-list 或 expert author-get 核对保存结果。修改前读取当前 revision。'
-const developmentRetry = '用 status 或 logs 核对当前加载状态。连接失效时，从目标 Harness 重新导出连接文件。'
+const developmentRetry = '用 status <包名> --connection <连接文件> 核对已安装版本和发布状态。连接失效时，从目标 Harness 重新导出连接文件。'
 
 /** Public CLI commands, including the request and result validators used by the launcher. */
 export const workbenchCommands: Readonly<Record<string, Entry>> = {
@@ -95,11 +88,6 @@ export const workbenchCommands: Readonly<Record<string, Entry>> = {
     summary: '用套件的声明检查项目的 TypeScript。', effect: 'read', args: ['directory'],
     output: z.strictObject({ checked: z.literal(true) }), example: { arguments: [project] }, success: '类型检查通过。',
   },
-  dev: {
-    summary: '持续构建项目，并在已 attach 时加载到 Harness。', effect: 'watch', args: ['directory'],
-    output: developmentEvent, example: { arguments: [project] }, recovery: developmentRetry,
-    success: 'stdout 按行输出状态。runtime=loaded 且 client=published 表示该次构建已加载。phase=failed 查看 stage、diagnostic 和 outcome。',
-  },
   pack: {
     summary: '构建并生成工作台 .tgz，默认写入项目 dist。', effect: 'local_files', args: ['directory', '[outputDirectory]'],
     output: z.looseObject({ ...checked, path }), example: { arguments: [project] }, success: 'path 指向已验包的本地归档。',
@@ -109,23 +97,18 @@ export const workbenchCommands: Readonly<Record<string, Entry>> = {
     output: z.looseObject(checked), example: { arguments: [project + '/dist/local-my-workbench-1.0.0.tgz'] },
     success: '归档通过预检。实际加载结果由目标 Harness 决定。',
   },
-  attach: {
-    summary: '将项目关联到运行中的 Harness，写入项目的开发连接记录。', effect: 'harness_write',
-    args: ['directory'], flags: { connection }, output: z.looseObject({ id: z.string().uuid(), name: z.string() }),
-    example: { arguments: [project, ...readArgs] }, success: '获得关联 ID。运行 dev 才开始构建和加载。', recovery: developmentRetry,
+  update: {
+    summary: '构建并安装或更新目标 Harness 的工作台，完成后退出。', effect: 'harness_write',
+    args: ['directory'], flags: { connection },
+    output: z.strictObject({ name: z.string(), version: z.string(), previousVersion: z.string().nullable(), sha256,
+      application: z.literal('applied'), runtime: z.literal('loaded'), client: z.literal('published') }),
+    example: { arguments: [project, ...readArgs] }, recovery: developmentRetry,
+    success: '首次调用安装，已有同名包时要求项目版本更高。成功表示新版已安装、宿主已加载且前端已发布。',
   },
   status: {
-    summary: '读取已关联项目的当前加载状态与最近部署记录。', effect: 'read', args: ['directory'],
-    output: developmentStatus, example: { arguments: [project] }, success: '查看 loaded、blocked 和最近的 builds。', recovery: developmentRetry,
-  },
-  logs: {
-    summary: '读取已关联项目的构建部署记录与运行诊断。', effect: 'read', args: ['directory'],
-    output: developmentStatus, example: { arguments: [project] }, success: 'builds 和 runtimeErrors 提供诊断。', recovery: developmentRetry,
-  },
-  detach: {
-    summary: '结束开发覆盖，恢复正式安装版本并移除项目关联。', effect: 'harness_write', args: ['directory'],
-    output: z.looseObject({ detached: z.literal(true) }), example: { arguments: [project] },
-    success: '开发覆盖已移除。', recovery: developmentRetry,
+    summary: '查询目标 Harness 的工作台已安装版本及当前发布状态。', effect: 'read',
+    args: ['packageName'], flags: { connection }, output: workbenchStatusSchema,
+    example: { arguments: ['@local/my-workbench', ...readArgs] }, success: 'installedVersion 为 null 表示未安装。',
   },
   info: {
     summary: '查看套件版本、工具链目录、平台和 API 兼容版本。', effect: 'local_files',
@@ -308,9 +291,9 @@ function describe(name: string, entry: Entry) {
     schemaVersion: 1, command: name, summary: entry.summary, usage: usage(name, entry), effect: entry.effect,
     positionals: (entry.args ?? []).map(arg => ({ name: arg.replace(/^\[|\]$/gu, ''), required: !arg.startsWith('[') })),
     flags: { ...entry.flags,
-      json: { type: 'boolean', description: entry.effect === 'watch' ? '按行输出监视状态。' : '输出带 schemaVersion 的单行 JSON。' } },
+      json: { type: 'boolean', description: '输出带 schemaVersion 的单行 JSON。' } },
     ...(entry.input ? { input: z.toJSONSchema(entry.input, { io: 'input' }) } : {}),
     output: z.toJSONSchema(entry.output), success: entry.success, recovery: entry.recovery,
-    outputMode: entry.effect === 'watch' ? 'json_lines' : 'result', example,
+    outputMode: 'result', example,
   }
 }

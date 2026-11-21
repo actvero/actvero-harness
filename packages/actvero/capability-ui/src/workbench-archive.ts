@@ -1,4 +1,4 @@
-import { resolveWorkbenchProtocol, WorkbenchHostCompatibilityError } from '../../workbench-protocol.ts'
+import { resolveWorkbenchProtocol, WorkbenchHostCompatibilityError } from './workbench-protocol.ts'
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024
 const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024

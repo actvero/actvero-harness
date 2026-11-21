@@ -8,6 +8,7 @@
     "actvero/templates/ai-checklist/src/document.ts",
     "actvero/templates/ai-checklist/src/index.ts",
     "apps/web/tests/actvero-capabilities.e2e.ts",
+    "apps/web/tests/actvero-expert-creation.e2e.ts",
     "apps/web/tests/actvero-workbench-manager.e2e.ts",
     "apps/web/tests/actvero-local-capabilities.snapshot.ts",
     "apps/web/tests/actvero-workbench-header.e2e.ts",

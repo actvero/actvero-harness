@@ -22,7 +22,7 @@ actvero-workbench example show mcp.create > ./request.json
 actvero-workbench mcp create --connection ./connection.json --file ./request.json --json
 ```
 
-执行命令时加 `--json`，标准输出返回一行 JSON。成功时 `ok=true`，命令的返回数据在 `result` 中。失败退出码为 1，`error` 中包含 `code`、`message`、`outcome`，适用时包含 `recovery` 和字段级 `issues`。收到 `outcome=unknown` 时，先回查实际状态再决定是否重试。帮助和 schema 直接输出说明，`dev` 持续按行输出构建状态。
+执行命令时加 `--json`，标准输出返回一行 JSON。成功时 `ok=true`，结果在 `result` 中。失败退出码为 1，`error` 包含 `code`、`message`、`outcome` 及适用的 `recovery` 和字段级 `issues`。收到 `outcome=unknown` 时先查询实际状态。帮助和 schema 直接输出说明。
 
 `skill install` 写入目标 Harness 的本机技能库。`skills install` 将本套件自带的四份内置 Skill 复制到指定 Agent 的技能目录。使用私有开发连接访问目标 Harness，连接文件由当前运行实例签发，重启后重新导出。
 
@@ -59,7 +59,7 @@ MCP 创建请求是 `{"config":{"name":"文档服务","transport":"http","url":"
 
 升级 Harness 后，对已有项目执行 `actvero-workbench bind /绝对路径/项目`，刷新工具链绑定、Skill 和类型配置，保留业务源码与 DESIGN.md。不要把旧缓存路径复制到另一台机器；在目标机器安装匹配套件后重新 bind。
 
-`actvero-workbench dev <项目目录>` 自动构建。先运行 `actvero-workbench attach /项目目录 --connection /连接文件`，即可在目标 Harness 中加载临时开发覆盖；未连接时仅构建。通过 status、logs 和 detach 检查或结束覆盖。构建、加载与业务验收参见[开发指南](workbench-development.zh.md#create)。
+`actvero-workbench update <项目目录> --connection <连接文件> --json` 构建、校验并安装一次。已有同名工作台时，保留包名并提高版本。只有新版已加载且前端已发布时才返回成功。需要回查时使用 `actvero-workbench status <包名> --connection <连接文件> --json`。无需从桌面导入或重启即可打开已成功应用的新版。独立安装包使用 `pack` 和 `check`。业务验收参见[开发指南](workbench-development.zh.md#create)。
 
 卸载 Harness不会删除项目、已复制的 Skill 或缓存；仍被项目绑定的缓存需要保留。可用 info 获取缓存位置，在项目迁移到新版套件后再清理不用的旧目录。此套件不自动上传、发布或调用付费模型。
 

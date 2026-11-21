@@ -1,4 +1,4 @@
-import { SourceTabs, CapabilityIdentity } from '@actvero/dsh-capability-ui/client/sources'
+import { SourceTabs, CapabilityIdentity, catalogStyles } from '@actvero/dsh-capability-ui/client/sources'
 import { nativeSkills, insertSkill, type NativeSkill } from '@actvero/dsh-capability-ui/client/selection'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
@@ -358,10 +358,10 @@ function Panel({
   }
   return (
     <section className={styles.page}>
-      <header ref={toolbar} className={styles.header}>
+      <header ref={toolbar} className={`${catalogStyles.toolbar} ${styles.header}`}>
         <Input
           icon={<IconSearchOutlineMedium />}
-          className={styles.search}
+          className={`${catalogStyles.search} ${styles.search}`}
           maxLength={100}
           placeholder={t(mode === 'installed' ? 'searchInstalled' : 'search')}
           aria-label={t(mode === 'installed' ? 'searchInstalled' : 'search')}
@@ -373,8 +373,7 @@ function Panel({
             {t('refresh')}
           </Button>
         )}
-        <Button variant="outline" onClick={() =>{  setImportOpen(true) }}>
-          <IconPlusOutlineMedium />
+        <Button variant="primary" onClick={() => { setImportOpen(true) }}>
           {t('addLocal')}
         </Button>
       </header>

@@ -252,6 +252,33 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     expect(await header.locator('..').getByRole('button', { name: 'Back to workbenches', exact: true }).count()).toBe(1)
     expect(await page.locator('[data-workbench-ai]:not([hidden])').count()).toBe(0)
     const catalogReturn = page.getByRole('button', { name: 'Back to workbenches', exact: true })
+    const checkDefaultAlignment = async () => {
+      const offsets = await catalogReturn.evaluate((button) => {
+        const center = (element: Element) => {
+          const box = element.getBoundingClientRect()
+          return box.top + box.height / 2
+        }
+        const navigation = button.closest('[data-workbench-navigation]')!
+        const divider = navigation.querySelector(':scope > [aria-hidden="true"]')!
+        const title = navigation.parentElement!.querySelector('[data-workbench-default-header]')!
+        const leading = document.querySelector('[data-shell-leading]')
+        return [divider, title, ...(leading ? [leading] : [])].map(element => Math.abs(center(element) - center(button)))
+      })
+      expect(Math.max(...offsets)).toBeLessThanOrEqual(1)
+    }
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 844 })
+      await checkDefaultAlignment()
+    }
+    await page.setViewportSize({ width: 1440, height: 900 })
+    if (platform === 'darwin') {
+      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
+      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
+      await checkDefaultAlignment()
+      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+      await checkDefaultAlignment()
+    }
     await catalogReturn.hover()
     await page.getByRole('tooltip', { name: 'Back to workbenches', exact: true }).waitFor()
     expect(await catalogReturn.evaluate((button) => {

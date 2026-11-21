@@ -22,7 +22,6 @@ import {
   powerMonitor,
   nativeImage,
   nativeTheme,
-  net,
   protocol,
   session,
   shell,
@@ -476,6 +475,8 @@ async function main(): Promise<void> {
     const hostInspectPort = developmentHostInspectPort(development)
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
       hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), ACTVERO_DESKTOP: actveroEnabled ? '1' : '0',
+        ACTVERO_EXPERT_CREATOR_DIR: actveroEnabled && app.isPackaged
+          ? join(process.resourcesPath, 'actvero-skills', 'expert-creator') : undefined,
         ACTVERO_WORKBENCH_CLI_ENTRY: actveroEnabled && app.isPackaged
           ? join(process.resourcesPath, 'actvero-workbench', 'bin', 'actvero-workbench.mjs') : undefined }, onFailure,
       primaryRuntime,
@@ -485,11 +486,13 @@ async function main(): Promise<void> {
       start: async () => {
         actveroCapabilities?.attach(message=>host.sendCapabilityMessage(message))
         const ready = await host.start()
-        hostCookie = await authenticateWebHost(ready.url)
-        hostUrl = ready.url
+        const cookie = await authenticateWebHost(ready.url)
+        const origin = new URL(ready.url).origin
         if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
+        hostCookie = cookie
+        hostUrl = origin
         injections = ready.injections
-        welcomeBackend = await connectDesktopWelcome(ready.url, (input, init) => net.fetch(input, init), async () => (await session.defaultSession.cookies.get({ url: ready.url })).map(cookie => `${cookie.name}=${cookie.value}`).join('; '))
+        welcomeBackend = connectDesktopWelcome(origin, cookie)
         analyticsEnabled = await welcomeBackend.analyticsEnabled().catch(() => false)
         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
         stopAccount?.()

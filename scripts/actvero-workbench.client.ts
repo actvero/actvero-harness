@@ -1,6 +1,6 @@
 /** Create and package local Actvero workbenches through the existing client compiler. */
 import { localCapabilityCli } from './actvero-local-capability-cli.ts'
-import { attachWorkbench, inspectDevelopment, developmentApplier } from './actvero-workbench-connection.ts'
+import { developmentRequest } from './actvero-workbench-connection.ts'
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -12,11 +12,10 @@ import { build } from 'tsdown'
 import semver from 'semver'
 import { z } from 'zod'
 import { clientBundle } from '../packages/client/tsdown.client.ts'
-import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/client/workbenches/archive.ts'
+import { readWorkbenchPackage } from '../packages/actvero/capability-ui/src/workbench-archive.ts'
 import { resolveWorkbenchProtocol } from '../packages/actvero/capability-ui/src/workbench-protocol.ts'
-import { cliCommandName, parseWorkbenchInvocation, workbenchGuide, workbenchCommands } from './actvero-workbench-command-guide.ts'
+import { cliCommandName, parseWorkbenchInvocation, workbenchGuide, workbenchCommands, workbenchStatusSchema } from './actvero-workbench-command-guide.ts'
 import { printCliFailure, printCliResult, validateCliResult, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
-import { watchWorkbench } from './actvero-workbench-dev.ts'
 import { bindWorkbenchProject, initializeWorkbenchProject, typecheckWorkbench } from './actvero-workbench-project.ts'
 
 const repository = fileURLToPath(new URL('../', import.meta.url))
@@ -136,11 +135,10 @@ export async function checkWorkbench(archive: string): Promise<{ name: string; b
 /** Compile a template project and emit an npm-compatible archive; no install or publication occurs.
  * @param directory Editable template project containing src/index.ts and src/client/index.ts.
  * @param output Directory receiving the versioned .tgz.
- * @param development Include development sourcemaps.
  * @param quiet Keep stdout reserved for machine-readable results.
  * @returns Absolute path of the validated archive.
  */
-export async function packWorkbench(directory: string, output: string, development = false, quiet = development): Promise<string> {
+export async function packWorkbench(directory: string, output: string, quiet = false): Promise<string> {
   directory = resolve(directory)
   output = resolve(output)
   const manifest = manifestSchema.parse(await json(join(directory, 'package.json')))
@@ -154,7 +152,7 @@ export async function packWorkbench(directory: string, output: string, developme
     await mkdir(lib, { recursive: true })
     // Reuse the host/client compiler, including shared React, CSS Modules and image imports.
     for (const config of clientBundle(directory, ['src/index.ts'])({})) {
-      await build({ ...config, cwd: directory, outDir: lib, config: false, logLevel: quiet ? 'silent' : 'info', tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: development,
+      await build({ ...config, cwd: directory, outDir: lib, config: false, logLevel: quiet ? 'silent' : 'info', tsconfig: join(repository, 'tsconfig.base.client.json'), sourcemap: false,
         inputOptions: async (options, format, context) => {
           const configured = typeof config.inputOptions === 'function'
             ? await config.inputOptions(options, format, context) ?? options : { ...options, ...config.inputOptions }
@@ -212,14 +210,27 @@ async function main(args: string[]): Promise<void> {
     printCliResult(name, validateCliResult(entry.output, result, entry.effect === 'read', entry.recovery), machine, message)
 
   switch (name) {
-    case 'attach':
-      print(await attachWorkbench(path, String(values.connection)))
-      return
     case 'status':
-    case 'logs':
-    case 'detach':
-      print(await inspectDevelopment(path, name === 'detach' ? 'detach' : 'status'))
+      print(await developmentRequest(String(values.connection), { action: 'workbench-status', name: packageName.parse(path) }, undefined, { readOnly: true }))
       return
+    case 'update': {
+      const connection = String(values.connection)
+      const manifest = manifestSchema.parse(JSON.parse(await readFile(join(path, 'package.json'), 'utf8')))
+      const request = { action: 'workbench-status', name: manifest.name }
+      const current = workbenchStatusSchema.parse(await developmentRequest(connection, request, undefined, { readOnly: true }))
+      if (current.pendingRestart) throw new WorkbenchCliError('pending_restart', '该工作台已有待重启的安装变更。', 'not_applied')
+      if (current.installedVersion && (!semver.valid(current.installedVersion) || !semver.gt(manifest.version, current.installedVersion))) {
+        throw new WorkbenchCliError('version_not_newer', `项目版本必须高于已安装的 ${current.installedVersion}。`, 'not_applied')
+      }
+      const archive = await packWorkbench(path, join(path, 'dist'), machine).catch((error: unknown) => {
+        throw new WorkbenchCliError('build_failed', error instanceof Error ? error.message : String(error), 'not_applied')
+      })
+      const { sha256 } = await checkWorkbench(archive)
+      print(await developmentRequest(connection, {
+        action: 'workbench-update', path: archive, name: manifest.name, sha256, expectedVersion: current.installedVersion,
+      }, undefined, { recovery: entry.recovery }))
+      return
+    }
     case 'create': {
       const kind = z.enum(['blank', 'plain', 'ai']).parse(values.template ?? 'blank')
       await createWorkbench(path, argument, kind)
@@ -227,21 +238,8 @@ async function main(args: string[]): Promise<void> {
       return
     }
     case 'pack': {
-      const archive = await packWorkbench(path, argument ?? join(path, 'dist'), false, machine)
+      const archive = await packWorkbench(path, argument ?? join(path, 'dist'), machine)
       print({ path: archive, ...await checkWorkbench(archive) })
-      return
-    }
-    case 'dev': {
-      const abort = new AbortController()
-      const stop = () => { abort.abort() }
-      process.once('SIGINT', stop)
-      process.once('SIGTERM', stop)
-      try {
-        await watchWorkbench(resolve(path), async () => {
-          const archive = await packWorkbench(path, join(path, 'dist'), true)
-          return { path: archive, ...await checkWorkbench(archive) }
-        }, abort.signal, await developmentApplier(resolve(path)))
-      } finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop) }
       return
     }
     case 'check':

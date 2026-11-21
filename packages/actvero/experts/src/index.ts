@@ -1,3 +1,5 @@
+import type {} from '@deepseek-ai/dsh-fs'
+import type {} from '@deepseek-ai/dsh-working-directory'
 import { creationTools } from './creation-tools.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace'
@@ -8,10 +10,10 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { expertProjection,connectorProjection,connectorChoices } from './projection.ts'
 import type {} from '@deepseek-ai/dsh-session-projection'
-import { creatorSkill } from './creator.ts'
+import { creatorSkill, creatorSkillDirectory } from './creator.ts'
 import { randomUUID } from 'node:crypto'
 import type { ExpertRuntime,ExpertLock,ExpertSelection } from './contracts.ts'
-import { normalizeExpertSelectionAvatar } from './avatar.ts'
+import { MAX_EXPERT_SELECTION_AVATAR_CHARS, normalizeExpertSelectionAvatar } from './avatar.ts'
 export const name='actvero-experts'
 export const inject=['agents','skills','tools','systemPrompt','sessionController','workspaceRegistry','sessionProjections','actveroMcp']
 declare module '@deepseek-ai/cordis' {interface Context {
@@ -28,7 +30,7 @@ export function apply(ctx:Context){
     if(disposed){reject(new Error('expert_host_unavailable'));return}const id=randomUUID(),timer=setTimeout(()=>{pending.delete(id);reject(new Error('expert_host_timeout'))},30000)
     pending.set(id,{ resolve:(v)=>{ resolve(v as T) },reject,timer });process.send?.({ type:'actvero:experts:request',id,action,input })
   })
-  ctx.provide('actveroExpertAuthoring', { run: request, skill: { name: creatorSkill.name, description: creatorSkill.description, content: creatorSkill.content } })
+  ctx.provide('actveroExpertAuthoring', { run: request, directory: creatorSkillDirectory, skill: { name: creatorSkill.name, description: creatorSkill.description, content: creatorSkill.content } })
   const projection=(agent:Agent)=>{const value=ctx.sessionProjections.stateOf(agent.session,'actveroExpert');if(!value)throw new Error('expert_projection_unavailable');return value}
   const selected=async(agent:Agent,seen=new Set<string>()):Promise<ExpertSelection|null>=>{
     if(seen.has(agent.id))throw new Error('expert_lineage_invalid');seen.add(agent.id)
@@ -42,7 +44,18 @@ export function apply(ctx:Context){
   const connectorState=async(agent:Agent)=>request<{ added:string[];enabled:string[];ready:string[];rows:{ id:string;scope:string;name:string;description:string;required:boolean }[] }>('connector-state',{ sessionId:agent.id,snapshotId:(await selected(agent))?.snapshotId,choices:choices(agent) })
   ctx.provide('actveroExpertPolicy',{ selection:agent=>selected(agent), connectors:async(agent:Agent)=>{const state=await connectorState(agent);return await selected(agent)||(ctx.get('actveroWorkbenchRuntime')&&ctx.sessionProjections.stateOf(agent.session,'actveroWorkbench'))?state.enabled:undefined} })
   ctx.effect(()=>ctx.skills.register(creatorSkill))
-  for(const tool of creationTools(request))ctx.effect(()=>ctx.tools.register(tool))
+  const authorTools = creationTools(request, async (path, exec) => {
+    const fs = ctx.get('fs'), directory = ctx.get('workingDirectory')
+    if (!fs || !directory || !exec?.agent) throw new Error('avatarPath: conversation filesystem unavailable')
+    const cwd = await directory.ensure(exec.agent, exec.signal)
+    const target = await fs.resolve(path, { cwd, signal: exec.signal })
+    const info = await fs.stat(target, exec.signal)
+    if (info?.type !== 'file') throw new Error('avatarPath: expected a readable image file')
+    const limit = Math.floor(MAX_EXPERT_SELECTION_AVATAR_CHARS * 3 / 4)
+    if (info.size !== undefined && info.size > limit) throw new Error('avatarPath: resize the image before saving')
+    return fs.readBytes(target, exec.signal, limit)
+  })
+  for (const tool of authorTools) ctx.effect(() => ctx.tools.register(tool))
   ctx.effect(()=>ctx.skills.registerViewResolver(async(options)=>{
     const agent=ctx.agents.list().find(a=>a===options.scope);if(!agent)return undefined
     return (await runtime(agent))?.skills

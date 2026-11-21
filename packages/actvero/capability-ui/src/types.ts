@@ -4,8 +4,6 @@ import type { TypertResource } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkbenchObjectId } from './workbench-reference.ts'
 
-/** One local development attachment, valid only for its exporting Host. */
-export type WorkbenchDevelopmentId = Branded<'WorkbenchDevelopmentId'>
 /** Process invocation for the CLI and Node runtime shipped by the current Desktop. */
 export interface WorkbenchCliInvocation {
   executable: string

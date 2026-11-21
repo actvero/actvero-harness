@@ -26,6 +26,7 @@ import { WorkbenchClientRuntime } from './runtime.ts'
 import { workbenchResource } from './resource.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { publishedWorkbenchAction } from './platform.ts'
+import { workbenchCatalogIdentity } from './catalog.ts'
 import { Navigation } from './Navigation.tsx'
 import { en, zh } from './locales.ts'
 import { WorkbenchToolbar } from './Toolbar.tsx'
@@ -427,6 +428,16 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   const conversationTargets = new Map<string, NonNullable<Parameters<ActveroWorkbenchRegistry['register']>[2]>['conversationTarget']>()
   const settingsId = (id: string) => `actvero.workbench:${id}`
   const registry: ActveroWorkbenchRegistry = {
+    catalogIdentity: id => workbenchCatalogIdentity(view, id, text => ctx.locale.resolveText(text)),
+    subscribeCatalog(listener) {
+      let previous = view
+      return source.subscribe(() => {
+        const next = view
+        if (next.bundles === previous.bundles && next.entries === previous.entries && next.remembered === previous.remembered) return
+        previous = next
+        listener()
+      })
+    },
     async summonExpert(id, sessionId) {
       const error = await checkAccess(id)
       if (error) throw new RemoteError('workbench/unavailable', t(error), {})
@@ -544,7 +555,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     startDevelopment() {
       void (async () => {
         const foreground = Object.values(ctx.sessions.list.getSnapshot().byId).find(item => (item.retainedBy.mainView ?? 0) > 0)?.id
-        await prepareCreation(ctx, { name: 'develop-workbench' }, t('developPrompt'), foreground)
+        const resources = await ctx.remote.actveroWorkbench.developmentResources()
+        const connectionPath = resources.ok && resources.value.cli && resources.value.connectionPath
+        const prompt = t('developPrompt')
+        await prepareCreation(ctx, { name: 'develop-workbench' }, connectionPath
+          ? `${prompt}\n\n${t('developLocalConnection', { connectionPath })}`
+          : prompt, foreground)
       })().catch((error: unknown) => { ctx.logger.warn('Unable to prepare development conversation: %s', error); failed() })
     },
     async copyDevelopmentInstructions() {

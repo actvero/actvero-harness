@@ -1,11 +1,13 @@
-import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
+import type { DependencyCatalog } from './contracts.ts'
+import { createExpertInput, createExpertParameters } from './create-input.ts'
+import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
 
 type AuthorAction = 'catalog' | 'create' | 'author-list' | 'author-get' | 'author-update' | 'author-check'
 const maxConfiguration = 700_000
 const idField = { type: 'string', maxLength: 80, description: 'Exact local expert ID from expert_list.' } as const
 const output: ToolDefinition['output'] = {
   schema: { type: 'string' },
-  render: (_args, value) => [{ type: 'text', text: String(value) }],
+  render: (_args, value) => [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }],
 }
 
 function argsRecord(input: unknown, allowed: readonly string[]): Record<string, unknown> {
@@ -31,9 +33,11 @@ function readJson(input: unknown): unknown {
 /**
  * Expose local expert authoring through the Desktop operation gateway.
  * @param request - closed local operations implemented by the expert store.
+ * @param readPortrait - Bounded file reader in the calling conversation.
  * @returns model tool declarations with validated request arguments.
  */
-export function creationTools(request: (action: AuthorAction, input: Record<string, unknown>) => Promise<unknown>) {
+export function creationTools(request: (action: AuthorAction, input: Record<string, unknown>) => Promise<unknown>,
+  readPortrait?: (path: string, exec?: ToolRunContext) => Promise<Uint8Array>) {
   const run = async (action: AuthorAction, input: Record<string, unknown>) => JSON.stringify(await request(action, input))
   return [
     {
@@ -49,18 +53,25 @@ export function creationTools(request: (action: AuthorAction, input: Record<stri
     {
       name: 'expert_create',
       description: 'Save a new local ACTVERO expert designed with the user. Load expert-creator before authoring. A role name alone is not a design brief: ask about missing work context, inputs and expected results, then wait for the answer before saving. Use an already complete or agreed plan without repeating questions. Tool success confirms saving only; expert_check checks dependencies, not task quality.',
-      parameters: {
-        type: 'object',
-        properties: {
-          configuration: { type: 'string', maxLength: maxConfiguration, description: 'JSON with manifest and bindings based on the user’s understood requirements. Dependency IDs come from expert_catalog.' },
-        },
-        required: ['configuration'],
-        additionalProperties: false,
-      },
+      parameters: createExpertParameters,
       output,
-      async execute(input) {
-        const { configuration } = argsRecord(input, ['configuration'])
-        return run('create', { expert: readJson(configuration) })
+      async execute(input: unknown, exec?: ToolRunContext) {
+        // Older recorded calls can still complete using their original manifest.
+        if (input && typeof input === 'object' && 'configuration' in input) {
+          const { configuration } = argsRecord(input, ['configuration'])
+          return run('create', { expert: readJson(configuration) })
+        }
+        const catalog = async () => await request('catalog', {}) as DependencyCatalog
+        const expert = await createExpertInput(input, catalog, async (path) => {
+          if (!readPortrait) throw new Error('avatarPath: conversation filesystem unavailable')
+          return readPortrait(path, exec)
+        })
+        exec?.signal.throwIfAborted()
+        const saved = await request('create', { expert })
+        if (!saved || typeof saved !== 'object' || !('manifest' in saved) || !saved.manifest || typeof saved.manifest !== 'object')
+          throw new Error('expert_create: unexpected save response; check expert_list before retrying')
+        const { avatar, ...manifest } = saved.manifest as Record<string, unknown>
+        return JSON.stringify({ ...saved, manifest, hasAvatar: Boolean(avatar) })
       },
     },
     {

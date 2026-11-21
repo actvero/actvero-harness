@@ -1,17 +1,11 @@
 /** Local development CLI transport; it never launches or restarts Harness. */
-import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
 import { z } from 'zod'
-import type { WorkbenchDevelopmentId } from '../packages/actvero/capability-ui/src/types.ts'
 import { readCliJson, WorkbenchCliError } from './actvero-workbench-cli-result.ts'
 const connectionSchema = z.object({ schemaVersion: z.literal(1), url: z.url(), token: z.string().regex(/^[a-f0-9]{64}$/) }).passthrough()
 const responseSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(true), value: z.json() }),
-  z.object({ ok: z.literal(false), diagnostic: z.string() }),
+  z.object({ ok: z.literal(false), diagnostic: z.string(), code: z.string().optional(), outcome: z.enum(['not_applied', 'unknown']).optional() }),
 ])
-const attachmentSchema = z.object({
-  connection: z.string(), id: z.string().uuid().transform(value => value as WorkbenchDevelopmentId),
-}).strict()
 const reconnect = '在目标 Harness 的「交给其他 Agent」中重新导出开发连接文件。'
 const rejectedBeforeWrite = new Set([
   'invalid_input', 'local_changes', 'skill_name_conflict', 'connector_edit_conflict', 'expert_edit_conflict',
@@ -65,51 +59,10 @@ export async function developmentRequest(connectionFile: string, command: Record
   if (!parsed.success) throw new WorkbenchCliError('invalid_response', 'Harness 响应与预期格式不一致。', outcome, options.recovery ?? reconnect)
   const result = parsed.data
   if (!result.ok) {
-    const code = /^[a-z][a-z0-9_]{0,79}$/u.test(result.diagnostic) ? result.diagnostic : 'harness_rejected'
+    const code = result.code ?? (/^[a-z][a-z0-9_]{0,79}$/u.test(result.diagnostic) ? result.diagnostic : 'harness_rejected')
     const message = Object.hasOwn(diagnostics, code) ? diagnostics[code] ?? result.diagnostic : result.diagnostic
     throw new WorkbenchCliError(code, message,
-      rejectedBeforeWrite.has(code) ? 'not_applied' : outcome, options.recovery)
+      result.outcome ?? (rejectedBeforeWrite.has(code) ? 'not_applied' : outcome), options.recovery)
   }
   return result.value
-}
-
-/** Bind an author-owned project to one running profile without installing or changing a release.
- * @param directory Project containing package.json.
- * @param connectionFile Private connection file from the target Harness.
- * @returns Attachment identity, also persisted under .actvero for watch builds.
- */
-export async function attachWorkbench(directory: string, connectionFile: string): Promise<{ id: WorkbenchDevelopmentId; name: string }> {
-  const connection = resolve(connectionFile)
-  const value = z.object({ id: z.string().uuid().transform(value => value as WorkbenchDevelopmentId), name: z.string() }).parse(await developmentRequest(connection, { action: 'attach', directory: resolve(directory) }))
-  await mkdir(join(directory, '.actvero'), { recursive: true })
-  try { await writeFile(join(directory, '.actvero/development.json'), JSON.stringify({ connection, id: value.id }) + '\n', { mode: 0o600 }) }
-  catch (error) { await developmentRequest(connection, { action: 'detach', id: value.id }); throw error }
-  return value
-}
-
-/** Query an attached project, or release its overlay and restore its installed version.
- * @param directory Attached project.
- * @param action status reads bounded deployment diagnostics; detach releases the overlay.
- * @returns Host outcome; detach removes the local attachment only after confirmed release.
- */
-export async function inspectDevelopment(directory: string, action: 'status' | 'detach'): Promise<unknown> {
-  const path = join(directory, '.actvero/development.json')
-  const attachment = attachmentSchema.parse(await readCliJson(path, 'attachment'))
-  const result = await developmentRequest(attachment.connection, { action, id: attachment.id }, undefined, { readOnly: action === 'status' })
-  if (action === 'detach') await rm(path)
-  return result
-}
-
-/** Load an optional project attachment. Absence keeps ordinary watch builds offline.
- * @param directory Project being watched.
- * @returns An apply callback when attached, otherwise undefined.
- */
-export async function developmentApplier(directory: string):
-Promise<((artifact: { path: string; sha256: string }, signal: AbortSignal) => Promise<unknown>) | undefined> {
-  let data: string
-  try { data = await readFile(join(directory, '.actvero/development.json'), 'utf8') }
-  catch (error) { if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return undefined; throw error }
-  const attachment = attachmentSchema.parse(JSON.parse(data))
-  return ({ path: archive, sha256 }, signal) =>
-    developmentRequest(attachment.connection, { action: 'apply', id: attachment.id, path: archive, sha256 }, signal)
 }

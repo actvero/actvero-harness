@@ -364,12 +364,9 @@ export class WorkbenchRuntime extends TypertRemoteService {
           const development = this.ctx.get('actveroWorkbenchDevelopment')
           const connectionPath = development ? await development.connection() : null
           const authoring = this.ctx.get('actveroExpertAuthoring')
-          const embeddedExpert = packagedGuidance && packagedGuidance['expert-creator/SKILL.md'] !== undefined
-          const expertSkillPath = authoring || embeddedExpert ? join(target, 'expert-creator/SKILL.md') : null
-          if (authoring && expertSkillPath) {
-            await mkdir(join(target, 'expert-creator'), { recursive: true })
-            await writeFile(expertSkillPath, `---\nname: ${authoring.skill.name}\ndescription: ${JSON.stringify(authoring.skill.description)}\n---\n\n${authoring.skill.content}`)
-          }
+          const source = authoring?.directory ?? process.env.ACTVERO_EXPERT_CREATOR_DIR
+          const expertSkillPath = source ? join(target, 'expert-creator/SKILL.md') : null
+          if (source) await cp(source, join(target, 'expert-creator'), { recursive: true })
           return { skillPath: join(target, 'develop-workbench/SKILL.md'), frontendSkillPath: join(target, 'workbench-frontend/SKILL.md'),
             connectionPath, expertSkillPath, cli: installedWorkbenchCli() }
         } catch (error) {

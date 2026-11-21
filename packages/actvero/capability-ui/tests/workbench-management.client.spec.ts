@@ -2,7 +2,7 @@
 import { expect, it, vi } from 'vitest'
 import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { createWorkbenchManagement, type WorkbenchManagement } from '../src/client/workbenches/management.ts'
-import { workbenchCatalog, workbenchIconUrl } from '../src/client/workbenches/catalog.ts'
+import { workbenchCatalog, workbenchCatalogIdentity, workbenchIconUrl } from '../src/client/workbenches/catalog.ts'
 import { publishedWorkbenchAction, publishedWorkbenchDetails } from '../src/client/workbenches/platform.ts'
 
 const bundle: BundleInfo = {
@@ -124,6 +124,11 @@ it('shows the installed workbench description and previews before Client activat
   } }
   expect(workbenchCatalog({ entries: [], remembered: [], bundles: [installed], restart: [] }, () => 'technical title'))
     .toMatchObject([{ name: '创作', description: '创作画布', iconUrl: 'package-icon', previewUrls: ['canvas-preview'], state: 'disabledState' }])
+  const view = { entries: [{ id: bundle.name, name: '创作', version: '1.0.0', description: ' ', iconUrl: 'legacy-icon' }],
+    remembered: [], bundles: [installed], restart: [] }
+  const resolveText = () => 'technical title'
+  expect(workbenchCatalogIdentity(view, bundle.name, resolveText)).toEqual({ description: '创作画布', iconUrl: 'package-icon' })
+  expect(workbenchCatalog(view, resolveText)[0]).toMatchObject(workbenchCatalogIdentity(view, bundle.name, resolveText))
 })
 
 it('downloads a newer release only after a platform action and keeps its guarded replacement', async () => {

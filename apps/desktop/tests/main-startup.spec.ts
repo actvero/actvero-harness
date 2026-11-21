@@ -280,7 +280,6 @@ vi.mock('electron', () => ({
   dialog: harness.dialog,
   shell: { openExternal: harness.openExternal },
   nativeTheme: harness.nativeTheme,
-  net: { fetch: vi.fn() },
   ipcMain: {
     on: harness.ipcOn,
     handle: (channel: string, handler: InvokeHandler) => {
@@ -361,7 +360,7 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
   },
 }))
 vi.mock('../src/welcome-backend.ts', () => ({
-  connectDesktopWelcome: async () => ({
+  connectDesktopWelcome: () => ({
     analyticsEnabled: async () => harness.analyticsEnabled,
     report: harness.analytics,
     readLocalePreference: async () => null,

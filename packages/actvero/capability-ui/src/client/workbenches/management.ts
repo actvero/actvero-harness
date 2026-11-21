@@ -4,7 +4,7 @@ import type { BundleInfo, ChangeResult } from '@deepseek-ai/dsh-api-remotes/clie
 import semver from 'semver'
 import { workbenchArchiveSource, type PublishedWorkbench } from '@actvero/dsh-client-account/protocol'
 import { WorkbenchHostCompatibilityError } from '../../workbench-protocol.ts'
-import { readWorkbenchPackage } from './archive.ts'
+import { readWorkbenchPackage } from '../../workbench-archive.ts'
 
 type InstallBundle = Context['remote']['pluginManager']['installBundle']
 interface WorkbenchInstall {

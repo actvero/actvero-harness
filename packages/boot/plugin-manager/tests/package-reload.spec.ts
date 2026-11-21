@@ -13,6 +13,7 @@ import {
 } from '@deepseek-ai/dsh-app-boot'
 import Hmr from '@deepseek-ai/dsh-hmr'
 import type { ChokidarOptions } from 'chokidar'
+import { create } from 'tar'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import PluginManager, { type PluginInstallRequestId } from '../src/index.ts'
 import * as operations from '../src/operations.ts'
@@ -178,6 +179,29 @@ function mockPnpm(dir: string, trace: string[], run: (args: readonly string[]) =
   onTestFinished(() => { pnpm.mockRestore() })
   return pnpm
 }
+
+it.each([false, true])('applies a local version in the running profile and restores it if Client verification fails (%s)', async (failed) => {
+  const { ctx, dir, trace, manager } = await fixture({ installed: true })
+  const staging = join(dir, 'archive')
+  mkdirSync(join(staging, 'package'), { recursive: true })
+  writeFileSync(join(staging, 'package/package.json'), JSON.stringify({ name: 'addon', version: '2.0.0' }))
+  const archive = join(staging, 'addon-2.0.0.tgz')
+  await create({ file: archive, cwd: staging, gzip: true }, ['package/package.json'])
+  mockPnpm(dir, trace, () => installFiles(dir, 2))
+
+  const result = await manager.installLiveBundle(archive, {
+    replace: { name: 'addon', version: '1.0.0', nextVersion: '2.0.0' },
+  }, async (phase) => {
+    expect(ctx.get('addonVersion')).toBe(phase === 'apply' ? 2 : 1)
+    if (failed && phase === 'apply') throw new Error('Client verification failed')
+  })
+
+  expect(result).toMatchObject({ application: failed ? 'failed' : 'applied', changed: !failed, recoveryFailed: false })
+  expect((await manager.listBundles()).find(bundle => bundle.name === 'addon')).toMatchObject({
+    version: failed ? '1.0.0' : '2.0.0', enabled: true,
+  })
+  expect(ctx.get('addonVersion')).toBe(failed ? 1 : 2)
+})
 
 it('publishes a newly installed enabled bundle before its private bare plugin starts', async () => {
   const { ctx, dir, trace, published, manager, parentURL, evaluationPath, entry } = await fixture()

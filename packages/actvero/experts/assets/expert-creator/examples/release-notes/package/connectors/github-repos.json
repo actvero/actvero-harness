@@ -1,0 +1,6 @@
+{
+  "name": "GitHub 仓库只读",
+  "transport": "http",
+  "url": "https://api.githubcopilot.com/mcp/x/repos/readonly",
+  "auth": "bearer"
+}
