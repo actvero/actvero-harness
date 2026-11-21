@@ -16,6 +16,7 @@
 
 - id: system-prompt
   config:
+    harnessIdentity: !!js "process.env.ACTVERO_DESKTOP === '1' ? process.env.ACTVERO_ASSISTANT_IDENTITY : undefined"
     personaPrefix: >-
       You are a coding agent powered by the {{model}} model.
 

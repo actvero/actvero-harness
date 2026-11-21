@@ -24,6 +24,7 @@ export interface ProductConfig {
     readonly sidebarLogo?: string
     readonly trayIcon?: string
   }
+  readonly assistant?: { readonly identityPrompt: string }
   readonly platform: { readonly defaultUrl: string }
   readonly updates: { readonly enabled: boolean; readonly feedUrl: string | null }
   readonly plugins: readonly string[]
@@ -96,9 +97,15 @@ function url(value: unknown, subject: string): string {
  * @returns Validated configuration; a runtime address override is not read here.
  */
 export function validateProductConfig(value: unknown): ProductConfig {
-  const input = record(value, ['schemaVersion', 'product', 'branding', 'platform', 'updates', 'plugins'], 'product config')
+  const input = record(value, ['schemaVersion', 'product', 'branding', 'platform', 'updates', 'plugins', 'assistant'], 'product config')
   const product = record(input.product, ['id', 'applicationId', 'displayName', 'version', 'defaultLocale'], 'product')
   const branding = record(input.branding, ['icon', 'logo', 'wordmark', 'sidebarLogo', 'trayIcon'], 'branding')
+  const assistant = input.assistant === undefined ? undefined : record(input.assistant, ['identityPrompt'], 'assistant')
+  const identityPrompt = assistant?.identityPrompt
+  if (identityPrompt !== undefined && (typeof identityPrompt !== 'string' || identityPrompt.length > 2000
+    || /[^\P{Cc}\r\n\t]/u.test(identityPrompt))) {
+    throw new Error('assistant.identityPrompt: expected up to 2000 characters of public plain text')
+  }
   const platform = record(input.platform, ['defaultUrl'], 'platform')
   const updates = record(input.updates, ['enabled', 'feedUrl'], 'updates')
   const displayName = text(product.displayName, 'product.displayName')
@@ -124,6 +131,7 @@ export function validateProductConfig(value: unknown): ProductConfig {
       ...(branding.wordmark === undefined ? {} : { wordmark: text(branding.wordmark, 'branding.wordmark') }),
       ...(branding.sidebarLogo === undefined ? {} : { sidebarLogo: text(branding.sidebarLogo, 'branding.sidebarLogo') }),
       ...(branding.trayIcon === undefined ? {} : { trayIcon: text(branding.trayIcon, 'branding.trayIcon') }) },
+    ...(typeof identityPrompt === 'string' && identityPrompt.trim() !== '' ? { assistant: { identityPrompt } } : {}),
     platform: { defaultUrl: url(platform.defaultUrl, 'platform.defaultUrl') },
     updates: { enabled: updates.enabled, feedUrl },
     plugins,

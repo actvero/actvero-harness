@@ -41,6 +41,10 @@
 
 本机专用产品配置和素材可放在 `.actvero-builder/products/<id>/`，预设放在 `.actvero-builder/presets/`；Git 忽略整个目录。需要交给构建人员时单独发送这些文件。安装包仍会内嵌选定的公开默认值和素材，因此不要放入密钥。
 
+使用 [Harness 构建 Skill](../../.agents/skills/harness-build/SKILL.md) 跟用户确认品牌、AI 身份和安装目标。`pnpm run actvero:build-kit -- list` 列出预设。该命令还支持创建、校验、导入和导出配置 ZIP，并能按预设运行完整打包。构建包存放在 Git 忽略的 `.actvero-builder/kits/`。配置格式、命令和验收步骤见 Skill。
+
+`assistant.identityPrompt` 是可选的公开 AI 身份说明。打包时嵌入产品配置，桌面 Host 只将它用于 `harness:identity` 段。字段省略或空白时使用默认身份。
+
 <a id="commands"></a>
 
 ## 命令

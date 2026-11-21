@@ -230,6 +230,7 @@
     "actvero:contract:check": "tsx scripts/actvero-contract.ts --check",
     "actvero:build": "tsx scripts/actvero-build.ts",
     "actvero:package": "tsx scripts/actvero-build.ts --package",
+    "actvero:build-kit": "tsx scripts/actvero-build-kit.ts",
     "actvero:builder": "tsx scripts/actvero-builder.ts",
     "client:build": "node apps/desktop/scripts/build-client-release.mjs",
     "client:export": "node apps/desktop/scripts/export-client-release.mjs",

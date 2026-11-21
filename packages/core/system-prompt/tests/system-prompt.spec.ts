@@ -33,6 +33,21 @@ function contributed(assembly: PromptAssembly): PromptAssembly['sections'] {
 }
 
 describe('SystemPrompt', () => {
+  it('uses a literal deployment identity in the existing section and retains the persona', async () => {
+    const ctx = new Context()
+    try {
+      await ctx.plugin(SystemPrompt, { harnessIdentity: '你是示例助手 {{原文}}。', personaPrefix: 'Use available tools.' })
+      const assembly = await ctx.systemPrompt.assemble()
+      expect(assembly.sections.find(section => section.name === 'harness:identity')?.text).toBe('你是示例助手 {{原文}}。')
+      const rendered = renderPrompt(assembly)
+      expect(rendered).toContain('你是示例助手 {{原文}}。')
+      expect(rendered).toContain('Use available tools.')
+      expect(rendered).not.toContain(IDENTITY)
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('retains required user context when optional context is suppressed', async () => {
     const ctx = new Context()
     try {

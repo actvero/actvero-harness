@@ -25,6 +25,20 @@ export function productAssetPath(root: string, configPath: string, file: string)
 }
 
 /**
+ * Decode and rasterize one brand asset using the desktop build's image limits.
+ * @param source - SVG or PNG artwork bytes.
+ * @param size - Square output canvas size.
+ * @param square - Whether to require a square input.
+ * @returns Rasterized PNG artwork.
+ */
+export async function rasterActveroArtwork(source: Buffer, size: number, square: boolean): Promise<Buffer> {
+  const image = sharp(source, { density: 144, limitInputPixels: 16_777_216 })
+  const metadata = await image.metadata()
+  if (!metadata.width || !metadata.height || square && metadata.width !== metadata.height) throw new Error('branding: application and tray icons must be square')
+  return image.resize(size, size, { fit: 'contain', background: '#00000000' }).png().toBuffer()
+}
+
+/**
  * Rasterize native artwork, preserve SVG UI themes, and emit public identity metadata.
  * @param root - Repository directory.
  * @param selectedConfig - Configuration path; omitted selects actvero/product.json.
@@ -42,24 +56,19 @@ export async function prepareProductBranding(root: string, selectedConfig = 'act
   const sidebarLogo = optionalArtwork(config.branding.sidebarLogo)
   const wordmark = optionalArtwork(config.branding.wordmark)
   const tray = config.branding.trayIcon === undefined ? icon : bytes(config.branding.trayIcon)
-  const raster = async (source: Buffer, size: number, square: boolean) => {
-    const image = sharp(source, { density: 144, limitInputPixels: 16_777_216 })
-    const metadata = await image.metadata()
-    if (!metadata.width || !metadata.height || square && metadata.width !== metadata.height) throw new Error('branding: application and tray icons must be square')
-    return image.resize(size, size, { fit: 'contain', background: '#00000000' }).png().toBuffer()
-  }
-  const iconPng = await raster(icon, 1024, true)
-  const logoPng = await raster(logo, 256, false)
+  const iconPng = await rasterActveroArtwork(icon, 1024, true)
+  const logoPng = await rasterActveroArtwork(logo, 256, false)
   // Keep embedded SVG theme rules for interface artwork.
   const logoUrl = (path: string, source: Buffer, png: Buffer) => extname(path).toLowerCase() === '.svg'
     ? `data:image/svg+xml;base64,${source.toString('base64')}` : `data:image/png;base64,${png.toString('base64')}`
   const product: BuildProduct = { ...config.product, protocolScheme: `${config.product.id}-desktop`, defaultUrl: config.platform.defaultUrl,
+    ...(config.assistant ? { assistantIdentity: config.assistant.identityPrompt } : {}),
     logoDataUrl: logoUrl(logoPath, logo, logoPng),
     ...(wordmark === undefined ? {} : {
-      wordmarkDataUrl: logoUrl(wordmark.path, wordmark.source, await raster(wordmark.source, 256, false)),
+      wordmarkDataUrl: logoUrl(wordmark.path, wordmark.source, await rasterActveroArtwork(wordmark.source, 256, false)),
     }),
     ...(sidebarLogo === undefined ? {} : {
-      sidebarLogoDataUrl: logoUrl(sidebarLogo.path, sidebarLogo.source, await raster(sidebarLogo.source, 256, false)),
+      sidebarLogoDataUrl: logoUrl(sidebarLogo.path, sidebarLogo.source, await rasterActveroArtwork(sidebarLogo.source, 256, false)),
     }),
     iconDataUrl: `data:image/png;base64,${iconPng.toString('base64')}` }
   const hash = createHash('sha256').update(JSON.stringify(config)).update(icon).update(logo).update(tray)
@@ -71,7 +80,7 @@ export async function prepareProductBranding(root: string, selectedConfig = 'act
   writeFileSync(join(directory, 'icon.png'), iconPng)
   writeFileSync(join(directory, 'logo.png'), logoPng)
   const sizes = [...TRAY_ICON_SIZES, 128, 256]
-  const entries = await Promise.all(sizes.map(async size => ({ size, png: await raster(tray, size, true) })))
+  const entries = await Promise.all(sizes.map(async size => ({ size, png: await rasterActveroArtwork(tray, size, true) })))
   writeFileSync(join(directory, 'tray.ico'), packIco(entries))
   writeFileSync(join(directory, 'build-product.json'), `${JSON.stringify(product, null, 2)}\n`)
   writeFileSync(join(directory, 'assembly.json'), `${JSON.stringify(assembly, null, 2)}\n`)

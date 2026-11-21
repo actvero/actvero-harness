@@ -7,6 +7,7 @@ export interface BuildProduct {
   readonly version: string
   readonly defaultLocale: 'zh-CN' | 'en-US'
   readonly defaultUrl: string
+  readonly assistantIdentity?: string
   readonly logoDataUrl: string
   /** Complete brand artwork shared by the sidebar and sign-in screens. */
   readonly wordmarkDataUrl?: string
