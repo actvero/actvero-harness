@@ -76,11 +76,12 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
     startSession()
   }
   const controls = <div ref={toolbar} data-navigation-toolbar>
-    <WindowNavigationControls toggleSidebar={toggle} startSession={startSession} trackEntryClick={trackEntryClick}
-      t={t} useShortcuts={useShortcuts} controls="sidebar-conversations" expanded={expanded} toggleShortcut={panel === null}
+    <WindowNavigationControls renderHistorySlot={renderSlot} toggleSidebar={toggle} startSession={startSession}
+      trackEntryClick={trackEntryClick} t={t} useShortcuts={useShortcuts} controls="sidebar-conversations" expanded={expanded}
+      toggleShortcut={panel === null}
       showNewSession={Boolean(windowControlsHost) && panel === null && !visible} />
   </div>
-  return <div className={css.shell} data-navigation-shell>
+  return <div className={css.shell} data-navigation-shell={pane}>
     <div className={css.chrome} data-window-drag>
       {windowControlsHost === undefined ? controls : windowControlsHost && createPortal(controls, windowControlsHost)}
     </div>

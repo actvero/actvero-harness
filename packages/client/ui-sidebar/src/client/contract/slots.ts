@@ -16,6 +16,8 @@ import type { ProductEventMap } from '@deepseek-ai/dsh-client-product-analytics/
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /** Product navigation history controls in the fixed rail's window toolbar. */
+    'sidebar.history': { kind: 'single'; scope: 'root' }
     /** Non-interactive notification inside the collapsed sidebar expand button. */
     'sidebar.toggle.badge': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /**
@@ -206,6 +208,7 @@ export type SidebarRootInjected = {
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
   & PropsRenderSlots<
+    | 'sidebar.history'
     | 'sidebar.home'
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'

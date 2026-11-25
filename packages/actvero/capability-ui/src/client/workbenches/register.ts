@@ -27,6 +27,7 @@ import { workbenchResource } from './resource.ts'
 import { WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { publishedWorkbenchAction } from './platform.ts'
 import { workbenchCatalogIdentity } from './catalog.ts'
+import { registerWindowHistory } from './window-history.tsx'
 import { Navigation } from './Navigation.tsx'
 import { en, zh } from './locales.ts'
 import { WorkbenchToolbar } from './Toolbar.tsx'
@@ -816,6 +817,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     openObject: target => registry.openObject(target),
     openLabel: target => objectNavigation.get(target.workbenchId)?.(target.objectId),
   })
+  registerWindowHistory(ctx, source, businessPanel, action.open)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))

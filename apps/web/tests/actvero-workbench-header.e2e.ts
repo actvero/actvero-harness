@@ -107,6 +107,18 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(column!.y + 1)
       return [toggle!.x, toggle!.y, column!.y]
     }
+    const back = toolbar.getByRole('button', { name: 'Back', exact: true })
+    const forward = toolbar.getByRole('button', { name: 'Forward', exact: true })
+    const edges = () => page.evaluate(() => {
+      const rail = document.querySelector('[data-navigation-column]')!
+      const center = document.querySelector('[data-rightbar-col]')!.previousElementSibling!
+      return [getComputedStyle(rail, '::after').bottom, getComputedStyle(center).borderTopLeftRadius,
+        getComputedStyle(center).borderBottomLeftRadius]
+    })
+    await back.waitFor()
+    expect(await forward.isDisabled()).toBe(true)
+    expect(await edges()).toEqual(['8px', '12px', '12px'])
+    const wideBack = (await back.boundingBox())!.x
     const chrome = await geometry()
     if (platform === 'darwin') expect(chrome[0]).toBe(88)
     if (platform === 'darwin') {
@@ -115,7 +127,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await toolbar.getByRole('button', { name: 'New session', exact: true }).waitFor()
       await toolbarButton.click()
       await conversations.waitFor()
-      expect(await toolbar.getByRole('button').count()).toBe(1)
+      expect(await toolbar.getByRole('button').count()).toBe(3)
     }
     const fixed = await positions()
     expect(fixed).toHaveLength(5)
@@ -126,8 +138,21 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(await geometry()).toEqual(chrome)
       expect(await page.locator('[data-navigation-column]').evaluate(el => el.getBoundingClientRect().width)).toBeCloseTo(52, 0)
     }
+    expect(await edges()).toEqual(['0px', '0px', '0px'])
+    expect((await back.boundingBox())!.x).toBeLessThan(wideBack)
+    await back.click()
+    await expect.poll(() => rail.getByRole('button', { name: 'Plugins' }).getAttribute('aria-current')).toBe('page')
+    await forward.click()
+    await expect.poll(() => rail.getByRole('button', { name: 'Automation tasks' }).getAttribute('aria-current')).toBe('page')
+    await back.click()
+    await rail.getByRole('button', { name: 'Capability Center' }).click()
+    await expect.poll(() => forward.isDisabled()).toBe(true)
+    await rail.getByRole('button', { name: 'Automation tasks' }).click()
     await toolbarButton.click()
     await conversations.waitFor()
+    const float = await conversations.boundingBox()
+    expect(float!.x).toBe(56)
+    expect(float!.y + float!.height).toBe(896)
     await toolbarButton.click()
     await conversations.waitFor({ state: 'hidden' })
     await home.hover()
@@ -192,7 +217,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       })
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
-      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 12 : 72 : 20)
+      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 72 : 148 : 20)
       expect(geometry.controlsShareRow).toBe(true)
       expect(geometry.headerClearsControls).toBe(true)
       expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)

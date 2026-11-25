@@ -27,3 +27,52 @@
 .iconButton:hover {
   background: var(--dsw-alias-interactive-bg-hover);
 }
+
+.controls[data-rail-controls] {
+  width: 100%;
+  gap: 4px;
+  white-space: nowrap;
+}
+.controls[data-rail-controls] button {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.controls[data-rail-controls] button:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+@media (hover: hover) {
+  .controls[data-rail-controls] button:enabled:hover {
+    color: var(--dsw-alias-label-primary);
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+.controls[data-rail-controls] button:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+.controls[data-rail-controls] .panelIcon {
+  width: 14px;
+  height: 14px;
+}
+.controls[data-rail-controls] [aria-expanded='false'] .panelIcon path:last-child {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(.55);
+  stroke-linecap: round;
+}
+
+.controls :global([data-window-history]) {
+  display: flex;
+  gap: 2px;
+  margin-inline-start: auto;
+}

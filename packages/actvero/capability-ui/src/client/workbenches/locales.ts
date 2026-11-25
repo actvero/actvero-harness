@@ -1,4 +1,5 @@
 export const zh = {
+  windowBack: '返回', windowForward: '前进',
   commandUnavailable: '此命令已不可用，请在关联工作台的对话中重新打开。',
   referenceSnapshot: '引用时的快照',
   referenceOpen: '打开对象', referenceOpenFailed: '暂时无法打开原内容。你仍可查看这份快照。',
@@ -162,6 +163,7 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  windowBack: 'Back', windowForward: 'Forward',
   commandUnavailable: 'This command is unavailable. Reopen it in a conversation associated with the workbench.',
   referenceSnapshot: 'Saved reference snapshot',
   referenceOpen: 'Open object', referenceOpenFailed: 'Unable to open the original content. The snapshot is still available.',
