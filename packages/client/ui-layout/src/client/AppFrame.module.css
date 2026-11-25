@@ -306,9 +306,38 @@
   box-shadow: 0 0 0 .5px var(--dsw-alias-border-l2-darkmode-thin);
 }
 .frame[data-navigation-rail][data-sidebar-collapsed] .centerCol { border-radius: 0; }
+:global([data-platform='darwin']) .frame[data-navigation-rail] { --dsh-navigation-toolbar-height: 46px; }
+
+/* A module with its own native title row marks the body below that row as the framed surface. */
+.moduleSurface {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.moduleSurface,
+:global([data-platform='darwin']) .moduleSurface :global([data-shell-panel-body]) {
+  box-sizing: border-box;
+  border-block-start: .5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-inline-start: .5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-start-start-radius: var(--dsw-radius-md);
+  corner-shape: round;
+  background: var(--dsw-alias-bg-base);
+}
+.moduleTitlebar { flex: none; height: var(--dsh-navigation-toolbar-height); }
+:global([data-platform='darwin']) .moduleSurface { --dsh-frame-top-clearance: 0px; }
+.centerCol:has(:global([data-shell-panel-body])) .moduleTitlebar { display: none; }
+:global([data-platform='darwin']) .moduleSurface:has(:global([data-shell-panel-body])) {
+  border: 0;
+  border-radius: 0;
+}
+.frame[data-navigation-rail]:not([data-navigation-home]) { --dsh-navigation-rail-divider: 0px; }
 :global(html:not([data-platform='darwin'])) .frame[data-navigation-rail] {
   background: var(--dsw-specific-sidebar-fill);
 }
+:global(html[data-windows-titlebar][data-fullscreen]) .frame[data-navigation-rail][data-sidebar-collapsed] .centerCol,
 :global(html:not([data-platform='darwin']):not([data-windows-titlebar])) .frame[data-navigation-rail][data-sidebar-collapsed] .centerCol {
   margin-block-start: 40px;
 }
@@ -316,7 +345,6 @@
 :global([data-platform='darwin']) .frame[data-navigation-rail]:not([data-sidebar-collapsed]) .leadingSeat {
   grid-column: 1 / 2;
   right: 8px;
-  -webkit-app-region: drag;
 }
 .leadingSeat :global([data-navigation-toolbar]) { flex: auto; }
 .leadingSeat button { -webkit-app-region: no-drag; }

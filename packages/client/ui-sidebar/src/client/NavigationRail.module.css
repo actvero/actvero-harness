@@ -10,7 +10,7 @@
   color: var(--dsw-alias-label-primary);
   font-size: 14px;
 }
-:global([data-platform='darwin']) .shell { --chrome-height: 46px; }
+:global([data-platform='darwin']) .shell { --chrome-height: var(--dsh-navigation-toolbar-height); }
 .chrome {
   grid-area: 1 / 1 / 2 / -1;
   position: relative;
@@ -42,7 +42,7 @@
   content: '';
   position: absolute;
   inset: 0 0 0 auto;
-  width: .5px;
+  width: var(--dsh-navigation-rail-divider, .5px);
   background: var(--dsw-alias-border-l2-darkmode-thin);
   pointer-events: none;
 }
@@ -54,7 +54,7 @@
   box-sizing: border-box; flex: none; margin: 0; width: 36px; height: 36px; padding: 0;
   color: var(--dsw-alias-label-secondary); border: 0; border-radius: var(--dsw-radius-sm); background: transparent; cursor: pointer;
 }
-.entries button[aria-current='page'], .icon[aria-expanded='true'] {
+.entries button[aria-current='page'], .icon[data-preview] {
   color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
 }
 @media (hover: hover) {

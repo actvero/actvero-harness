@@ -4,6 +4,8 @@
 :global([data-platform='darwin']) :global([data-sidebar-collapsed]) .pageHeader { padding-inline-start: var(--dsh-frame-leading-clearance, 20px); }
 /* Center the 30px controls in the first 50px, even when the business header wraps. */
 .navigation { display: flex; align-items: center; align-self: flex-start; gap: 12px; flex: none; min-height: 30px; margin-block-start: 10px; }
+.businessBody { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
+:global([data-platform='darwin']) :global([data-module-surface]) .pageHeader { border-bottom: 0; }
 .headerExtension { flex: 1; min-width: 0; container-type: inline-size; }
 .defaultHeader { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .defaultHeader h1 { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsw-alias-label-primary); font-size: 14px; line-height: 20px; font-weight: 500; }

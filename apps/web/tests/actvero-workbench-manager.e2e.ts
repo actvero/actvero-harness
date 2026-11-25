@@ -1143,7 +1143,7 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
           let parent = element.parentElement!
           while (getComputedStyle(parent).display === 'contents') parent = parent.parentElement!
           return {
-            width: Math.round(rect.width), available: Math.round(parent.getBoundingClientRect().width),
+            width: Math.round(rect.width), available: parent.clientWidth,
             padding: getComputedStyle(element).paddingLeft,
           }
         })

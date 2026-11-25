@@ -84,7 +84,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
     <div className={css.rail} data-navigation-column>
       <nav className={css.entries} aria-label={t('panels.label')}>
         <button ref={home} className={css.icon} type="button" aria-label={t('home')}
-          aria-current={panel === null ? 'page' : undefined} aria-controls="sidebar-conversations" aria-expanded={visible}
+          aria-current={panel === null ? 'page' : undefined} aria-controls="sidebar-conversations" data-preview={preview || undefined}
           onPointerEnter={(event) => {
             cancel()
             if (event.pointerType === 'mouse' && !visible) timer.current = window.setTimeout(() => setPreview(true), 220)
@@ -97,7 +97,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
               requestAnimationFrame(() => browser.current?.querySelector('button')?.focus())
             }
           }}
-          onClick={() => { close(); if (panel !== null) selectPanel(null); else if (pane === 'closed') toggleSidebar() }}>
+          onClick={() => { close(); if (panel !== null) selectPanel(null) }}>
           {renderSlot('sidebar.home', {})}
         </button>
         {panels.map(({ id, label }) => <PanelRow key={id} id={id} label={label} wide={false}

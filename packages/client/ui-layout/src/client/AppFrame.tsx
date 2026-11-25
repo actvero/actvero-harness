@@ -32,8 +32,11 @@ export type AppFrameProps =
   & PropsLocale<'common'>
 
 /** Center column grid item (session-body building block). */
-function CenterColumn(props: { children?: ReactNode }) {
-  return <div className={css.centerCol}>{props.children}</div>
+function CenterColumn({ children, modulePage, darwin }: { children: ReactNode; modulePage: boolean; darwin: boolean }) {
+  return <div className={css.centerCol}>
+    {modulePage && darwin && <div className={css.moduleTitlebar} data-window-drag />}
+    {modulePage ? <div className={css.moduleSurface} data-module-surface>{children}</div> : children}
+  </div>
 }
 
 /** Subscribe to the main key without subscribing the column frame to each panel id. */
@@ -291,7 +294,7 @@ export function AppFrame({
         {sidebar}
       </div>
       <>
-        <CenterColumn>{main}</CenterColumn>
+        <CenterColumn modulePage={rail && !home} darwin={darwin}>{main}</CenterColumn>
         <RightbarColumn>
           {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: viewport, canShow: normal.rightbar > 0 })}
         </RightbarColumn>
@@ -303,7 +306,8 @@ export function AppFrame({
         {overlays}
       </div>
       {(leadingMounted || (rail && darwin)) && (
-        <div className={css.leadingSeat} data-shell-leading ref={rail ? setWindowControlsHost : undefined}>
+        <div className={css.leadingSeat} data-shell-leading data-window-drag={rail && !sidebarCollapsed || undefined}
+          ref={rail ? setWindowControlsHost : undefined}>
           {leadingMounted ? leading : null}
         </div>
       )}

@@ -111,7 +111,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const forward = toolbar.getByRole('button', { name: 'Forward', exact: true })
     const edges = () => page.evaluate(() => {
       const rail = document.querySelector('[data-navigation-column]')!
-      const center = document.querySelector('[data-rightbar-col]')!.previousElementSibling!
+      const center = document.querySelector('[data-module-surface]') ?? document.querySelector('[data-rightbar-col]')!.previousElementSibling!
       return [getComputedStyle(rail, '::after').bottom, getComputedStyle(center).borderTopLeftRadius,
         getComputedStyle(center).borderBottomLeftRadius]
     })
@@ -148,12 +148,14 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await rail.getByRole('button', { name, exact: true }).click()
       await conversations.waitFor({ state: 'hidden' })
       expect(await positions()).toEqual(fixed)
+      expect(await edges()).toEqual(['0px', '12px', '0px'])
+      const surface = page.locator('[data-module-surface]')
+      expect((await surface.boundingBox())!.y).toBe((await divider.boundingBox())!.y)
       expect(await toolbarButton.count()).toBe(0)
       expect(await page.locator('[data-navigation-column]').evaluate(el => el.getBoundingClientRect().width)).toBeCloseTo(52, 0)
       expect(await back.isDisabled()).toBe(true)
       expect(await forward.isDisabled()).toBe(true)
     }
-    expect(await edges()).toEqual(['0px', '0px', '0px'])
     expect((await back.boundingBox())!.x).toBeLessThan(wideBack)
     const taskFilters = page.getByRole('group', { name: 'Task status' })
     const filter = taskFilters.getByRole('button').nth(1)
@@ -202,6 +204,29 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await conversations.waitFor()
     await page.keyboard.press('Escape')
     await home.click()
+    await conversations.waitFor()
+    await toolbarButton.click()
+    await conversations.waitFor({ state: 'hidden' })
+    await home.click()
+    await home.press('Enter')
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
+    await home.hover()
+    await conversations.waitFor()
+    await home.click()
+    await conversations.waitFor({ state: 'hidden' })
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await toolbarButton.click()
+    await conversations.waitFor()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await conversations.waitFor({ state: 'hidden' })
+    await home.click()
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await toolbarButton.click()
+    await home.click()
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('true')
+    await toolbarButton.click()
+    await page.setViewportSize({ width: 1440, height: 900 })
     await conversations.waitFor()
     expect(await positions()).toEqual(fixed)
     await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
@@ -261,6 +286,11 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
           headerClearsControls: !leading || element.querySelector('[data-workbench-header]')!.getBoundingClientRect().left >= leading.right,
         }
       })
+      if (platform === 'darwin') {
+        const body = page.locator('[data-shell-panel-body]')
+        expect(await body.evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('12px')
+        expect((await body.boundingBox())!.y).toBeCloseTo((await row.boundingBox())!.y + geometry.height, 0)
+      }
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
       expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 36 : 112 : 20)
@@ -302,12 +332,15 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await checkHeaderGeometry(true)
       expect(await page.evaluate(element => element?.isConnected, input)).toBe(true)
     }
-    expect({ separateWindowRows: await page.locator('[data-workbench-window-chrome]').count(),
+    const framedContent = platform === 'darwin' ? page.locator('[data-shell-panel-body]') : page.locator('[data-module-surface]')
+    expect({ contentCorner: await framedContent.evaluate(element => getComputedStyle(element).borderTopLeftRadius),
+      separateWindowRows: await page.locator('[data-workbench-window-chrome]').count(),
       headerAtTop: await row.evaluate(element =>
         element.getBoundingClientRect().top === element.parentElement!.getBoundingClientRect().top),
       input: await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue(),
     }).toMatchInlineSnapshot(`
       {
+        "contentCorner": "12px",
         "headerAtTop": true,
         "input": "node A",
         "separateWindowRows": 0,
