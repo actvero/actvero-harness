@@ -70,16 +70,11 @@
 }
 .browser[hidden] { display: none; }
 .browser[data-floating] {
-  position: absolute; grid-area: auto; z-index: 16; inset-block: calc(var(--chrome-height) + 4px) 4px; inset-inline-start: calc(var(--rail-width) + 4px);
-  width: min(calc(var(--dsh-navigation-dock-width) - var(--rail-width) - 4px), calc(100vw - var(--rail-width) - 8px));
+  position: absolute; grid-area: auto; z-index: 16; inset-block: calc(var(--chrome-height) + 4px) 8px; inset-inline-start: calc(var(--rail-width) + 4px);
+  width: min(264px, calc(100vw - var(--rail-width) - 12px));
+  padding-block: 8px 4px;
   background: var(--dsw-alias-bg-layer-2); --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
   border-radius: var(--dsw-radius-md); box-shadow: var(--dsw-elevation-prominent);
-}
-.browser[data-preview='hover'] {
-  inset-block-end: auto;
-  max-height: calc(100% - var(--chrome-height) - 12px);
-  width: min(max(264px, calc(var(--dsh-navigation-dock-width) - var(--rail-width) - 4px)), calc(100vw - var(--rail-width) - 12px));
-  padding-block: 8px 4px;
 }
 /* Keep the path from the 36px Home button to the preview inside the hover target. */
 .browser[data-preview='hover']::before {

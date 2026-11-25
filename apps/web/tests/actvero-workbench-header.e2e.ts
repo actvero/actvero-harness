@@ -165,14 +165,14 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await conversations.waitFor()
     const float = await conversations.boundingBox()
     expect(float!.x).toBe(56)
-    expect(float!.y + float!.height).toBe(896)
+    expect(float!.width).toBe(264)
+    expect(float!.y + float!.height).toBe(892)
     await toolbarButton.click()
     await conversations.waitFor({ state: 'hidden' })
     await home.hover()
     await conversations.waitFor()
     const preview = (await conversations.boundingBox())!
-    expect(preview.height).toBeLessThan(float!.height)
-    expect(preview.width).toBeGreaterThanOrEqual(264)
+    expect(preview).toEqual(float)
     const homeRow = (await home.boundingBox())!
     await page.mouse.move(preview.x - 2, homeRow.y + homeRow.height / 2)
     expect(await conversations.evaluate((el) => {
@@ -182,7 +182,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await page.setViewportSize({ width: 1440, height: 180 })
     const tree = conversations.getByRole('tree')
     await expect.poll(() => tree.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
-    expect(await conversations.evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(172)
+    expect(await conversations.evaluate(el => el.getBoundingClientRect().bottom)).toBe(172)
     await page.setViewportSize({ width: 1440, height: 900 })
     expect(await rail.getByRole('button', { name: 'Automation tasks' }).getAttribute('aria-current')).toBe('page')
     await conversations.getByRole('button', { name: 'New session', exact: true }).hover()
