@@ -17,18 +17,18 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
   const panels = usePanels(value => value)
   const panel = usePanelInfo(info => info.activePanelId)
   const shortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
-  const [preview, setPreview] = useState<'hover' | 'button' | null>(null)
+  const [preview, setPreview] = useState(false)
   const toolbar = useRef<HTMLDivElement>(null)
   const home = useRef<HTMLButtonElement>(null)
   const browser = useRef<HTMLElement>(null)
   const timer = useRef<number>()
-  const floating = pane === 'overlay' || (preview !== null && pane === 'closed')
-  const visible = pane !== 'closed' || preview !== null
+  const floating = pane === 'overlay' || (preview && pane === 'closed')
+  const visible = pane !== 'closed' || preview
   const cancel = () => window.clearTimeout(timer.current)
-  const close = () => { cancel(); setPreview(null) }
+  const close = () => { cancel(); setPreview(false) }
   useEffect(() => {
     cancel()
-    setPreview(null)
+    setPreview(false)
     return cancel
   }, [panel, pane])
   useEffect(() => {
@@ -45,8 +45,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('[role="menu"],[role="dialog"]')) return
       dismiss()
-      if (preview === 'button') toolbar.current?.querySelector('button')?.focus()
-      else home.current?.focus()
+      home.current?.focus()
     }
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', escape)
@@ -54,21 +53,18 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
       document.removeEventListener('pointerdown', outside)
       document.removeEventListener('keydown', escape)
     }
-  }, [floating, pane, preview, toggleSidebar])
+  }, [floating, pane, toggleSidebar])
   const leave = () => {
     cancel()
-    if (preview !== 'hover') return
+    if (!preview) return
     timer.current = window.setTimeout(() => {
-      if (!browser.current?.contains(document.activeElement) && !document.querySelector('[role="menu"],[role="dialog"]')) setPreview(null)
+      if (!browser.current?.contains(document.activeElement) && !document.querySelector('[role="menu"],[role="dialog"]')) setPreview(false)
     }, 180)
   }
   const toggle = () => {
-    cancel()
-    if (panel !== null) { setPreview(visible ? null : 'button'); return }
     close()
     toggleSidebar()
   }
-  const expanded = panel === null ? pane !== 'closed' : visible
   const newSession = () => {
     close()
     if (pane === 'overlay') toggleSidebar()
@@ -77,8 +73,8 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
   }
   const controls = <div ref={toolbar} data-navigation-toolbar>
     <WindowNavigationControls renderHistorySlot={renderSlot} toggleSidebar={toggle} startSession={startSession}
-      trackEntryClick={trackEntryClick} t={t} useShortcuts={useShortcuts} controls="sidebar-conversations" expanded={expanded}
-      toggleShortcut={panel === null}
+      trackEntryClick={trackEntryClick} t={t} useShortcuts={useShortcuts} controls="sidebar-conversations" expanded={pane !== 'closed'}
+      showToggle={panel === null}
       showNewSession={Boolean(windowControlsHost) && panel === null && !visible} />
   </div>
   return <div className={css.shell} data-navigation-shell={pane}>
@@ -91,13 +87,13 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
           aria-current={panel === null ? 'page' : undefined} aria-controls="sidebar-conversations" aria-expanded={visible}
           onPointerEnter={(event) => {
             cancel()
-            if (event.pointerType === 'mouse' && !visible) timer.current = window.setTimeout(() => setPreview('hover'), 220)
+            if (event.pointerType === 'mouse' && !visible) timer.current = window.setTimeout(() => setPreview(true), 220)
           }} onPointerLeave={leave}
           onKeyDown={(event) => {
             if (event.key === 'ArrowRight') {
               event.preventDefault()
               cancel()
-              if (!visible) setPreview('hover')
+              if (!visible) setPreview(true)
               requestAnimationFrame(() => browser.current?.querySelector('button')?.focus())
             }
           }}
@@ -112,7 +108,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
         {renderSlot('sidebar.settings', { wide: false })}
       </div>
     </div>
-    <aside ref={browser} id="sidebar-conversations" className={css.browser} hidden={!visible} data-preview={floating ? preview : undefined}
+    <aside ref={browser} id="sidebar-conversations" className={css.browser} hidden={!visible} data-preview={floating && preview ? 'hover' : undefined}
       aria-label={t('home')} data-floating={floating || undefined}
       onPointerEnter={cancel} onPointerLeave={leave}
       onBlur={(event) => { if (preview && !event.currentTarget.contains(event.relatedTarget)) leave() }}>
@@ -121,7 +117,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
           aria-keyshortcuts={shortcut?.aria} onClick={newSession}><IconNewChatOutlineMedium size={16} />{t('session.new')}</button>
       </div>
       {renderSlot('sidebar.quickSwitcher', { wide: true, startSession })}
-      {renderSlot('sidebar.workspaces', { wide: visible, expandSidebar: () => { cancel(); setPreview('hover') } })}
+      {renderSlot('sidebar.workspaces', { wide: visible, expandSidebar: () => { cancel(); setPreview(true) } })}
     </aside>
   </div>
 }

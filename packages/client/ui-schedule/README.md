@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Manage active and inactive tasks from the Automation tasks page and the right Sidebar task tab: search, filter, edit name, instruction, and run time, browse records, delete, or open the original conversation. Every surface names a task by its title. An open Session's header shows an icon-only reminder clock while active reminders exist and opens that task's detail; a `schedule_create` call renders a transcript card; an idle, unarchived Session row with active tasks shows a clock mark and hover list.
+Manage active and inactive tasks from the Automation tasks page and the right Sidebar task tab: search, filter, edit name, instruction, and run time, browse records, delete, or open the original conversation. Every surface names a task by its title. An open Session's header shows an icon-only reminder clock while active reminders exist and opens that task's detail; a `schedule_create` call renders a transcript card; an idle, unarchived Session row with active tasks shows a clock mark and hover list. In a window with module history, Back and Forward revisit status filters and available task details.
 
 ## Table of Contents
 

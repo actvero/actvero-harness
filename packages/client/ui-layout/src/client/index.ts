@@ -28,7 +28,7 @@ import { ThemePresenter } from './theme-presenter.ts'
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
-export type { ILayout, MainPanelId, PanelInfo } from './service.ts'
+export type { ILayout, MainPanelId, PanelInfo, PanelHistoryRegistry, PanelRoutes } from './service.ts'
 
 /** Selector hook over root-scoped panel selection. */
 export type UsePanelInfo = SnapshotSelectorHook<PanelInfo>
@@ -37,6 +37,8 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
     layout: import('./service.ts').ILayout
+    /** Page-specific Back and Forward when supplied by the window. */
+    panelHistory: import('./service.ts').PanelHistoryRegistry
   }
 }
 
@@ -213,7 +215,11 @@ export function apply(ctx: ClientContext): void {
         'web:windows': { code: 'KeyB', modifiers: ['primary', 'alt'] },
       },
       regions: ['page', 'editable'], modals: [],
-      resolve: () => ({ status: 'handled', run: () => { layout.toggleSidebar() } }),
+      resolve: () => {
+        const { layoutInfo, panelInfo } = instance.getSnapshot()
+        return layoutInfo.navigationRail && panelInfo.activePanelId !== null
+          ? { status: 'pass' } : { status: 'handled', run: () => { layout.toggleSidebar() } }
+      },
     })
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
     const syncRail = () => { instance.actions.setNavigationRail(ctx.slots.entriesOfSlot('sidebar.home').length > 0) }

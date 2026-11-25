@@ -1,5 +1,6 @@
 /** Cross-session retained reminders with local search and selection. */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import clsx from 'clsx'
 import {
   Button, IconClockOutlineRegular, IconCloseOutlineRegular, IconPlusOutlineRegular, IconSearchOutlineRegular, Input,
@@ -15,10 +16,20 @@ import { formatScheduleFrequency, nextRunParts, taskName, zoneLabel } from './sc
 import type { FrequencyZone } from './schedule-format.ts'
 import css from './TaskManagerPage.module.css'
 
+/** List filter and optional task detail revisited by the window controls. */
+interface TaskRoute { statusFilter: 'all' | ScheduleCatalogEntry['status']; selectedId: ScheduleId | null }
+
+/** @returns The task page selection shared by its rows and window history. */
+export function createTaskRoute() {
+  return createSnapshotStore<TaskRoute>({ statusFilter: 'all', selectedId: null })
+}
+
 /** Injected catalog and task actions for the management page. */
 export interface TaskManagerInjected extends TaskDetailInjected {
   /** Host task catalog with its query and deletion state. */
-  readonly hooks: { readonly catalog: HostObservable<CatalogSnapshot<ScheduleCatalogEntry>> }
+  readonly hooks: { readonly catalog: HostObservable<CatalogSnapshot<ScheduleCatalogEntry>>; readonly taskRoute: HostObservable<TaskRoute> }
+  /** Select a list filter or open a task detail. */
+  readonly selectRoute: (route: TaskRoute) => void
   /**
    * Start a new Session, where a reminder is created by asking the model to
    * schedule it. The page deliberately has no creation form of its own.
@@ -31,8 +42,6 @@ export type TaskManagerPageProps = PropsRuntime<'main'>
   & InjectFace<TaskManagerInjected>
   & PropsLocale<'schedule.manager'>
 
-type StatusFilter = 'all' | ScheduleCatalogEntry['status']
-
 /**
  * Render retained tasks with authoritative deletion and timing-only edits.
  * @param props - framework catalog snapshot, localized copy, and action callbacks.
@@ -43,8 +52,8 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
   const catalog = useCatalog(snapshot => snapshot)
   const { records, status } = catalog
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [selectedId, setSelectedId] = useState<ScheduleId | null>(null)
+  const { statusFilter, selectedId } = props.useTaskRoute(value => value)
+  const { selectRoute } = props
   // The rows state how long remains, so they read the shared ticking clock
   // rather than a value sampled at mount: a catalog refresh can move the target
   // this text describes.
@@ -88,12 +97,12 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
 
   useEffect(() => {
     if (status !== 'ready') return
-    if (selectedId !== null && selected === undefined) setSelectedId(null)
+    if (selectedId !== null && selected === undefined) selectRoute({ statusFilter, selectedId: null })
     if (confirmId !== null && confirming === undefined) setConfirmId(null)
-  }, [status, selectedId, selected, confirmId, confirming])
+  }, [status, selectedId, selected, confirmId, confirming, statusFilter, selectRoute])
 
   const closeDetails = (): void => {
-    setSelectedId(null)
+    selectRoute({ statusFilter, selectedId: null })
   }
 
   return (
@@ -128,7 +137,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                     type="button"
                     className={clsx(css.filterTab, statusFilter === value && css.filterTabActive)}
                     aria-pressed={statusFilter === value}
-                    onClick={() => { setStatusFilter(value) }}
+                    onClick={() => { selectRoute({ statusFilter: value, selectedId }) }}
                   >
                     {t(value === 'all' ? 'statusFilter.all' : `status.${value}`)}
                   </button>
@@ -173,7 +182,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                         aria-controls={selectedId === record.id ? detailId : undefined}
                         onClick={(event) => {
                           rowRef.current = event.currentTarget
-                          setSelectedId(record.id)
+                          selectRoute({ statusFilter, selectedId: record.id })
                           setTab('rule')
                         }}
                       >

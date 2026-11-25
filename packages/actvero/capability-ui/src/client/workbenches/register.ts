@@ -78,6 +78,7 @@ export interface WorkbenchView extends WorkbenchManagement {
   location: WorkbenchObjectLocation | null
   platform: { phase: 'login' | 'loading' | 'ready' | 'failed'; catalog?: PublishedWorkbenchCatalog }
   cleanupProviders?: readonly string[]
+  catalogSource: 'local' | 'platform'
   accessEpoch: number
   accessError: WorkbenchAccessError | null
   entries: readonly ActveroWorkbench[]
@@ -104,6 +105,7 @@ export interface WorkbenchAction extends Omit<ReturnType<typeof createWorkbenchM
    * @returns Completion after clipboard success or a transient failure report.
    */
   copyDevelopmentInstructions(): Promise<void>
+  selectCatalogSource(source: WorkbenchView['catalogSource']): void
   open(id: string): void
   refreshPlatform(): Promise<void>
   usePublished(release: PublishedWorkbench): Promise<void>
@@ -177,7 +179,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   })
   let view: WorkbenchView = { ...management.initial, cleanupProviders: providers.value.map(entry => entry.id),
     entries: examples, remembered: [], opened: readSelection(),
-    platform: { phase: 'login' }, accessEpoch: 0, accessError: null,
+    catalogSource: 'local', platform: { phase: 'login' }, accessEpoch: 0, accessError: null,
     instance: null, location: null, preparing: false, openError: null, chat: null, chatCollapsed: true,
     chatPreparing: false, visibility: readVisibility(), canOpenDirectory: false, catalogButtons: {} }
   const listeners = new Set<() => void>()
@@ -560,6 +562,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       }
       ctx.capabilityHub.notify(t('copied'), 'success')
     },
+    selectCatalogSource(source) { update({ catalogSource: source }) },
     open(id) {
       if (!view.entries.some(entry => entry.id === id)) return
       linkedSession = null
@@ -817,7 +820,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     openObject: target => registry.openObject(target),
     openLabel: target => objectNavigation.get(target.workbenchId)?.(target.objectId),
   })
-  registerWindowHistory(ctx, source, businessPanel, action.open)
+  registerWindowHistory(ctx, source, managerPanel, businessPanel, action)
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))

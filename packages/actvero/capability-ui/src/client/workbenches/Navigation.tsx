@@ -27,14 +27,13 @@ export function Navigation({ t, active, onOpen, usePanelInfo }: PropsRuntime<'si
   </Tooltip>
 }
 
-/** Select and reorder installed workbenches from the catalog or business page.
+/** Select and reorder installed workbenches from the business page.
  * @param props Localized page presentation and the active workbench catalog.
  * @returns The workbench picker with its keyboard-accessible menu.
  */
-export function WorkbenchSwitcher({ t, view, action, compact = false }: PropsLocale<'actvero.workbenches'> & {
+export function WorkbenchSwitcher({ t, view, action }: PropsLocale<'actvero.workbenches'> & {
   view: WorkbenchView
   action: WorkbenchAction
-  compact?: boolean
 }) {
   const { entries, opened } = view
   const [menuOpen, setMenuOpen] = useState(false)
@@ -70,11 +69,11 @@ export function WorkbenchSwitcher({ t, view, action, compact = false }: PropsLoc
   }
 
   const selected = catalog.find(entry => entry.id === opened)
-  const row = <Tooltip label={t('switch')} disabled={!compact} portal side="bottom">
-    <button type="button" className={styles.switchButton} data-compact={compact || undefined}
+  const row = <Tooltip label={t('switch')} portal side="bottom">
+    <button type="button" className={styles.switchButton}
       aria-label={`${t('switch')} · ${selected?.name ?? t('choose')}`}
       aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
-      {compact ? <WorkbenchIcon size={16} /> : <TruncatedName name={selected?.name ?? t('choose')} />}
+      <WorkbenchIcon size={16} />
       <IconChevronDownOutlineMedium size={14} />
     </button>
   </Tooltip>

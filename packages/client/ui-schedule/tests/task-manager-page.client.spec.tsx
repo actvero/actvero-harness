@@ -9,7 +9,7 @@ import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/c
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ScheduleCatalogEntry, ScheduleDeleteResult, ScheduleId, ScheduleUpdateResult } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { TaskManagerPage, type TaskManagerPageProps } from '../src/client/TaskManagerPage.tsx'
+import { createTaskRoute, TaskManagerPage, type TaskManagerPageProps } from '../src/client/TaskManagerPage.tsx'
 import { TaskManagerIcon } from '../src/client/TaskManagerIcon.tsx'
 import { createCatalogSource, type CatalogSnapshot } from '../src/client/catalog-source.ts'
 import {
@@ -166,7 +166,9 @@ function mount(
   let snapshot: CatalogSnapshot<ScheduleCatalogEntry> = {
     records, status: 'ready', deleting: [], settled: true, readRequest: 0, readSettled: 0, ...initial,
   }
+  const taskRoute = createTaskRoute()
   const props: TaskManagerPageProps = {
+    useTaskRoute: bindSnapshotSelector(taskRoute), selectRoute: taskRoute.set,
     useCatalog: select => select(snapshot),
     useSessions: select => select(sessions),
     useWorkspaces: select => select(workspaces),

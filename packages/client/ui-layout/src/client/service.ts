@@ -15,6 +15,38 @@ import type { createLayoutStore } from './stores.ts'
 /** Identity shared by a sidebar panel entry and its main-slot occupant. */
 export type MainPanelId = Branded<'MainPanelId'>
 
+/** Module-owned destinations restored by a window toolbar. */
+export interface PanelRoutes<T> extends HostObservable<T> {
+  /** @param previous Recorded destination.
+   * @param current Observed destination.
+   * @returns Whether both represent the same page selection.
+   */
+  same(previous: T, current: T): boolean
+  /** Restore the destination through its normal UI actions.
+   * @param destination Recorded selection to restore.
+   */
+  open(destination: T): void
+  /** @param destination Recorded selection to check.
+   * @returns Whether the destination can still be opened.
+   */
+  available?(destination: T): boolean
+  /** @param previous Recorded destination.
+   * @param current Newly resolved destination.
+   * @returns Whether the new destination completes the preceding entry.
+   */
+  replace?(previous: T, current: T): boolean
+}
+
+/** Optional window navigation provided by the product. */
+export interface PanelHistoryRegistry {
+  /** Track one module across its main panels.
+   * @param panels Main panel ids owned by this module, with null for Home.
+   * @param routes The observable page selection and its restore action.
+   * @returns Disposes the module's history and subscription.
+   */
+  register<T>(panels: readonly (MainPanelId | null)[], routes: PanelRoutes<T>): () => void
+}
+
 /** Root-scoped navigation state exposed to panel-aware components. */
 export interface PanelInfo {
   /** Selected global panel; null displays the current Conversation. */

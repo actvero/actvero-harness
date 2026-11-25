@@ -32,4 +32,4 @@
 }
 .switchButton:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
 .switchButton svg { flex: none; }
-.switchButton[data-compact] { gap: 2px; padding: 4px; }
+.switchButton { gap: 2px; padding: 4px; }

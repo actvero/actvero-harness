@@ -15,7 +15,7 @@ export type HeaderLeadingControlsProps =
 type WindowNavigationControlsProps =
   Pick<HeaderLeadingControlsProps, 'toggleSidebar' | 'startSession' | 'trackEntryClick' | 'useShortcuts' | 't'>
   & { renderHistorySlot?: PropsRenderSlots<'sidebar.history'>['renderSlot'] }
-  & { expanded?: boolean; showNewSession?: boolean; controls?: string; toggleShortcut?: boolean }
+  & { expanded?: boolean; showNewSession?: boolean; controls?: string; showToggle?: boolean }
 
 /**
  * Uses the active sidebar state and the product’s available actions.
@@ -31,23 +31,23 @@ export function HeaderLeadingControls(props: HeaderLeadingControlsProps) {
  * @returns The controls beside the native window buttons.
  */
 export function WindowNavigationControls({ toggleSidebar, startSession, trackEntryClick, useShortcuts, t,
-  renderHistorySlot, expanded, controls, showNewSession = true, toggleShortcut = true }: WindowNavigationControlsProps) {
+  renderHistorySlot, expanded, controls, showNewSession = true, showToggle = true }: WindowNavigationControlsProps) {
   const shortcut = useShortcuts(rows => rows.find(row => row.id === 'sidebar.left.toggle'))
   const label = t(expanded ? 'toggle.collapse' : 'toggle.open')
   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
   return (
     <div className={css.controls} data-rail-controls={renderHistorySlot ? true : undefined}>
-      <Tooltip label={label} shortcutKeys={toggleShortcut ? shortcut?.keys : undefined} delayMs={500}>
+      {showToggle && <Tooltip label={label} shortcutKeys={shortcut?.keys} delayMs={500}>
         <button
           type="button"
           className={css.iconButton}
           aria-label={label} aria-controls={controls} aria-expanded={expanded}
-          aria-keyshortcuts={toggleShortcut ? shortcut?.aria : undefined}
+          aria-keyshortcuts={shortcut?.aria}
           onClick={() => { toggleSidebar() }}
         >
           <IconPanelLeftOutlineRegular size={16} className={css.panelIcon} />
         </button>
-      </Tooltip>
+      </Tooltip>}
       {renderHistorySlot?.('sidebar.history', {})}
       {showNewSession && <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500}>
         <button

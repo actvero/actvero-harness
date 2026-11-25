@@ -11,13 +11,13 @@
  */
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { bindSnapshotSelector, allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ScheduleCatalogEntry, ScheduleId, ScheduleUpdateResult } from '@deepseek-ai/dsh-schedule/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { TaskManagerPage, type TaskManagerPageProps } from '../src/client/TaskManagerPage.tsx'
+import { createTaskRoute, TaskManagerPage, type TaskManagerPageProps } from '../src/client/TaskManagerPage.tsx'
 import { mergeRuleDraft } from '../src/client/TaskDetail.tsx'
 import type { CatalogSnapshot } from '../src/client/catalog-source.ts'
 import { timingSnapshot } from '../src/client/task-timing.ts'
@@ -110,7 +110,9 @@ function mount(
   let snapshot: CatalogSnapshot<ScheduleCatalogEntry> = {
     records, status, deleting: [], settled: status === 'ready', readRequest: 0, readSettled: 0,
   }
+  const taskRoute = createTaskRoute()
   const props: TaskManagerPageProps = {
+    useTaskRoute: bindSnapshotSelector(taskRoute), selectRoute: taskRoute.set,
     useCatalog: select => select(snapshot),
     useSessions: select => select(sessions),
     useWorkspaces: select => select(workspaces),

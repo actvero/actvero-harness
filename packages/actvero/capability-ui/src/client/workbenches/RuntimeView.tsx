@@ -74,7 +74,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       {catalogButton && <div className={styles.navigation} data-workbench-navigation="">
         <Tooltip label={t('back')} portal side="bottom"><Button size="sm" className={styles.iconButton} aria-label={t('back')}
           onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
-        <WorkbenchSwitcher t={t} view={view} action={action} compact />
+        <WorkbenchSwitcher t={t} view={view} action={action} />
         <span className={styles.separator} aria-hidden="true" />
       </div>}
       <div className={styles.headerExtension} data-workbench-header="">

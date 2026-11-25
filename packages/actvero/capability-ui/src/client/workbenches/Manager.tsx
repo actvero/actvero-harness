@@ -20,7 +20,7 @@ import type { PropsHooks, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
-import { WorkbenchSwitcher, type WorkbenchViewHooks } from './Navigation.tsx'
+import type { WorkbenchViewHooks } from './Navigation.tsx'
 import { publishedWorkbenchAction, publishedWorkbenchDetails, type PublishedWorkbenchAction, type WorkbenchDetails } from './platform.ts'
 import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
@@ -307,7 +307,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
   const [developerOpen, setDeveloperOpen] = useState(false)
   const [copying, setCopying] = useState(false)
   const [category, setCategory] = useState<Category>('all')
-  const [source, setSource] = useState<'platform' | 'local'>('local')
+  const source = view.catalogSource
   const [detailSelection, setDetailSelection] = useState<{ source: 'platform' | 'local'; id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
@@ -354,7 +354,6 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
   return <section className={`${hubStyles.page} ${styles.page}`}>
     <header className={styles.pageTitle}>
       <h1>{t('title')}</h1>
-      <WorkbenchSwitcher t={t} view={view} action={action} />
     </header>
     <div className={`${catalogStyles.toolbar} ${styles.toolbar}`}>
       <Input className={catalogStyles.search} icon={<IconSearchOutlineMedium />}
@@ -371,7 +370,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
     </div>
     <div className={styles.content}>
       <SourceTabs value={source} platformLabel={t('platform')} localLabel={t('mine')}
-        count={source === 'local' ? entries.length : undefined} onChange={setSource} />
+        count={source === 'local' ? entries.length : undefined} onChange={action.selectCatalogSource} />
       {source === 'platform' && <nav className={catalogStyles.categories} aria-label={t('categories')}>
         {categories.map(value => <Button key={value} variant="ghost" aria-pressed={value === category} onClick={() => { setCategory(value) }}>{t(value)}</Button>)}
       </nav>}
