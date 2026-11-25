@@ -144,6 +144,27 @@
   width: calc(100% - 4px);
   margin: 0 2px;
 }
+.railAnchor {
+  flex: none;
+  width: 36px;
+}
+.railMenu[role='menu'] {
+  width: 232px;
+  padding: 6px;
+}
+.menuIdentity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px 4px;
+  padding: 5px 2px 9px;
+  border-bottom: .5px solid var(--dsw-alias-border-l2);
+}
+.organization {
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-label-tertiary);
+  overflow-wrap: anywhere;
+}
 .trigger {
   anchor-name: --actvero-account-trigger;
   display: flex;
@@ -159,8 +180,11 @@
   background: transparent;
   cursor: pointer;
 }
-.trigger:hover {
+.trigger[aria-expanded='true'] {
   background: var(--dsw-alias-interactive-bg-hover);
+}
+@media (hover: hover) {
+  .trigger:hover { background: var(--dsw-alias-interactive-bg-hover); }
 }
 .trigger:focus-visible {
   outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color);
@@ -169,6 +193,7 @@
 .trigger[data-collapsed='true'] {
   width: 36px;
   height: 36px;
+  border-radius: var(--dsw-radius-sm);
   justify-content: center;
   padding: 0;
 }
@@ -176,6 +201,12 @@
   min-height: 40px;
   padding: 8px 12px;
   font: var(--dsw-font-s-14);
+}
+.railMenu [role='menuitem'] {
+  min-height: 32px;
+  padding: 5px 8px;
+  gap: 8px;
+  border-radius: var(--dsw-radius-sm);
 }
 .avatar {
   width: 24px;

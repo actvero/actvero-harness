@@ -512,6 +512,18 @@ describe.skipIf(!existsSync(join(repository, 'apps/desktop-host/lib/index.js')))
             await page.getByRole('button', { name: '新建会话', exact: true }).waitFor()
             await page.keyboard.press('Escape')
             await page.locator('#sidebar-conversations').waitFor({ state: 'hidden' })
+            const accountButton = page.getByRole('button', { name: '账户菜单', exact: true })
+            await accountButton.click()
+            const menu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: '个人中心' }) })
+            await menu.getByText('Member', { exact: true }).waitFor()
+            await menu.getByText('Organization', { exact: true }).waitFor()
+            const trigger = (await accountButton.boundingBox())!
+            const card = (await menu.boundingBox())!
+            expect(card.x).toBe(trigger.x + trigger.width + 4)
+            expect(Math.abs(card.y + card.height - trigger.y - trigger.height)).toBeLessThanOrEqual(0.5)
+            await page.keyboard.press('Escape')
+            await menu.waitFor({ state: 'hidden' })
+            expect(await accountButton.evaluate(el => el === document.activeElement)).toBe(true)
           }
           await page.emulateMedia({ colorScheme: 'light' })
           const avatar = page.getByRole('button', { name: '账户菜单', exact: true }).locator('img')

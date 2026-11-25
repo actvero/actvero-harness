@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Button, Input, Menu, MenuItemButton, IconUserOutlineMedium, IconRightUpOutlineRegular, IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  Button, Input, Menu, MenuItemButton, Tooltip, LogoutIcon, IconSettingsOutlineRegular,
+  IconUserOutlineMedium, IconRightUpOutlineRegular, IconChevronDownOutlineRegular,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AccountBridge, AccountSnapshot } from '../protocol.ts'
 import { errorKey } from './locales.ts'
@@ -170,44 +173,55 @@ export function AccountSection({ useAccount, bridge, t }: SectionProps) {
     </section>
   )
 }
-export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuProps) {
+export function AccountMenu({ useAccount, bridge, wide, openSettings, settingsShortcut, t }: MenuProps) {
   const account = useAccount(value => value)
   const [open, setOpen] = useState(false)
   const [failedAvatar, setFailedAvatar] = useState<string>()
   if (!account) return null
   const avatar = account.user?.avatarUrl
+  const portrait = <span className={css.avatar} aria-hidden="true">
+    {avatar && avatar !== failedAvatar ? <img src={avatar} alt="" onError={() => setFailedAvatar(avatar)} />
+      : account.user?.name.slice(0, 1) ?? <IconUserOutlineMedium size={16} />}
+  </span>
   const close = () => {
     setOpen(false)
   }
   return (
     <Menu
       open={open}
-      side="top"
+      side={wide ? 'top' : 'right'}
+      align={wide ? 'start' : 'end'}
       portal
       autoFocus
-      listClassName={css.menu}
-      className={css.anchor}
+      listClassName={wide ? css.menu : `${css.menu} ${css.railMenu}`}
+      className={wide ? css.anchor : css.railAnchor}
       onClose={close}
       anchor={
-        <button
-          className={css.trigger}
-          data-collapsed={!wide}
-          type="button"
-          aria-label={t('menu')}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => {
-            setOpen(value => !value)
-          }}
-        >
-          <span className={css.avatar} aria-hidden="true">
-            {avatar && avatar !== failedAvatar ? <img src={avatar} alt="" onError={() => setFailedAvatar(avatar)} />
-              : account.user?.name.slice(0, 1) ?? <IconUserOutlineMedium size={16} />}
-          </span>
-          {wide && <span>{account.user?.name ?? t('login')}</span>}
-        </button>
+        <Tooltip label={t('menu')} side="right" portal delayMs={450} disabled={wide || open}>
+          <button
+            className={css.trigger}
+            data-collapsed={!wide}
+            type="button"
+            aria-label={t('menu')}
+            aria-haspopup="menu"
+            aria-expanded={open}
+            onClick={() => {
+              setOpen(value => !value)
+            }}
+          >
+            {portrait}
+            {wide && <span>{account.user?.name ?? t('login')}</span>}
+          </button>
+        </Tooltip>
       }
     >
+      {!wide && <div className={css.menuIdentity}>
+        {portrait}
+        <div className={css.identityCopy}>
+          <span className={css.name}>{account.user?.name ?? t('signedOut')}</span>
+          {account.user && account.organization && <span className={css.organization}>{account.organization.name}</span>}
+        </div>
+      </div>}
       {account.phase === 'offline' && !account.error && <p className={css.detail}>{t('offline')}</p>}
       {account.error && (
         <p role="status" className={css.detail}>
@@ -215,6 +229,8 @@ export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuP
         </p>
       )}
       <MenuItemButton
+        icon={<IconSettingsOutlineRegular size={16} />}
+        shortcut={settingsShortcut}
         onSelect={() => {
           close()
           openSettings()
@@ -224,6 +240,7 @@ export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuP
       </MenuItemButton>
       {account.user && (
         <MenuItemButton
+          icon={<IconUserOutlineMedium size={16} />}
           onSelect={() => {
             close()
             void bridge.personalCenter()
@@ -233,6 +250,8 @@ export function AccountMenu({ useAccount, bridge, wide, openSettings, t }: MenuP
         </MenuItemButton>
       )}
       <MenuItemButton
+        separatorBefore
+        icon={account.user ? <LogoutIcon /> : <IconUserOutlineMedium size={16} />}
         onSelect={() => {
           close()
           void (account.user ? bridge.logout() : bridge.show())
