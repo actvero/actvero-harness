@@ -52,6 +52,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 
   interface SlotMap {
+    /** Product home glyph. A registered home gives the sidebar a permanent navigation rail. */
+    'sidebar.home': { kind: 'single'; scope: 'root' }
     // The 'root' entry itself is the runtime's built-in slot (declared
     // there); these are the frame's children, declared by the same
     // register() call that contributes AppFrame. Session owners never pass
@@ -130,6 +132,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export interface SidebarOwnerProps {
   /** True when the sidebar is closed (the column renders the compact control rail). */
   collapsed: boolean
+  /** A permanent rail with a docked, floating or closed conversation browser. */
+  navigationPane?: 'docked' | 'overlay' | 'closed'
+  /** Window-level mount beside the macOS traffic lights, available after the frame mounts. */
+  windowControlsHost?: HTMLDivElement | null
   /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
   width: number
 }
@@ -174,7 +180,8 @@ export function apply(ctx: ClientContext): void {
     }
     const sidebarExpanded: HostObservable<boolean> = {
       getSnapshot: () => {
-        const info = instance.getSnapshot().layoutInfo
+        const { layoutInfo: info, panelInfo } = instance.getSnapshot()
+        if (info.navigationRail && panelInfo.activePanelId !== null) return false
         return info.viewportWidth < SIDEBAR_AUTO_COLLAPSE ? info.narrowExpanded : info.sidebar > 0
       },
       subscribe: listener => instance.subscribe(listener),
@@ -209,10 +216,14 @@ export function apply(ctx: ClientContext): void {
       resolve: () => ({ status: 'handled', run: () => { layout.toggleSidebar() } }),
     })
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
+    const syncRail = () => { instance.actions.setNavigationRail(ctx.slots.entriesOfSlot('sidebar.home').length > 0) }
+    const disposeRail = ctx.slots.subscribe('sidebar.home', syncRail)
+    syncRail()
     retainMainPanels()
     return () => {
       disposeShortcut()
       layout.dispose()
+      disposeRail()
       disposePanels()
       disposeRegistration()
       disposePanelInfo()

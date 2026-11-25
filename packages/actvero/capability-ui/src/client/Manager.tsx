@@ -12,6 +12,11 @@ import { Toast,IconWarningOutlineRegular,Button,IconChevronLeftOutlineMedium,Ico
 import type { CapabilityTab,CapabilityBackNavigation } from '../contracts.ts'
 import styles from './hub.module.css'
 declare module '@deepseek-ai/dsh-client-ui-slots'{interface LocaleNamespaceMap{ 'actvero.hub':keyof typeof zh }}
+function HomeIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" aria-hidden="true">
+    <path d="m3 10 9-7.5 9 7.5v10a1 1 0 0 1-1 1h-5.5v-7h-5v7H4a1 1 0 0 1-1-1z" />
+  </svg>
+}
 interface Notice { text:string;tone?:'success';seq:number }
 function CapabilityToast({ useNotice, dismiss }: PropsHooks<{
   notice: { getSnapshot: () => Notice | null; subscribe: (fn: () => void) => () => void }
@@ -57,6 +62,7 @@ export function apply(ctx:Context){
   {
     const hub=new Hub(scope);scope.effect(()=>scope.reflect.provide('capabilityHub',hub))
     scope.effect(()=>scope.locale.register('actvero.hub',{ zh,en }));const t=scope.locale.bind('actvero.hub')
+    scope.slots.inject('sidebar.home', () => scope.slots.register({ name: 'sidebar.home' }, HomeIcon))
     scope.slots.inject('sidebar.panellist',()=>scope.slots.register({ name:'sidebar.panellist',id:'actvero-capabilities' as MainPanelId,order:-10,label:()=>t('hub') },()=> <span className={styles.sidebarEntryIcon}><IconSkillOutlineMedium/></span>))
     selectors(scope)
     scope.slots.inject('shell.overlay',()=>scope.slots.register({ name:'shell.overlay',id:'actvero-capability-toast',inject:()=>({ hooks:{ notice:{ getSnapshot:hub.noticeSnapshot,subscribe:hub.noticeSubscribe } },dismiss:hub.dismiss }) },CapabilityToast))

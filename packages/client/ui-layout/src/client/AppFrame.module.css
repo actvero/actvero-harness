@@ -288,3 +288,14 @@
 .overlayLayer > * {
   pointer-events: auto;
 }
+
+/* The rail's conversation preview overlaps the center without resizing its grid track. */
+.frame[data-navigation-rail] .sidebarCol { overflow: visible; }
+:global([data-platform='darwin']) .frame[data-navigation-rail][data-sidebar-collapsed] { --dsh-frame-leading-clearance: 72px; }
+:global([data-platform='darwin']) .frame[data-navigation-rail][data-sidebar-collapsed] .sidebarCol { background: var(--dsw-alias-bg-base); }
+:global([data-platform='darwin'][data-fullscreen]) .frame[data-navigation-rail][data-sidebar-collapsed] { --dsh-frame-leading-clearance: 12px; }
+:global([data-platform='darwin']) .frame[data-navigation-home][data-sidebar-collapsed] { --dsh-frame-leading-clearance: 108px; }
+:global([data-platform='darwin'][data-fullscreen]) .frame[data-navigation-home][data-sidebar-collapsed] { --dsh-frame-leading-clearance: 32px; }
+@media (prefers-reduced-motion: no-preference) {
+  .frame[data-navigation-rail][data-animating] { transition: none; }
+}

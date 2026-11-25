@@ -231,15 +231,12 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   let chatGeneration = 0
   let preparation = 0
   let linkedSession: SessionId | null = null
-  let restoreSidebar: boolean | undefined
-  let changingSidebar = false
   let displaying = new AbortController()
   const observedObjects = new Set<string>()
   let observedPanel = ctx.layout.panelInfo.getSnapshot().activePanelId
   const selectPanel = (panel: MainPanelId | null) => {
     observedPanel = panel
     ctx.layout.selectPanel(panel)
-    if (panel !== businessPanel) restoreNavigation()
   }
   const snapshot = (): WorkbenchDisplayState => {
     const business = ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel
@@ -262,23 +259,11 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       aiVisible: Boolean(business?.querySelector('[data-workbench-ai]:not([hidden])')),
       previewVisible: Boolean(preview), sidebar: ctx.layout.sidebarExpanded.getSnapshot() ? 'expanded' : 'collapsed' }
   }
-  const restoreNavigation = () => {
-    if (restoreSidebar !== undefined) {
-      changingSidebar = true
-      try { ctx.layout.setSidebarExpanded(restoreSidebar) } finally { changingSidebar = false; restoreSidebar = undefined }
-    }
-  }
-  const setFocus = (focus: boolean) => {
-    restoreSidebar ??= ctx.layout.sidebarExpanded.getSnapshot()
-    changingSidebar = true
-    try { ctx.layout.setSidebarExpanded(focus ? false : restoreSidebar) } finally { changingSidebar = false }
-  }
   ctx.effect(() => ctx.layout.panelInfo.subscribe(() => {
     const panel = ctx.layout.panelInfo.getSnapshot().activePanelId
     if (panel === observedPanel) return
     observedPanel = panel
     displaying.abort()
-    if (panel !== businessPanel) restoreNavigation()
   }))
   const runtime = new WorkbenchClientRuntime(ctx)
   ctx.effect(() => {
@@ -295,20 +280,6 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     try { localStorage.setItem(visibilityKey, JSON.stringify(visibility)) }
     catch (error) { console.warn('Unable to save workbench visibility', error) }
   }
-  ctx.effect(() => {
-    let expanded = ctx.layout.sidebarExpanded.getSnapshot()
-    let width = window.innerWidth
-    return ctx.layout.sidebarExpanded.subscribe(() => {
-      const next = ctx.layout.sidebarExpanded.getSnapshot()
-      const resized = width !== window.innerWidth
-      width = window.innerWidth
-      if (next === expanded) return
-      expanded = next
-      if (!changingSidebar && !resized && view.opened && ctx.layout.panelInfo.getSnapshot().activePanelId === businessPanel) {
-        rememberVisibility(`focus:${view.opened}`, !next)
-      }
-    })
-  })
   const collapseChat = () => {
     chatGeneration++
     if (view.instance) rememberVisibility(`chat:${view.instance.instanceId}`, false)
@@ -596,8 +567,6 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       const generation = navigation
       void opening.then(() => {
         if (generation !== navigation || !mounted() || view.accessError) return
-        const preference = view.visibility[`focus:${id}`] ?? (view.entries.find(item => item.id === id)?.display?.sidebar === 'focus')
-        setFocus(preference)
         action.restoreChat()
       }).catch((error: unknown) => {
         if (generation !== navigation || !mounted() || view.openError) return
@@ -729,9 +698,6 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
       signal.addEventListener('abort', abort, { once: true })
       try {
         if (request.mode === 'business') {
-          const focus = request.sidebar === undefined ? view.visibility[`focus:${request.id}`]
-            ?? view.entries.find(entry => entry.id === request.id)?.display?.sidebar === 'focus' : request.sidebar === 'focus'
-          setFocus(focus)
           if (instance && request.ai !== undefined) rememberVisibility(`chat:${instance.instanceId}`, request.ai === 'show')
           if (request.ai === 'show') {
             if (!instance || !runtime.supportsAI(instance.instanceId)) throw new Error('Workbench AI is disabled')
@@ -845,7 +811,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
   ctx.effect(() => ctx.reflect.provide('actveroWorkbenches', registry))
   ctx.effect(() => ctx.resources.register(workbenchResource(ctx.remote.actveroWorkbench)))
   ctx.effect(() => connectWorkbenchDisplay(ctx, (request, signal) => action.present(request, signal), snapshot))
-  ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat(); restoreNavigation() })
+  ctx.effect(() => () => { displaying.abort(); navigation++; releaseChat() })
   registerWorkbenchReferences(ctx, {
     openObject: target => registry.openObject(target),
     openLabel: target => objectNavigation.get(target.workbenchId)?.(target.objectId),
@@ -854,7 +820,7 @@ export async function registerWorkbenches(ctx: Context): Promise<void> {
     name: 'sidebar.panellist', id: managerPanel, order: -20, label: () => t('title'),
   }, WorkbenchIcon))
   ctx.slots.inject('sidebar.panellist.row', () => ctx.slots.register({
-    name: 'sidebar.panellist.row', key: managerPanel, locale: namespace, inject,
+    name: 'sidebar.panellist.row', key: managerPanel, locale: namespace,
   }, Navigation))
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main', key: managerPanel, locale: namespace,

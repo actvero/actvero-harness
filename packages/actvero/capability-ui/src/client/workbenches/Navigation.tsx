@@ -1,4 +1,4 @@
-/** Workbench management and quick switching share one sidebar row. */
+/** Global workbench navigation and the page-local switcher. */
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { IconCheckOutlineRegular, IconChevronDownOutlineMedium, IconEllipsisOutlineRegular, Menu, MenuItemButton, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -15,16 +15,28 @@ export type WorkbenchViewHooks = PropsHooks<{ view: {
   subscribe: (listener: () => void) => () => void
 } }>
 
-/**
- * Render management and workbench switching with locally remembered ordering, including the collapsed rail.
- * @param props Sidebar state, workbench catalog, localized copy and navigation actions.
- * @returns Sidebar row with its workbench menu.
+/** Opens the catalog and highlights the same icon for a workbench business view.
+ * @param props Localized catalog action and active panel selector.
+ * @returns The workbench entry in the permanent navigation rail.
  */
-export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, action }:
-  PropsRuntime<'sidebar.panellist.row'> & PropsLocale<'actvero.workbenches'> & WorkbenchViewHooks & { action: WorkbenchAction }) {
-  const view = useView(value => value)
-  const { entries, opened } = view
+export function Navigation({ t, active, onOpen, usePanelInfo }: PropsRuntime<'sidebar.panellist.row'> & PropsLocale<'actvero.workbenches'>) {
   const inBusiness = usePanelInfo(info => info.activePanelId === 'actvero-workbench-business')
+  return <Tooltip label={t('title')} portal side="right">
+    <button type="button" className={styles.manage} aria-label={t('title')} aria-current={active || inBusiness ? 'page' : undefined}
+      onClick={onOpen}><WorkbenchIcon size={18} /></button>
+  </Tooltip>
+}
+
+/** Select and reorder installed workbenches from the catalog or business page.
+ * @param props Localized page presentation and the active workbench catalog.
+ * @returns The workbench picker with its keyboard-accessible menu.
+ */
+export function WorkbenchSwitcher({ t, view, action, compact = false }: PropsLocale<'actvero.workbenches'> & {
+  view: WorkbenchView
+  action: WorkbenchAction
+  compact?: boolean
+}) {
+  const { entries, opened } = view
   const [menuOpen, setMenuOpen] = useState(false)
   const [order, setOrder] = useState(readWorkbenchOrder)
   const [saveFailed, setSaveFailed] = useState(false)
@@ -58,22 +70,16 @@ export function Navigation({ t, wide, active, onOpen, useView, usePanelInfo, act
   }
 
   const selected = catalog.find(entry => entry.id === opened)
-  const row = <div className={styles.row} data-wide={wide} data-active={active || inBusiness}>
-    <Tooltip label={t('title')} disabled={wide} portal>
-      <button type="button" className={styles.manage} aria-label={t('title')} aria-current={active ? 'page' : undefined}
-        onClick={() => { setMenuOpen(false); onOpen() }}>
-        <WorkbenchIcon size={wide ? 16 : 18} />
-        {wide && <span>{t('title')}</span>}
-      </button>
-    </Tooltip>
-    {wide && <button type="button" className={styles.switchButton} aria-label={`${t('switch')} · ${selected?.name ?? t('choose')}`}
-      aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => { setMenuOpen(value => !value) }}>
-      <TruncatedName name={selected?.name ?? t('choose')} />
+  const row = <Tooltip label={t('switch')} disabled={!compact} portal side="bottom">
+    <button type="button" className={styles.switchButton} data-compact={compact || undefined}
+      aria-label={`${t('switch')} · ${selected?.name ?? t('choose')}`}
+      aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>
+      {compact ? <WorkbenchIcon size={16} /> : <TruncatedName name={selected?.name ?? t('choose')} />}
       <IconChevronDownOutlineMedium size={14} />
-    </button>}
-  </div>
+    </button>
+  </Tooltip>
   return <>
-    <Menu open={wide && menuOpen} onClose={() => { setMenuOpen(false); cancelDrag() }} portal autoFocus minWidthFromAnchor
+    <Menu open={menuOpen} onClose={() => { setMenuOpen(false); cancelDrag() }} portal autoFocus minWidthFromAnchor
       className={styles.anchor} listClassName={styles.switchMenu} anchor={row}
       items={[{ type: 'label', id: 'heading', text: t('mine') }]}>
       <div ref={list} onKeyDownCapture={(event) => {

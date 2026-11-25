@@ -119,7 +119,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.capability.content\', () => ctx.slots.register(\n      { name: \'actvero.capability.content\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:217',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:227',
   },
   {
     key: 'actvero.connector.brand.mark',
@@ -148,7 +148,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.connector.brand.mark\', () => ctx.slots.register(\n      { name: \'actvero.connector.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:212',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:222',
   },
   {
     key: 'actvero.workbench.body',
@@ -203,7 +203,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.body\', () => ctx.slots.register(\n      { name: \'actvero.workbench.body\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:210',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:220',
   },
   {
     key: 'actvero.workbench.chat',
@@ -297,7 +297,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'actvero.workbench.header\', () => ctx.slots.register(\n      { name: \'actvero.workbench.header\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/actvero/capability-ui/src/contracts.ts:208',
+    source: 'packages/actvero/capability-ui/src/contracts.ts:218',
   },
   {
     key: 'conversation.approval.detail',
@@ -2572,7 +2572,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'main\', () => ctx.slots.register(\n      { name: \'main\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:74',
+    source: 'packages/client/ui-layout/src/client/index.ts:76',
   },
   {
     key: 'main.conversation',
@@ -3115,7 +3115,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'rightbar\', () => ctx.slots.register(\n      { name: \'rightbar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:88',
+    source: 'packages/client/ui-layout/src/client/index.ts:90',
   },
   {
     key: 'rightbar.session',
@@ -3756,7 +3756,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.bottom\', () => ctx.slots.register(\n      { name: \'shell.bottom\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:95',
+    source: 'packages/client/ui-layout/src/client/index.ts:97',
   },
   {
     key: 'shell.leading',
@@ -3787,7 +3787,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.leading\', () => ctx.slots.register(\n      { name: \'shell.leading\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:120',
+    source: 'packages/client/ui-layout/src/client/index.ts:122',
   },
   {
     key: 'shell.overlay',
@@ -3850,7 +3850,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.overlay\', () => ctx.slots.register(\n      { name: \'shell.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:106',
+    source: 'packages/client/ui-layout/src/client/index.ts:108',
   },
   {
     key: 'shell.quota-notice',
@@ -3902,7 +3902,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'The whole left column. OCCUPIED by ui-sidebar\'s SidebarRoot, which\ndeclares the workspace and settings seats inside it — registering here\nreplaces the navigation column outright rather than adding to it, and\nthe seats it declares disappear with it. To add something to the\nsidebar, register into one of those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width)\nand is expected to render the compact control rail while collapsed.',
     registerOptions: [],
     ownerProps: [
-      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n}',
+      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** A permanent rail with a docked, floating or closed conversation browser. */\n  navigationPane?: \'docked\' | \'overlay\' | \'closed\'\n  /** Window-level mount beside the macOS traffic lights, available after the frame mounts. */\n  windowControlsHost?: HTMLDivElement | null\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -3925,7 +3925,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar\', () => ctx.slots.register(\n      { name: \'sidebar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:69',
+    source: 'packages/client/ui-layout/src/client/index.ts:71',
   },
   {
     key: 'sidebar.brand.mark',
@@ -4088,6 +4088,37 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:60',
   },
   {
+    key: 'sidebar.home',
+    kind: 'single',
+    scope: 'root',
+    summary: 'Product home glyph.',
+    doc: 'Product home glyph. A registered home gives the sidebar a permanent navigation rail.',
+    registerOptions: [],
+    ownerProps: [],
+    ownerPropsReferences: [],
+    standardProps: [
+      'useRemoteAccess: (action: RemoteEndpoint) => boolean',
+      'useResource: UseResource',
+      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
+      'usePanelInfo: UsePanelInfo',
+      'useSessions: UseSessions',
+      'useSessionStatus: UseSessionStatus',
+      'useSessionRetainInfo: UseSessionRetainInfo',
+      'useSessionAccess: (sessionId: SessionId, action: RemoteEndpoint) => boolean',
+      'useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
+    occupants: [
+      '@actvero/dsh-capability-ui HomeIcon',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.home\', () => ctx.slots.register(\n      { name: \'sidebar.home\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+    source: 'packages/client/ui-layout/src/client/index.ts:56',
+  },
+  {
     key: 'sidebar.panellist',
     kind: 'list',
     scope: 'root',
@@ -4246,7 +4277,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'Optional mode switcher above the global panel list.',
     registerOptions: [],
     ownerProps: [
-      '/**\n * Registrant-private injected share (arrives via the register inject\n * factory). The renderer binds the panel metadata source to usePanels.\n */\nexport type SidebarRootInjected = {\n  /**\n   * Start a New Session: with a workspace, reuse-or-create its blank session\n   * and open it; without one, inherit the current Session Workspace, then the\n   * recent Workspace, or clear into the New Session pure view when none exist.\n   */\n  startSession: (workspaceId?: WorkspaceId) => void\n  /** Toggle the sidebar column through the layout service. */\n  toggleSidebar: () => void\n  /** Select the global panel addressed by a sidebar row. */\n  selectPanel: (id: MainPanelId) => void\n  /**\n   * Show or unpin one panel launcher; Plugins is ignored.\n   * @param id - Panel id.\n   * @param pinned - Whether the launcher shows in the sidebar.\n   */\n  setPinned: (id: string, pinned: boolean) => void\n  /** Record activation of an official navigation control without changing navigation. */\n  trackEntryClick: (attributes: ProductEventMap[\'sidebar_menu_click\']) => void\n  /** Private reactive sources bound to framework selector hooks. */\n  hooks: {\n    panels: ObservableSnapshot<readonly SidebarPanelMetada /* …truncated — full shape in source */',
+      '/**\n * Registrant-private injected share (arrives via the register inject\n * factory). The renderer binds the panel metadata source to usePanels.\n */\nexport type SidebarRootInjected = {\n  /**\n   * Start a New Session: with a workspace, reuse-or-create its blank session\n   * and open it; without one, inherit the current Session Workspace, then the\n   * recent Workspace, or clear into the New Session pure view when none exist.\n   */\n  startSession: (workspaceId?: WorkspaceId) => void\n  /** Toggle the sidebar column through the layout service. */\n  toggleSidebar: () => void\n  /** Select the global panel addressed by a sidebar row. */\n  selectPanel: (id: MainPanelId | null) => void\n  /**\n   * Show or unpin one panel launcher; Plugins is ignored.\n   * @param id - Panel id.\n   * @param pinned - Whether the launcher shows in the sidebar.\n   */\n  setPinned: (id: string, pinned: boolean) => void\n  /** Record activation of an official navigation control without changing navigation. */\n  trackEntryClick: (attributes: ProductEventMap[\'sidebar_menu_click\']) => void\n  /** Private reactive sources bound to framework selector hooks. */\n  hooks: {\n    panels: ObservableSnapshot<readonly SidebarPane /* …truncated — full shape in source */',
       '/**\n * Owner share of the browser hole — the only facts crossing the shell/region\n * boundary. Business data and actions arrive through the region\'s own inject.\n */\nexport interface SidebarSectionOwnerProps {\n  /** Shell fold-state output: wide renders the full browser, rail the icon column. */\n  wide: boolean\n  /** Rail icons request expansion; the browser rides the wide flip for focus. */\n  expandSidebar: () => void\n}',
     ],
     ownerPropsReferences: [

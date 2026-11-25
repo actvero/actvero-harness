@@ -178,7 +178,7 @@ export type SidebarRootInjected = {
   /** Toggle the sidebar column through the layout service. */
   toggleSidebar: () => void
   /** Select the global panel addressed by a sidebar row. */
-  selectPanel: (id: MainPanelId) => void
+  selectPanel: (id: MainPanelId | null) => void
   /**
    * Show or unpin one panel launcher; Plugins is ignored.
    * @param id - Panel id.
@@ -206,6 +206,7 @@ export type SidebarRootInjected = {
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
   & PropsRenderSlots<
+    | 'sidebar.home'
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'
     | 'sidebar.toggle.badge'

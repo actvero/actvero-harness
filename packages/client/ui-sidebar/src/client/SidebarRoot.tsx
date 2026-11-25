@@ -22,10 +22,12 @@ import {
   FishLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular, IconPanelLeftOutlineRegular,
   isDarwinDesktop, Menu, ShortcutKeys, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
-  SidebarPanelActionsOwnerProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
+  SidebarPanelActionsOwnerProps, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
 } from './contract/slots.ts'
+import { PanelRow, officialEntry } from './PanelRow.tsx'
+import { NavigationRail } from './NavigationRail.tsx'
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import css from './SidebarRoot.module.css'
 
@@ -48,49 +50,6 @@ function localBuildVersion(): string | undefined {
   return version
     + (commit === undefined ? '' : `-${commit}`)
     + (process.env.DSH_CLIENT_GIT_DIRTY === 'true' ? '-dirty' : '')
-}
-
-type PanelRowProps =
-  Pick<SidebarPanelMetadata, 'id' | 'label'>
-  & Pick<SidebarSectionOwnerProps, 'wide'>
-  & Pick<PropsRuntime<'sidebar'>, 'usePanelInfo'>
-  & Pick<InjectFace<SidebarRootInjected>, 'selectPanel' | 'trackEntryClick'>
-  & PropsRenderSlots<'sidebar.panellist' | 'sidebar.panellist.row'>
-
-/** Analytics category of an official panel; other panels are never reported. */
-function officialEntry(id: string): 'plugin' | 'cron' | undefined {
-  if (id === 'plugins') return 'plugin'
-  return id === 'schedules' ? 'cron' : undefined
-}
-
-/** Each panel row subscribes only to its own selection state. */
-function PanelRow({ id, label, wide, usePanelInfo, selectPanel, trackEntryClick, renderSlot }: PanelRowProps) {
-  const active = usePanelInfo(info => info.activePanelId === id)
-  const onOpen = (): void => {
-    const entry = officialEntry(id)
-    if (entry !== undefined) trackEntryClick({ menu_name: entry, position: 'sidebar' })
-    selectPanel(id)
-  }
-  return renderSlot('sidebar.panellist.row', { id, label, wide, active, onOpen }, { entryKey: id, fallback: (
-    <Tooltip label={label} delayMs={500} disabled={wide}>
-      <button
-        type="button"
-        className={clsx(css.panelRow, active && css.panelActive)}
-        aria-label={label}
-        aria-current={active ? 'page' : undefined}
-        onClick={onOpen}
-      >
-        <span className={css.panelGlyph} aria-hidden="true">
-          {renderSlot('sidebar.panellist', { size: wide ? 16 : 18, active }, { only: id })}
-        </span>
-        {wide && (
-          <span className={clsx(css.panelTitle, css.wide)}>
-            {label}
-          </span>
-        )}
-      </button>
-    </Tooltip>
-  ) })
 }
 
 type PanelMoreMenuProps =
@@ -128,7 +87,11 @@ function PanelMoreMenu({ wide, label, entries, onOpen, onPinnedChange, trackEntr
  * @param props - composed slot props (runtime share + injected callbacks, contract/slots.ts).
  * @returns the sidebar element tree.
  */
-export function SidebarRoot({
+export function SidebarRoot(props: SidebarRootComponentProps) {
+  return props.navigationPane ? <NavigationRail {...props} pane={props.navigationPane} /> : <StandardSidebar {...props} />
+}
+
+function StandardSidebar({
   collapsed,
   width,
   startSession,

@@ -90,7 +90,59 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    await page.getByRole('button', { name: 'Workbenches', exact: true }).click()
+    const rail = page.locator('[data-navigation-column] nav')
+    const home = rail.getByRole('button', { name: 'Home', exact: true })
+    const conversations = page.locator('#sidebar-conversations')
+    const positions = () => rail.getByRole('button').evaluateAll(nodes => nodes.map((node) => {
+      const box = node.getBoundingClientRect()
+      return [box.x, box.y]
+    }))
+    await home.waitFor()
+    const toolbar = page.locator('[data-navigation-toolbar]')
+    const toolbarButton = toolbar.getByRole('button').first()
+    const divider = page.locator('[data-navigation-column]')
+    const geometry = async () => {
+      const [bar, toggle, column] = await Promise.all([toolbar.boundingBox(), toolbarButton.boundingBox(), divider.boundingBox()])
+      expect(toggle!.y).toBeGreaterThanOrEqual(bar!.y)
+      expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(column!.y + 1)
+      return [toggle!.x, toggle!.y, column!.y]
+    }
+    const chrome = await geometry()
+    if (platform === 'darwin') expect(chrome[0]).toBe(88)
+    if (platform === 'darwin') {
+      await toolbarButton.click()
+      await conversations.waitFor({ state: 'hidden' })
+      await toolbar.getByRole('button', { name: 'New session', exact: true }).waitFor()
+      await toolbarButton.click()
+      await conversations.waitFor()
+      expect(await toolbar.getByRole('button').count()).toBe(1)
+    }
+    const fixed = await positions()
+    expect(fixed).toHaveLength(5)
+    for (const name of ['Workbenches', 'Capability Center', 'Plugins', 'Automation tasks']) {
+      await rail.getByRole('button', { name, exact: true }).click()
+      await conversations.waitFor({ state: 'hidden' })
+      expect(await positions()).toEqual(fixed)
+      expect(await geometry()).toEqual(chrome)
+      expect(await page.locator('[data-navigation-column]').evaluate(el => el.getBoundingClientRect().width)).toBeCloseTo(52, 0)
+    }
+    await toolbarButton.click()
+    await conversations.waitFor()
+    await toolbarButton.click()
+    await conversations.waitFor({ state: 'hidden' })
+    await home.hover()
+    await conversations.waitFor()
+    expect(await rail.getByRole('button', { name: 'Automation tasks' }).getAttribute('aria-current')).toBe('page')
+    await conversations.getByRole('button', { name: 'New session', exact: true }).hover()
+    await page.keyboard.press('Escape')
+    await conversations.waitFor({ state: 'hidden' })
+    await home.press('ArrowRight')
+    await conversations.waitFor()
+    await page.keyboard.press('Escape')
+    await home.click()
+    await conversations.waitFor()
+    expect(await positions()).toEqual(fixed)
+    await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
     await page.getByRole('tab', { name: 'My workbenches', exact: true }).click()
     await page.getByRole('heading', { name: 'custom identity', exact: true }).waitFor()
     const show = async (id: string) => {
@@ -124,7 +176,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
       expect(await header.getByRole('button', { name: 'Saved by author' }).isVisible()).toBe(true)
     }
-    // Collapsed desktop controls and the business header share the same row.
+    // Native window controls clear the business header beside the fixed rail.
     const frame = page.locator('[data-shell-bottom]').locator('..')
     const row = header.locator('..')
     const checkHeaderGeometry = async (collapsed: boolean, fullscreen = false) => {
@@ -140,7 +192,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       })
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
-      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 84 : 160 : 20)
+      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 12 : 72 : 20)
       expect(geometry.controlsShareRow).toBe(true)
       expect(geometry.headerClearsControls).toBe(true)
       expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
@@ -172,12 +224,10 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await page.evaluate(() => document.documentElement.removeAttribute('data-fullscreen'))
       await page.setViewportSize({ width: 1280, height: 844 })
       const input = await header.getByRole('textbox', { name: 'Find in drawing' }).elementHandle()
-      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
-      await checkHeaderGeometry(false)
-      expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
-      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+      await home.hover()
+      await conversations.waitFor()
+      await page.keyboard.press('Escape')
+      await conversations.waitFor({ state: 'hidden' })
       await checkHeaderGeometry(true)
       expect(await page.evaluate(element => element?.isConnected, input)).toBe(true)
     }
@@ -272,12 +322,11 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     }
     await page.setViewportSize({ width: 1440, height: 900 })
     if (platform === 'darwin') {
-      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
+      await home.hover()
+      await conversations.waitFor()
       await checkDefaultAlignment()
-      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
-      await checkDefaultAlignment()
+      await page.keyboard.press('Escape')
+      await conversations.waitFor({ state: 'hidden' })
     }
     await catalogReturn.hover()
     await page.getByRole('tooltip', { name: 'Back to workbenches', exact: true }).waitFor()

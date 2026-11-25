@@ -8,7 +8,7 @@ import type { WorkbenchInstanceId } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@actvero/dsh-client-account/client'
 import type { WorkbenchAction } from './register.ts'
-import type { WorkbenchViewHooks } from './Navigation.tsx'
+import { WorkbenchSwitcher, type WorkbenchViewHooks } from './Navigation.tsx'
 import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { workbenchIconUrl } from './catalog.ts'
 import { FloatingPreview } from './FloatingPreview.tsx'
@@ -41,7 +41,8 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
   & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, openError, accessError, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const view = useView(value => value)
+  const { opened, instance, preparing, openError, accessError, chat, chatCollapsed, chatPreparing, entries } = view
   const error = accessError ?? openError
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const catalogButton = useView(value => opened ? value.catalogButtons[opened] !== 'hide' : true)
@@ -73,6 +74,7 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       {catalogButton && <div className={styles.navigation} data-workbench-navigation="">
         <Tooltip label={t('back')} portal side="bottom"><Button size="sm" className={styles.iconButton} aria-label={t('back')}
           onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
+        <WorkbenchSwitcher t={t} view={view} action={action} compact />
         <span className={styles.separator} aria-hidden="true" />
       </div>}
       <div className={styles.headerExtension} data-workbench-header="">

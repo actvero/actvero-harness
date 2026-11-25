@@ -22,6 +22,7 @@ type LayoutState = {
 }
 
 type LayoutInfo = {
+  navigationRail: boolean
   sidebar: number
   /** Last positive frame measurement; window width bootstraps the first render. */
   viewportWidth: number
@@ -56,6 +57,7 @@ type LayoutInfo = {
  * return type); drift fails assignability at the defineStore call.
  */
 type LayoutActions = {
+  setNavigationRail: (draft: LayoutState, enabled: boolean) => void
   selectPanel: (draft: LayoutState, panelId: MainPanelId | null) => void
   retainMainPanels: (draft: LayoutState, panelIds: readonly string[]) => void
   setSidebar: (draft: LayoutState, px: number) => void
@@ -80,6 +82,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
     init: (): LayoutState => ({
       panelInfo: { activePanelId: null },
       layoutInfo: {
+        navigationRail: false,
         sidebar: SIDEBAR_DEFAULT,
         viewportWidth: window.innerWidth,
         narrowExpanded: false,
@@ -91,8 +94,10 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       },
     }),
     actions: {
+      setNavigationRail: (d, enabled: boolean) => { d.layoutInfo.navigationRail = enabled },
       selectPanel: (d, panelId: MainPanelId | null) => {
         d.panelInfo.activePanelId = panelId
+        if (d.layoutInfo.navigationRail) d.layoutInfo.narrowExpanded = false
       },
       retainMainPanels: (d, panelIds: readonly string[]) => {
         if (d.panelInfo.activePanelId !== null && !panelIds.includes(d.panelInfo.activePanelId)) {
@@ -106,6 +111,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       // Narrow toggles flip only the override: the width preference survives
       // untouched, so re-widening restores the pre-squeeze layout.
       toggleSidebar: (d) => {
+        if (d.layoutInfo.navigationRail && d.panelInfo.activePanelId !== null) return
         d.layoutInfo.rightbarInstant = false
         if (d.layoutInfo.viewportWidth < SIDEBAR_AUTO_COLLAPSE) d.layoutInfo.narrowExpanded = !d.layoutInfo.narrowExpanded
         else d.layoutInfo.sidebar = d.layoutInfo.sidebar === 0 ? SIDEBAR_DEFAULT : 0

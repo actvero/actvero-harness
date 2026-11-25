@@ -20,7 +20,7 @@ import type { PropsHooks, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { workbenchCatalog, type ResolveText, type WorkbenchItem } from './catalog.ts'
 import type { WorkbenchAction } from './register.ts'
-import type { WorkbenchViewHooks } from './Navigation.tsx'
+import { WorkbenchSwitcher, type WorkbenchViewHooks } from './Navigation.tsx'
 import { publishedWorkbenchAction, publishedWorkbenchDetails, type PublishedWorkbenchAction, type WorkbenchDetails } from './platform.ts'
 import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { SourceTabs, catalogStyles } from '../sources.ts'
@@ -354,6 +354,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
   return <section className={`${hubStyles.page} ${styles.page}`}>
     <header className={styles.pageTitle}>
       <h1>{t('title')}</h1>
+      <WorkbenchSwitcher t={t} view={view} action={action} />
     </header>
     <div className={`${catalogStyles.toolbar} ${styles.toolbar}`}>
       <Input className={catalogStyles.search} icon={<IconSearchOutlineMedium />}
