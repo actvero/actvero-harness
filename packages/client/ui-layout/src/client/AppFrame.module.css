@@ -314,7 +314,7 @@
 }
 :global([data-platform='darwin']) .frame[data-navigation-rail] .leadingSeat { top: 9px; }
 :global([data-platform='darwin']) .frame[data-navigation-rail]:not([data-sidebar-collapsed]) .leadingSeat {
-  grid-column: 1;
+  grid-column: 1 / 2;
   right: 8px;
   -webkit-app-region: drag;
 }
