@@ -411,6 +411,7 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
       <ConversationSessionHeader
         hideChrome={false}
         useEntryPins={selector => selector([])}
+        useViewsInMenu={selector => selector(false)}
         useEntryActions={selector => selector(false)}
         setPinned={vi.fn()}
         {...standardProps}

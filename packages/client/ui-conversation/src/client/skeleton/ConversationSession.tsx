@@ -80,11 +80,11 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
 /**
  * Renders Session header chrome above the resident conversation scrollport.
  * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
- * @returns Session navigation controls, with title and tabs after conversation starts.
+ * @returns Session navigation controls, with registered Views in the actions menu or the tab row after conversation starts.
  */
 export function ConversationSessionHeader({
   sessionId, hideChrome, useSessions, useConversationViews, useStore,
-  renderSlot, open, selectView, setPinned, t, useEntryPins, useEntryActions,
+  renderSlot, open, selectView, setPinned, t, useEntryPins, useEntryActions, useViewsInMenu,
 }: ConversationSessionHeaderProps) {
   const tabs = useConversationViews(value => value)
   const selectedId = useStore(s => s.view)
@@ -92,7 +92,8 @@ export function ConversationSessionHeader({
   const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
   const unpinned = useEntryPins(ids => ids)
   const hasEntryActions = useEntryActions(registered => registered)
-  const showTabs = !hideChrome && tabs.length > 1
+  const viewsInMenu = useViewsInMenu(value => value)
+  const showTabs = !hideChrome && tabs.length > 1 && !viewsInMenu
   const tabRow = useRef<HTMLDivElement>(null)
   const [visibleViewLimit, setVisibleViewLimit] = useState(1)
   // Observe only the available row width; individual tabs are not measured.
@@ -186,6 +187,9 @@ export function ConversationSessionHeader({
         )}
         <div className={css.headerUtilities}>
           {!hideChrome && renderSlot('conversation.session.header.utilities', {})}
+          {!hideChrome && renderSlot('conversation.session.header.more', {
+            views: viewsInMenu && tabs.length > 1 ? tabs : [], activeView: active?.id ?? null, selectView,
+          })}
           {renderSlot('conversation.session.header.resident-utilities', {})}
         </div>
         <div className={css.headerCorner} data-conversation-header-corner="">

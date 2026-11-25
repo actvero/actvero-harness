@@ -79,6 +79,8 @@ Web bundle 将本包与 Connection、`dsh-commands`、`dsh-client-ui-commands` �
 
 本包分为两部分。Host 半包（[`src/index.ts`](src/index.ts)）注册 `/export` 命令，并向 Connection 贡献精确的 `GET`/`HEAD /api/session.export` Fetch 路由；[`src/archive.ts`](src/archive.ts) 构建有界 ZIP 流。浏览器半包（[`src/client/index.ts`](src/client/index.ts)）提供共享下载控制器和 UI，并观察 `command/executed`，因此只有提交命令的浏览器会启动下载。
 
+使用固定导航栏时，同一菜单也可切换会话视图，勾选标记指示当前视图。
+
 Header 的更多操作入口使用公共紧凑 Button，点击区域为 28px 正方形，与右侧栏展开控件共用圆角和 hover 底色。
 
 ### 下载流程

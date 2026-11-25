@@ -231,6 +231,7 @@ function mount(
           useConversation={useConversation}
           useConversationViews={useConversationViews}
           useEntryPins={selector => selector(options.unpinnedViews ?? [])}
+          useViewsInMenu={selector => selector(false)}
           useEntryActions={selector => selector(options.entryActions ?? false)}
           setPinned={setPinned}
           useChat={useChat}

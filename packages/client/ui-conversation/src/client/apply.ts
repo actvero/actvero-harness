@@ -233,6 +233,14 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     getSnapshot: () => slots.entriesOfSlot('conversation.session.header.views.actions').length > 0,
     subscribe: (listener: () => void) => slots.subscribe('conversation.session.header.views.actions', listener),
   }
+  const viewsInMenu = {
+    getSnapshot: () => slots.entriesOfSlot('sidebar.home').length > 0 && slots.entriesOfSlot('conversation.session.header.more').length > 0,
+    subscribe: (listener: () => void) => {
+      const stopHome = slots.subscribe('sidebar.home', listener)
+      const stopMenu = slots.subscribe('conversation.session.header.more', listener)
+      return () => { stopHome(); stopMenu() }
+    },
+  }
   const bindings = new Set<SessionBinding>()
   const trackedBindings = new WeakSet<SessionBinding>()
   const trackBinding = (binding: SessionBinding): void => {
@@ -442,13 +450,14 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
+      'conversation.session.header.more': { kind: 'single', scope: 'session' },
       'conversation.session.header.resident-utilities': { kind: 'list', scope: 'session' },
       'conversation.session.header.corner': { kind: 'single', scope: 'session' },
       'conversation.session.header.views.actions': { kind: 'list', scope: 'root' },
     },
     store: conversationStore,
     inject: (sessionId: SessionId, actions: BoundActions<typeof conversationStore>): ConversationSessionHeaderInjected => ({
-      hooks: { conversationViews, entryPins: viewPins.unpinned, entryActions: viewActions },
+      hooks: { conversationViews, entryPins: viewPins.unpinned, entryActions: viewActions, viewsInMenu },
       setPinned: viewPins.setPinned,
       open: (id) => { workspaceNavigation.openSession(id) },
       selectView: (view) => {

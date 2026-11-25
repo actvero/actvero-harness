@@ -79,6 +79,8 @@ This section explains how the package wires the export control and points at the
 
 The package has two halves. The Host half ([`src/index.ts`](src/index.ts)) registers the `/export` command and contributes the exact `GET`/`HEAD /api/session.export` Fetch route to Connection; [`src/archive.ts`](src/archive.ts) builds the bounded ZIP stream. The browser half ([`src/client/index.ts`](src/client/index.ts)) provides the shared download controller and UI, and observes `command/executed` so only the submitting browser starts a download.
 
+In the navigation-rail layout the same menu lists the available Conversation Views, with a check beside the current View.
+
 The Header’s More action uses the shared compact Button, with a 28px square target and the same radius and hover fill as the right-sidebar expand control.
 
 ### Download flow
