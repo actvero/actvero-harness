@@ -319,12 +319,25 @@
 }
 .moduleSurface,
 :global([data-platform='darwin']) .moduleSurface :global([data-shell-panel-body]) {
+  background: var(--dsw-alias-bg-base);
+}
+.moduleSurface,
+:global([data-platform='darwin']) .moduleSurface :global([data-shell-panel-body]),
+.frame[data-navigation-home][data-sidebar-collapsed] .centerCol::after {
   box-sizing: border-box;
   border-block-start: .5px solid var(--dsw-alias-border-l2-darkmode-thin);
   border-inline-start: .5px solid var(--dsw-alias-border-l2-darkmode-thin);
   border-start-start-radius: var(--dsw-radius-md);
   corner-shape: round;
-  background: var(--dsw-alias-bg-base);
+}
+/* Home shares its native title row with the window controls. Draw the edge below
+   that row without moving the conversation header or intercepting its controls. */
+.frame[data-navigation-home][data-sidebar-collapsed] .centerCol { position: relative; }
+.frame[data-navigation-home][data-sidebar-collapsed] .centerCol::after {
+  content: '';
+  position: absolute;
+  inset: var(--dsh-navigation-toolbar-height, 0px) 0 0;
+  pointer-events: none;
 }
 .moduleTitlebar { flex: none; height: var(--dsh-navigation-toolbar-height); }
 :global([data-platform='darwin']) .moduleSurface { --dsh-frame-top-clearance: 0px; }
@@ -333,7 +346,7 @@
   border: 0;
   border-radius: 0;
 }
-.frame[data-navigation-rail]:not([data-navigation-home]) { --dsh-navigation-rail-divider: 0px; }
+.frame[data-navigation-rail][data-sidebar-collapsed] { --dsh-navigation-rail-divider: 0px; }
 :global(html:not([data-platform='darwin'])) .frame[data-navigation-rail] {
   background: var(--dsw-specific-sidebar-fill);
 }

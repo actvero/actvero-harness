@@ -25,7 +25,7 @@ This package provides the Web GUI's three-column AppFrame, edge-column widths, a
 <a id="use-this-package"></a>
 ## Use this package
 
-When a product registers a Home icon in `sidebar.home`, the frame reserves a permanent 52px navigation column. Only Home uses the conversation pane width. Selecting a module preserves the Home width and expansion preference. Docking rounds both left corners of the Home content area. Module pages have a thin top and left border that meets in a rounded corner below the window toolbar. A module that supplies its own macOS title row marks the body below it with `data-shell-panel-body`. A floating preview leaves the content at its current width.
+When a product registers a Home icon in `sidebar.home`, the frame reserves a permanent 52px navigation column. Only Home uses the conversation pane width. Selecting a module preserves the Home width and expansion preference. Docking rounds both left corners of the Home content area. With the conversation pane closed or floating, Home shares the module pages’ rounded top-left corner and thin border along the toolbar and navigation column. A module that supplies its own macOS title row marks the body below it with `data-shell-panel-body`. A floating preview leaves the content at its current width.
 
 Desktop Mod+B toggles the left sidebar through the same layout action used by its controls. The shortcut command is unavailable behind modal dialogs and yields to terminal input.
 
