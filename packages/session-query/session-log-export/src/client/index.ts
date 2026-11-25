@@ -48,9 +48,8 @@ export function apply(ctx: ClientContext): void {
   ctx.on('command/executed', (sessionId, commandName, result) => {
     if (commandName === 'export' && result.kind === 'success') void controller.download(sessionId)
   })
-  ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
-    name: 'conversation.session.header.utilities',
-    id: 'session-log-download',
+  ctx.slots.inject('conversation.session.header.more', () => ctx.slots.register({
+    name: 'conversation.session.header.more',
     locale: NS,
     inject: (): SessionLogDownloadHeaderInjected => ({
       hooks: { sessionLogDownload: controller.store, feedbackAvailable },

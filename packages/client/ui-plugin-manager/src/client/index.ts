@@ -9,6 +9,7 @@
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { shallowEqual } from '@deepseek-ai/dsh-client-store'
 // Type-only: the root `main` keyed slot the page registers into, declared by
 // ui-layout with the panel id brand, and the `sidebar.panellist` list the
 // entry registers into, declared by ui-sidebar.
@@ -131,8 +132,29 @@ export function apply(ctx: ClientContext): void {
         'plugins.detail.section': { kind: 'list', scope: 'root' },
       },
     }, PluginManagerPage)
+    const history = ctx.inject(['panelHistory'], child => child.effect(() => child.panelHistory.register([PANEL_ID], {
+      getSnapshot: instance.getSnapshot,
+      subscribe: (listener) => {
+        const stops = [instance, face.hooks.pluginManager, configLedger, face.hooks.pluginTabs].map(source => source.subscribe(listener))
+        return () => stops.forEach(stop => stop())
+      },
+      same: (a, b) => a.tab === b.tab && shallowEqual(a.view, b.view),
+      available: ({ tab, view }) => {
+        if (tab !== 'installed') return face.hooks.pluginTabs.getSnapshot().some(entry => entry.id === tab)
+        if (view.kind === 'item') return configLedger.getSnapshot().items.some(item => item.id === view.id)
+        if (view.kind === 'list' || view.kind === 'more') return true
+        const pkg = controller.getSnapshot().packages.find(pkg => pkg.name === view.name)
+        return !!pkg && (pkg.installed || pkg.official || pkg.error !== undefined)
+          && (view.kind !== 'row' || pkg.rows.some(row => row.rowId === view.rowId))
+      },
+      open: (route) => {
+        instance.actions.setTab(route.tab)
+        instance.actions.setView(route.view)
+      },
+    })))
+    yield () => { void history.dispose() }
     yield ctx.layout.panelInfo.subscribe(() => {
-      if (ctx.layout.panelInfo.getSnapshot().activePanelId !== PANEL_ID) instance.actions.setView({ kind: 'list' })
+      if (!ctx.get('panelHistory') && ctx.layout.panelInfo.getSnapshot().activePanelId !== PANEL_ID) instance.actions.setView({ kind: 'list' })
     })
     const disposeNavigation = ctx.reflect.provide('pluginNavigation', {
       openList: () => {

@@ -7,11 +7,16 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { PropsRuntime, PropsLocale, PropsRenderSlots, PropsHooks } from '@deepseek-ai/dsh-client-ui-slots'
-import { useCallback,useEffect,useState } from 'react'
+import { useCallback,useState } from 'react'
 import { Toast,IconWarningOutlineRegular,Button,IconChevronLeftOutlineMedium,IconAgentPresetOutlineMedium,IconSkillOutlineMedium,IconLinkOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CapabilityTab,CapabilityBackNavigation } from '../contracts.ts'
 import styles from './hub.module.css'
 declare module '@deepseek-ai/dsh-client-ui-slots'{interface LocaleNamespaceMap{ 'actvero.hub':keyof typeof zh }}
+function HomeIcon() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" aria-hidden="true">
+    <path d="m3 10 9-7.5 9 7.5v10a1 1 0 0 1-1 1h-5.5v-7h-5v7H4a1 1 0 0 1-1-1z" />
+  </svg>
+}
 interface Notice { text:string;tone?:'success';seq:number }
 function CapabilityToast({ useNotice, dismiss }: PropsHooks<{
   notice: { getSnapshot: () => Notice | null; subscribe: (fn: () => void) => () => void }
@@ -29,13 +34,11 @@ class Hub {
   private selected:CapabilityTab='experts';private listeners=new Set<()=>void>()
   constructor(private ctx:Context){}
   getSnapshot=()=>this.selected
-  reset=()=>{this.selected='experts';for(const fn of this.listeners)fn()}
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn)}}
   open(tab:CapabilityTab){this.selected=tab;for(const fn of this.listeners)fn();this.ctx.layout.selectPanel('actvero-capabilities' as MainPanelId)}
 }
-function Panel({ renderSlot,t,useSelected,open,reset,notify }:PropsRuntime<'main'>&PropsRenderSlots<'actvero.capability.content'>&PropsLocale<'actvero.hub'>&PropsHooks<{ selected:{ getSnapshot:()=>CapabilityTab;subscribe:(fn:()=>void)=>()=>void } }>&{ open:(tab:CapabilityTab)=>void;reset:()=>void;notify:(text:string,tone?:'success')=>void }){
+function Panel({ renderSlot,t,useSelected,open,notify }:PropsRuntime<'main'>&PropsRenderSlots<'actvero.capability.content'>&PropsLocale<'actvero.hub'>&PropsHooks<{ selected:{ getSnapshot:()=>CapabilityTab;subscribe:(fn:()=>void)=>()=>void } }>&{ open:(tab:CapabilityTab)=>void;notify:(text:string,tone?:'success')=>void }){
   const selected=useSelected(value=>value)
-  useEffect(()=>()=>reset(),[reset])
   const [navigation,setNavigation]=useState<(CapabilityBackNavigation&{ tab:CapabilityTab })>()
   const setBackNavigation = useCallback((value: CapabilityBackNavigation | undefined) =>
     setNavigation(current => value ? { ...value, tab: selected } : current?.tab === selected ? undefined : current), [selected])
@@ -57,9 +60,13 @@ export function apply(ctx:Context){
   {
     const hub=new Hub(scope);scope.effect(()=>scope.reflect.provide('capabilityHub',hub))
     scope.effect(()=>scope.locale.register('actvero.hub',{ zh,en }));const t=scope.locale.bind('actvero.hub')
+    scope.inject(['panelHistory'], child => child.effect(() => child.panelHistory.register(['actvero-capabilities' as MainPanelId], {
+      getSnapshot: hub.getSnapshot, subscribe: hub.subscribe, same: Object.is, open: (tab: CapabilityTab) => hub.open(tab),
+    })))
+    scope.slots.inject('sidebar.home', () => scope.slots.register({ name: 'sidebar.home' }, HomeIcon))
     scope.slots.inject('sidebar.panellist',()=>scope.slots.register({ name:'sidebar.panellist',id:'actvero-capabilities' as MainPanelId,order:-10,label:()=>t('hub') },()=> <span className={styles.sidebarEntryIcon}><IconSkillOutlineMedium/></span>))
     selectors(scope)
     scope.slots.inject('shell.overlay',()=>scope.slots.register({ name:'shell.overlay',id:'actvero-capability-toast',inject:()=>({ hooks:{ notice:{ getSnapshot:hub.noticeSnapshot,subscribe:hub.noticeSubscribe } },dismiss:hub.dismiss }) },CapabilityToast))
-    scope.slots.inject('main',()=>scope.slots.register({ name:'main',key:'actvero-capabilities' as MainPanelId,locale:'actvero.hub',children:{ 'actvero.capability.content':{ kind:'keyed',scope:'root' } },inject:()=>({ hooks:{ selected:{ getSnapshot:hub.getSnapshot,subscribe:hub.subscribe } },reset:hub.reset,notify:hub.notify,open:(tab:CapabilityTab)=>hub.open(tab) }) },Panel))
+    scope.slots.inject('main',()=>scope.slots.register({ name:'main',key:'actvero-capabilities' as MainPanelId,locale:'actvero.hub',children:{ 'actvero.capability.content':{ kind:'keyed',scope:'root' } },inject:()=>({ hooks:{ selected:{ getSnapshot:hub.getSnapshot,subscribe:hub.subscribe } },notify:hub.notify,open:(tab:CapabilityTab)=>hub.open(tab) }) },Panel))
   }
 }

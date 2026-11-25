@@ -27,6 +27,8 @@ The dsh web client sidebar lets users recognize the active build, start a new se
 <a id="use-this-package"></a>
 ## Use this package
 
+Register a Home icon in the root single slot `sidebar.home` to enable fixed navigation. The toolbar spans both columns, with the module icons and the footer below it. Selecting Home preserves the conversation pane’s open or closed state. Home shows the sidebar toggle beside the macOS traffic lights. Modules without a secondary pane omit the toggle. A collapsed Home pane also exposes New Session in this toolbar. Home shows New Session and the workspace browser. Hover Home or press Right Arrow on its button to preview conversations from another module. The floating pane is 264 px wide and extends from below the toolbar to 8 px above the bottom of the window. Long lists scroll inside it. Escape dismisses it. The optional `sidebar.history` slot provides Back and Forward. On macOS the arrows align to the right edge of the docked sidebar and sit next to the toggle when the pane is closed.
+
 The sidebar is the navigation shell: users see the brand, start new sessions, collapse the rail, and reach Settings. Feature plugins fill its seats — ui-workspace fills `sidebar.workspaces`, ui-settings registers the trigger row and settings panel at `sidebar.settings`.
 
 ### Brand and New Session

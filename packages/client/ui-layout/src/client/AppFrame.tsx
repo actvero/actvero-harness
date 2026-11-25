@@ -32,8 +32,11 @@ export type AppFrameProps =
   & PropsLocale<'common'>
 
 /** Center column grid item (session-body building block). */
-function CenterColumn(props: { children?: ReactNode }) {
-  return <div className={css.centerCol}>{props.children}</div>
+function CenterColumn({ children, modulePage, darwin }: { children: ReactNode; modulePage: boolean; darwin: boolean }) {
+  return <div className={css.centerCol}>
+    {modulePage && darwin && <div className={css.moduleTitlebar} data-window-drag />}
+    {modulePage ? <div className={css.moduleSurface} data-module-surface>{children}</div> : children}
+  </div>
 }
 
 /** Subscribe to the main key without subscribing the column frame to each panel id. */
@@ -158,7 +161,11 @@ export function AppFrame({
   }, [actions])
 
   const narrow = viewport < SIDEBAR_AUTO_COLLAPSE
-  const sidebarCollapsed = narrow ? !layoutInfo.narrowExpanded : layoutInfo.sidebar === 0
+  const home = usePanelInfo(info => !layoutInfo.navigationRail || info.activePanelId === null)
+  const expanded = narrow ? layoutInfo.narrowExpanded : layoutInfo.sidebar > 0
+  const rail = layoutInfo.navigationRail
+  const navigationPane = !rail ? undefined : !home || !expanded ? 'closed' : narrow ? 'overlay' : 'docked'
+  const sidebarCollapsed = rail ? navigationPane !== 'docked' : !expanded
   const sidebarPreference = sidebarCollapsed
     ? 0
     : layoutInfo.sidebar === 0 ? SIDEBAR_DEFAULT : layoutInfo.sidebar
@@ -166,7 +173,7 @@ export function AppFrame({
   // Desktop reopen controls occupy the frame's shell.leading seat (macOS) or
   // the Windows caption row; neither platform keeps an icon rail.
   const darwin = document.documentElement.dataset.platform === 'darwin'
-  const collapsedWidth = darwin
+  const collapsedWidth = rail ? 52 : darwin
     || document.documentElement.hasAttribute('data-windows-titlebar') ? 0 : SIDEBAR_COLLAPSED
   // Opening on a narrow frame collapses the left sidebar. Eligibility must
   // include that space before the occupant's first shown report arrives.
@@ -239,10 +246,13 @@ export function AppFrame({
   // whole and was corrected two frames later — visible jitter. cols keeps only
   // the discrete decisions (track present, collapse state) and the drag base.
   const rightbarMax = cols.rightbar === 0 ? 0 : clampWidth(rightbarPreference, RIGHTBAR_MIN, viewport * RIGHTBAR_MAX_RATIO)
+  const [windowControlsHost, setWindowControlsHost] = useState<HTMLDivElement | null>(null)
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
     width: cols.sidebar,
-  }), [renderSlot, sidebarCollapsed, cols.sidebar])
+    ...(navigationPane ? { navigationPane } : {}),
+    ...(rail && darwin ? { windowControlsHost } : {}),
+  }), [renderSlot, sidebarCollapsed, cols.sidebar, navigationPane, rail, darwin, windowControlsHost])
   const main = useMemo(() => (
     <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
   ), [usePanelInfo, renderSlot])
@@ -253,7 +263,7 @@ export function AppFrame({
   // row (ui-sidebar). AppFrame.module.css publishes the matching
   // --dsh-frame-leading-clearance under the same collapsed condition.
   const leading = useMemo(() => renderSlot('shell.leading', {}), [renderSlot])
-  const leadingMounted = darwin && sidebarCollapsed
+  const leadingMounted = darwin && sidebarCollapsed && !rail
 
   return (
     <div
@@ -262,9 +272,12 @@ export function AppFrame({
       style={{
         ...(document.documentElement.hasAttribute('data-windows-titlebar')
           ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
+        ...(rail ? { '--dsh-navigation-dock-width': `${layoutInfo.sidebar || SIDEBAR_DEFAULT}px` } : {}),
         gridTemplateColumns:
           `${cols.sidebar}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px)`,
       }}
+      data-navigation-rail={rail || undefined}
+      data-navigation-home={rail && home || undefined}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-rightbar-collapsed={cols.rightbar === 0 || undefined}
       data-rightbar-fullscreen={layoutInfo.rightbarFullscreen || undefined}
@@ -281,7 +294,7 @@ export function AppFrame({
         {sidebar}
       </div>
       <>
-        <CenterColumn>{main}</CenterColumn>
+        <CenterColumn modulePage={rail && !home} darwin={darwin}>{main}</CenterColumn>
         <RightbarColumn>
           {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: viewport, canShow: normal.rightbar > 0 })}
         </RightbarColumn>
@@ -292,9 +305,10 @@ export function AppFrame({
       <div className={css.overlayLayer} data-shell-overlay>
         {overlays}
       </div>
-      {leadingMounted && (
-        <div className={css.leadingSeat} data-shell-leading>
-          {leading}
+      {(leadingMounted || (rail && darwin)) && (
+        <div className={css.leadingSeat} data-shell-leading data-window-drag={rail && !sidebarCollapsed || undefined}
+          ref={rail ? setWindowControlsHost : undefined}>
+          {leadingMounted ? leading : null}
         </div>
       )}
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}

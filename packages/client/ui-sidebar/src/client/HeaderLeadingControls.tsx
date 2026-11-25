@@ -1,45 +1,55 @@
-/** Window-chrome controls for the fully hidden sidebar (frame shell.leading seat). */
+/** Window toolbar actions shared by the standard sidebar and fixed navigation. */
 import {
   IconNewChatOutlineRegular, IconPanelLeftOutlineRegular, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the frame's shell.leading slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SidebarRootInjected } from './contract/slots.ts'
 import css from './HeaderLeadingControls.module.css'
 
-/** Full props of the shell.leading occupant. */
+/** Sidebar actions used by the window toolbar. */
 export type HeaderLeadingControlsProps =
-  PropsRuntime<'shell.leading'>
-  & InjectFace<SidebarRootInjected>
-  & PropsLocale<'sidebar'>
+  PropsRuntime<'shell.leading'> & InjectFace<SidebarRootInjected> & PropsLocale<'sidebar'>
+
+type WindowNavigationControlsProps =
+  Pick<HeaderLeadingControlsProps, 'toggleSidebar' | 'startSession' | 'trackEntryClick' | 'useShortcuts' | 't'>
+  & { renderHistorySlot?: PropsRenderSlots<'sidebar.history'>['renderSlot'] }
+  & { expanded?: boolean; showNewSession?: boolean; controls?: string; showToggle?: boolean }
 
 /**
- * Sidebar-open and New Session controls in the frame's window-chrome seat.
- * On macOS desktop a collapsed sidebar hides entirely (no rail), taking both
- * controls off screen; this occupant puts them back beside the traffic
- * lights. The frame mounts the seat only in that state and owns its
- * placement, so the occupant renders unconditionally.
+ * Uses the active sidebar state and the product’s available actions.
  * @param props - Injected sidebar actions plus the sidebar locale seat.
  * @returns the two window-chrome controls.
  */
-export function HeaderLeadingControls({ toggleSidebar, startSession, trackEntryClick, useShortcuts, t }: HeaderLeadingControlsProps) {
+export function HeaderLeadingControls(props: HeaderLeadingControlsProps) {
+  return <WindowNavigationControls {...props} />
+}
+
+/** Renders the window-level sidebar toggle and the available conversation action.
+ * @param props The current sidebar presentation, actions and shortcut bindings.
+ * @returns The controls beside the native window buttons.
+ */
+export function WindowNavigationControls({ toggleSidebar, startSession, trackEntryClick, useShortcuts, t,
+  renderHistorySlot, expanded, controls, showNewSession = true, showToggle = true }: WindowNavigationControlsProps) {
   const shortcut = useShortcuts(rows => rows.find(row => row.id === 'sidebar.left.toggle'))
+  const label = t(expanded ? 'toggle.collapse' : 'toggle.open')
   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
   return (
-    <div className={css.controls}>
-      <Tooltip label={t('toggle.open')} shortcutKeys={shortcut?.keys} delayMs={500}>
+    <div className={css.controls} data-rail-controls={renderHistorySlot ? true : undefined}>
+      {showToggle && <Tooltip label={label} shortcutKeys={shortcut?.keys} delayMs={500}>
         <button
           type="button"
           className={css.iconButton}
-          aria-label={t('toggle.open')}
+          aria-label={label} aria-controls={controls} aria-expanded={expanded}
           aria-keyshortcuts={shortcut?.aria}
           onClick={() => { toggleSidebar() }}
         >
-          <IconPanelLeftOutlineRegular size={16} />
+          <IconPanelLeftOutlineRegular size={16} className={css.panelIcon} />
         </button>
-      </Tooltip>
-      <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500}>
+      </Tooltip>}
+      {renderHistorySlot?.('sidebar.history', {})}
+      {showNewSession && <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500}>
         <button
           type="button"
           className={css.iconButton}
@@ -53,7 +63,7 @@ export function HeaderLeadingControls({ toggleSidebar, startSession, trackEntryC
         >
           <IconNewChatOutlineRegular size={16} />
         </button>
-      </Tooltip>
+      </Tooltip>}
     </div>
   )
 }

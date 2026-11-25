@@ -13,7 +13,7 @@ export interface SessionLogDownloadDialogInjected {
 }
 
 export type SessionLogDownloadDialogProps =
-  PropsRuntime<'conversation.session.header.utilities'>
+  Pick<PropsRuntime<'conversation.session.header.more'>, 'sessionId'>
   & PropsLocale<typeof NS>
   & InjectFace<SessionLogDownloadDialogInjected>
 

@@ -41,7 +41,8 @@ export function BusinessContent({ id, workbench, preview, renderSlot, t }: Facto
 export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, renderSlot, SessionProvider, action }:
   Locale & WorkbenchViewHooks & Pick<PropsRuntime<'main'>, 'useSessions'> & PropsRenderFactories
   & PropsRenderSlots<'actvero.workbench.chat' | 'actvero.workbench.header'> & { action: WorkbenchAction }) {
-  const { opened, instance, preparing, openError, accessError, chat, chatCollapsed, chatPreparing, entries } = useView(value => value)
+  const view = useView(value => value)
+  const { opened, instance, preparing, openError, accessError, chat, chatCollapsed, chatPreparing, entries } = view
   const error = accessError ?? openError
   const icon = useView(value => opened ? workbenchIconUrl(value, opened) : undefined)
   const catalogButton = useView(value => opened ? value.catalogButtons[opened] !== 'hide' : true)
@@ -82,12 +83,14 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
           }) : defaultHeader}
       </div>
     </header>
-    {error ? <div className={styles.runtimeState} role="alert"><span>{t(error)}</span>
-      <Button variant="outline" onClick={() => { if (opened) action.open(opened) }}>{t('retryOpen')}</Button></div>
-      : preparing ? <div className={styles.runtimeState} role="status" aria-label={t('preparing')}>
-        <IconLoadingOutlineRegular className={styles.spinner} size={22} />
-      </div>
-        : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
+    <div className={styles.businessBody} data-shell-panel-body>
+      {error ? <div className={styles.runtimeState} role="alert"><span>{t(error)}</span>
+        <Button variant="outline" onClick={() => { if (opened) action.open(opened) }}>{t('retryOpen')}</Button></div>
+        : preparing ? <div className={styles.runtimeState} role="status" aria-label={t('preparing')}>
+          <IconLoadingOutlineRegular className={styles.spinner} size={22} />
+        </div>
+          : opened && renderFactorySlot('actvero.workbench.content', { id: opened, workbench: action.context(instance?.instanceId ?? null) })}
+    </div>
     {instance && action.supportsAI(instance.instanceId) && <Tooltip label={t('askAI')} side="top"><button ref={launcher} type="button" className={styles.aiLauncher}
       hidden={Boolean(chat && !chatCollapsed)} aria-label={t('askAI')} aria-expanded={Boolean(chat && !chatCollapsed)} disabled={chatPreparing}
       onClick={() => { if (chat && !chatCollapsed) collapse(); else conversation(false) }}>

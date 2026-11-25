@@ -1,5 +1,5 @@
 /** Empty workbench defaults and author-owned headers in the shipped Web composition. */
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
@@ -7,7 +7,7 @@ import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { initialShortcutConfig } from '@deepseek-ai/dsh-client-shortcuts/protocol'
-import { launchWebScaffold, watchConsole } from './scaffold.ts'
+import { launchWebScaffold, seedSession, watchConsole } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
 
 declare global {
@@ -90,7 +90,148 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    await page.getByRole('button', { name: 'Workbenches', exact: true }).click()
+    const rail = page.locator('[data-navigation-column] nav')
+    const home = rail.getByRole('button', { name: 'Home', exact: true })
+    const conversations = page.locator('#sidebar-conversations')
+    const positions = () => rail.getByRole('button').evaluateAll(nodes => nodes.map((node) => {
+      const box = node.getBoundingClientRect()
+      return [box.x, box.y]
+    }))
+    await home.waitFor()
+    const toolbar = page.locator('[data-navigation-toolbar]')
+    const toolbarButton = toolbar.locator('button[aria-controls="sidebar-conversations"]')
+    const divider = page.locator('[data-navigation-column]')
+    const geometry = async () => {
+      const [bar, toggle, column] = await Promise.all([toolbar.boundingBox(), toolbarButton.boundingBox(), divider.boundingBox()])
+      expect(toggle!.y).toBeGreaterThanOrEqual(bar!.y)
+      expect(toggle!.y + toggle!.height).toBeLessThanOrEqual(column!.y + 1)
+      return [toggle!.x, toggle!.y, column!.y]
+    }
+    const back = toolbar.getByRole('button', { name: 'Back', exact: true })
+    const forward = toolbar.getByRole('button', { name: 'Forward', exact: true })
+    const edges = () => page.evaluate(() => {
+      const rail = document.querySelector('[data-navigation-column]')!
+      const center = document.querySelector('[data-module-surface]') ?? document.querySelector('[data-rightbar-col]')!.previousElementSibling!
+      return [getComputedStyle(rail, '::after').bottom, getComputedStyle(center).borderTopLeftRadius,
+        getComputedStyle(center).borderBottomLeftRadius]
+    })
+    await back.waitFor()
+    expect(await forward.isDisabled()).toBe(true)
+    expect(await edges()).toEqual(['8px', '12px', '0px'])
+    const wideBack = (await back.boundingBox())!.x
+    const chrome = await geometry()
+    if (platform === 'darwin') expect(chrome[0]).toBe(88)
+    if (platform === 'darwin') {
+      const dockEdge = () => conversations.evaluate(el => el.getBoundingClientRect().right)
+      const forwardEdge = () => forward.evaluate(el => el.getBoundingClientRect().right)
+      const initialEdge = await dockEdge()
+      expect(await forwardEdge()).toBe(initialEdge - 8)
+      await page.mouse.move(initialEdge, 200)
+      await page.mouse.down()
+      await page.mouse.move(initialEdge + 48, 200)
+      await page.mouse.up()
+      await expect.poll(dockEdge).toBe(initialEdge + 48)
+      expect(await forwardEdge()).toBe(await dockEdge() - 8)
+      expect(await geometry()).toEqual(chrome)
+      await toolbarButton.click()
+      await conversations.waitFor({ state: 'hidden' })
+      await toolbar.getByRole('button', { name: 'New session', exact: true }).waitFor()
+      expect(await edges()).toEqual(['0px', '0px', '0px'])
+      expect(await page.locator('[data-conversation-content]').evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('0px')
+      expect((await back.boundingBox())!.x).toBe(chrome[0]! + 36)
+      await toolbarButton.click()
+      await conversations.waitFor()
+      expect(await toolbar.getByRole('button').count()).toBe(3)
+      expect(await forwardEdge()).toBe(await dockEdge() - 8)
+    }
+    const fixed = await positions()
+    expect(fixed).toHaveLength(5)
+    for (const name of ['Workbenches', 'Capability Center', 'Plugins', 'Automation tasks']) {
+      await rail.getByRole('button', { name, exact: true }).click()
+      await conversations.waitFor({ state: 'hidden' })
+      expect(await positions()).toEqual(fixed)
+      expect(await edges()).toEqual(['0px', '12px', '0px'])
+      const surface = page.locator('[data-module-surface]')
+      expect((await surface.boundingBox())!.y).toBe((await divider.boundingBox())!.y)
+      expect(await toolbarButton.count()).toBe(0)
+      expect(await page.locator('[data-navigation-column]').evaluate(el => el.getBoundingClientRect().width)).toBeCloseTo(52, 0)
+      expect(await back.isDisabled()).toBe(true)
+      expect(await forward.isDisabled()).toBe(true)
+    }
+    expect((await back.boundingBox())!.x).toBeLessThan(wideBack)
+    const taskFilters = page.getByRole('group', { name: 'Task status' })
+    const filter = taskFilters.getByRole('button').nth(1)
+    await filter.click()
+    await back.click()
+    expect(await taskFilters.getByRole('button').first().getAttribute('aria-pressed')).toBe('true')
+    await rail.getByRole('button', { name: 'Capability Center' }).click()
+    const skills = page.getByRole('tab', { name: 'Skills', exact: true })
+    await skills.click()
+    await back.click()
+    await expect.poll(() => page.getByRole('tab', { name: 'Experts', exact: true }).getAttribute('aria-selected')).toBe('true')
+    await forward.click()
+    expect(await skills.getAttribute('aria-selected')).toBe('true')
+    await rail.getByRole('button', { name: 'Plugins', exact: true }).click()
+    const morePlugins = page.locator('[data-plugin-group="extensions"]').getByRole('button', { name: 'More', exact: true })
+    await morePlugins.click()
+    await back.click()
+    await morePlugins.waitFor()
+    await forward.click()
+    await page.getByRole('heading', { name: 'Experimental plugins', level: 1 }).waitFor()
+    await rail.getByRole('button', { name: 'Automation tasks' }).click()
+    await forward.click()
+    expect(await filter.getAttribute('aria-pressed')).toBe('true')
+    await home.hover()
+    await conversations.waitFor()
+    const preview = (await conversations.boundingBox())!
+    expect(preview.x).toBe(56)
+    expect(preview.width).toBe(264)
+    expect(preview.y + preview.height).toBe(892)
+    const homeRow = (await home.boundingBox())!
+    await page.mouse.move(preview.x - 2, homeRow.y + homeRow.height / 2)
+    expect(await conversations.evaluate((el) => {
+      const rect = el.getBoundingClientRect()
+      return el.contains(document.elementFromPoint(rect.left - 2, rect.top + 16))
+    })).toBe(true)
+    await page.setViewportSize({ width: 1440, height: 180 })
+    const tree = conversations.getByRole('tree')
+    await expect.poll(() => tree.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
+    expect(await conversations.evaluate(el => el.getBoundingClientRect().bottom)).toBe(172)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    expect(await rail.getByRole('button', { name: 'Automation tasks' }).getAttribute('aria-current')).toBe('page')
+    await conversations.getByRole('button', { name: 'New session', exact: true }).hover()
+    await page.keyboard.press('Escape')
+    await conversations.waitFor({ state: 'hidden' })
+    await home.press('ArrowRight')
+    await conversations.waitFor()
+    await page.keyboard.press('Escape')
+    await home.click()
+    await conversations.waitFor()
+    await toolbarButton.click()
+    await conversations.waitFor({ state: 'hidden' })
+    await home.click()
+    await home.press('Enter')
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
+    await home.hover()
+    await conversations.waitFor()
+    await home.click()
+    await conversations.waitFor({ state: 'hidden' })
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await toolbarButton.click()
+    await conversations.waitFor()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await conversations.waitFor({ state: 'hidden' })
+    await home.click()
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
+    await toolbarButton.click()
+    await home.click()
+    expect(await toolbarButton.getAttribute('aria-expanded')).toBe('true')
+    await toolbarButton.click()
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await conversations.waitFor()
+    expect(await positions()).toEqual(fixed)
+    await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
     await page.getByRole('tab', { name: 'My workbenches', exact: true }).click()
     await page.getByRole('heading', { name: 'custom identity', exact: true }).waitFor()
     const show = async (id: string) => {
@@ -98,7 +239,16 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
         mode: 'business', sidebar: 'focus', ai: 'hide' }, AbortSignal.timeout(15_000))
       expect(result, JSON.stringify(result)).toMatchObject({ status: 'confirmed' })
     }
-    await show('custom')
+    expect(await page.getByRole('button', { name: /^Switch workbench/ }).count()).toBe(0)
+    await page.getByRole('tab', { name: 'Platform workbenches' }).click()
+    await back.click()
+    expect(await page.getByRole('tab', { name: 'My workbenches' }).getAttribute('aria-selected')).toBe('true')
+    await page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'custom identity' }) }).getByRole('button', { name: 'Open', exact: true }).click()
+    expect(await forward.isDisabled()).toBe(true)
+    await back.click()
+    await page.getByRole('heading', { name: 'Workbenches', exact: true }).waitFor()
+    await forward.click()
+    await page.locator('[data-author-header]').waitFor()
     const objectOpened = await scaffold.ctx.actveroWorkbenchRuntime.present({ id: `${name}-custom` as WorkbenchId,
       mode: 'business', objectId: 'project-b' as import('@actvero/dsh-capability-ui').WorkbenchObjectId, ai: 'hide' }, AbortSignal.timeout(15_000))
     expect(objectOpened).toMatchObject({ status: 'confirmed' })
@@ -124,7 +274,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
       expect(await header.getByRole('button', { name: 'Saved by author' }).isVisible()).toBe(true)
     }
-    // Collapsed desktop controls and the business header share the same row.
+    // Native window controls clear the business header beside the fixed rail.
     const frame = page.locator('[data-shell-bottom]').locator('..')
     const row = header.locator('..')
     const checkHeaderGeometry = async (collapsed: boolean, fullscreen = false) => {
@@ -138,9 +288,14 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
           headerClearsControls: !leading || element.querySelector('[data-workbench-header]')!.getBoundingClientRect().left >= leading.right,
         }
       })
+      if (platform === 'darwin') {
+        const body = page.locator('[data-shell-panel-body]')
+        expect(await body.evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('12px')
+        expect((await body.boundingBox())!.y).toBeCloseTo((await row.boundingBox())!.y + geometry.height, 0)
+      }
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
-      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 84 : 160 : 20)
+      expect(geometry.inset).toBe(platform === 'darwin' && collapsed ? fullscreen ? 36 : 112 : 20)
       expect(geometry.controlsShareRow).toBe(true)
       expect(geometry.headerClearsControls).toBe(true)
       expect(await header.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
@@ -172,21 +327,22 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await page.evaluate(() => document.documentElement.removeAttribute('data-fullscreen'))
       await page.setViewportSize({ width: 1280, height: 844 })
       const input = await header.getByRole('textbox', { name: 'Find in drawing' }).elementHandle()
-      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
-      await checkHeaderGeometry(false)
-      expect(await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue()).toBe('node A')
-      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
+      await home.hover()
+      await conversations.waitFor()
+      await page.keyboard.press('Escape')
+      await conversations.waitFor({ state: 'hidden' })
       await checkHeaderGeometry(true)
       expect(await page.evaluate(element => element?.isConnected, input)).toBe(true)
     }
-    expect({ separateWindowRows: await page.locator('[data-workbench-window-chrome]').count(),
+    const framedContent = platform === 'darwin' ? page.locator('[data-shell-panel-body]') : page.locator('[data-module-surface]')
+    expect({ contentCorner: await framedContent.evaluate(element => getComputedStyle(element).borderTopLeftRadius),
+      separateWindowRows: await page.locator('[data-workbench-window-chrome]').count(),
       headerAtTop: await row.evaluate(element =>
         element.getBoundingClientRect().top === element.parentElement!.getBoundingClientRect().top),
       input: await header.getByRole('textbox', { name: 'Find in drawing' }).inputValue(),
     }).toMatchInlineSnapshot(`
       {
+        "contentCorner": "12px",
         "headerAtTop": true,
         "input": "node A",
         "separateWindowRows": 0,
@@ -272,12 +428,11 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     }
     await page.setViewportSize({ width: 1440, height: 900 })
     if (platform === 'darwin') {
-      await page.locator('[data-shell-leading]').getByRole('button', { name: 'Open sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBeNull()
+      await home.hover()
+      await conversations.waitFor()
       await checkDefaultAlignment()
-      await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-      await expect.poll(() => frame.getAttribute('data-sidebar-collapsed')).toBe('true')
-      await checkDefaultAlignment()
+      await page.keyboard.press('Escape')
+      await conversations.waitFor({ state: 'hidden' })
     }
     await catalogReturn.hover()
     await page.getByRole('tooltip', { name: 'Back to workbenches', exact: true }).waitFor()
@@ -293,6 +448,71 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const page = browser?.contexts()[0]?.pages()[0]
     if (page) console.error({ errors, body: await page.locator('body').innerText() })
     throw error
+  } finally {
+    try { await browser?.close() } finally {
+      try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
+    }
+  }
+})
+
+it('returns to earlier conversations on Home after visiting another module', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'home-history-'))
+  let scaffold: Awaited<ReturnType<typeof launchWebScaffold>> | undefined
+  let browser: Browser | undefined
+  try {
+    const overlay = join(root, 'test.patch.yml')
+    await writeFile(overlay, '- id: actvero-capability-ui\n  disabled: false\n')
+    scaffold = await launchWebScaffold({ extraOverlayPath: overlay, developerTools: true })
+    const seed = await readFile(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url), 'utf8')
+    const first = await seedSession(scaffold, seed, 'navigation-first')
+    const second = await seedSession(scaffold, seed, 'navigation-second')
+    browser = await chromium.launch()
+    const page = await newEnglishPage(browser)
+    await page.goto(scaffold.authenticatedUrl)
+    await page.getByRole('button', { name: 'View options' }).click()
+    await page.getByRole('menuitem', { name: 'In one list', exact: true }).click()
+    const row = (id: SessionId) => page.locator(`[data-row-key="session:${id}"]`)
+    await row(first).click()
+    await row(second).click()
+    const toggle = page.locator('[data-navigation-toolbar] button[aria-controls="sidebar-conversations"]')
+    await toggle.click()
+    const body = page.locator(`[data-sidebar-collapsed] [data-conversation-session="${second}"][data-content-phase="active"]`)
+    await body.waitFor()
+    expect(await body.evaluate((el) => {
+      const header = el.parentElement!.querySelector('header')!
+      const style = getComputedStyle(el)
+      return {
+        meetsHeader: el.getBoundingClientRect().top === header.getBoundingClientRect().bottom,
+        headerRule: getComputedStyle(header).borderBottomWidth,
+        corner: style.borderTopLeftRadius,
+        bottomCorner: style.borderBottomLeftRadius,
+        top: style.borderTopStyle,
+        left: style.borderLeftStyle,
+        railRule: getComputedStyle(document.querySelector('[data-navigation-column]')!, '::after').width,
+      }
+    })).toEqual({
+      meetsHeader: true, headerRule: '0px', corner: '12px', bottomCorner: '0px', top: 'solid', left: 'solid', railRule: '0px',
+    })
+    await toggle.click()
+    const menu = page.getByRole('button', { name: 'More actions', exact: true })
+    await menu.click()
+    expect(await page.locator('[data-conversation-tabs]').count()).toBe(0)
+    await page.getByRole('menuitem', { name: 'Download session log', exact: true }).waitFor()
+    await page.getByRole('menuitem', { name: 'Trajectory', exact: true }).click()
+    const tools = page.getByRole('toolbar', { name: 'Trajectory toolbar' })
+    await tools.waitFor()
+    await menu.click()
+    await page.getByRole('menuitem', { name: 'Chat', exact: true }).click()
+    await tools.waitFor({ state: 'hidden' })
+    expect(await page.getByRole('menu').count()).toBe(0)
+    const rail = page.locator('[data-navigation-column] nav')
+    await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
+    await rail.getByRole('button', { name: 'Home', exact: true }).click()
+    const toolbar = page.locator('[data-navigation-toolbar]')
+    await toolbar.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect.poll(() => row(first).getAttribute('aria-selected')).toBe('true')
+    await toolbar.getByRole('button', { name: 'Forward', exact: true }).click()
+    await expect.poll(() => row(second).getAttribute('aria-selected')).toBe('true')
   } finally {
     try { await browser?.close() } finally {
       try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
@@ -326,11 +546,7 @@ it('keeps a clean catalog empty even after restoring a retired sample selection'
       expect(await page.getByText('Project checklist', { exact: true }).count()).toBe(0)
       expect(await page.getByText('DSH Workbenches', { exact: true }).count()).toBe(0)
       expect(await page.getByRole('button', { name: 'Clear search', exact: true }).count()).toBe(0)
-      await page.getByRole('button', { name: 'Switch workbench · Choose workbench', exact: true }).click()
-      const menu = page.getByRole('menu')
-      await menu.getByText('No workbenches yet', { exact: true }).waitFor()
-      expect(await menu.getByRole('menuitem').count()).toBe(0)
-      await page.keyboard.press('Escape')
+      expect(await page.getByRole('button', { name: /^Switch workbench/ }).count()).toBe(0)
     }
     await checkEmpty()
     await page.evaluate(() => { localStorage.setItem('actvero.workbenches.selected.v1', 'builtin:project-checklist') })

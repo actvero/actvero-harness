@@ -131,6 +131,7 @@ const harness = await vi.hoisted(async () => {
   }
   class FakeHost {
     readonly updateTasks = vi.fn(async (_action: 'inspect' | 'lock' | 'unlock') => false)
+    readonly bootInjections = vi.fn(async (): Promise<readonly unknown[]> => [])
     readonly inspectQuit = vi.fn(async () => ({ activeTasks: false, scheduledTasks: false }))
     url = 'http://127.0.0.1:3080/?token=test'
     fetch = vi.fn(async () => Response.json({ hasApiKey: true, writable: true, localePreference: null }))
@@ -1124,6 +1125,11 @@ describe('desktop main startup', () => {
     expect(settled).toBe(false)
     harness.hosts[0]!.ready.resolve()
     await expect(boot).resolves.toEqual({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' })
+    const updated = [{ kind: 'script', src: 'plugins/client.js?rev=second' }]
+    harness.hosts[0]!.bootInjections.mockResolvedValueOnce(updated)
+    await expect(handler({ senderFrame: { url: 'dsh-app://app/' } })).resolves.toEqual({
+      injections: updated, streamBaseUrl: 'http://127.0.0.1:3080',
+    })
     expect(harness.windows[0]!.urls).toEqual(['dsh-app://app/'])
   })
 

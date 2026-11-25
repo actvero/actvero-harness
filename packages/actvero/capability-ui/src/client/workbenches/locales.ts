@@ -1,4 +1,5 @@
 export const zh = {
+  windowBack: '返回', windowForward: '前进',
   commandUnavailable: '此命令已不可用，请在关联工作台的对话中重新打开。',
   referenceSnapshot: '引用时的快照',
   referenceOpen: '打开对象', referenceOpenFailed: '暂时无法打开原内容。你仍可查看这份快照。',
@@ -84,11 +85,6 @@ export const zh = {
   removeTitle: '卸载工作台',
   removeHelp: '卸载「{name}」后，本地数据和历史对话会保留',
   title: '工作台',
-  switch: '切换工作台',
-  reorder: '拖动排序',
-  reordered: '已将{name}移至第{position}位',
-  orderSaveFailed: '无法记住排序，请检查浏览器本地存储权限',
-  choose: '选择工作台',
   platform: '平台工作台',
   platformLoading: '正在加载平台工作台…',
   platformCatalogFailed: '无法加载平台工作台，请检查网络',
@@ -162,6 +158,7 @@ export const zh = {
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
+  windowBack: 'Back', windowForward: 'Forward',
   commandUnavailable: 'This command is unavailable. Reopen it in a conversation associated with the workbench.',
   referenceSnapshot: 'Saved reference snapshot',
   referenceOpen: 'Open object', referenceOpenFailed: 'Unable to open the original content. The snapshot is still available.',
@@ -247,11 +244,6 @@ export const en: Record<keyof typeof zh, string> = {
   removeTitle: 'Uninstall workbench',
   removeHelp: 'Uninstall “{name}”? Local data and conversation history will be kept.',
   title: 'Workbenches',
-  switch: 'Switch workbench',
-  reorder: 'Drag to reorder',
-  reordered: 'Moved {name} to position {position}',
-  orderSaveFailed: 'Could not save this order. Check local browser storage permissions.',
-  choose: 'Choose workbench',
   platform: 'Platform workbenches',
   platformLoading: 'Loading platform workbenches…',
   platformCatalogFailed: 'Unable to load platform workbenches. Check your connection.',

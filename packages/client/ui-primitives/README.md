@@ -124,7 +124,7 @@ The atoms cannot read the application locale, so every piece of user-facing copy
 
 `Button` uses H36/R12 for `md` and H28/R8 for `sm`, including outlined controls. Menus and cards follow the [shared radius rules](../../../docs/web-styling.md#corner-radii-and-settings-cards); feature classes preserve control geometry.
 
-`Menu.listClassName` styles the menu card independently of the anchor wrapper, including in portal mode. Leading icons use the `--dsw-alias-menu-icon` color; destructive icons retain their error color.
+`Menu.listClassName` styles the menu card independently of the anchor wrapper, including in portal mode. A portaled menu with `side="right"` and `align="end"` aligns its bottom edge with the trigger. Leading icons use the `--dsw-alias-menu-icon` color; destructive icons retain their error color.
 
 `Menu` delegates its card material to `MenuSurface`; custom menus use the same component. `MenuSurface` forwards div props and refs, uses translucent fill and blur, and accepts `compact` for the smaller radius. Its default relative positioning contains the material layer; caller classes can supply fixed or absolute placement. On macOS, its non-interactive backing follows the card through CSS anchors and unmounts with it; the backing requires the Web shell’s isolated body. Feature classes control layout and elevation, while the component owns material and outer radius ([menu rules](../../../docs/web-styling.md#component-rules)). Modal masks retain their dark translucent fill without background blur.
 

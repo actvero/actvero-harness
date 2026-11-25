@@ -28,7 +28,7 @@ function bench(feedbackAvailable = false) {
   const feedback = createSnapshotStore(feedbackAvailable)
   const useSessionLogDownload = bindSnapshot(controller.store)
   const props = {
-    sessionId: SID,
+    sessionId: SID, views: [], activeView: null, selectView: vi.fn(),
     useSessionLogDownload,
     useFeedbackAvailable: bindSnapshot(feedback),
     openFeedback,
@@ -106,7 +106,7 @@ describe('Session export Header action', () => {
     const controller = new SessionLogDownloadController(() => pending, vi.fn())
     const useSessionLogDownload = bindSnapshot(controller.store)
     b.view.rerender(<SessionLogDownloadHeaderAction {...({
-      sessionId: SID,
+      sessionId: SID, views: [], activeView: null, selectView: vi.fn(),
       useSessionLogDownload,
       useFeedbackAvailable: bindSnapshot(b.feedback),
       openFeedback: b.openFeedback,

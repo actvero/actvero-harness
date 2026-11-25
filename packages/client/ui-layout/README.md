@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package provides the Web GUI's three-column AppFrame, edge-column widths, and `ctx.layout` presentation control. The right column concedes space before the center; its occupant renders fullscreen while the frame retains the wide-screen track underneath. The theme presenter owns color scheme, alias tokens, font sizes, font lists, and document metadata. Layout state resets on reload.
+This package provides the Web GUI's three-column AppFrame, edge-column widths, and `ctx.layout` presentation control. The right column concedes space before the center; its occupant renders fullscreen while the frame retains the wide-screen track underneath. The theme presenter owns color scheme, alias tokens, font sizes, font lists, and document metadata. Layout state resets on reload. Products can provide `ctx.panelHistory` so modules can register their restorable page selections with the window toolbar.
 
 ## Table of Contents
 
@@ -24,6 +24,8 @@ This package provides the Web GUI's three-column AppFrame, edge-column widths, a
 
 <a id="use-this-package"></a>
 ## Use this package
+
+When a product registers a Home icon in `sidebar.home`, the frame reserves a permanent 52px navigation column. Only Home uses the conversation pane width. Selecting a module preserves the Home width and expansion preference. With conversations docked, the upper left corner of Home is rounded and the divider runs straight down to the bottom edge. Module pages and active conversations beside a collapsed pane share a thin, rounded upper left border below their toolbar. A module that supplies its own macOS title row marks the body below it with `data-shell-panel-body`. A floating preview leaves the content at its current width.
 
 Desktop Mod+B toggles the left sidebar through the same layout action used by its controls. The shortcut command is unavailable behind modal dialogs and yields to terminal input.
 

@@ -54,7 +54,7 @@ import { SessionScheduleHover } from './SessionScheduleHover.tsx'
 import { SessionScheduleMark } from './SessionScheduleMark.tsx'
 import { createSessionScheduleSource, type SessionScheduleSourceFactory } from './session-schedule-state.ts'
 import { TaskTabBindings } from './task-tab-bindings.ts'
-import { TaskManagerPage, type TaskManagerInjected } from './TaskManagerPage.tsx'
+import { createTaskRoute, TaskManagerPage, type TaskManagerInjected } from './TaskManagerPage.tsx'
 import type { TaskDetailInjected } from './TaskDetail.tsx'
 import { TaskManagerIcon } from './TaskManagerIcon.tsx'
 import { sessionLinkState } from './session-link.ts'
@@ -165,12 +165,23 @@ export function apply(ctx: ClientContext): void {
     locale: MANAGER_NS,
     inject: (): ScheduleTaskCatalogInjected & ScheduleTaskBindingInjected => ({ hooks: detail.hooks, taskBindings }),
   }, ScheduleTaskTabTitle))
+  const taskRoute = createTaskRoute()
+  ctx.inject(['panelHistory'], child => child.effect(() => child.panelHistory.register([PANEL_ID], {
+    getSnapshot: taskRoute.getSnapshot, open: taskRoute.set,
+    subscribe: (listener) => {
+      const stopRoute = taskRoute.subscribe(listener)
+      const stopCatalog = manager.hooks.catalog.subscribe(listener)
+      return () => { stopRoute(); stopCatalog() }
+    },
+    same: (a, b) => a.statusFilter === b.statusFilter && a.selectedId === b.selectedId,
+    available: route => route.selectedId === null || manager.hooks.catalog.getSnapshot().records.some(task => task.id === route.selectedId),
+  })))
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
     key: PANEL_ID,
     locale: MANAGER_NS,
     inject: (): TaskManagerInjected => ({
-      ...detail,
+      ...detail, hooks: { ...detail.hooks, taskRoute }, selectRoute: taskRoute.set,
       // The page has no creation form: a new reminder starts in a Session.
       onNewTask: () => { ctx.uiWorkspace.startSession() },
     }),

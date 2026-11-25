@@ -307,7 +307,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
   const [developerOpen, setDeveloperOpen] = useState(false)
   const [copying, setCopying] = useState(false)
   const [category, setCategory] = useState<Category>('all')
-  const [source, setSource] = useState<'platform' | 'local'>('local')
+  const source = view.catalogSource
   const [detailSelection, setDetailSelection] = useState<{ source: 'platform' | 'local'; id: string; previewIndex: number }>()
   const fileInput = useRef<HTMLInputElement>(null)
   const updateTarget = useRef<string>()
@@ -370,7 +370,7 @@ export function Manager({ t, useView, useWorkspaces, useSessions, action, resolv
     </div>
     <div className={styles.content}>
       <SourceTabs value={source} platformLabel={t('platform')} localLabel={t('mine')}
-        count={source === 'local' ? entries.length : undefined} onChange={setSource} />
+        count={source === 'local' ? entries.length : undefined} onChange={action.selectCatalogSource} />
       {source === 'platform' && <nav className={catalogStyles.categories} aria-label={t('categories')}>
         {categories.map(value => <Button key={value} variant="ghost" aria-pressed={value === category} onClick={() => { setCategory(value) }}>{t(value)}</Button>)}
       </nav>}

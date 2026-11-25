@@ -28,7 +28,7 @@ import { ThemePresenter } from './theme-presenter.ts'
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
-export type { ILayout, MainPanelId, PanelInfo } from './service.ts'
+export type { ILayout, MainPanelId, PanelInfo, PanelHistoryRegistry, PanelRoutes } from './service.ts'
 
 /** Selector hook over root-scoped panel selection. */
 export type UsePanelInfo = SnapshotSelectorHook<PanelInfo>
@@ -37,6 +37,8 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
     layout: import('./service.ts').ILayout
+    /** Page-specific Back and Forward when supplied by the window. */
+    panelHistory: import('./service.ts').PanelHistoryRegistry
   }
 }
 
@@ -52,6 +54,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 
   interface SlotMap {
+    /** Product home glyph. A registered home gives the sidebar a permanent navigation rail. */
+    'sidebar.home': { kind: 'single'; scope: 'root' }
     // The 'root' entry itself is the runtime's built-in slot (declared
     // there); these are the frame's children, declared by the same
     // register() call that contributes AppFrame. Session owners never pass
@@ -130,6 +134,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export interface SidebarOwnerProps {
   /** True when the sidebar is closed (the column renders the compact control rail). */
   collapsed: boolean
+  /** A permanent rail with a docked, floating or closed conversation browser. */
+  navigationPane?: 'docked' | 'overlay' | 'closed'
+  /** Window-level mount beside the macOS traffic lights, available after the frame mounts. */
+  windowControlsHost?: HTMLDivElement | null
   /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
   width: number
 }
@@ -174,7 +182,8 @@ export function apply(ctx: ClientContext): void {
     }
     const sidebarExpanded: HostObservable<boolean> = {
       getSnapshot: () => {
-        const info = instance.getSnapshot().layoutInfo
+        const { layoutInfo: info, panelInfo } = instance.getSnapshot()
+        if (info.navigationRail && panelInfo.activePanelId !== null) return false
         return info.viewportWidth < SIDEBAR_AUTO_COLLAPSE ? info.narrowExpanded : info.sidebar > 0
       },
       subscribe: listener => instance.subscribe(listener),
@@ -206,13 +215,21 @@ export function apply(ctx: ClientContext): void {
         'web:windows': { code: 'KeyB', modifiers: ['primary', 'alt'] },
       },
       regions: ['page', 'editable'], modals: [],
-      resolve: () => ({ status: 'handled', run: () => { layout.toggleSidebar() } }),
+      resolve: () => {
+        const { layoutInfo, panelInfo } = instance.getSnapshot()
+        return layoutInfo.navigationRail && panelInfo.activePanelId !== null
+          ? { status: 'pass' } : { status: 'handled', run: () => { layout.toggleSidebar() } }
+      },
     })
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
+    const syncRail = () => { instance.actions.setNavigationRail(ctx.slots.entriesOfSlot('sidebar.home').length > 0) }
+    const disposeRail = ctx.slots.subscribe('sidebar.home', syncRail)
+    syncRail()
     retainMainPanels()
     return () => {
       disposeShortcut()
       layout.dispose()
+      disposeRail()
       disposePanels()
       disposeRegistration()
       disposePanelInfo()

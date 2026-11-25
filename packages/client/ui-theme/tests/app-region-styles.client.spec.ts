@@ -73,10 +73,20 @@ const CHROME_ROWS: readonly ChromeRow[] = [
     height: ['min-height', '50px'],
   },
   {
-    file: 'actvero/capability-ui/src/client/workbenches/runtime.module.css',
-    selector: '.windowChrome',
-    markup: 'actvero/capability-ui/src/client/workbenches/RuntimeView.tsx',
-    height: ['height', 'var(--dsh-frame-top-clearance, 48px)'],
+    file: 'client/ui-layout/src/client/AppFrame.module.css',
+    selector: '.moduleTitlebar',
+    markup: 'client/ui-layout/src/client/AppFrame.tsx',
+    height: ['height', 'var(--dsh-navigation-toolbar-height)'],
+  },
+  {
+    file: 'client/ui-layout/src/client/AppFrame.module.css',
+    selector: '.leadingSeat',
+    markup: 'client/ui-layout/src/client/AppFrame.tsx',
+  },
+  {
+    file: 'client/ui-sidebar/src/client/NavigationRail.module.css',
+    selector: '.chrome',
+    markup: 'client/ui-sidebar/src/client/NavigationRail.tsx',
   },
   {
     file: 'client/ui-settings-account/src/client/OnboardingSurface.module.css',

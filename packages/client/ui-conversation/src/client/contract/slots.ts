@@ -239,6 +239,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'session'
       owner: ConversationHeaderActionOwnerProps
     }
+    /** Session actions menu. The navigation rail places available Views here when this slot is occupied. */
+    'conversation.session.header.more': { kind: 'single'; scope: 'session'; owner: ConversationHeaderMenuOwnerProps }
     /** Right-aligned Session utilities available before the first message, in ascending order. */
     'conversation.session.header.resident-utilities': {
       kind: 'list'
@@ -371,6 +373,16 @@ export interface HeroAgentPresetOwnerProps {
   children?: never
 }
 
+/** Session-specific View choices supplied to the header's More menu. */
+export interface ConversationHeaderMenuOwnerProps {
+  /** Views offered for switching in this menu, in registration order. */
+  views: readonly ViewTab[]
+  /** Selected View id, or null if no registered View is active. */
+  activeView: string | null
+  /** Select a registered View in the current Session. */
+  selectView: (id: string) => void
+}
+
 /** Header actions derive their state from standard Session props. */
 export interface ConversationHeaderActionOwnerProps {
   /** Marker field: entries receive no owner-specific values. */
@@ -483,6 +495,8 @@ export interface ConversationSessionHeaderInjected {
     readonly conversationViews: ObservableSnapshot<readonly ViewTab[]>
     /** Ids of unpinned View tabs held in memory and shared by every Session until plugin reload. */
     readonly entryPins: ObservableSnapshot<readonly string[]>
+    /** Whether the navigation rail and its Session actions menu are both present. */
+    readonly viewsInMenu: ObservableSnapshot<boolean>
     /** Whether `conversation.session.header.views.actions` has registrations. */
     readonly entryActions: ObservableSnapshot<boolean>
   }
@@ -644,6 +658,7 @@ export type ConversationSessionHeaderSlotProps =
     'conversation.session.header.lineage'
     | 'conversation.session.header.actions'
     | 'conversation.session.header.utilities'
+    | 'conversation.session.header.more'
     | 'conversation.session.header.resident-utilities'
     | 'conversation.session.header.corner'
     | 'conversation.session.header.views.actions'

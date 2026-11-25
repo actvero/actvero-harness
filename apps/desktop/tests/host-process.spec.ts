@@ -30,6 +30,10 @@ server.listen(0, '127.0.0.1', () => {
   process.send({ type: 'ready', url: 'http://127.0.0.1:' + server.address().port + '/?token=fixture' })
 })
 process.on('message', message => {
+  if (message.type === 'boot-injections') {
+    process.send({ type: 'boot-injections', requestId: message.requestId, injections: [{ src: 'client.js?rev=' + message.requestId }] })
+    return
+  }
   if (message.type === 'update-tasks') {
     process.send({ type: 'update-tasks', requestId: message.requestId, active: message.action === 'lock' })
     return
@@ -80,6 +84,13 @@ describe('desktop host process', () => {
     await enabled.stop(true)
     const official = hostProcess(projectWithHost(source), undefined, undefined, { ...process.env, ACTVERO_DESKTOP: '0' })
     await expect(official.start()).rejects.toThrow('invalid IPC event')
+  })
+
+  it('reads the current plugin revisions for each document load', async () => {
+    const host = hostProcess(projectWithHost())
+    await host.start()
+    expect(await host.bootInjections()).toEqual([{ src: 'client.js?rev=1' }])
+    expect(await host.bootInjections()).toEqual([{ src: 'client.js?rev=2' }])
   })
 
   it('correlates task inspections and admission changes over private IPC', async () => {

@@ -25,7 +25,7 @@ it('installs localized copy and restores the native hero on unloading through th
     continueAccount: async () => {}, switchAccount: async () => {},
   } satisfies AccountBridge })
   const roster = ClientRoster.of([
-    ...webApp.rows.filter(row => row.name !== ACCOUNT),
+    ...webApp.rows.filter(row => row.name !== ACCOUNT && row.name !== '@deepseek-ai/dsh-client-ui-settings-account'),
     { name: ACCOUNT, inject: ['@deepseek-ai/dsh-client-ui-conversation', '@deepseek-ai/dsh-client-ui-chat', '@deepseek-ai/dsh-client-locale'], immediately: false },
   ])
   const mock = RemoteMock.create().load(remoteDefaultResponses).unary('settings/mutate', undefined)

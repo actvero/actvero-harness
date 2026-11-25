@@ -1,0 +1,103 @@
+/* The frame owns track width. The preview is positioned against the same rail in every module. */
+.shell {
+  --rail-width: 52px;
+  --chrome-height: 40px;
+  position: relative;
+  display: grid;
+  grid-template: var(--chrome-height) minmax(0, 1fr) / var(--rail-width) minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+}
+:global([data-platform='darwin']) .shell { --chrome-height: var(--dsh-navigation-toolbar-height); }
+.chrome {
+  grid-area: 1 / 1 / 2 / -1;
+  position: relative;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding-inline: 12px;
+}
+:global([data-windows-titlebar]:not([data-fullscreen])) .shell { --chrome-height: 0px; }
+:global([data-windows-titlebar]:not([data-fullscreen])) .chrome {
+  position: fixed;
+  inset: 0 auto auto 0;
+  height: var(--dsh-windows-titlebar-height);
+}
+.rail {
+  grid-area: 2 / 1;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0 8px;
+  min-height: 0;
+}
+.rail::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--dsh-navigation-rail-divider, .5px);
+  background: var(--dsw-alias-border-l2-darkmode-thin);
+  pointer-events: none;
+}
+.shell[data-navigation-shell='docked'] .rail::after { inset-block: 4px 8px; }
+.entries, .foot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.entries { min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.entries button, .icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; flex: none; margin: 0; width: 36px; height: 36px; padding: 0;
+  color: var(--dsw-alias-label-secondary); border: 0; border-radius: var(--dsw-radius-sm); background: transparent; cursor: pointer;
+}
+.entries button[aria-current='page'], .icon[data-preview] {
+  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
+}
+@media (hover: hover) {
+  .entries button:hover, .compose:hover {
+    color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+.shell button:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: -2px; }
+.foot { flex: none; }
+.browser {
+  grid-area: 2 / 2; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  padding: 4px 8px 8px;
+}
+.browser[hidden] { display: none; }
+.browser[data-floating] {
+  position: absolute; grid-area: auto; z-index: 16; inset-block: calc(var(--chrome-height) + 4px) 8px; inset-inline-start: calc(var(--rail-width) + 4px);
+  width: min(264px, calc(100vw - var(--rail-width) - 12px));
+  padding-block: 8px 4px;
+  background: var(--dsw-alias-bg-layer-2); --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md); box-shadow: var(--dsw-elevation-prominent);
+}
+/* Keep the path from the 36px Home button to the preview inside the hover target. */
+.browser[data-preview='hover']::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 100%;
+  width: 12px;
+  height: 36px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .browser[data-preview='hover'] { animation: preview-in var(--ds-transition-duration-fast) ease-out; }
+  @keyframes preview-in { from { opacity: 0; } }
+}
+.tools { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+.compose {
+  flex: 1; display: flex; align-items: center; height: 32px; gap: 8px; border: 0;
+  padding: 0 8px; border-radius: var(--dsw-radius-sm); background: transparent;
+  color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+
+.chrome [data-navigation-toolbar] { flex: auto; }
+
+:global([data-windows-titlebar]:not([data-fullscreen])) .shell[data-navigation-shell='docked'] .chrome {
+  width: var(--dsh-navigation-dock-width);
+}

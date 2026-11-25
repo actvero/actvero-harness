@@ -2,7 +2,7 @@
 .status { color: var(--dsw-alias-label-tertiary); font-size: 12px; white-space: nowrap; }
 .notice pre { white-space: pre-wrap; max-height: 160px; overflow: auto; font-size: 12px; }
 .detailActions .more { opacity: 1; pointer-events: auto; }
-.pageTitle { grid-column: 1; grid-row: 1; display: flex; align-items: center; min-height: 36px; }
+.pageTitle { min-width: 0; gap: 8px; grid-column: 1; grid-row: 1; display: flex; align-items: center; min-height: 36px; }
 .pageTitle h1 { margin: 0; font-size: 22px; font-weight: 500; line-height: 1.4; }
 .toolbar { grid-column: 2; grid-row: 1; }
 .content { grid-column: 1 / -1; grid-row: 2; min-width: 0; container-type: inline-size; }

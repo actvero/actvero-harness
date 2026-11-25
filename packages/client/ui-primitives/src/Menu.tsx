@@ -135,8 +135,8 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * @param props.onClose - invoked on outside click, Escape, or a window blur
  * that moved focus into an iframe (the only signal a pointerdown inside a
  * cross-origin iframe leaves).
- * @param props.align - list alignment against the anchor (default 'start').
- * @param props.side - open below (`bottom`, default) or above (`top`) the anchor.
+ * @param props.align - Align the list to the anchor's start or end edge. A right-side list aligns its top or bottom.
+ * @param props.side - Open below (default), above, or, for portaled menus, to the right of the anchor.
  * @param props.portal - render the list into document.body, fixed-positioned
  * from the anchor rect (follows movement and resizing while open). Use when an
  * ancestor's overflow clipping would crop the in-place list; default false
@@ -273,7 +273,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       let y: number
       if (side === 'right') {
         x = r.right + 4
-        y = r.top
+        y = align === 'end' ? r.bottom - lh : r.top
       } else if (align === 'start') {
         x = r.left
         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
