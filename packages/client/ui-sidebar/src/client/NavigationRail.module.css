@@ -54,7 +54,7 @@
   box-sizing: border-box; flex: none; margin: 0; width: 36px; height: 36px; padding: 0;
   color: var(--dsw-alias-label-secondary); border: 0; border-radius: var(--dsw-radius-sm); background: transparent; cursor: pointer;
 }
-.entries button[aria-current='page'] {
+.entries button[aria-current='page'], .icon[aria-expanded='true'] {
   color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
 }
 @media (hover: hover) {
@@ -73,7 +73,26 @@
   position: absolute; grid-area: auto; z-index: 16; inset-block: calc(var(--chrome-height) + 4px) 4px; inset-inline-start: calc(var(--rail-width) + 4px);
   width: min(calc(var(--dsh-navigation-dock-width) - var(--rail-width) - 4px), calc(100vw - var(--rail-width) - 8px));
   background: var(--dsw-alias-bg-layer-2); --dsw-elevation-stroke-color: var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-sm); box-shadow: var(--dsw-elevation-panel);
+  border-radius: var(--dsw-radius-md); box-shadow: var(--dsw-elevation-prominent);
+}
+.browser[data-preview='hover'] {
+  inset-block-end: auto;
+  max-height: calc(100% - var(--chrome-height) - 12px);
+  width: min(max(264px, calc(var(--dsh-navigation-dock-width) - var(--rail-width) - 4px)), calc(100vw - var(--rail-width) - 12px));
+  padding-block: 8px 4px;
+}
+/* Keep the path from the 36px Home button to the preview inside the hover target. */
+.browser[data-preview='hover']::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 100%;
+  width: 12px;
+  height: 36px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .browser[data-preview='hover'] { animation: preview-in var(--ds-transition-duration-fast) ease-out; }
+  @keyframes preview-in { from { opacity: 0; } }
 }
 .tools { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
 .compose {

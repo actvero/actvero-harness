@@ -112,7 +112,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
         {renderSlot('sidebar.settings', { wide: false })}
       </div>
     </div>
-    <aside ref={browser} id="sidebar-conversations" className={css.browser} hidden={!visible}
+    <aside ref={browser} id="sidebar-conversations" className={css.browser} hidden={!visible} data-preview={floating ? preview : undefined}
       aria-label={t('home')} data-floating={floating || undefined}
       onPointerEnter={cancel} onPointerLeave={leave}
       onBlur={(event) => { if (preview && !event.currentTarget.contains(event.relatedTarget)) leave() }}>

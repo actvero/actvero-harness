@@ -170,6 +170,20 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await conversations.waitFor({ state: 'hidden' })
     await home.hover()
     await conversations.waitFor()
+    const preview = (await conversations.boundingBox())!
+    expect(preview.height).toBeLessThan(float!.height)
+    expect(preview.width).toBeGreaterThanOrEqual(264)
+    const homeRow = (await home.boundingBox())!
+    await page.mouse.move(preview.x - 2, homeRow.y + homeRow.height / 2)
+    expect(await conversations.evaluate((el) => {
+      const rect = el.getBoundingClientRect()
+      return el.contains(document.elementFromPoint(rect.left - 2, rect.top + 16))
+    })).toBe(true)
+    await page.setViewportSize({ width: 1440, height: 180 })
+    const tree = conversations.getByRole('tree')
+    await expect.poll(() => tree.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
+    expect(await conversations.evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(172)
+    await page.setViewportSize({ width: 1440, height: 900 })
     expect(await rail.getByRole('button', { name: 'Automation tasks' }).getAttribute('aria-current')).toBe('page')
     await conversations.getByRole('button', { name: 'New session', exact: true }).hover()
     await page.keyboard.press('Escape')
