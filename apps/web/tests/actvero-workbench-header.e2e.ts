@@ -117,7 +117,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     })
     await back.waitFor()
     expect(await forward.isDisabled()).toBe(true)
-    expect(await edges()).toEqual(['8px', '12px', '12px'])
+    expect(await edges()).toEqual(['8px', '12px', '0px'])
     const wideBack = (await back.boundingBox())!.x
     const chrome = await geometry()
     if (platform === 'darwin') expect(chrome[0]).toBe(88)
@@ -136,6 +136,8 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await toolbarButton.click()
       await conversations.waitFor({ state: 'hidden' })
       await toolbar.getByRole('button', { name: 'New session', exact: true }).waitFor()
+      expect(await edges()).toEqual(['0px', '0px', '0px'])
+      expect(await page.locator('[data-conversation-content]').evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('0px')
       expect((await back.boundingBox())!.x).toBe(chrome[0]! + 36)
       await toolbarButton.click()
       await conversations.waitFor()
@@ -472,6 +474,26 @@ it('returns to earlier conversations on Home after visiting another module', asy
     const row = (id: SessionId) => page.locator(`[data-row-key="session:${id}"]`)
     await row(first).click()
     await row(second).click()
+    const toggle = page.locator('[data-navigation-toolbar] button[aria-controls="sidebar-conversations"]')
+    await toggle.click()
+    const body = page.locator(`[data-sidebar-collapsed] [data-conversation-session="${second}"][data-content-phase="active"]`)
+    await body.waitFor()
+    expect(await body.evaluate((el) => {
+      const header = el.parentElement!.querySelector('header')!
+      const style = getComputedStyle(el)
+      return {
+        meetsHeader: el.getBoundingClientRect().top === header.getBoundingClientRect().bottom,
+        headerRule: getComputedStyle(header).borderBottomWidth,
+        corner: style.borderTopLeftRadius,
+        bottomCorner: style.borderBottomLeftRadius,
+        top: style.borderTopStyle,
+        left: style.borderLeftStyle,
+        railRule: getComputedStyle(document.querySelector('[data-navigation-column]')!, '::after').width,
+      }
+    })).toEqual({
+      meetsHeader: true, headerRule: '0px', corner: '12px', bottomCorner: '0px', top: 'solid', left: 'solid', railRule: '0px',
+    })
+    await toggle.click()
     const menu = page.getByRole('button', { name: 'More actions', exact: true })
     await menu.click()
     expect(await page.locator('[data-conversation-tabs]').count()).toBe(0)

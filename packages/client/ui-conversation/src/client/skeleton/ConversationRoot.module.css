@@ -408,6 +408,10 @@ button.crumb:hover {
   flex: none;
 }
 
+:global([data-navigation-home][data-sidebar-collapsed]) .root[data-phase='active'] .header {
+  border-bottom: 0;
+}
+
 /* Band below the header: the scrollport plus the width handles. Anchoring the
    handles here keeps their full-height strips and glow under the header's
    bottom edge at every header height. */
