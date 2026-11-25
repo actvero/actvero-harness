@@ -8,7 +8,7 @@ import type { WorkbenchInstanceId } from '../../types.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@actvero/dsh-client-account/client'
 import type { WorkbenchAction } from './register.ts'
-import { WorkbenchSwitcher, type WorkbenchViewHooks } from './Navigation.tsx'
+import type { WorkbenchViewHooks } from './Navigation.tsx'
 import { WorkbenchArtwork, WorkbenchIcon } from './WorkbenchIcon.tsx'
 import { workbenchIconUrl } from './catalog.ts'
 import { FloatingPreview } from './FloatingPreview.tsx'
@@ -74,7 +74,6 @@ export function OpenWorkbench({ t, useView, useSessions, renderFactorySlot, rend
       {catalogButton && <div className={styles.navigation} data-workbench-navigation="">
         <Tooltip label={t('back')} portal side="bottom"><Button size="sm" className={styles.iconButton} aria-label={t('back')}
           onClick={() => { action.back() }}><WorkbenchIcon /></Button></Tooltip>
-        <WorkbenchSwitcher t={t} view={view} action={action} />
         <span className={styles.separator} aria-hidden="true" />
       </div>}
       <div className={styles.headerExtension} data-workbench-header="">
