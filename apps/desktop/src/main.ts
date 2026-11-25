@@ -432,7 +432,6 @@ async function main(): Promise<void> {
   let hostUrl: string | undefined
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl)
-  let injections: readonly unknown[] = []
   let welcomeBackend: DesktopWelcomeBackend | undefined
   let reportedLaunch = false
   let analyticsEnabled = false
@@ -489,10 +488,8 @@ async function main(): Promise<void> {
         const ready = await host.start()
         const cookie = await authenticateWebHost(ready.url)
         const origin = new URL(ready.url).origin
-        if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
         hostCookie = cookie
         hostUrl = origin
-        injections = ready.injections
         welcomeBackend = connectDesktopWelcome(origin, cookie)
         analyticsEnabled = await welcomeBackend.analyticsEnabled().catch(() => false)
         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
@@ -547,6 +544,7 @@ async function main(): Promise<void> {
       },
       updateTasks: (action: 'inspect' | 'lock' | 'unlock') => host.updateTasks(action),
       inspectQuit: () => host.inspectQuit(),
+      bootInjections: () => host.bootInjections(),
     }
   }, (state) => {
     if (state.phase === 'error') reportFatal(state.failure, 'host')
@@ -729,8 +727,12 @@ async function main(): Promise<void> {
   ipcMain.handle(DESKTOP_IPC.boot, async (event) => {
     assertDesktopSender(event, ['app'])
     await startup
-    if (backend.host === undefined || hostUrl === undefined) throw new Error('Desktop Host is unavailable')
-    return { injections, streamBaseUrl: new URL(hostUrl).origin }
+    const host = backend.host
+    if (host === undefined || hostUrl === undefined) throw new Error('Desktop Host is unavailable')
+    const streamBaseUrl = new URL(hostUrl).origin
+    const injections = await host.bootInjections()
+    if (backend.host !== host) throw new Error('Desktop Host changed during startup')
+    return { injections, streamBaseUrl }
   })
 
   ipcMain.handle(DESKTOP_IPC.bootFailed, (event, message: unknown) => {
