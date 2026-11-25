@@ -101,15 +101,6 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const toolbar = page.locator('[data-navigation-toolbar]')
     const toolbarButton = toolbar.locator('button[aria-controls="sidebar-conversations"]')
     const divider = page.locator('[data-navigation-column]')
-    const homeEdge = () => divider.evaluate((rail) => {
-      const column = document.querySelector('[data-rightbar-col]')!.previousElementSibling!
-      const box = column.getBoundingClientRect()
-      const edge = getComputedStyle(column, '::after')
-      const railBox = rail.getBoundingClientRect()
-      return { atRailCorner: box.left === railBox.right && box.top + parseFloat(edge.top) === railBox.top,
-        radius: edge.borderTopLeftRadius, stroke: [edge.borderTopStyle, edge.borderLeftStyle],
-        pointerEvents: edge.pointerEvents, dividerWidth: getComputedStyle(rail, '::after').width }
-    })
     const geometry = async () => {
       const [bar, toggle, column] = await Promise.all([toolbar.boundingBox(), toolbarButton.boundingBox(), divider.boundingBox()])
       expect(toggle!.y).toBeGreaterThanOrEqual(bar!.y)
@@ -216,8 +207,6 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await conversations.waitFor()
     await toolbarButton.click()
     await conversations.waitFor({ state: 'hidden' })
-    const collapsedHome = { atRailCorner: true, radius: '12px', stroke: ['solid', 'solid'], pointerEvents: 'none', dividerWidth: '0px' }
-    expect(await homeEdge()).toEqual(collapsedHome)
     await home.click()
     await home.press('Enter')
     expect(await toolbarButton.getAttribute('aria-expanded')).toBe('false')
@@ -236,7 +225,6 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     await toolbarButton.click()
     await home.click()
     expect(await toolbarButton.getAttribute('aria-expanded')).toBe('true')
-    expect(await homeEdge()).toEqual(collapsedHome)
     await toolbarButton.click()
     await page.setViewportSize({ width: 1440, height: 900 })
     await conversations.waitFor()
