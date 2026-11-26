@@ -1,7 +1,7 @@
 /** Per-window navigation between committed main views. */
 import type { Context } from '@deepseek-ai/cordis'
 import type { MainPanelId, PanelHistoryRegistry, PanelRoutes } from '@deepseek-ai/dsh-client-ui-layout/client'
-import { IconChevronLeftOutlineMedium, IconChevronLeftOutlineRegular, IconChevronRightOutlineMedium, IconChevronRightOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronLeftOutlineRegular, IconChevronRightOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsHooks, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -15,17 +15,15 @@ type ModuleHistory = Pick<PanelHistory<never>, 'record' | 'next' | 'go' | 'reset
 function HistoryButtons({ useAvailability, go, t }: PropsHooks<{ availability: ObservableSnapshot<Availability> }>
   & PropsLocale<'actvero.workbenches'> & { go: (direction: Direction) => void }) {
   const { back, forward } = useAvailability(value => value)
-  const BackIcon = back ? IconChevronLeftOutlineMedium : IconChevronLeftOutlineRegular
-  const ForwardIcon = forward ? IconChevronRightOutlineMedium : IconChevronRightOutlineRegular
   return <div data-window-history>
     <Tooltip label={t('windowBack')} side="bottom" delayMs={500} portal>
       <button type="button" disabled={!back} aria-label={t('windowBack')} onClick={() => go(-1)}>
-        <BackIcon size={18} />
+        <IconChevronLeftOutlineRegular size={18} />
       </button>
     </Tooltip>
     <Tooltip label={t('windowForward')} side="bottom" delayMs={500} portal>
       <button type="button" disabled={!forward} aria-label={t('windowForward')} onClick={() => go(1)}>
-        <ForwardIcon size={18} />
+        <IconChevronRightOutlineRegular size={18} />
       </button>
     </Tooltip>
   </div>

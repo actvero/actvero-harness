@@ -209,37 +209,6 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const taskFilters = page.getByRole('group', { name: 'Task status' })
     const filter = taskFilters.getByRole('button').nth(1)
     await filter.click()
-    if (platform === 'darwin') {
-      const arrows = () => toolbar.locator('[data-window-history] button').evaluateAll(buttons => buttons.map((button) => {
-        const icon = getComputedStyle(button.querySelector('svg')!)
-        const pixel = document.createElement('canvas').getContext('2d')!
-        pixel.fillStyle = icon.color
-        pixel.fillRect(0, 0, 1, 1)
-        const [r, g, b] = Array.from(pixel.getImageData(0, 0, 1, 1).data, (v) => {
-          const c = v / 255
-          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-        })
-        return { color: icon.color, luminance: 0.2126 * r! + 0.7152 * g! + 0.0722 * b!, weight: parseFloat(icon.strokeWidth) }
-      }))
-      for (const colorScheme of ['light', 'dark'] as const) {
-        await page.emulateMedia({ colorScheme })
-        await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
-        await page.mouse.move(650, 200)
-        const [enabled, disabled] = await arrows()
-        expect(enabled!.color).toBe(await glyphColor(workbenches))
-        expect(disabled!.color).toBe(colorScheme === 'light' ? 'rgb(225, 229, 238)' : 'rgb(67, 69, 74)')
-        const lighter = colorScheme === 'light' ? disabled! : enabled!
-        const darker = colorScheme === 'light' ? enabled! : disabled!
-        expect((lighter.luminance + 0.05) / (darker.luminance + 0.05)).toBeGreaterThan(2.5)
-        expect(enabled!.weight).toBeGreaterThan(disabled!.weight)
-        await back.press('Enter')
-        await expect.poll(() => back.isDisabled()).toBe(true)
-        expect(await arrows()).toEqual([disabled, enabled])
-        await forward.click()
-        await expect.poll(() => forward.isDisabled()).toBe(true)
-      }
-      await page.emulateMedia({ colorScheme: 'light' })
-    }
     await back.click()
     expect(await taskFilters.getByRole('button').first().getAttribute('aria-pressed')).toBe('true')
     await rail.getByRole('button', { name: 'Capability Center' }).click()
@@ -592,10 +561,36 @@ it.each(['browser', 'darwin'])('%s returns to earlier conversations on Home afte
     await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
     await rail.getByRole('button', { name: 'Home', exact: true }).click()
     const toolbar = page.locator('[data-navigation-toolbar]')
-    await toolbar.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect.poll(() => row(first).getAttribute('aria-selected')).toBe('true')
-    await toolbar.getByRole('button', { name: 'Forward', exact: true }).click()
-    await expect.poll(() => row(second).getAttribute('aria-selected')).toBe('true')
+    const back = toolbar.getByRole('button', { name: 'Back', exact: true })
+    const forward = toolbar.getByRole('button', { name: 'Forward', exact: true })
+    const ink = (button: Locator) => button.locator('svg').evaluate(svg => getComputedStyle(svg).color)
+    const checkDirections = async (available: Locator, unavailable: Locator) => {
+      await expect.poll(() => available.isEnabled()).toBe(true)
+      expect(await unavailable.isDisabled()).toBe(true)
+      expect(await ink(available)).toBe(await ink(toggle))
+      expect(await ink(unavailable)).toBe(await ink(toggle))
+      expect(await available.evaluate(el => getComputedStyle(el).opacity)).toBe('1')
+      expect(await unavailable.evaluate(el => getComputedStyle(el).opacity)).toBe('0.4')
+    }
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+      await page.mouse.move(650, 200)
+      await checkDirections(back, forward)
+      if (platform === 'darwin' && colorScheme === 'light') {
+        await mkdir(join(process.cwd(), '.artifacts'), { recursive: true })
+        await toolbar.screenshot({ path: join(process.cwd(), '.artifacts/home-history-back-enabled.png') })
+      }
+      await back.press('Enter')
+      await expect.poll(() => row(first).getAttribute('aria-selected')).toBe('true')
+      await checkDirections(forward, back)
+      if (platform === 'darwin' && colorScheme === 'light') {
+        await back.blur()
+        await toolbar.screenshot({ path: join(process.cwd(), '.artifacts/home-history-forward-enabled.png') })
+      }
+      await forward.click()
+      await expect.poll(() => row(second).getAttribute('aria-selected')).toBe('true')
+    }
   } finally {
     try { await browser?.close() } finally {
       try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }
