@@ -2,7 +2,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { chromium, type Browser } from 'playwright'
+import { chromium, type Browser, type Page } from 'playwright'
 import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -12,6 +12,24 @@ import { connectFreshWorkspace, newEnglishPage } from './support.ts'
 
 declare global {
   interface Window { __headerTarget: { waiting: boolean; finish(): void } }
+}
+
+async function setPlatform(page: Page, platform: string) {
+  await page.addInitScript(({ value, snapshot }) => {
+    if (value !== 'browser') Object.assign(window, { dshDesktop: { protocolVersion: 1,
+      keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
+      shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
+        subscribe: () => () => {}, recording: async () => {},
+        edit: async () => ({ status: 'not-ready', snapshot }) },
+    } })
+    const mark = () => {
+      document.documentElement.toggleAttribute('data-windows-titlebar', value === 'windows')
+      if (value === 'darwin') document.documentElement.dataset.platform = value
+      document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
+    }
+    if (document.documentElement === null) document.addEventListener('DOMContentLoaded', mark, { once: true })
+    else mark()
+  }, { value: platform, snapshot: initialShortcutConfig() })
 }
 
 it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole business region and restores the default on another workbench', async (platform) => {
@@ -70,21 +88,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     }
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
-    await page.addInitScript(({ value, snapshot }) => {
-      if (value !== 'browser') Object.assign(window, { dshDesktop: { protocolVersion: 1,
-        keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
-        shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
-          subscribe: () => () => {}, recording: async () => {},
-          edit: async () => ({ status: 'not-ready', snapshot }) },
-      } })
-      const mark = () => {
-        document.documentElement.toggleAttribute('data-windows-titlebar', value === 'windows')
-        if (value === 'darwin') document.documentElement.dataset.platform = value
-        document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
-      }
-      if (document.documentElement === null) document.addEventListener('DOMContentLoaded', mark, { once: true })
-      else mark()
-    }, { value: platform, snapshot: initialShortcutConfig() })
+    await setPlatform(page, platform)
     const log = watchConsole(page)
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
     await page.setViewportSize({ width: 1440, height: 900 })
@@ -122,11 +126,11 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const chrome = await geometry()
     if (platform === 'darwin') expect(chrome[0]).toBe(88)
     if (platform === 'darwin') {
+      expect(chrome[2]).toBe(50)
       const newSession = conversations.getByRole('button', { name: 'New session', exact: true })
       for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme })
         await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
-        expect(await forward.evaluate(el => getComputedStyle(el).color)).toBe(colorScheme === 'light' ? 'rgb(129, 133, 140)' : 'rgb(173, 178, 184)')
         const fill = () => newSession.evaluate(el => getComputedStyle(el).backgroundColor)
         const rest = await fill()
         expect(rest).not.toBe('rgba(0, 0, 0, 0)')
@@ -193,6 +197,34 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const taskFilters = page.getByRole('group', { name: 'Task status' })
     const filter = taskFilters.getByRole('button').nth(1)
     await filter.click()
+    if (platform === 'darwin') {
+      const arrows = () => toolbar.locator('[data-window-history] button').evaluateAll(buttons => buttons.map((button) => {
+        const icon = getComputedStyle(button.querySelector('svg')!)
+        const pixel = document.createElement('canvas').getContext('2d')!
+        pixel.fillStyle = icon.color
+        pixel.fillRect(0, 0, 1, 1)
+        const [r, g, b] = Array.from(pixel.getImageData(0, 0, 1, 1).data, (v) => {
+          const c = v / 255
+          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+        })
+        return { luminance: 0.2126 * r! + 0.7152 * g! + 0.0722 * b!, weight: parseFloat(icon.strokeWidth) }
+      }))
+      for (const colorScheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme })
+        await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+        const [enabled, disabled] = await arrows()
+        const lighter = colorScheme === 'light' ? disabled! : enabled!
+        const darker = colorScheme === 'light' ? enabled! : disabled!
+        expect((lighter.luminance + 0.05) / (darker.luminance + 0.05)).toBeGreaterThan(2.5)
+        expect(enabled!.weight).toBeGreaterThan(disabled!.weight)
+        await back.press('Enter')
+        await expect.poll(() => back.isDisabled()).toBe(true)
+        expect(await arrows()).toEqual([disabled, enabled])
+        await forward.click()
+        await expect.poll(() => forward.isDisabled()).toBe(true)
+      }
+      await page.emulateMedia({ colorScheme: 'light' })
+    }
     await back.click()
     expect(await taskFilters.getByRole('button').first().getAttribute('aria-pressed')).toBe('true')
     await rail.getByRole('button', { name: 'Capability Center' }).click()
@@ -322,7 +354,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       if (platform === 'darwin') {
         const body = page.locator('[data-shell-panel-body]')
         expect(await body.evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('12px')
-        expect((await body.boundingBox())!.y).toBeCloseTo((await row.boundingBox())!.y + geometry.height, 0)
+        expect((await body.boundingBox())!.y).toBe(chrome[2])
       }
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
@@ -486,7 +518,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
   }
 })
 
-it('returns to earlier conversations on Home after visiting another module', async () => {
+it.each(['browser', 'darwin'])('%s returns to earlier conversations on Home after visiting another module', async (platform) => {
   const root = await mkdtemp(join(tmpdir(), 'home-history-'))
   let scaffold: Awaited<ReturnType<typeof launchWebScaffold>> | undefined
   let browser: Browser | undefined
@@ -499,6 +531,7 @@ it('returns to earlier conversations on Home after visiting another module', asy
     const second = await seedSession(scaffold, seed, 'navigation-second')
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
+    await setPlatform(page, platform)
     await page.goto(scaffold.authenticatedUrl)
     await page.getByRole('button', { name: 'View options' }).click()
     await page.getByRole('menuitem', { name: 'In one list', exact: true }).click()
@@ -509,6 +542,10 @@ it('returns to earlier conversations on Home after visiting another module', asy
     await toggle.click()
     const body = page.locator(`[data-sidebar-collapsed] [data-conversation-session="${second}"][data-content-phase="active"]`)
     await body.waitFor()
+    if (platform === 'darwin') {
+      expect((await body.boundingBox())!.y).toBe(50)
+      expect((await page.locator('[data-navigation-column]').boundingBox())!.y).toBe(50)
+    }
     expect(await body.evaluate((el) => {
       const header = el.parentElement!.querySelector('header')!
       const style = getComputedStyle(el)

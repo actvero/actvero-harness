@@ -412,8 +412,10 @@ button.crumb:hover {
   border-bottom: 0;
 }
 
-:global([data-platform='darwin']) :global([data-navigation-home][data-sidebar-collapsed]) .headerBlank {
-  min-height: var(--dsh-navigation-toolbar-height);
+:global([data-platform='darwin']) :global([data-navigation-home]) .header:not(:has(.tabs)) {
+  height: var(--dsh-navigation-toolbar-height);
+  padding-block: 0;
+  align-content: center;
 }
 
 /* Band below the header: the scrollport plus the width handles. Anchoring the
