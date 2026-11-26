@@ -58,7 +58,7 @@
   color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
 }
 @media (hover: hover) {
-  .entries button:hover, .compose:hover {
+  .entries button:hover {
     color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover);
   }
 }
@@ -89,13 +89,6 @@
   .browser[data-preview='hover'] { animation: preview-in var(--ds-transition-duration-fast) ease-out; }
   @keyframes preview-in { from { opacity: 0; } }
 }
-.tools { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
-.compose {
-  flex: 1; display: flex; align-items: center; height: 32px; gap: 8px; border: 0;
-  padding: 0 8px; border-radius: var(--dsw-radius-sm); background: transparent;
-  color: inherit; font: inherit; text-align: start; cursor: pointer;
-}
-
 .chrome [data-navigation-toolbar] { flex: auto; }
 
 :global([data-windows-titlebar]:not([data-fullscreen])) .shell[data-navigation-shell='docked'] .chrome {

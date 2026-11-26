@@ -47,7 +47,7 @@
   cursor: pointer;
 }
 .controls[data-rail-controls] button:disabled {
-  color: var(--dsw-alias-label-dimmed);
+  opacity: 0.4;
   cursor: default;
 }
 @media (hover: hover) {

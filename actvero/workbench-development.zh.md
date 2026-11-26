@@ -175,7 +175,7 @@ my-workbench/
 
 声明 `hostApi: "^1.6.0"` 后，可在 Client 注册选项传入 `catalogButton: 'hide'`，隐藏公共返回列表按钮及分隔线；省略或传入 `'show'` 时保留。侧栏与窗口控制仍由宿主管理。作者自行安排返回项目、画布或其他业务页面的导航，用户也可从全局侧栏进入工作台管理。
 
-Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。宿主将公共控件与业务 Header 放在同一顶栏，默认最小高度为 50px。macOS 宿主在导航栏旁留出窗口控制按钮的位置，全屏时释放这部分空间。业务 Header 只使用分隔线右侧的实际容器宽度，不自行添加窗口偏移或定位到整个窗口。宽度不足时可将业务操作收进菜单或重排内容，公共控件始终保持可用。侧栏变化不重新挂载 Header 或正文，输入和业务状态保持。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
+Header 使用 `WorkbenchHeaderProps`，获得作为参考的 title、与正文相同的 workbench 和原生资源读取接口，直接返回作者的 React 内容。开发者自行决定是否显示名称、返回按钮、页签、搜索、状态、业务菜单或面包屑，优先组合原生 Button、Input、ActionMenu 等公开组件；框架不要求统一的导航数据模型。作者负责容器适配、本地化、键盘和错误反馈，不覆盖宿主公共控制。宿主将公共控件与业务 Header 放在同一顶栏，默认最小高度为 50px。macOS 固定导航布局的顶栏高度为 50px，超高的业务 Header 可在栏内滚动。宿主在导航栏旁留出窗口控制按钮的位置，全屏时释放这部分空间。业务 Header 只使用分隔线右侧的实际容器宽度，不自行添加窗口偏移或定位到整个窗口。宽度不足时可将业务操作收进菜单或重排内容，公共控件始终保持可用。侧栏变化不重新挂载 Header 或正文，输入和业务状态保持。AI 模板的 [Header.tsx](templates/ai-checklist/src/client/Header.tsx) 展示独立渲染名称和进度。旧的 actvero.workbench.toolbar Factory 保留给已有包兼容使用，新项目可直接实现 Header。
 
 正文和顶栏需要同步页面或选区时，在 apply 中调用作者的 `createNavigationStore()` 一次，并将同一个原生 Store handle 传给 store；两个组件通过 `PropsStore<ReturnType<typeof createNavigationStore>>` 获取 useStore 和 actions。状态按所需实例或视图标识组织，只保存导航、筛选等界面状态，业务数据仍由资源或作者的服务读取。不要传 Store 工厂来让两处各建一份状态，也不要把 Store handle 放入组件 props 或模块级变量；正文不通过 effect 向宿主反向写标题。
 

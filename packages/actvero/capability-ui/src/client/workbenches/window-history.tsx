@@ -18,12 +18,12 @@ function HistoryButtons({ useAvailability, go, t }: PropsHooks<{ availability: O
   return <div data-window-history>
     <Tooltip label={t('windowBack')} side="bottom" delayMs={500} portal>
       <button type="button" disabled={!back} aria-label={t('windowBack')} onClick={() => go(-1)}>
-        <IconChevronLeftOutlineRegular size={16} />
+        <IconChevronLeftOutlineRegular size={18} />
       </button>
     </Tooltip>
     <Tooltip label={t('windowForward')} side="bottom" delayMs={500} portal>
       <button type="button" disabled={!forward} aria-label={t('windowForward')} onClick={() => go(1)}>
-        <IconChevronRightOutlineRegular size={16} />
+        <IconChevronRightOutlineRegular size={18} />
       </button>
     </Tooltip>
   </div>

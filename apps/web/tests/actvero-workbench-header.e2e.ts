@@ -2,7 +2,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { chromium, type Browser } from 'playwright'
+import { chromium, type Browser, type Locator, type Page } from 'playwright'
 import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -12,6 +12,24 @@ import { connectFreshWorkspace, newEnglishPage } from './support.ts'
 
 declare global {
   interface Window { __headerTarget: { waiting: boolean; finish(): void } }
+}
+
+async function setPlatform(page: Page, platform: string) {
+  await page.addInitScript(({ value, snapshot }) => {
+    if (value !== 'browser') Object.assign(window, { dshDesktop: { protocolVersion: 1,
+      keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
+      shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
+        subscribe: () => () => {}, recording: async () => {},
+        edit: async () => ({ status: 'not-ready', snapshot }) },
+    } })
+    const mark = () => {
+      document.documentElement.toggleAttribute('data-windows-titlebar', value === 'windows')
+      if (value === 'darwin') document.documentElement.dataset.platform = value
+      document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
+    }
+    if (document.documentElement === null) document.addEventListener('DOMContentLoaded', mark, { once: true })
+    else mark()
+  }, { value: platform, snapshot: initialShortcutConfig() })
 }
 
 it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole business region and restores the default on another workbench', async (platform) => {
@@ -70,21 +88,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     }
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
-    await page.addInitScript(({ value, snapshot }) => {
-      if (value !== 'browser') Object.assign(window, { dshDesktop: { protocolVersion: 1,
-        keyboard: { subscribe: () => () => {}, closeWindow: async () => {} },
-        shortcuts: { get: async () => ({ ...snapshot, status: 'ready' }),
-          subscribe: () => () => {}, recording: async () => {},
-          edit: async () => ({ status: 'not-ready', snapshot }) },
-      } })
-      const mark = () => {
-        document.documentElement.toggleAttribute('data-windows-titlebar', value === 'windows')
-        if (value === 'darwin') document.documentElement.dataset.platform = value
-        document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
-      }
-      if (document.documentElement === null) document.addEventListener('DOMContentLoaded', mark, { once: true })
-      else mark()
-    }, { value: platform, snapshot: initialShortcutConfig() })
+    await setPlatform(page, platform)
     const log = watchConsole(page)
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
     await page.setViewportSize({ width: 1440, height: 900 })
@@ -98,6 +102,9 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       return [box.x, box.y]
     }))
     await home.waitFor()
+    const glyphColor = (button: Locator) => button.locator('svg').evaluate(el => getComputedStyle(el).color)
+    const workbenches = rail.getByRole('button', { name: 'Workbenches', exact: true })
+    const capabilities = rail.getByRole('button', { name: 'Capability Center', exact: true })
     const toolbar = page.locator('[data-navigation-toolbar]')
     const toolbarButton = toolbar.locator('button[aria-controls="sidebar-conversations"]')
     const divider = page.locator('[data-navigation-column]')
@@ -122,6 +129,38 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
     const chrome = await geometry()
     if (platform === 'darwin') expect(chrome[0]).toBe(88)
     if (platform === 'darwin') {
+      expect(chrome[2]).toBe(50)
+      const newSession = conversations.getByRole('button', { name: 'New session', exact: true })
+      for (const colorScheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme })
+        await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+        const idleColor = await glyphColor(conversations.getByRole('button', { name: 'Add workspace', exact: true }))
+        const selectedColor = await glyphColor(home)
+        expect(idleColor).not.toBe(selectedColor)
+        for (const entry of [workbenches, capabilities]) {
+          expect(await glyphColor(entry)).toBe(idleColor)
+          await entry.hover()
+          expect(await glyphColor(entry)).toBe(selectedColor)
+          await page.mouse.move(650, 200)
+        }
+        const fill = () => newSession.evaluate(el => getComputedStyle(el).backgroundColor)
+        const rest = await fill()
+        expect(rest).not.toBe('rgba(0, 0, 0, 0)')
+        await newSession.hover()
+        expect(await fill()).not.toBe(rest)
+        await page.mouse.move(650, 200)
+      }
+      await page.emulateMedia({ colorScheme: 'light' })
+      expect((await newSession.boundingBox())!.height).toBe(38)
+      expect(await newSession.evaluate((el) => {
+        const icon = el.querySelector('svg')!.getBoundingClientRect()
+        const label = el.querySelector('svg + span')!.getBoundingClientRect()
+        const button = el.getBoundingClientRect()
+        return Math.abs((icon.left + label.right - button.left - button.right) / 2)
+      })).toBeLessThan(1)
+      await newSession.press('Enter')
+      await page.locator('[data-conversation-content][data-content-phase="hero"]').waitFor()
+      await page.screenshot({ path: join(process.cwd(), '.artifacts/new-session-docked-toolbar.png'), clip: { x: 0, y: 0, width: 390, height: 138 } })
       const dockEdge = () => conversations.evaluate(el => el.getBoundingClientRect().right)
       const forwardEdge = () => forward.evaluate(el => el.getBoundingClientRect().right)
       const initialEdge = await dockEdge()
@@ -137,7 +176,15 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       await conversations.waitFor({ state: 'hidden' })
       await toolbar.getByRole('button', { name: 'New session', exact: true }).waitFor()
       expect(await edges()).toEqual(['0px', '0px', '0px'])
-      expect(await page.locator('[data-conversation-content]').evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('0px')
+      const newChat = page.locator('[data-conversation-content][data-content-phase="hero"]')
+      await newChat.waitFor()
+      expect(await newChat.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return [style.borderTopLeftRadius, style.borderBottomLeftRadius, style.borderTopStyle, style.borderLeftStyle]
+      })).toEqual(['12px', '0px', 'solid', 'solid'])
+      expect((await newChat.boundingBox())!.y).toBe((await divider.boundingBox())!.y)
+      expect(await divider.evaluate(el => getComputedStyle(el, '::after').width)).toBe('0px')
+      await page.screenshot({ path: join(process.cwd(), '.artifacts/new-session-collapsed-corner.png'), clip: { x: 0, y: 0, width: 390, height: 138 } })
       expect((await back.boundingBox())!.x).toBe(chrome[0]! + 36)
       await toolbarButton.click()
       await conversations.waitFor()
@@ -291,7 +338,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       if (platform === 'darwin') {
         const body = page.locator('[data-shell-panel-body]')
         expect(await body.evaluate(el => getComputedStyle(el).borderTopLeftRadius)).toBe('12px')
-        expect((await body.boundingBox())!.y).toBeCloseTo((await row.boundingBox())!.y + geometry.height, 0)
+        expect((await body.boundingBox())!.y).toBe(chrome[2])
       }
       expect(geometry.top).toBe(0)
       expect(geometry.height).toBeGreaterThanOrEqual(50)
@@ -455,7 +502,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
   }
 })
 
-it('returns to earlier conversations on Home after visiting another module', async () => {
+it.each(['browser', 'darwin'])('%s returns to earlier conversations on Home after visiting another module', async (platform) => {
   const root = await mkdtemp(join(tmpdir(), 'home-history-'))
   let scaffold: Awaited<ReturnType<typeof launchWebScaffold>> | undefined
   let browser: Browser | undefined
@@ -468,6 +515,7 @@ it('returns to earlier conversations on Home after visiting another module', asy
     const second = await seedSession(scaffold, seed, 'navigation-second')
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
+    await setPlatform(page, platform)
     await page.goto(scaffold.authenticatedUrl)
     await page.getByRole('button', { name: 'View options' }).click()
     await page.getByRole('menuitem', { name: 'In one list', exact: true }).click()
@@ -478,6 +526,10 @@ it('returns to earlier conversations on Home after visiting another module', asy
     await toggle.click()
     const body = page.locator(`[data-sidebar-collapsed] [data-conversation-session="${second}"][data-content-phase="active"]`)
     await body.waitFor()
+    if (platform === 'darwin') {
+      expect((await body.boundingBox())!.y).toBe(50)
+      expect((await page.locator('[data-navigation-column]').boundingBox())!.y).toBe(50)
+    }
     expect(await body.evaluate((el) => {
       const header = el.parentElement!.querySelector('header')!
       const style = getComputedStyle(el)
@@ -509,10 +561,36 @@ it('returns to earlier conversations on Home after visiting another module', asy
     await rail.getByRole('button', { name: 'Workbenches', exact: true }).click()
     await rail.getByRole('button', { name: 'Home', exact: true }).click()
     const toolbar = page.locator('[data-navigation-toolbar]')
-    await toolbar.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect.poll(() => row(first).getAttribute('aria-selected')).toBe('true')
-    await toolbar.getByRole('button', { name: 'Forward', exact: true }).click()
-    await expect.poll(() => row(second).getAttribute('aria-selected')).toBe('true')
+    const back = toolbar.getByRole('button', { name: 'Back', exact: true })
+    const forward = toolbar.getByRole('button', { name: 'Forward', exact: true })
+    const ink = (button: Locator) => button.locator('svg').evaluate(svg => getComputedStyle(svg).color)
+    const checkDirections = async (available: Locator, unavailable: Locator) => {
+      await expect.poll(() => available.isEnabled()).toBe(true)
+      expect(await unavailable.isDisabled()).toBe(true)
+      expect(await ink(available)).toBe(await ink(toggle))
+      expect(await ink(unavailable)).toBe(await ink(toggle))
+      expect(await available.evaluate(el => getComputedStyle(el).opacity)).toBe('1')
+      expect(await unavailable.evaluate(el => getComputedStyle(el).opacity)).toBe('0.4')
+    }
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+      await page.mouse.move(650, 200)
+      await checkDirections(back, forward)
+      if (platform === 'darwin' && colorScheme === 'light') {
+        await mkdir(join(process.cwd(), '.artifacts'), { recursive: true })
+        await toolbar.screenshot({ path: join(process.cwd(), '.artifacts/home-history-back-enabled.png') })
+      }
+      await back.press('Enter')
+      await expect.poll(() => row(first).getAttribute('aria-selected')).toBe('true')
+      await checkDirections(forward, back)
+      if (platform === 'darwin' && colorScheme === 'light') {
+        await back.blur()
+        await toolbar.screenshot({ path: join(process.cwd(), '.artifacts/home-history-forward-enabled.png') })
+      }
+      await forward.click()
+      await expect.poll(() => row(second).getAttribute('aria-selected')).toBe('true')
+    }
   } finally {
     try { await browser?.close() } finally {
       try { await scaffold?.close() } finally { await rm(root, { recursive: true, force: true }) }

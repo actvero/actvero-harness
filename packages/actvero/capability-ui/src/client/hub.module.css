@@ -7,11 +7,6 @@
 
 .tabs button:focus-visible { outline:2px solid var(--dsw-alias-label-tertiary); outline-offset:-2px; box-shadow:none; }
 
-/* Match the other primary navigation entries; keep hover-only background. */
-.sidebarEntryIcon { display:inline-flex; color:inherit; }
-button[aria-label]:has(.sidebarEntryIcon) { color:var(--dsw-alias-label-primary); background:transparent; }
-button[aria-label]:has(.sidebarEntryIcon):hover { background:var(--dsw-alias-interactive-bg-hover); }
-
 .navigation { grid-column:1; grid-row:1; min-width:0; align-self:start; }
 .back { gap:8px; min-height:36px; border-radius:10px; font-weight:500; }
 .back svg { color:var(--dsw-alias-label-secondary); }

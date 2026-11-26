@@ -305,7 +305,7 @@
   box-shadow: 0 0 0 .5px var(--dsw-alias-border-l2-darkmode-thin);
 }
 .frame[data-navigation-rail][data-sidebar-collapsed] .centerCol { border-radius: 0; }
-:global([data-platform='darwin']) .frame[data-navigation-rail] { --dsh-navigation-toolbar-height: 46px; }
+:global([data-platform='darwin']) .frame[data-navigation-rail] { --dsh-navigation-toolbar-height: 50px; }
 
 /* A module with its own native title row marks the body below that row as the framed surface. */
 .moduleSurface {
