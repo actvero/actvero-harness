@@ -408,8 +408,12 @@ button.crumb:hover {
   flex: none;
 }
 
-:global([data-navigation-home][data-sidebar-collapsed]) .root[data-phase='active'] .header {
+:global([data-navigation-home][data-sidebar-collapsed]) .header {
   border-bottom: 0;
+}
+
+:global([data-platform='darwin']) :global([data-navigation-home][data-sidebar-collapsed]) .headerBlank {
+  min-height: var(--dsh-navigation-toolbar-height);
 }
 
 /* Band below the header: the scrollport plus the width handles. Anchoring the

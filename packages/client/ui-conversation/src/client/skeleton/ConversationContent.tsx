@@ -192,7 +192,7 @@ export function ConversationContent(props: ConversationContentProps) {
       ref={setBody}
       className={clsx(css.body, props.variant === 'embedded' && css.embeddedBody)}
       data-conversation-content=""
-      data-shell-panel-body={props.variant === 'main' && phase === 'active' || undefined}
+      data-shell-panel-body={props.variant === 'main' || undefined}
       data-conversation-session={sessionId}
       data-conversation-region="chat"
       data-content-phase={phase}

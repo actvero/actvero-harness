@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconNewChatOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
+import { NewSessionButton } from './NewSessionButton.tsx'
 import type { SidebarRootComponentProps } from './contract/slots.ts'
 import { WindowNavigationControls } from './HeaderLeadingControls.tsx'
 import { PanelRow } from './PanelRow.tsx'
@@ -112,10 +112,7 @@ export function NavigationRail({ pane, usePanels, usePanelInfo, useShortcuts, se
       aria-label={t('home')} data-floating={floating || undefined}
       onPointerEnter={cancel} onPointerLeave={leave}
       onBlur={(event) => { if (preview && !event.currentTarget.contains(event.relatedTarget)) leave() }}>
-      <div className={css.tools}>
-        <button className={css.compose} type="button" data-dsh-sidebar-new-session="" aria-label={t('session.new.label')}
-          aria-keyshortcuts={shortcut?.aria} onClick={newSession}><IconNewChatOutlineMedium size={16} />{t('session.new')}</button>
-      </div>
+      <NewSessionButton wide t={t} shortcut={shortcut} onClick={newSession} />
       {renderSlot('sidebar.quickSwitcher', { wide: true, startSession })}
       {renderSlot('sidebar.workspaces', { wide: visible, expandSidebar: () => { cancel(); setPreview(true) } })}
     </aside>

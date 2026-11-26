@@ -19,14 +19,15 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  FishLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular, IconPanelLeftOutlineRegular,
-  isDarwinDesktop, Menu, ShortcutKeys, Tooltip,
+  FishLogo, IconAppsAddOutlineRegular, IconPanelLeftOutlineRegular,
+  isDarwinDesktop, Menu, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
   SidebarPanelActionsOwnerProps, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
 } from './contract/slots.ts'
 import { PanelRow, officialEntry } from './PanelRow.tsx'
+import { NewSessionButton } from './NewSessionButton.tsx'
 import { NavigationRail } from './NavigationRail.tsx'
 import { FIXED_PANEL_ID } from './panel-pins.ts'
 import css from './SidebarRoot.module.css'
@@ -273,27 +274,7 @@ function StandardSidebar({
         {!darwinDesktop && toggle}
       </div>
 
-      {/* The label fades before the hover/focus shortcut, including on translucent backgrounds. */}
-      <Tooltip label={t('session.new.label')} shortcutKeys={newShortcut?.keys} delayMs={500} side={captionTooltipSide} disabled={wide}>
-        <button
-          type="button"
-          className={css.newSession}
-          data-dsh-sidebar-new-session=""
-          aria-label={t('session.new.label')}
-          aria-keyshortcuts={newShortcut?.aria}
-          onClick={openNewSession}
-        >
-          <span className={css.newSessionLabelMask}><span className={css.newSessionContent}>
-            {wide
-              ? <IconNewChatOutlineMedium size={14} />
-              : <IconNewChatOutlineRegular size={windowsTitlebar ? 16 : 18} />}
-            {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
-          </span></span>
-          {wide && newShortcut !== undefined && newShortcut.keys.length > 0 && <span className={css.newSessionShortcut} aria-hidden="true">
-            <ShortcutKeys keys={newShortcut.keys} />
-          </span>}
-        </button>
-      </Tooltip>
+      <NewSessionButton wide={wide} t={t} shortcut={newShortcut} onClick={openNewSession} windowsTitlebar={windowsTitlebar} />
 
       {renderSlot('sidebar.quickSwitcher', { wide, startSession })}
 
