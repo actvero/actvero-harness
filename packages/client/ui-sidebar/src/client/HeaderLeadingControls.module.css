@@ -46,11 +46,8 @@
   background: transparent;
   cursor: pointer;
 }
-.controls[data-rail-controls] :global([data-window-history]) button:enabled {
-  color: var(--dsw-alias-label-primary);
-}
 .controls[data-rail-controls] button:disabled {
-  color: color-mix(in srgb, var(--dsw-alias-label-tertiary) 80%, var(--dsw-alias-bg-base));
+  color: color-mix(in srgb, var(--dsw-alias-label-secondary) 50%, var(--dsw-alias-bg-base));
   cursor: default;
 }
 @media (hover: hover) {

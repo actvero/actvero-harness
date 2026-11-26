@@ -2,7 +2,7 @@
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { chromium, type Browser, type Page } from 'playwright'
+import { chromium, type Browser, type Locator, type Page } from 'playwright'
 import { expect, it } from 'vitest'
 import type { WorkbenchId } from '@actvero/dsh-capability-ui'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -102,6 +102,9 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       return [box.x, box.y]
     }))
     await home.waitFor()
+    const glyphColor = (button: Locator) => button.locator('svg').evaluate(el => getComputedStyle(el).color)
+    const workbenches = rail.getByRole('button', { name: 'Workbenches', exact: true })
+    const capabilities = rail.getByRole('button', { name: 'Capability Center', exact: true })
     const toolbar = page.locator('[data-navigation-toolbar]')
     const toolbarButton = toolbar.locator('button[aria-controls="sidebar-conversations"]')
     const divider = page.locator('[data-navigation-column]')
@@ -131,6 +134,15 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
       for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme })
         await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+        const idleColor = await glyphColor(conversations.getByRole('button', { name: 'Add workspace', exact: true }))
+        const selectedColor = await glyphColor(home)
+        expect(idleColor).not.toBe(selectedColor)
+        for (const entry of [workbenches, capabilities]) {
+          expect(await glyphColor(entry)).toBe(idleColor)
+          await entry.hover()
+          expect(await glyphColor(entry)).toBe(selectedColor)
+          await page.mouse.move(650, 200)
+        }
         const fill = () => newSession.evaluate(el => getComputedStyle(el).backgroundColor)
         const rest = await fill()
         expect(rest).not.toBe('rgba(0, 0, 0, 0)')
@@ -207,12 +219,14 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
           const c = v / 255
           return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
         })
-        return { luminance: 0.2126 * r! + 0.7152 * g! + 0.0722 * b!, weight: parseFloat(icon.strokeWidth) }
+        return { color: icon.color, luminance: 0.2126 * r! + 0.7152 * g! + 0.0722 * b!, weight: parseFloat(icon.strokeWidth) }
       }))
       for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme })
         await page.waitForFunction(dark => document.body.hasAttribute('data-ds-dark-theme') === dark, colorScheme === 'dark')
+        await page.mouse.move(650, 200)
         const [enabled, disabled] = await arrows()
+        expect(enabled!.color).toBe(await glyphColor(workbenches))
         const lighter = colorScheme === 'light' ? disabled! : enabled!
         const darker = colorScheme === 'light' ? enabled! : disabled!
         expect((lighter.luminance + 0.05) / (darker.luminance + 0.05)).toBeGreaterThan(2.5)
