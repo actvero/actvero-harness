@@ -227,6 +227,7 @@ it.each(['browser', 'darwin', 'windows'])('%s gives a custom header the whole bu
         await page.mouse.move(650, 200)
         const [enabled, disabled] = await arrows()
         expect(enabled!.color).toBe(await glyphColor(workbenches))
+        expect(disabled!.color).toBe(colorScheme === 'light' ? 'rgb(225, 229, 238)' : 'rgb(67, 69, 74)')
         const lighter = colorScheme === 'light' ? disabled! : enabled!
         const darker = colorScheme === 'light' ? enabled! : disabled!
         expect((lighter.luminance + 0.05) / (darker.luminance + 0.05)).toBeGreaterThan(2.5)

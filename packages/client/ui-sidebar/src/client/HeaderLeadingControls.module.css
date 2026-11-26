@@ -47,7 +47,7 @@
   cursor: pointer;
 }
 .controls[data-rail-controls] button:disabled {
-  color: color-mix(in srgb, var(--dsw-alias-label-secondary) 50%, var(--dsw-alias-bg-base));
+  color: var(--dsw-alias-label-dimmed);
   cursor: default;
 }
 @media (hover: hover) {
